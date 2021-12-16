@@ -1,20 +1,141 @@
 name: 'Integration tests'
 description: 'Runs Jahia integration tests on an Ubuntu server'
 inputs:
+  module_id:
+    description: 'Module ID'
+    required: true
+  nexus_username:
+    description: 'Nexus Username'
+    required: true
+  nexus_password:
+    description: 'Nexus Password'
+    required: true
   docker_username:
-    description: 'Usernanme to use with docker login'
+    description: 'Docker login username'
     required: true
   docker_password:
-    description: 'Password to use with docker login'
+    description: 'Docker login password'
     required: true
+  docker_compose_file:
+    description: 'Filename for docker-compose yaml file'
+    default: 'docker-compose.yml'
+  tests_path:
+    description: 'Folder containing the docker-compose.yml'
+    default: 'tests/'
+  tests_manifest:
+    description: 'Manifest contraining the provisioning script'
+    required: true
+  jahia_image:
+    description: 'Full name of a Jahia image (org/repo:tag)'
+    default: ''
+  jahia_superuser_password:
+    description: 'Jahia root password'
+    default: 'root1234'
+  jahia_cluster_enabled:
+    description: 'Run Jahia in cluster mode'
+    default: false
+  jahia_image:
+    description: 'Full name of the Tests image (org/repo:tag)'
+    default: 'module-tests'
+  tests_container_name:
+    description: 'Name of the tests container in the docker-compose file'
+    default: 'cypress'
+  tests_container_branch:
+    description: 'Branch containing the tests (if different from current)'
+    default: 'cypress'
+  jahia_license:
+    description: 'Base64 encoded License'
+    default: ''
+  jcustomer_image:
+    description: 'Full name a JCustomer image (org/repo:tag)'
+    default: ''
+  elasticsearch_image:
+    description: 'Full name of an Elasticsearch image (org/repo:tag)'
+    default: ''
+  should_skip_artifacts:
+    description: 'Should build artifacts be copied in the test container ?'
+    default: false    
+  should_skip_testrail:
+    description: 'Should the submission to Testrail be skipped ?'
+    default: true
+  should_skip_notifications:
+    description: 'Should slack notifications be skipped ?'
+    default: true
+  slack_channel_id_notifications:
+    description: 'Channel id to be used for failure notifications'
+    default: ''    
+  slack_channel_id_notifications_all:
+    description: 'Channel id to be used for all notifications (failure and success)'
+    default: ''
+  slack_channel_id_notifications_all:
+    description: 'Channel id to be used for all notifications (failure and success)'
+    default: ''
+  slack_client_token:
+    description: 'The slack token used to post the messages'
+    default: ''
+  slack_webhook_notifications:
+    description: 'Webhook to be used for failure notifications'
+    default: ''
+  slack_webhook_notifications_all:
+    description: 'Webhook to be used for all notifications (failure and success)'
+    default: ''
+  should_skip_zencrepes:
+    description: 'Should zencrepes notifications be skipped ?'
+    default: false
+  should_build_testsimage:
+    description: 'Should the orb attend to build the test image ?'
+    default: true
+  zencrepes_secret:
+    description: 'ZenCrepes Webhook secret'
+    default: ''
+  incident_pagerduty_api_key:
+    description: 'Pageduty API key to create incidents'
+    default: ''
+  incident_pagerduty_reporter_email:
+    description: 'Pageduty Reporter email to create incident. That email must correspond to a valid user in the PagerDuty tenant'
+    default: ''
+  incident_pagerduty_reporter_id:
+    description: 'Pageduty Reporter id to create incident. This user will first be assigned to the ticket when --pdTwoStepsAssign is provided'
+    default: ''
+  incident_google_spreadsheet_id:
+    description: 'Google Spreadsheet ID of the spreadsheet containing the incident mapping'
+    default: ''
+  incident_google_client_email:
+    description: 'Google Client email to allow access to Google API'
+    default: ''
+  incident_google_api_key_base64:
+    description: 'Google base64 encoded private key to allow access to Google API'
+    default: ''
+  testrail_project:
+    description: 'Testrail Project to send data to'
+    default: 'Default'    
+  testrail_milestone:
+    description: 'Milestone to be used when submitting the results to Testrail'
+    default: 'Default'
+  testrail_username:
+    description: 'Testrail Username'
+    default: ''
+  testrail_password:
+    description: 'Testrail Password'
+    default: ''
+  ci_startup_script:
+    description: 'Startup script to use in-lieu of docker-compose up'
+    default: 'ci.startup.sh'
+  ci_postrun_script:
+    description: 'Script to run prior to saving the artifacts'
+    default: 'ci.postrun.sh'    
 runs:
   using: "composite"
   steps:
+    - run: ${{ github.action_path }}/setup.sh
+      shell: bash
+    - run: ${{ github.action_path }}/system-status.sh
+      shell: bash      
     - run: echo "[TODO] Set environment variables from parameters"
       shell: bash
     - run: echo "[TODO] Displaying important environment variables"
       shell: bash
     - run: mkdir -p tests/artifacts
       shell: bash
-    - run: echo ${{ inputs.docker_password }} | docker login -u ${{ inputs.docker_username }} --password-stdin
+    - run: echo "${{ inputs.docker_password }}" | docker login -u "${{ inputs.docker_username }}" --password-stdin
       shell: bash
