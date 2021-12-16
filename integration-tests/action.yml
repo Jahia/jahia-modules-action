@@ -34,7 +34,7 @@ inputs:
   jahia_cluster_enabled:
     description: 'Run Jahia in cluster mode'
     default: false
-  jahia_image:
+  tests_image:
     description: 'Full name of the Tests image (org/repo:tag)'
     default: 'module-tests'
   tests_container_name:
