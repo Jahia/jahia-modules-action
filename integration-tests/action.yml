@@ -16,5 +16,5 @@ runs:
       shell: bash
     - run: mkdir -p tests/artifacts
       shell: bash
-    - run: echo ${{ inputs.who-to-docker_password}} | docker login -u ${{ inputs.who-to-docker_username }} --password-stdin
+    - run: echo ${{ inputs.docker_password} | docker login -u ${{ inputs.docker_username }} --password-stdin
       shell: bash
