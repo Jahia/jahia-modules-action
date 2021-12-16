@@ -1,0 +1,20 @@
+name: 'Integration tests'
+description: 'Runs Jahia integration tests on an Ubuntu server'
+inputs:
+  docker_username:
+    description: 'Usernanme to use with docker login'
+    required: true
+  docker_password:
+    description: 'Password to use with docker login'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - run: echo "[TODO] Set environment variables from parameters"
+      shell: bash
+    - run: echo "[TODO] Displaying important environment variables"
+      shell: bash
+    - run: mkdir -b tests/artifacts
+      shell: bash
+    - run: echo ${{ inputs.who-to-docker_password}} | docker login -u ${{ inputs.who-to-docker_username }} --password-stdin
+      shell: bash
