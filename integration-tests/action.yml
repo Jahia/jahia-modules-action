@@ -14,7 +14,7 @@ runs:
       shell: bash
     - run: echo "[TODO] Displaying important environment variables"
       shell: bash
-    - run: mkdir -b tests/artifacts
+    - run: mkdir -p tests/artifacts
       shell: bash
     - run: echo ${{ inputs.who-to-docker_password}} | docker login -u ${{ inputs.who-to-docker_username }} --password-stdin
       shell: bash
