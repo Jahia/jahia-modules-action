@@ -272,6 +272,7 @@ runs:
         cd ${{ inputs.tests_path }}
         export DOCKER_CLIENT_TIMEOUT=120
         export COMPOSE_HTTP_TIMEOUT=120
+        ls -lah
         . ./set-env.sh
         if [[ -f "${{ inputs.ci_postrun_script }}" ]]; then
           echo "Postrun script is present"
