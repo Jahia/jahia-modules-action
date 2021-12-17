@@ -67,9 +67,6 @@ inputs:
   slack_channel_id_notifications_all:
     description: 'Channel id to be used for all notifications (failure and success)'
     default: ''
-  slack_channel_id_notifications_all:
-    description: 'Channel id to be used for all notifications (failure and success)'
-    default: ''
   slack_client_token:
     description: 'The slack token used to post the messages'
     default: ''
