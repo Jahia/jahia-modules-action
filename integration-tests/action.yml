@@ -131,6 +131,11 @@ runs:
       with:
         node-version: 'lts/*'
     - run: | 
+        echo "Install needed packages"
+        npm install -g jahia-reporter
+      shell: bash        
+    - run: | 
+        echo "Set environment variables from parameters"
         echo "MANIFEST=${{ inputs.tests_manifest }}" >> $GITHUB_ENV
         echo "JAHIA_IMAGE=${{ inputs.jahia_image }}" >> $GITHUB_ENV
         echo "JAHIA_LICENSE=${{ inputs.jahia_license }}" >> $GITHUB_ENV
@@ -142,14 +147,11 @@ runs:
         echo "NEXUS_PASSWORD=${{ inputs.jahia_image }}" >> $GITHUB_ENV
         echo "JAHIA_IMAGE=${{ inputs.nexus_password }}" >> $GITHUB_ENV
       shell: bash
-    - run: ${{ github.action_path }}/setup.sh
-      shell: bash 
     - run: |
-        echo "Display important system information and environment variables"
+        echo "Display important versions and environment variables"
         echo "node -v: $(node -v)"
         echo "npm -v: $(npm -v)"
         echo "jahia-reporter -v: $(jahia-reporter -v)"
-
         echo "Displaying important environment variables"
         echo "MANIFEST=${MANIFEST}"
         echo "JAHIA_IMAGE=${JAHIA_IMAGE}"
@@ -157,11 +159,32 @@ runs:
         echo "JCUSTOMER_IMAGE=${JCUSTOMER_IMAGE}"
         echo "ELASTICSEARCH_IMAGE=${ELASTICSEARCH_IMAGE}"        
       shell: bash      
-    - run: echo "[TODO] Set environment variables from parameters"
-      shell: bash
-    - run: echo "[TODO] Displaying important environment variables"
-      shell: bash
-    - run: mkdir -p tests/artifacts
+    - run: |
+        echo "Prepare export folder"
+        mkdir -p ${{ inputs.tests_path }}artifacts
       shell: bash
     - run: echo "${{ inputs.docker_password }}" | docker login -u "${{ inputs.docker_username }}" --password-stdin
+      shell: bash
+    - run: |
+        if [ ${{ inputs.should_skip_artifacts }} == false ]; then
+          echo "Preparing build artifacts"
+          find . -type f -path '*/target/*-SNAPSHOT.jar' -exec cp '{}' ${{ inputs.tests_path }}artifacts/ ';' || :
+          if [ -d ./build-dependencies/ ]; then
+            mkdir -p ${{ inputs.tests_path }}artifacts/build-dependencies
+            cp ./build-dependencies/* ${{ inputs.tests_path }}artifacts/build-dependencies/
+            echo "Content of build-dependencies"
+            ls -lah ${{ inputs.tests_path }}artifacts/build-dependencies/
+          fi
+          ls -lah ${{ inputs.tests_path }}artifacts
+        fi   
+      shell: bash
+    - run: |
+        if [ ${{ inputs.should_build_testsimage }} == true ]; then
+          cd ${{ inputs.tests_path }}
+          if [[ "${{ inputs.tests_container_branch }}" != "" ]]; then
+            git checkout ${{ inputs.tests_container_branch }}
+          fi
+          docker build -t ${{ inputs.tests_image }} .
+          docker save -o tests_image.tar ${{ inputs.tests_image }}
+        fi    
       shell: bash
