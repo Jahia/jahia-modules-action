@@ -388,3 +388,10 @@ runs:
       run: |
         rm -rf ${{ inputs.tests_path }}artifacts/results/xml_reports
       shell: bash
+
+    - name: Archive code coverage results
+      uses: actions/upload-artifact@v2
+      with:
+        name: integration-tests-results
+        path: ${{ inputs.tests_path }}artifacts/results/
+        retention-days: 7
