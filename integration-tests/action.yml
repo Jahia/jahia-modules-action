@@ -130,16 +130,15 @@ runs:
     - uses: actions/setup-node@v2
       with:
         node-version: 'lts/*'
-    - run: | 
-        echo "Install needed packages"
-        npm install -g jahia-reporter
+    - name: "Install @jahia/jahia-reporter"
+      run: | 
+        npm install -g @jahia/jahia-reporter
       shell: bash
 
     # Set the environment variables necessary for the docker-compose run
     # These are declared here to avoid having to repeat in multiple steps
     - name: Set environment variables from parameters
       run: |
-        echo "Set environment variables from parameters"
         echo "MANIFEST=${{ inputs.tests_manifest }}" >> $GITHUB_ENV
         echo "JAHIA_IMAGE=${{ inputs.jahia_image }}" >> $GITHUB_ENV
         echo "JAHIA_LICENSE=${{ inputs.jahia_license }}" >> $GITHUB_ENV
@@ -151,8 +150,8 @@ runs:
         echo "NEXUS_PASSWORD=${{ inputs.jahia_image }}" >> $GITHUB_ENV
         echo "JAHIA_IMAGE=${{ inputs.nexus_password }}" >> $GITHUB_ENV
       shell: bash
-    - run: |
-        echo "Display important versions and environment variables"
+    - name: Display important versions and environment variables
+      run: |
         echo "node -v: $(node -v)"
         echo "npm -v: $(npm -v)"
         echo "jahia-reporter -v: $(jahia-reporter -v)"
@@ -163,18 +162,19 @@ runs:
         echo "JCUSTOMER_IMAGE=${JCUSTOMER_IMAGE}"
         echo "ELASTICSEARCH_IMAGE=${ELASTICSEARCH_IMAGE}"        
       shell: bash      
-    - run: |
-        echo "Prepare export folder"
+    - name: Prepare export folder
+      run: |
         mkdir -p ${{ inputs.tests_path }}artifacts
       shell: bash
   
     # Login to the docker registry is needed to access some images (snapshots, ...)
-    - run: echo "${{ inputs.docker_password }}" | docker login -u "${{ inputs.docker_username }}" --password-stdin
+    - name: Docker login
+      run: echo "${{ inputs.docker_password }}" | docker login -u "${{ inputs.docker_username }}" --password-stdin
       shell: bash
 
-    - run: |
+    - name: Preparing build artifacts
+      run: |
         if [ ${{ inputs.should_skip_artifacts }} == false ]; then
-          echo "Preparing build artifacts"
           find . -type f -path '*/target/*-SNAPSHOT.jar' -exec cp '{}' ${{ inputs.tests_path }}artifacts/ ';' || :
           if [ -d ./build-dependencies/ ]; then
             mkdir -p ${{ inputs.tests_path }}artifacts/build-dependencies
@@ -189,9 +189,9 @@ runs:
     # We always build the test container from scratch
     # Docker layer caching makes this quick if it was already previously built
     # To test a previous release, a specific branch can be provided      
-    - run: |
+    - name: Build the tests image
+      run: |
         if [ ${{ inputs.should_build_testsimage }} == true ]; then
-          echo "Build the tests image"
           cd ${{ inputs.tests_path }}
           if [[ "${{ inputs.tests_container_branch }}" != "" ]]; then
             git checkout ${{ inputs.tests_container_branch }}
@@ -202,8 +202,8 @@ runs:
       shell: bash
 
     # Pull the latest version of ${JAHIA_IMAGE}  
-    - run: |
-        echo "Pull the latest version of Jahia and print docker images cache to console"
+    - name: Pull the latest version of Jahia and print docker images cache to console
+      run: |
         cd ${{ inputs.tests_path }}
         . ./set-env.sh
         echo "List of docker images in local cache PRIOR pull" > ./artifacts/docker.log
@@ -226,9 +226,9 @@ runs:
 
     # Using abort-on-container-exit will exit on first container failure, which
     # for us will be the test container
-    - run: |
+    - name: Spin-up the containers
+      run: |
         cd ${{ inputs.tests_path }}
-        echo "Spin-up the containers"
         export DOCKER_CLIENT_TIMEOUT=120
         export COMPOSE_HTTP_TIMEOUT=120
         . ./set-env.sh
@@ -240,8 +240,9 @@ runs:
         fi         
       shell: bash  
 
-    - run: |
-        echo "Export containers artifacts (reports, secreenshots, videos)"
+    - name: Export containers artifacts (reports, secreenshots, videos)
+      if: always()
+      run: |
         cd ${{ inputs.tests_path }}
         docker cp ${{ inputs.tests_container_name }}:/home/jahians/results ./artifacts         
       shell: bash       
@@ -249,8 +250,9 @@ runs:
     # Running logs with -t adds a timestamp, this might feel redundant with the timestamp provided
     # by directly jahia but this allows for easy comparison between various containers that might
     # have their timezone set differently
-    - run: |
-        echo "Export containers logs"
+    - name: Export containers logs
+      if: always()
+      run: |
         cd ${{ inputs.tests_path }}
         docker-compose logs -t --tail="all" > ./artifacts/results/all-containers.log
         docker logs jahia > ./artifacts/results/jahia.log
@@ -258,8 +260,9 @@ runs:
         cp ./artifacts/docker.log ./artifacts/results/       
       shell: bash
 
-    - run: |
-        echo "Analyze Test results"
+    - name: Analyze Test results
+      if: always()
+      run: |
         cd ${{ inputs.tests_path }}
         if [[ ! -e ./artifacts/results/test_success ]]; then
           echo "More than one failure found, sending exit signal"
@@ -270,7 +273,9 @@ runs:
     # If a ci.postrun.sh script is present, this script is executed
     # The main purpose of this script is to export additional artifacts,
     # capture logs from other containers, ...    
-    - run: |
+    - name: Execute Postrun script is present
+      if: always()
+      run: |
         cd ${{ inputs.tests_path }}
         export DOCKER_CLIENT_TIMEOUT=120
         export COMPOSE_HTTP_TIMEOUT=120
@@ -279,4 +284,107 @@ runs:
           echo "Postrun script is present"
           bash ${{ inputs.ci_postrun_script }}
         fi      
+      shell: bash
+
+    # Once all is executed, results are submitted to external platforms
+    # Testrail report and Slack (failure only) notifications are sent during scheduled executions or merged into the main branch 
+    - name: Publish results to testrail
+      if: always()
+      run: |
+        if [ ${{ inputs.should_skip_testrail }} == false ] || [ ${{ inputs.primary_release_branch }} == $CIRCLE_BRANCH ]; then
+          cd ${{ inputs.tests_path }}
+          if [ "${{ inputs.parent_executor }}" == "machine" ]; then
+              echo "Running in a machine executor"
+              export NVM_DIR="/opt/circleci/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+              nvm use --lts
+          fi
+          jahia-reporter testrail \
+            --testrailUsername=${${{ inputs.testrail_username }}} \
+            --testrailPassword=${${{ inputs.testrail_password }}} \
+            --sourcePath="artifacts/results/xml_reports" \
+            --sourceType="xml" \
+            --projectName="${{ inputs.testrail_project }}" \
+            --milestone="${{ inputs.testrail_milestone }}" \
+            --defaultRunDescription="This test was executed on circleci, $CIRCLE_BUILD_URL"
+        fi    
+      shell: bash      
+
+    # See https://theoephraim.github.io/node-google-spreadsheet/#/getting-started/authentication for Google Auth setup
+    - name: Create incident in PagerDuty
+      if: failure()
+      run: |
+        if [ ${{ inputs.primary_release_branch }} == $CIRCLE_BRANCH ] || [ master == $CIRCLE_BRANCH ]; then
+          cd ${{ inputs.tests_path }}
+          if [ "${{ inputs.parent_executor }}" == "machine" ]; then
+              echo "Running in a machine executor"
+              export NVM_DIR="/opt/circleci/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+              nvm use --lts
+          fi
+          jahia-reporter pagerduty:incident \
+            --sourcePath="artifacts/results/xml_reports" \
+            --sourceType="xml" \
+            --pdApiKey=${${{ inputs.incident_pagerduty_api_key }}} \
+            --pdReporterEmail=${${{ inputs.incident_pagerduty_reporter_email }}} \
+            --pdReporterId=${${{ inputs.incident_pagerduty_reporter_id }}} \
+            --pdTwoStepsAssign \
+            --googleSpreadsheetId=${${{ inputs.incident_google_spreadsheet_id }}} \
+            --googleClientEmail=${${{ inputs.incident_google_client_email }}} \
+            --googleApiKey=${${{ inputs.incident_google_api_key_base64 }}} \
+            --service=${{ inputs.module_id }} \
+            --sourceUrl=$CIRCLE_BUILD_URL
+        fi  
+      shell: bash 
+
+    - name: Send Notifications to Slack
+      if: always()
+      run: |
+        if [ ${{ inputs.should_skip_notifications }} == false ] || [ ${{ inputs.primary_release_branch }} == $CIRCLE_BRANCH ]; then
+          cd ${{ inputs.tests_path }}
+          if [ "${{ inputs.parent_executor }}" == "machine" ]; then
+              echo "Running in a machine executor"
+              export NVM_DIR="/opt/circleci/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+              nvm use --lts
+          fi
+          jahia-reporter slack \
+            --channelId=${${{ inputs.slack_channel_id_notifications }}} \
+            --channelAllId=${${{ inputs.slack_channel_id_notifications_all }}} \
+            --token=${${{ inputs.slack_client_token }}} \
+            --skipSuccessful \
+            --sourcePath="artifacts/results/xml_reports" \
+            --sourceType="xml" \
+            --moduleFilepath="artifacts/results/installed-jahia-modules.json" \
+            --msgAuthor="CircleCI ($CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME)" \
+            --runUrl=$CIRCLE_BUILD_URL
+        fi 
+      shell: bash 
+
+    - name: Send Test data to https://zencrepes.jahia.com
+      if: always()
+      run: |
+        if [ ${{ inputs.should_skip_zencrepes }} == false ] || [ ${{ inputs.primary_release_branch }} == $CIRCLE_BRANCH ]; then
+          cd ${{ inputs.tests_path }}
+          if [ "${{ inputs.parent_executor }}" == "machine" ]; then
+              echo "Running in a machine executor"
+              export NVM_DIR="/opt/circleci/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+              nvm use --lts
+          fi
+          jahia-reporter zencrepes \
+            --webhook="https://zencrepes.jahia.com/zqueue/testing/webhook" \
+            --webhookSecret=${${{ inputs.zencrepes_secret }}} \
+            --sourcePath="artifacts/results/xml_reports" \
+            --sourceType="xml" \
+            --moduleFilepath="artifacts/results/installed-jahia-modules.json" \
+            --name="${{ inputs.module_id }}" \
+            --runUrl=$CIRCLE_BUILD_URL
+        fi
+      shell: bash
+
+    - name: remove xml results folder
+      if: always()
+      run: |
+        rm -rf ${{ inputs.tests_path }}artifacts/results/xml_reports
       shell: bash
