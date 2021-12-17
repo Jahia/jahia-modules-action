@@ -121,15 +121,16 @@ inputs:
   ci_postrun_script:
     description: 'Script to run prior to saving the artifacts'
     default: 'ci.postrun.sh'
-
+defaults:
+  run:
+    shell: bash
 runs:
   using: "composite"
   steps:
     - uses: actions/setup-node@v2
       with:
         node-version: 'lts/*'
-    - run: echo "MANIFEST=abcd" >> $GITHUB_ENV
-      shell: bash          
+    - run: echo "MANIFEST=${{ inputs.tests_manifest }}" >> $GITHUB_ENV
     - run: ${{ github.action_path }}/setup.sh
       shell: bash 
     - run: ${{ github.action_path }}/system-status.sh
