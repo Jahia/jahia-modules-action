@@ -130,11 +130,32 @@ runs:
     - uses: actions/setup-node@v2
       with:
         node-version: 'lts/*'
-    - run: echo "MANIFEST=${{ inputs.tests_manifest }}" >> $GITHUB_ENV
+    - run: | 
+        echo "MANIFEST=${{ inputs.tests_manifest }}" >> $GITHUB_ENV
+        echo "JAHIA_IMAGE=${{ inputs.jahia_image }}" >> $GITHUB_ENV
+        echo "JAHIA_LICENSE=${{ inputs.jahia_license }}" >> $GITHUB_ENV
+        echo "JAHIA_CLUSTER_ENABLED=${{ inputs.jahia_cluster_enabled }}" >> $GITHUB_ENV
+        echo "TESTS_IMAGE=${{ inputs.tests_image }}" >> $GITHUB_ENV
+        echo "JCUSTOMER_IMAGE=${{ inputs.jcustomer_image }}" >> $GITHUB_ENV
+        echo "ELASTICSEARCH_IMAGE=${{ inputs.elasticsearch_image }}" >> $GITHUB_ENV
+        echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
+        echo "NEXUS_PASSWORD=${{ inputs.jahia_image }}" >> $GITHUB_ENV
+        echo "JAHIA_IMAGE=${{ inputs.nexus_password }}" >> $GITHUB_ENV
       shell: bash
     - run: ${{ github.action_path }}/setup.sh
       shell: bash 
-    - run: ${{ github.action_path }}/system-status.sh
+    - run: |
+        echo "Display important system information and environment variables"
+        echo "node -v: $(node -v)"
+        echo "npm -v: $(npm -v)"
+        echo "jahia-reporter -v: $(jahia-reporter -v)"
+
+        echo "Displaying important environment variables"
+        echo "MANIFEST=${MANIFEST}"
+        echo "JAHIA_IMAGE=${JAHIA_IMAGE}"
+        echo "TESTS_IMAGE=${TESTS_IMAGE}"
+        echo "JCUSTOMER_IMAGE=${JCUSTOMER_IMAGE}"
+        echo "ELASTICSEARCH_IMAGE=${ELASTICSEARCH_IMAGE}"        
       shell: bash      
     - run: echo "[TODO] Set environment variables from parameters"
       shell: bash
