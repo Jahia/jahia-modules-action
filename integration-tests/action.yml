@@ -291,14 +291,8 @@ runs:
     - name: Publish results to testrail
       if: always()
       run: |
-        if [ ${{ inputs.should_skip_testrail }} == false ] || [ ${{ inputs.primary_release_branch }} == $CIRCLE_BRANCH ]; then
+        if [ ${{ inputs.should_skip_testrail }} == false ] || [ ${{ inputs.primary_release_branch }} == $GITHUB_REF ]; then
           cd ${{ inputs.tests_path }}
-          if [ "${{ inputs.parent_executor }}" == "machine" ]; then
-              echo "Running in a machine executor"
-              export NVM_DIR="/opt/circleci/.nvm"
-              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-              nvm use --lts
-          fi
           jahia-reporter testrail \
             --testrailUsername=${${{ inputs.testrail_username }}} \
             --testrailPassword=${${{ inputs.testrail_password }}} \
@@ -306,7 +300,7 @@ runs:
             --sourceType="xml" \
             --projectName="${{ inputs.testrail_project }}" \
             --milestone="${{ inputs.testrail_milestone }}" \
-            --defaultRunDescription="This test was executed on circleci, $CIRCLE_BUILD_URL"
+            --defaultRunDescription="This test was executed on Github Actions, $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
         fi    
       shell: bash      
 
@@ -314,14 +308,8 @@ runs:
     - name: Create incident in PagerDuty
       if: failure()
       run: |
-        if [ ${{ inputs.primary_release_branch }} == $CIRCLE_BRANCH ] || [ master == $CIRCLE_BRANCH ]; then
+        if [ ${{ inputs.primary_release_branch }} == $GITHUB_REF ] || [ master == $GITHUB_REF ]; then
           cd ${{ inputs.tests_path }}
-          if [ "${{ inputs.parent_executor }}" == "machine" ]; then
-              echo "Running in a machine executor"
-              export NVM_DIR="/opt/circleci/.nvm"
-              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-              nvm use --lts
-          fi
           jahia-reporter pagerduty:incident \
             --sourcePath="artifacts/results/xml_reports" \
             --sourceType="xml" \
@@ -333,21 +321,15 @@ runs:
             --googleClientEmail=${${{ inputs.incident_google_client_email }}} \
             --googleApiKey=${${{ inputs.incident_google_api_key_base64 }}} \
             --service=${{ inputs.module_id }} \
-            --sourceUrl=$CIRCLE_BUILD_URL
+            --sourceUrl=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
         fi  
       shell: bash 
 
     - name: Send Notifications to Slack
       if: always()
       run: |
-        if [ ${{ inputs.should_skip_notifications }} == false ] || [ ${{ inputs.primary_release_branch }} == $CIRCLE_BRANCH ]; then
+        if [ ${{ inputs.should_skip_notifications }} == false ] || [ ${{ inputs.primary_release_branch }} == $GITHUB_REF ]; then
           cd ${{ inputs.tests_path }}
-          if [ "${{ inputs.parent_executor }}" == "machine" ]; then
-              echo "Running in a machine executor"
-              export NVM_DIR="/opt/circleci/.nvm"
-              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-              nvm use --lts
-          fi
           jahia-reporter slack \
             --channelId=${${{ inputs.slack_channel_id_notifications }}} \
             --channelAllId=${${{ inputs.slack_channel_id_notifications_all }}} \
@@ -356,22 +338,16 @@ runs:
             --sourcePath="artifacts/results/xml_reports" \
             --sourceType="xml" \
             --moduleFilepath="artifacts/results/installed-jahia-modules.json" \
-            --msgAuthor="CircleCI ($CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME)" \
-            --runUrl=$CIRCLE_BUILD_URL
+            --msgAuthor="Github Actions ($GITHUB_REPOSITORY)" \
+            --runUrl=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
         fi 
       shell: bash 
 
     - name: Send Test data to https://zencrepes.jahia.com
       if: always()
       run: |
-        if [ ${{ inputs.should_skip_zencrepes }} == false ] || [ ${{ inputs.primary_release_branch }} == $CIRCLE_BRANCH ]; then
+        if [ ${{ inputs.should_skip_zencrepes }} == false ] || [ ${{ inputs.primary_release_branch }} == $GITHUB_REF ]; then
           cd ${{ inputs.tests_path }}
-          if [ "${{ inputs.parent_executor }}" == "machine" ]; then
-              echo "Running in a machine executor"
-              export NVM_DIR="/opt/circleci/.nvm"
-              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-              nvm use --lts
-          fi
           jahia-reporter zencrepes \
             --webhook="https://zencrepes.jahia.com/zqueue/testing/webhook" \
             --webhookSecret=${${{ inputs.zencrepes_secret }}} \
@@ -379,7 +355,7 @@ runs:
             --sourceType="xml" \
             --moduleFilepath="artifacts/results/installed-jahia-modules.json" \
             --name="${{ inputs.module_id }}" \
-            --runUrl=$CIRCLE_BUILD_URL
+            --runUrl=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
         fi
       shell: bash
 
