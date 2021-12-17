@@ -131,6 +131,7 @@ runs:
       with:
         node-version: 'lts/*'
     - run: echo "MANIFEST=${{ inputs.tests_manifest }}" >> $GITHUB_ENV
+      shell: bash
     - run: ${{ github.action_path }}/setup.sh
       shell: bash 
     - run: ${{ github.action_path }}/system-status.sh
