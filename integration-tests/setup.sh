@@ -4,4 +4,4 @@ echo "Install jahia-reporter"
 npm install -g jahia-reporter
 
 echo "Exporting important environment variables"
-echo "export MANIFEST=\"${MANIFEST}\"" >> $BASH_ENV
+echo "export MANIFEST=abcd" >> $BASH_ENV
