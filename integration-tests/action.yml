@@ -254,7 +254,7 @@ runs:
         docker logs jahia > ./artifacts/results/jahia.log
         docker logs ${{ inputs.tests_container_name }} > ./artifacts/results/${{ inputs.tests_container_name }}.log
         cp ./artifacts/docker.log ./artifacts/results/       
-    shell: bash
+      shell: bash
 
     - run: |
         echo "Analyze Test results"
@@ -263,7 +263,7 @@ runs:
           echo "More than one failure found, sending exit signal"
           exit 1
         fi     
-    shell: bash      
+      shell: bash      
 
     # If a ci.postrun.sh script is present, this script is executed
     # The main purpose of this script is to export additional artifacts,
@@ -277,4 +277,4 @@ runs:
           echo "Postrun script is present"
           bash ${{ inputs.ci_postrun_script }}
         fi      
-    shell: bash
+      shell: bash
