@@ -4,6 +4,9 @@ inputs:
   module_id:
     description: 'Module ID'
     required: true
+  primary_release_branch:
+    description: 'Primary release branch'
+    default: 'main'
   nexus_username:
     description: 'Nexus Username'
     required: true
@@ -350,7 +353,7 @@ runs:
           cd ${{ inputs.tests_path }}
           jahia-reporter zencrepes \
             --webhook="https://zencrepes.jahia.com/zqueue/testing/webhook" \
-            --webhookSecret=${${{ inputs.zencrepes_secret }}} \
+            --webhookSecret=${{ inputs.zencrepes_secret }} \
             --sourcePath="artifacts/results/xml_reports" \
             --sourceType="xml" \
             --moduleFilepath="artifacts/results/installed-jahia-modules.json" \
@@ -366,6 +369,7 @@ runs:
       shell: bash
 
     - name: Archive code coverage results
+      if: always()
       uses: actions/upload-artifact@v2
       with:
         name: integration-tests-results
