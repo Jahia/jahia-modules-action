@@ -294,7 +294,7 @@ runs:
     - name: Publish results to testrail
       if: always()
       run: |
-        if [ ${{ inputs.should_skip_testrail }} == false ] || [ ${{ inputs.primary_release_branch }} == $GITHUB_REF ]; then
+        if [ ${{ inputs.should_skip_testrail }} == false ] || [ ${{ inputs.primary_release_branch }} == ${{ GITHUB_REF }} ]; then
           cd ${{ inputs.tests_path }}
           jahia-reporter testrail \
             --testrailUsername=${${{ inputs.testrail_username }}} \
@@ -311,7 +311,7 @@ runs:
     - name: Create incident in PagerDuty
       if: failure()
       run: |
-        if [ ${{ inputs.primary_release_branch }} == $GITHUB_REF ] || [ master == $GITHUB_REF ]; then
+        if [ ${{ inputs.primary_release_branch }} == ${{ GITHUB_REF }} ] || [ master == ${{ GITHUB_REF }} ]; then
           cd ${{ inputs.tests_path }}
           jahia-reporter pagerduty:incident \
             --sourcePath="artifacts/results/xml_reports" \
@@ -331,7 +331,7 @@ runs:
     - name: Send Notifications to Slack
       if: always()
       run: |
-        if [ ${{ inputs.should_skip_notifications }} == false ] || [ ${{ inputs.primary_release_branch }} == $GITHUB_REF ]; then
+        if [ ${{ inputs.should_skip_notifications }} == false ] || [ ${{ inputs.primary_release_branch }} == ${{ GITHUB_REF }} ]; then
           cd ${{ inputs.tests_path }}
           jahia-reporter slack \
             --channelId=${${{ inputs.slack_channel_id_notifications }}} \
@@ -349,7 +349,7 @@ runs:
     - name: Send Test data to https://zencrepes.jahia.com
       if: always()
       run: |
-        if [ ${{ inputs.should_skip_zencrepes }} == false ] || [ ${{ inputs.primary_release_branch }} == $GITHUB_REF ]; then
+        if [ ${{ inputs.should_skip_zencrepes }} == false ] || [ ${{ inputs.primary_release_branch }} == ${{ GITHUB_REF }} ]; then
           cd ${{ inputs.tests_path }}
           jahia-reporter zencrepes \
             --webhook="https://zencrepes.jahia.com/zqueue/testing/webhook" \
