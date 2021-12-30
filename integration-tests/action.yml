@@ -124,6 +124,9 @@ inputs:
   ci_postrun_script:
     description: 'Script to run prior to saving the artifacts'
     default: 'ci.postrun.sh'
+  node_version:
+    description: 'Version of node to install on the host'
+    default: 'lts/*'    
 defaults:
   run:
     shell: bash
@@ -132,7 +135,7 @@ runs:
   steps:
     - uses: actions/setup-node@v2
       with:
-        node-version: 'lts/*'
+        node-version: ${{ inputs.node_version }}
     - name: "Install @jahia/jahia-reporter"
       run: | 
         npm install -g @jahia/jahia-reporter

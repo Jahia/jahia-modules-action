@@ -39,14 +39,14 @@ runs:
     - name: Run yarn if package.json exists in module folder
       run: |
         if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
-          cd ${{ inputs.module_path >>
+          cd ${{ inputs.module_path }}
           yarn
         fi
       shell: bash
     - name: Run yarn if package.json exists in module folder
       run: |
         if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
-          cd ${{ inputs.tests_path >>
+          cd ${{ inputs.tests_path }}
           yarn
         fi
       shell: bash
@@ -56,14 +56,14 @@ runs:
       run: |
         if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
           cd ${{ inputs.module_path }}
-          yarn run lint --max-warnings << parameters.max_warning >>
+          yarn run lint --max-warnings ${{ inputs.max_warning }}
         fi
       shell: bash
     - name: Lint tests (javascript only)
       run: |
         if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
           cd ${{ inputs.tests_path }}
-          yarn run lint --max-warnings << parameters.max_warning >>
+          yarn run lint --max-warnings ${{ inputs.max_warning }}
         fi
       shell: bash
 
