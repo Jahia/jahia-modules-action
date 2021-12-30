@@ -130,8 +130,8 @@ defaults:
 runs:
   using: "composite"
   steps:
-    - name: Setup upterm session
-      uses: lhotari/action-upterm@v1
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
     - uses: actions/setup-node@v2
       with:
         node-version: 'lts/*'
