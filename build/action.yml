@@ -1,0 +1,56 @@
+name: 'Static Analysis'
+description: 'Performs static code analysis (linters, security)'
+inputs:
+  module_id:
+    description: 'Module ID'
+    required: true
+defaults:
+  run:
+    shell: bash
+runs:
+  using: "composite"
+  steps:
+    # Install node dependencies
+    - name: Build package
+      run: mvn -s .circleci/.circleci.settings.xml clean install
+      shell: bash
+
+    - name: Copy dependencies to provision artifacts
+      run: mvn -ntp -s .circleci/.circleci.settings.xml dependency:copy-dependencies -DexcludeTransitive=true -DincludeScope=provided -DincludeGroupIds=org.jahia.modules -DincludeTypes=jar
+      shell: bash
+
+    - name: Prepare artifacts
+      run: |
+        mkdir /tmp/artifacts/
+        find . -type f -path '*/target/*-SNAPSHOT*.jar' -exec cp '{}' /tmp/artifacts/ ';' || :
+        if [ -f target/*source-release.zip ]; then
+          echo "A source file is present, copying it to the artifacts folder"
+          cp target/*source-release.zip /tmp/artifacts/ || :
+        fi
+        if [ -d ${{ inputs.module_id }}/ ]; then
+          echo "Copying jar from: ${{ inputs.module_id }}/"
+          cp ${{ inputs.module_id }}/target/*.jar /tmp/artifacts/ || :
+          if [ ! -d target/ ]; then
+            mkdir target/
+          fi
+          cp ${{ inputs.module_id }}/target/*.jar target/ || :
+        fi
+      shell: bash
+
+    # Note: The two steps below are derived from graphql-dxm-provider setup
+    # This might not be applicable to other modules for the same complexity
+    - name: Copy test report (if present)
+      run: |
+        mkdir /tmp/artifacts/test-results/
+        if [ -d {{ inputs.module_id }}/target/surefire-reports/ ]; then
+          cp {{ inputs.module_id }}/target/surefire-reports/*.xml /tmp/artifacts/test-results/ || :
+        fi
+      shell: bash
+
+    - name: Archive code coverage results
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: Run artifacts
+        path: /tmp/artifacts/
+        retention-days: 7

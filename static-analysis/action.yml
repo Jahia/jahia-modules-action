@@ -1,9 +1,6 @@
 name: 'Static Analysis'
 description: 'Performs static code analysis (linters, security)'
 inputs:
-  module_id:
-    description: 'Module ID'
-    required: true
   primary_release_branch:
     description: 'Primary release branch'
     default: 'main'
