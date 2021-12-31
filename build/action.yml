@@ -16,9 +16,11 @@ runs:
     # Install node dependencies
     - name: Build package
       run: mvn -s ${{ inputs.mvn_settings_filepath }} clean install
+      shell: bash
 
     - name: Copy dependencies to provision artifacts
       run: mvn -ntp -s ${{ inputs.mvn_settings_filepath }} dependency:copy-dependencies -DexcludeTransitive=true -DincludeScope=provided -DincludeGroupIds=org.jahia.modules -DincludeTypes=jar
+      shell: bash
 
     - name: Prepare artifacts
       run: |
@@ -36,6 +38,7 @@ runs:
           fi
           cp ${{ inputs.module_id }}/target/*.jar target/ || :
         fi
+      shell: bash
 
     # Note: The two steps below are derived from graphql-dxm-provider setup
     # This might not be applicable to other modules for the same complexity
@@ -45,6 +48,7 @@ runs:
         if [ -d {{ inputs.module_id }}/target/surefire-reports/ ]; then
           cp {{ inputs.module_id }}/target/surefire-reports/*.xml /tmp/artifacts/test-results/ || :
         fi
+      shell: bash
 
     - name: Archive code coverage results
       if: always()
