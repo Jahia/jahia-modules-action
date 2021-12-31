@@ -31,8 +31,8 @@ inputs:
   keymaker_name:
     description: 'Name of the keymaker (id)'
     default: 'keymaker-cli'
- 
- runs:
+
+runs:
   using: "composite"
   steps:
     - name: Verifying if signature needs to be updated
