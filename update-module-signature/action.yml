@@ -140,7 +140,6 @@ runs:
 
     # https://github.com/marketplace/actions/add-commit
     - name: Committed changed files back to the repository
-      shell: bash
       if: env.PERFORM_SIGNATURE == 'true'
       uses: EndBug/add-and-commit@v7
       with:
