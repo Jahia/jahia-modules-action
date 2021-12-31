@@ -33,52 +33,52 @@ runs:
 
     # Install node dependencies
     - name: Run yarn if package.json exists in module folder
+      shell: bash
       run: |
         if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
           cd ${{ inputs.module_path }}
           yarn
         fi
-      shell: bash
     - name: Run yarn if package.json exists in module folder
+      shell: bash
       run: |
         if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
           cd ${{ inputs.tests_path }}
           yarn
         fi
-      shell: bash
 
     # Lint the codebase
     - name: Lint module (javascript only)
+      shell: bash
       run: |
         if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
           cd ${{ inputs.module_path }}
           yarn run lint --max-warnings ${{ inputs.max_warning }}
         fi
-      shell: bash
     - name: Lint tests (javascript only)
+      shell: bash
       run: |
         if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
           cd ${{ inputs.tests_path }}
           yarn run lint --max-warnings ${{ inputs.max_warning }}
         fi
-      shell: bash
 
     # Runs the security checks
     - name: Install audit-ci
+      shell: bash
       run: |
         sudo npm install -g audit-ci
-      shell: bash
     - name: Audit-ci module (javascript only)
+      shell: bash
       run: |
         if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
           cd ${{ inputs.module_path }}
           audit-ci --${{ inputs.auditci_level }}
         fi
-      shell: bash
     - name: Audit-ci tests (javascript only)
+      shell: bash
       run: |
         if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
           cd ${{ inputs.tests_path }}
           audit-ci --${{ inputs.auditci_level_tests }}
         fi
-      shell: bash

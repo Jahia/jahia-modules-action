@@ -136,13 +136,14 @@ runs:
       with:
         node-version: ${{ inputs.node_version }}
     - name: "Install @jahia/jahia-reporter"
+      shell: bash
       run: | 
         npm install -g @jahia/jahia-reporter
-      shell: bash
 
     # Set the environment variables necessary for the docker-compose run
     # These are declared here to avoid having to repeat in multiple steps
     - name: Set environment variables from parameters
+      shell: bash
       run: |
         echo "MANIFEST=${{ inputs.tests_manifest }}" >> $GITHUB_ENV
         echo "JAHIA_IMAGE=${{ inputs.jahia_image }}" >> $GITHUB_ENV
@@ -154,8 +155,9 @@ runs:
         echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
         echo "NEXUS_PASSWORD=${{ inputs.jahia_image }}" >> $GITHUB_ENV
         echo "JAHIA_IMAGE=${{ inputs.nexus_password }}" >> $GITHUB_ENV
-      shell: bash
+
     - name: Display important versions and environment variables
+      shell: bash      
       run: |
         echo "node -v: $(node -v)"
         echo "npm -v: $(npm -v)"
@@ -166,18 +168,19 @@ runs:
         echo "TESTS_IMAGE=${TESTS_IMAGE}"
         echo "JCUSTOMER_IMAGE=${JCUSTOMER_IMAGE}"
         echo "ELASTICSEARCH_IMAGE=${ELASTICSEARCH_IMAGE}"        
-      shell: bash      
+
     - name: Prepare export folder
+      shell: bash
       run: |
         mkdir -p ${{ inputs.tests_path }}artifacts
-      shell: bash
   
     # Login to the docker registry is needed to access some images (snapshots, ...)
     - name: Docker login
-      run: echo "${{ inputs.docker_password }}" | docker login -u "${{ inputs.docker_username }}" --password-stdin
       shell: bash
+      run: echo "${{ inputs.docker_password }}" | docker login -u "${{ inputs.docker_username }}" --password-stdin
 
     - name: Preparing build artifacts
+      shell: bash
       run: |
         if [ ${{ inputs.should_skip_artifacts }} == false ]; then
           find . -type f -path '*/target/*-SNAPSHOT.jar' -exec cp '{}' ${{ inputs.tests_path }}artifacts/ ';' || :
@@ -189,12 +192,12 @@ runs:
           fi
           ls -lah ${{ inputs.tests_path }}artifacts
         fi   
-      shell: bash
 
     # We always build the test container from scratch
     # Docker layer caching makes this quick if it was already previously built
     # To test a previous release, a specific branch can be provided      
     - name: Build the tests image
+      shell: bash
       run: |
         if [ ${{ inputs.should_build_testsimage }} == true ]; then
           cd ${{ inputs.tests_path }}
@@ -204,10 +207,10 @@ runs:
           docker build -t ${{ inputs.tests_image }} .
           docker save -o tests_image.tar ${{ inputs.tests_image }}
         fi    
-      shell: bash
 
     # Pull the latest version of ${JAHIA_IMAGE}  
     - name: Pull the latest version of Jahia and print docker images cache to console
+      shell: bash
       run: |
         cd ${{ inputs.tests_path }}
         . ./set-env.sh
@@ -218,7 +221,6 @@ runs:
         echo "List of docker images in local cache AFTER pull" >> ./artifacts/docker.log
         docker images --digests --all 2>&1 | tee -a ./artifacts/docker.log
         echo "--------------------------------------------------" >> ./artifacts/docker.log  
-      shell: bash      
 
     # Run a background task to display the running containers and their hash
     # This is used to verify that the right containers are running
@@ -232,6 +234,7 @@ runs:
     # Using abort-on-container-exit will exit on first container failure, which
     # for us will be the test container
     - name: Spin-up the containers
+      shell: bash  
       run: |
         cd ${{ inputs.tests_path }}
         export DOCKER_CLIENT_TIMEOUT=120
@@ -242,43 +245,43 @@ runs:
           bash ${{ inputs.ci_startup_script }}
         else
           docker-compose -f ${{ inputs.docker_compose_file }} up --abort-on-container-exit
-        fi         
-      shell: bash  
+        fi
 
     - name: Export containers artifacts (reports, secreenshots, videos)
+      shell: bash
       if: always()
       run: |
         cd ${{ inputs.tests_path }}
-        docker cp ${{ inputs.tests_container_name }}:/home/jahians/results ./artifacts         
-      shell: bash       
+        docker cp ${{ inputs.tests_container_name }}:/home/jahians/results ./artifacts
 
     # Running logs with -t adds a timestamp, this might feel redundant with the timestamp provided
     # by directly jahia but this allows for easy comparison between various containers that might
     # have their timezone set differently
     - name: Export containers logs
+      shell: bash
       if: always()
       run: |
         cd ${{ inputs.tests_path }}
         docker-compose logs -t --tail="all" > ./artifacts/results/all-containers.log
         docker logs jahia > ./artifacts/results/jahia.log
         docker logs ${{ inputs.tests_container_name }} > ./artifacts/results/${{ inputs.tests_container_name }}.log
-        cp ./artifacts/docker.log ./artifacts/results/       
-      shell: bash
+        cp ./artifacts/docker.log ./artifacts/results/
 
     - name: Analyze Test results
+      shell: bash
       if: always()
       run: |
         cd ${{ inputs.tests_path }}
         if [[ ! -e ./artifacts/results/test_success ]]; then
           echo "More than one failure found, sending exit signal"
           exit 1
-        fi     
-      shell: bash      
+        fi
 
     # If a ci.postrun.sh script is present, this script is executed
     # The main purpose of this script is to export additional artifacts,
     # capture logs from other containers, ...    
     - name: Execute Postrun script is present
+      shell: bash
       if: always()
       run: |
         cd ${{ inputs.tests_path }}
@@ -288,12 +291,12 @@ runs:
         if [[ -f "${{ inputs.ci_postrun_script }}" ]]; then
           echo "Postrun script is present"
           bash ${{ inputs.ci_postrun_script }}
-        fi      
-      shell: bash
+        fi
 
     # Once all is executed, results are submitted to external platforms
     # Testrail report and Slack (failure only) notifications are sent during scheduled executions or merged into the main branch 
     - name: Publish results to testrail
+      shell: bash
       if: always()
       run: |
         if [ ${{ inputs.should_skip_testrail }} == false ] || [ ${{ inputs.primary_release_branch }} == $GITHUB_REF ]; then
@@ -306,11 +309,11 @@ runs:
             --projectName="${{ inputs.testrail_project }}" \
             --milestone="${{ inputs.testrail_milestone }}" \
             --defaultRunDescription="This test was executed on Github Actions, $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-        fi    
-      shell: bash      
+        fi
 
     # See https://theoephraim.github.io/node-google-spreadsheet/#/getting-started/authentication for Google Auth setup
     - name: Create incident in PagerDuty
+      shell: bash 
       if: failure()
       run: |
         if [ ${{ inputs.primary_release_branch }} == $GITHUB_REF ] || [ master == $GITHUB_REF ]; then
@@ -328,9 +331,9 @@ runs:
             --service=${{ inputs.module_id }} \
             --sourceUrl=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
         fi  
-      shell: bash 
 
     - name: Send Notifications to Slack
+      shell: bash 
       if: always()
       run: |
         if [ ${{ inputs.should_skip_notifications }} == false ] || [ ${{ inputs.primary_release_branch }} == $GITHUB_REF ]; then
@@ -346,9 +349,9 @@ runs:
             --msgAuthor="Github Actions ($GITHUB_REPOSITORY)" \
             --runUrl=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
         fi 
-      shell: bash 
 
     - name: Send Test data to https://zencrepes.jahia.com
+      shell: bash
       if: always()
       run: |
         if [ ${{ inputs.should_skip_zencrepes }} == false ] || [ ${{ inputs.primary_release_branch }} == $GITHUB_REF ]; then
@@ -362,13 +365,12 @@ runs:
             --name="${{ inputs.module_id }}" \
             --runUrl=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
         fi
-      shell: bash
 
     - name: remove xml results folder
+      shell: bash
       if: always()
       run: |
         rm -rf ${{ inputs.tests_path }}artifacts/results/xml_reports
-      shell: bash
 
     - name: Archive code coverage results
       if: always()
