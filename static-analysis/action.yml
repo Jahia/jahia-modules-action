@@ -1,5 +1,6 @@
-name: 'Static Analysis'
-description: 'Performs static code analysis (linters, security)'
+name: Static Analysis
+description: Performs static code analysis (linters, security)
+
 inputs:
   primary_release_branch:
     description: 'Primary release branch'
@@ -22,9 +23,7 @@ inputs:
   node_version:
     description: 'Version of node to install on the host'
     default: 'lts/*'
-defaults:
-  run:
-    shell: bash
+
 runs:
   using: "composite"
   steps:

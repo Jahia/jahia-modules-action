@@ -1,5 +1,6 @@
-name: 'Integration tests'
-description: 'Runs Jahia integration tests on an Ubuntu server'
+name: Integration tests
+description: Runs Jahia integration tests on an Ubuntu server
+
 inputs:
   module_id:
     description: 'Module ID'
@@ -126,10 +127,8 @@ inputs:
     default: 'ci.postrun.sh'
   node_version:
     description: 'Version of node to install on the host'
-    default: 'lts/*'    
-defaults:
-  run:
-    shell: bash
+    default: 'lts/*'
+
 runs:
   using: "composite"
   steps:
