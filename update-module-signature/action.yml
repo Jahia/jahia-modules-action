@@ -29,7 +29,7 @@ inputs:
     description: Version of the keymaker
     default: '2.0'
   keymaker_name:
-    description: Name of the keymaker (id
+    description: 'Name of the keymaker (id)'
     default: 'keymaker-cli'
  
  runs:
