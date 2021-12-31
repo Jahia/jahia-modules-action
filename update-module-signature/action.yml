@@ -51,7 +51,7 @@ runs:
 
     - name: Downloading keymaker artifacts
       shell: bash
-      if: env.PERFORM_SIGNATURE == 'true'
+      if: ${{ env.PERFORM_SIGNATURE == 'true' }}
       run: |
         cd ~
         mkdir -p target/keymaker
@@ -64,7 +64,7 @@ runs:
 
     - name: Handling signature update for single or multiple submodules
       shell: bash
-      if: env.PERFORM_SIGNATURE == 'true'
+      if: ${{ env.PERFORM_SIGNATURE == 'true' }}
       run: |
         cd ${{ inputs.root_directory}}
         modules_to_sign=($(ls -d */ | egrep -v "^${{ inputs.except_folders}}"))
@@ -108,7 +108,7 @@ runs:
 
     - name: Handling signature for a single module
       shell: bash
-      if: env.PERFORM_SIGNATURE == 'true'
+      if: ${{ env.PERFORM_SIGNATURE == 'true' }}
       run: |
         cd ${{ inputs.root_directory}}
         modules_to_sign=($(ls -d */ | egrep -v "^${{ inputs.except_folders}}"))
@@ -140,7 +140,7 @@ runs:
 
     # https://github.com/marketplace/actions/add-commit
     - name: Committed changed files back to the repository
-      if: env.PERFORM_SIGNATURE == 'true'
+      if: ${{ env.PERFORM_SIGNATURE == 'true' }}
       uses: EndBug/add-and-commit@v7
       with:
         add: pom.xml
