@@ -31,6 +31,16 @@ runs:
           echo "false" > is_pr
         fi
 
+    - name: Cache local Maven repository
+      uses: actions/cache@v2
+      with:
+        path: | 
+          ~/.owasp/dependency-check-data
+          ~/.sonar/cache
+        key: v2-sonar-owasp-dependencies-{{ checksum "is_pr" }}
+        restore-keys: |
+          v2-sonar-owasp-dependencies-{{ checksum "is_pr" }}
+
     - name: Sonar Release branch analysis
       shell: bash
       run: |
