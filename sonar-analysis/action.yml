@@ -24,12 +24,6 @@ runs:
     - name: Sonar Release branch analysis
       shell: bash
       run: |
-        DEPENDENCY_CHECK_SETTINGS = " \
-          -DfailOnError=false -DskipProvidedScope=true -DskipTestScope=false -DskipSystemScope=true -Dformats=HTML,JSON \
-          -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
-          -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
-          -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data \
-        "
         echo "Pull request number: ${{ inputs.github_pr_id }}"
         if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
           echo "Executing a PR based analysis"
@@ -41,9 +35,16 @@ runs:
         elif [[ "$CIRCLE_BRANCH" == ${{ inputs.primary_release_branch }} ]]; then
           echo "Executing an analysis on the main branch"
           mvn -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:6.1.6:aggregate sonar:sonar \
-              $DEPENDENCY_CHECK_SETTINGS
+            -DfailOnError=false -DskipProvidedScope=true -DskipTestScope=false -DskipSystemScope=true -Dformats=HTML,JSON \
+            -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
+            -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
+            -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data
         else
           echo "Executing an analysis on branch: $CIRCLE_BRANCH"
           mvn -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:6.1.6:aggregate sonar:sonar \
-              -Dsonar.branch.name=$CIRCLE_BRANCH $DEPENDENCY_CHECK_SETTINGS
+              -Dsonar.branch.name=$CIRCLE_BRANCH \
+              -DfailOnError=false -DskipProvidedScope=true -DskipTestScope=false -DskipSystemScope=true -Dformats=HTML,JSON \
+              -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
+              -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
+              -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data
         fi
