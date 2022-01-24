@@ -55,7 +55,7 @@ inputs:
   tests_container_branch:
     description: 'Branch containing the tests (if different from current)'
     required: false
-    default: 'cypress'
+    default: ''
   jahia_license:
     description: 'Base64 encoded License'
     required: false
@@ -421,7 +421,7 @@ runs:
       run: |
         rm -rf ${{ inputs.tests_path }}artifacts/results/xml_reports
 
-    - name: Archive code coverage results
+    - name: Archive test results
       if: always()
       uses: actions/upload-artifact@v2
       with:
