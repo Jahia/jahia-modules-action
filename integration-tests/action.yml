@@ -183,7 +183,7 @@ runs:
       with:
         name: build-artifacts
 
-    - name: List current directory
+    - name: List current directory [TO BE REMOVED]
       shell: bash
       run: | 
         ls -lah
@@ -203,11 +203,10 @@ runs:
         echo "JCUSTOMER_IMAGE=${{ inputs.jcustomer_image }}" >> $GITHUB_ENV
         echo "ELASTICSEARCH_IMAGE=${{ inputs.elasticsearch_image }}" >> $GITHUB_ENV
         echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
-        echo "NEXUS_PASSWORD=${{ inputs.jahia_image }}" >> $GITHUB_ENV
-        echo "JAHIA_IMAGE=${{ inputs.nexus_password }}" >> $GITHUB_ENV
+        echo "NEXUS_PASSWORD=${{ inputs.nexus_PASSWORD }}" >> $GITHUB_ENV
 
     - name: Display important versions and environment variables
-      shell: bash      
+      shell: bash
       run: |
         echo "node -v: $(node -v)"
         echo "npm -v: $(npm -v)"
@@ -217,7 +216,7 @@ runs:
         echo "JAHIA_IMAGE=${JAHIA_IMAGE}"
         echo "TESTS_IMAGE=${TESTS_IMAGE}"
         echo "JCUSTOMER_IMAGE=${JCUSTOMER_IMAGE}"
-        echo "ELASTICSEARCH_IMAGE=${ELASTICSEARCH_IMAGE}"        
+        echo "ELASTICSEARCH_IMAGE=${ELASTICSEARCH_IMAGE}"
 
     - name: Prepare export folder
       shell: bash
