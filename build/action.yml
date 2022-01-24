@@ -8,6 +8,7 @@ inputs:
   mvn_settings_filepath:
     description: Filepath to the settings.xml file
     default: '.circleci/.circleci.settings.xml'
+    required: false
 
 runs:
   using: "composite"
