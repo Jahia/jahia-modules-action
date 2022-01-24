@@ -56,7 +56,7 @@ runs:
       shell: bash
       run: |
         mkdir /tmp/artifacts/test-results/
-        if [ -d {{ inputs.module_id }}/target/surefire-reports/ ]; then
+        if [[ -d "{{ inputs.module_id }}/target/surefire-reports/" ]]; then
           cp {{ inputs.module_id }}/target/surefire-reports/*.xml /tmp/artifacts/test-results/ || :
         fi
 
