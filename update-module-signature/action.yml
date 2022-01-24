@@ -8,9 +8,11 @@ description: >
 inputs:
   root_directory:
     description: Parent directory of the module to update
+    required: false
     default: '~'
   except_folders:
     description: Regular expression of folders to not analyze when looking for module to sign
+    required: false
     default: '*'
   nexus_enterprise_releases_url:
     description: Nexus Enterprise release URL
@@ -24,12 +26,15 @@ inputs:
   # Keymaker information
   keymaker_location:
     description: Location of the keymaker
+    required: false
     default: 'org/jahia/keymaker/keymaker-cli'
   keymaker_version:
     description: Version of the keymaker
+    required: false
     default: '2.0'
   keymaker_name:
     description: 'Name of the keymaker (id)'
+    required: false
     default: 'keymaker-cli'
 
 runs:

@@ -7,6 +7,7 @@ inputs:
     required: true
   primary_release_branch:
     description: 'Primary release branch'
+    required: false
     default: 'main'
   nexus_username:
     description: 'Nexus Username'
@@ -22,111 +23,146 @@ inputs:
     required: true
   docker_compose_file:
     description: 'Filename for docker-compose yaml file'
+    required: false
     default: 'docker-compose.yml'
   tests_path:
     description: 'Folder containing the docker-compose.yml'
+    required: false
     default: 'tests/'
   tests_manifest:
     description: 'Manifest contraining the provisioning script'
     required: true
   jahia_image:
     description: 'Full name of a Jahia image (org/repo:tag)'
+    required: false
     default: ''
   jahia_superuser_password:
     description: 'Jahia root password'
+    required: false
     default: 'root1234'
   jahia_cluster_enabled:
     description: 'Run Jahia in cluster mode'
-    default: false
+    required: false
+    default: 'false'
   tests_image:
     description: 'Full name of the Tests image (org/repo:tag)'
+    required: false
     default: 'module-tests'
   tests_container_name:
     description: 'Name of the tests container in the docker-compose file'
+    required: false
     default: 'cypress'
   tests_container_branch:
     description: 'Branch containing the tests (if different from current)'
+    required: false
     default: 'cypress'
   jahia_license:
     description: 'Base64 encoded License'
+    required: false
     default: ''
   jcustomer_image:
     description: 'Full name a JCustomer image (org/repo:tag)'
+    required: false
     default: ''
   elasticsearch_image:
     description: 'Full name of an Elasticsearch image (org/repo:tag)'
+    required: false
     default: ''
   should_skip_artifacts:
     description: 'Should build artifacts be copied in the test container ?'
-    default: false    
+    required: false
+    default: 'false'
   should_skip_testrail:
     description: 'Should the submission to Testrail be skipped ?'
-    default: true
+    required: false
+    default: 'true'
   should_skip_notifications:
     description: 'Should slack notifications be skipped ?'
-    default: true
+    required: false
+    default: 'true'
   slack_channel_id_notifications:
     description: 'Channel id to be used for failure notifications'
+    required: false
     default: ''    
   slack_channel_id_notifications_all:
     description: 'Channel id to be used for all notifications (failure and success)'
+    required: false
     default: ''
   slack_client_token:
     description: 'The slack token used to post the messages'
+    required: false
     default: ''
   slack_webhook_notifications:
     description: 'Webhook to be used for failure notifications'
+    required: false
     default: ''
   slack_webhook_notifications_all:
     description: 'Webhook to be used for all notifications (failure and success)'
+    required: false
     default: ''
   should_skip_zencrepes:
     description: 'Should zencrepes notifications be skipped ?'
-    default: false
+    required: false
+    default: 'false'
   should_build_testsimage:
     description: 'Should the orb attend to build the test image ?'
-    default: true
+    required: false
+    default: 'true'
   zencrepes_secret:
     description: 'ZenCrepes Webhook secret'
+    required: false
     default: ''
   incident_pagerduty_api_key:
     description: 'Pageduty API key to create incidents'
+    required: false
     default: ''
   incident_pagerduty_reporter_email:
     description: 'Pageduty Reporter email to create incident. That email must correspond to a valid user in the PagerDuty tenant'
+    required: false
     default: ''
   incident_pagerduty_reporter_id:
     description: 'Pageduty Reporter id to create incident. This user will first be assigned to the ticket when --pdTwoStepsAssign is provided'
+    required: false
     default: ''
   incident_google_spreadsheet_id:
     description: 'Google Spreadsheet ID of the spreadsheet containing the incident mapping'
+    required: false
     default: ''
   incident_google_client_email:
     description: 'Google Client email to allow access to Google API'
+    required: false
     default: ''
   incident_google_api_key_base64:
     description: 'Google base64 encoded private key to allow access to Google API'
+    required: false
     default: ''
   testrail_project:
     description: 'Testrail Project to send data to'
+    required: false
     default: 'Default'    
   testrail_milestone:
     description: 'Milestone to be used when submitting the results to Testrail'
+    required: false
     default: 'Default'
   testrail_username:
     description: 'Testrail Username'
+    required: false
     default: ''
   testrail_password:
     description: 'Testrail Password'
+    required: false
     default: ''
   ci_startup_script:
     description: 'Startup script to use in-lieu of docker-compose up'
+    required: false
     default: 'ci.startup.sh'
   ci_postrun_script:
     description: 'Script to run prior to saving the artifacts'
+    required: false
     default: 'ci.postrun.sh'
   node_version:
     description: 'Version of node to install on the host'
+    required: false
     default: 'lts/*'
 
 runs:

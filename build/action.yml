@@ -40,6 +40,16 @@ runs:
           cp ${{ inputs.module_id }}/target/*.jar target/ || :
         fi
 
+    - name: Archive build artifacts
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: build-artifacts
+        path: |
+          target/*
+          ./*/target/*
+        retention-days: 7
+
     # Note: The two steps below are derived from graphql-dxm-provider setup
     # This might not be applicable to other modules for the same complexity
     - name: Copy test report (if present)
@@ -54,6 +64,6 @@ runs:
       if: always()
       uses: actions/upload-artifact@v2
       with:
-        name: build-artifacts
+        name: test-artifacts
         path: /tmp/artifacts/
         retention-days: 7
