@@ -21,6 +21,16 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Generate Cache Key Seeds
+      shell: bash
+      run: |
+        find . -name 'pom.xml' | sort | xargs cat > maven_cache_seed
+        if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
+          echo "true" > is_pr
+        else
+          echo "false" > is_pr
+        fi
+
     - name: Sonar Release branch analysis
       shell: bash
       run: |
@@ -32,7 +42,7 @@ runs:
               -Dsonar.pullrequest.key=${{ inputs.github_pr_id }} \
               -Dsonar.pullrequest.base=${{ inputs.primary_release_branch }} \
               -Dsonar.pullrequest.github.repository=${{ inputs.github_slug }}
-        elif [[ "$CIRCLE_BRANCH" == ${{ inputs.primary_release_branch }} ]]; then
+        elif [[ $GITHUB_REF == ${{ inputs.primary_release_branch }} ]]; then
           echo "Executing an analysis on the main branch"
           mvn -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:6.1.6:aggregate sonar:sonar \
             -DfailOnError=false -DskipProvidedScope=true -DskipTestScope=false -DskipSystemScope=true -Dformats=HTML,JSON \
@@ -40,9 +50,9 @@ runs:
             -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
             -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data
         else
-          echo "Executing an analysis on branch: $CIRCLE_BRANCH"
+          echo "Executing an analysis on branch: $GITHUB_REF"
           mvn -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:6.1.6:aggregate sonar:sonar \
-              -Dsonar.branch.name=$CIRCLE_BRANCH \
+              -Dsonar.branch.name=$GITHUB_REF \
               -DfailOnError=false -DskipProvidedScope=true -DskipTestScope=false -DskipSystemScope=true -Dformats=HTML,JSON \
               -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
               -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
