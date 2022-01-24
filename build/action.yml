@@ -76,5 +76,5 @@ runs:
       uses: actions/upload-artifact@v2
       with:
         name: test-artifacts
-        path: /tmp/artifacts/
+        path: /tmp/artifacts/test-results/
         retention-days: 7
