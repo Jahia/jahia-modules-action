@@ -217,6 +217,7 @@ runs:
         echo "TESTS_IMAGE=${TESTS_IMAGE}"
         echo "JCUSTOMER_IMAGE=${JCUSTOMER_IMAGE}"
         echo "ELASTICSEARCH_IMAGE=${ELASTICSEARCH_IMAGE}"
+        echo "Current branch is: GITHUB_REF=${GITHUB_REF}"
 
     - name: Prepare export folder
       shell: bash
