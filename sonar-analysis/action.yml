@@ -9,6 +9,12 @@ inputs:
   github_slug:
     description: "GitHub SLUG of the module (for example: jahia/sandbox)"
     required: true
+  sonar_url:
+    description: "URL to the SONAR server"
+    required: true
+  sonar_token:
+    description: "Authentication token for the SONAR server"
+    required: true
   github_pr_id:
     description: "ID of the pull request (for example: 5)"
     required: false
@@ -21,6 +27,7 @@ inputs:
 runs:
   using: "composite"
   steps:
+
     - name: Generate Cache Key Seeds
       shell: bash
       run: |
@@ -30,6 +37,12 @@ runs:
         else
           echo "false" > is_pr
         fi
+
+    - name: Set environment variables from parameters
+      shell: bash
+      run: |
+        echo "SONAR_URL=${{ inputs.sonar_url }}" >> $GITHUB_ENV
+        echo "SONAR_TOKEN=${{ inputs.sonar_token }}" >> $GITHUB_ENV
 
     - name: Cache local Maven repository
       uses: actions/cache@v2
