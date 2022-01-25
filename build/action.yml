@@ -1,5 +1,5 @@
-name: Static Analysis
-description: 'Performs static code analysis (linters, security)'
+name: Build 
+description: Build a Jahia module
 
 inputs:
   module_id:

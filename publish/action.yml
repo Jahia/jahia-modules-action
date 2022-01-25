@@ -1,0 +1,25 @@
+name: Publish
+description: Publish a Jahia module to NEXUS
+
+inputs:
+  mvn_settings_filepath:
+    description: Filepath to the settings.xml file
+    default: '.circleci/.circleci.settings.xml'
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    # This step save the maven cache between runs
+    # More details can be found here: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
+    - name: Cache local Maven repository
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+
+    - name: Build package
+      shell: bash
+      run: mvn -s ${{ inputs.mvn_settings_filepath }} clean deploy
