@@ -1,0 +1,58 @@
+name: Generate Changelog 
+description: Generate a changelog using auto
+
+inputs:
+  github_api_token:
+    description: GitHub API token
+    required: true
+  primary_release_branch:
+    description: Name of the primary release branch (master, main, ...)
+    default: 'main'
+    required: false
+  git_user_name:
+    description: Git user name
+    default: 'Jahia CI'
+    required: false
+  git_user_email:
+    description: Git user email
+    default: 'jahia-ci@jahia.com'
+    required: false
+  node_version:
+    description: 'Version of node to install on the host'
+    required: false
+    default: 'lts/*'
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@v2
+      with:
+        node-version: ${{ inputs.node_version }}
+  
+    - name: Setting up github configuration
+      shell: bash
+      run: |
+        git config user.email ${{ inputs.git_user_email }}
+        git config user.name ${{ inputs.git_user_name }}
+
+    - name: Getting latest changes from the remote branch
+      shell: bash
+      run: |
+        git fetch --all
+        git pull origin ${{ inputs.primary_release_branch }} --quiet
+
+    - name: Update Changelog
+      shell: bash
+      run: |
+        yarn
+        yarn add auto
+        GH_TOKEN=${{ inputs.github_api_token }} yarn auto changelog
+        git push --set-upstream origin ${{ inputs.primary_release_branch }}
+
+    - name: Persist the changelog generated for the release
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: CHANGELOG.md
+        path: CHANGELOG.md
+        retention-days: 7

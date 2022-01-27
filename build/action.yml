@@ -24,7 +24,6 @@ runs:
         restore-keys: |
           ${{ runner.os }}-maven-
 
-    # Install node dependencies
     - name: Build package
       shell: bash
       run: mvn -s ${{ inputs.mvn_settings_filepath }} clean install

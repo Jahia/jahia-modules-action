@@ -1,0 +1,34 @@
+name: Release Publication
+description: Publish a released module
+
+inputs:
+  module_id:
+    description: ID of the module
+    required: true
+  release_version:
+    description: Version of the release
+    required: true
+  nexus_username:
+    description: Nexus Username
+    required: true
+  nexus_password:
+    description: Nexus Password
+    required: true    
+
+runs:
+  using: "composite"
+  steps:  
+    - name: Install jq
+      shell: bash
+      run: sudo apt-get install -y jq
+
+    - name: Retrieve staging repository ID and promote staging repository to release on Nexus
+      shell: bash
+      run: |
+        finalReleaseVersion=$(echo ${{ inputs.release_version }} | tr '_' '.')
+        curl -u ${${{ inputs.nexus_username }}}:${${{ inputs.nexus_password }}} -H "Accept: application/json" https://devtools.jahia.com/nexus/service/local/staging/profile_repositories > staging-repos.json
+        stagingRepositoryId=$(cat staging-repos.json | jq '.data[] | select(.description|test("${{ inputs.module_id }}:${finalReleaseVersion}")) | .repositoryId')
+        echo "Staging repository being promoted: ${stagingRepositoryId}"
+        curl -u ${${{ inputs.nexus_username }}}:${${{ inputs.nexus_password }}} -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"data\":{\"autoDropAfterRelease\":true, \"stagedRepositoryIds\":[${stagingRepositoryId}]}}" https://devtools.jahia.com/nexus/service/local/staging/bulk/promote
+
+
