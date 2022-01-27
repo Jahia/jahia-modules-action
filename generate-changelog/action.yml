@@ -40,6 +40,10 @@ runs:
       run: |
         git fetch --all
         git pull origin ${{ inputs.primary_release_branch }} --quiet
+        echo "List all available tags"
+        git tag
+        echo "List all branches"
+        git branch --all
 
     - name: Update Changelog
       shell: bash
