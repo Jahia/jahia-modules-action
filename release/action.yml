@@ -65,6 +65,7 @@ runs:
       shell: bash
       run: |
         git reset --hard
+        git checkout ${{ inputs.primary_release_branch }}
 
     - name: Added some debug details
       shell: bash
