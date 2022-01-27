@@ -38,8 +38,6 @@ runs:
       shell: bash
       run: |
         find . -name 'pom.xml' | sort | xargs cat > ./maven_cache_seed
-        echo "Content of ./maven_cache_seed"
-        cat ./maven_cache_seed
 
     - name: Cache local Maven repository
       uses: actions/cache@v2
@@ -62,6 +60,15 @@ runs:
         git config user.name ${{ inputs.git_user_name }}
         git tag --delete ${{ inputs.release_version }}
         git push --delete origin ${{ inputs.release_version }}
+
+    - name: Added some debug details
+      shell: bash
+      run: |
+        git branch
+        echo "---"
+        git status
+        echo "---"
+        git show --summary
 
     - name: Release prepare version for ${{ inputs.release_version }}
       shell: bash
