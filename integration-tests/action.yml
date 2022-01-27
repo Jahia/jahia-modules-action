@@ -193,7 +193,9 @@ runs:
       run: | 
         ls -lah
         echo "---"
-        ls -lah target/
+        if [ -d target/ ]; then
+          ls -lah target/
+        fi
 
     # Set the environment variables necessary for the docker-compose run
     # These are declared here to avoid having to repeat in multiple steps
