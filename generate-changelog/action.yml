@@ -34,6 +34,16 @@ runs:
       run: |
         git config user.email ${{ inputs.git_user_email }}
         git config user.name ${{ inputs.git_user_name }}
+        git checkout ${{ primary_release_branch }}
+
+    - name: Getting latest changes from the remote branch
+      shell: bash
+      run: |
+        git fetch --all
+        echo "List all available tags"
+        git tag
+        echo "List all branches"
+        git branch --all
 
     # - name: Generate changelog
     #   uses: charmixer/auto-changelog-action@v1
@@ -46,16 +56,6 @@ runs:
     #     git add CHANGELOG.md
     #     git commit -m "Updated CHANGELOG.md [skip ci]"
     #     git push --set-upstream origin HEAD:${{ inputs.primary_release_branch }}
-
-    # - name: Getting latest changes from the remote branch
-    #   shell: bash
-    #   run: |
-    #     git fetch --all
-    #     git pull origin ${{ inputs.primary_release_branch }} --quiet
-    #     echo "List all available tags"
-    #     git tag
-    #     echo "List all branches"
-    #     git branch --all
 
     - name: Update Changelog
       shell: bash
