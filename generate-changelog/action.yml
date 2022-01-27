@@ -34,7 +34,7 @@ runs:
       run: |
         git config user.email ${{ inputs.git_user_email }}
         git config user.name ${{ inputs.git_user_name }}
-        git fetch --all
+        git fetch --all --tags
         git checkout ${{ inputs.primary_release_branch }}
 
     - name: Getting latest changes from the remote branch
@@ -45,23 +45,9 @@ runs:
         echo "List all branches"
         git branch --all
 
-    # - name: Generate changelog
-    #   uses: charmixer/auto-changelog-action@v1
-    #   with:
-    #     token: ${{ inputs.github_api_token }}
-
-    # - name: Setting up github configuration
-    #   shell: bash
-    #   run: |
-    #     git add CHANGELOG.md
-    #     git commit -m "Updated CHANGELOG.md [skip ci]"
-    #     git push --set-upstream origin HEAD:${{ inputs.primary_release_branch }}
-
     - name: Update Changelog
       shell: bash
       run: |
-        yarn
-        yarn add auto
         npm install -g auto
         GH_TOKEN=${{ inputs.github_api_token }} auto changelog
         git push --set-upstream origin HEAD:${{ inputs.primary_release_branch }}
