@@ -34,7 +34,8 @@ runs:
       run: |
         git config user.email ${{ inputs.git_user_email }}
         git config user.name ${{ inputs.git_user_name }}
-        git pull
+        git fetch --all
+        git pull --all
         git checkout ${{ inputs.primary_release_branch }}
 
     - name: Getting latest changes from the remote branch
