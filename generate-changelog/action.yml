@@ -34,12 +34,12 @@ runs:
       run: |
         git config user.email ${{ inputs.git_user_email }}
         git config user.name ${{ inputs.git_user_name }}
+        git pull
         git checkout ${{ inputs.primary_release_branch }}
 
     - name: Getting latest changes from the remote branch
       shell: bash
       run: |
-        git fetch --all
         echo "List all available tags"
         git tag
         echo "List all branches"
@@ -62,7 +62,8 @@ runs:
       run: |
         yarn
         yarn add auto
-        GH_TOKEN=${{ inputs.github_api_token }} yarn auto changelog
+        npm install -g auto
+        GH_TOKEN=${{ inputs.github_api_token }} auto changelog
         git push --set-upstream origin HEAD:${{ inputs.primary_release_branch }}
 
     - name: Persist the changelog generated for the release
