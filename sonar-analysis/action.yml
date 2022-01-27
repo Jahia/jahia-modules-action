@@ -44,6 +44,11 @@ runs:
         echo "SONAR_URL=${{ inputs.sonar_url }}" >> $GITHUB_ENV
         echo "SONAR_TOKEN=${{ inputs.sonar_token }}" >> $GITHUB_ENV
 
+    - name: Displaying important variables
+      shell: bash
+      run: |
+        echo "github_pr_id = ${{ inputs.github_pr_id }}"
+
     - name: Cache local Maven repository
       uses: actions/cache@v2
       with:

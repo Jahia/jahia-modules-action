@@ -100,6 +100,10 @@ inputs:
     description: 'Webhook to be used for all notifications (failure and success)'
     required: false
     default: ''
+  should_use_build_artifacts:
+    description: 'Should the job attempt to download previously built artifacts'
+    required: false
+    default: 'true'
   should_skip_zencrepes:
     description: 'Should zencrepes notifications be skipped ?'
     required: false
@@ -179,6 +183,7 @@ runs:
 
     # Download the artifacts that were saved at build time.
     - name: Download a single artifact
+      if: ${{ inputs.should_use_build_artifacts == 'true' }}
       uses: actions/download-artifact@v2
       with:
         name: build-artifacts
