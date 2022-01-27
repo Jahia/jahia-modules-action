@@ -47,7 +47,7 @@ runs:
         yarn
         yarn add auto
         GH_TOKEN=${{ inputs.github_api_token }} yarn auto changelog
-        git push --set-upstream origin ${{ inputs.primary_release_branch }}
+        git push --set-upstream origin HEAD:${{ inputs.primary_release_branch }}
 
     - name: Persist the changelog generated for the release
       if: always()
