@@ -61,6 +61,11 @@ runs:
         git tag --delete ${{ inputs.release_version }}
         git push --delete origin ${{ inputs.release_version }}
 
+    - name: Remove any previous changes, this is required by mvn release prepare
+      shell: bash
+      run: |
+        git reset --hard
+
     - name: Added some debug details
       shell: bash
       run: |
