@@ -10,6 +10,12 @@ inputs:
     description: Filepath to the settings.xml file
     default: '.circleci/.circleci.settings.xml'
     required: false
+  nexus_username:
+    description: 'Nexus Username'
+    required: true
+  nexus_password:
+    description: 'Nexus Password'
+    required: true
   github_slug:
     description: "GitHub SLUG of the module (for example: jahia/sandbox)"
     required: true
@@ -37,19 +43,11 @@ inputs:
 runs:
   using: "composite"
   steps:
-    # # From: https://github.com/tanmancan/action-setup-ssh-agent-key/blob/main/action.yml
-    # - name: Setup SSH Authentication
-    #   shell: bash   
-    #   run: |
-    #     echo "GH_SSH_PRIVATE_KEY=${{ inputs.github_ssh_private_key }}" >> $GITHUB_ENV
-    #     echo ${{ inputs.github_ssh_private_key }} > pkey
-    #     export LOCAL_SSH_AUTH_SOCK=/tmp/ssh_auth.sock
-    #     echo "Staring agent."
-    #     echo "SSH_AUTH_SOCK=${LOCAL_SSH_AUTH_SOCK}" >> $GITHUB_ENV
-    #     ssh-agent -a $LOCAL_SSH_AUTH_SOCK > /dev/null
-    #     echo "Adding private key."
-    #     sleep 2
-    #     ssh-add - <<< "${{ inputs.github_ssh_private_key }}"
+    - name: Set environment variables from parameters
+      shell: bash
+      run: |
+        echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
+        echo "NEXUS_PASSWORD=${{ inputs.nexus_PASSWORD }}" >> $GITHUB_ENV
 
     - name: Generate maven cache seeed
       shell: bash
