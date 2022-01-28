@@ -47,7 +47,9 @@ runs:
       shell: bash
       run: |
         echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
-        echo "NEXUS_PASSWORD=${{ inputs.nexus_PASSWORD }}" >> $GITHUB_ENV
+        echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
+        echo "NEXUS_RELEASE_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
+        echo "NEXUS_RELEASE_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV        
 
     - name: Generate maven cache seeed
       shell: bash
