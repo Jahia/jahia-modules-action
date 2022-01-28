@@ -30,10 +30,24 @@ inputs:
   github_api_token:
     description: GitHub API token
     required: true
+  github_ssh_private_key:
+    description: GitHub SSH Private Key (required for committing)
+    required: true    
 
 runs:
   using: "composite"
   steps:
+    # From: https://github.com/tanmancan/action-setup-ssh-agent-key/blob/main/action.yml
+    - name: Setup SSH Authentication
+      shell: bash   
+      run: |
+        export LOCAL_SSH_AUTH_SOCK=/tmp/ssh_auth.sock
+        echo "Staring agent."
+        echo "SSH_AUTH_SOCK=${LOCAL_SSH_AUTH_SOCK}" >> $GITHUB_ENV
+        ssh-agent -a $LOCAL_SSH_AUTH_SOCK > /dev/null
+        echo "Adding private key."
+        ssh-add - <<< "${{ inputs.github_ssh_private_key }}"
+
     - name: Generate maven cache seeed
       shell: bash
       run: |
