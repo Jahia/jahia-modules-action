@@ -429,11 +429,18 @@ runs:
       with:
         report_paths: '${{ inputs.tests_path }}artifacts/results/xml_reports/*'
 
-    - name: remove xml results folder
-      shell: bash
-      if: always()
-      run: |
-        rm -rf ${{ inputs.tests_path }}artifacts/results/xml_reports
+    - name: Cypress report
+      uses: dmitry/cypress-report-action@v1
+      if: ${{ always() && hashFiles(${{ inputs.tests_path }}artifacts/results/reports/report.json) != '' }}
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        pathname: ${{ inputs.tests_path }}artifacts/results/reports/report.json
+
+    # - name: remove xml results folder
+    #   shell: bash
+    #   if: always()
+    #   run: |
+    #     rm -rf ${{ inputs.tests_path }}artifacts/results/xml_reports
 
     - name: Archive test results
       if: always()
