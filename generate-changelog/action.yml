@@ -48,6 +48,8 @@ runs:
     #     echo "List all branches"
     #     git branch --all
 
+    # See https://intuit.github.io/auto/docs/generated/changelog
+    # Generate changelog by comparing the latest tag with HEAD
     - name: Update Changelog
       shell: bash
       run: |
