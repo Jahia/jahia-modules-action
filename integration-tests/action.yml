@@ -168,6 +168,9 @@ inputs:
     description: 'Version of node to install on the host'
     required: false
     default: 'lts/*'
+  github_api_token:
+    description: GitHub API token
+    required: true
 
 runs:
   using: "composite"
