@@ -423,6 +423,12 @@ runs:
             --runUrl=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
         fi
 
+    - name: Publish Test Report
+      uses: mikepenz/action-junit-report@v2
+      if: always()
+      with:
+        report_paths: '${{ inputs.tests_path }}artifacts/results/xml_reports/*'
+
     - name: remove xml results folder
       shell: bash
       if: always()

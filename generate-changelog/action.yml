@@ -36,17 +36,17 @@ runs:
         git config user.name ${{ inputs.git_user_name }}
         git fetch --all --tags
         git checkout ${{ inputs.primary_release_branch }}
-        mkdir -p ~/.ssh
-        ssh-keyscan github.com >> ~/.ssh/known_hosts
-        git config --global http.sslVerify false
+      # mkdir -p ~/.ssh
+      # ssh-keyscan github.com >> ~/.ssh/known_hosts
+      # git config --global http.sslVerify false
 
-    - name: Getting latest changes from the remote branch
-      shell: bash
-      run: |
-        echo "List all available tags"
-        git tag
-        echo "List all branches"
-        git branch --all
+    # - name: Getting latest changes from the remote branch
+    #   shell: bash
+    #   run: |
+    #     echo "List all available tags"
+    #     git tag
+    #     echo "List all branches"
+    #     git branch --all
 
     - name: Update Changelog
       shell: bash
