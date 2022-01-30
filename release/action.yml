@@ -1,0 +1,150 @@
+name: Release 
+description: Release a Jahia module
+
+inputs:
+  primary_release_branch:
+    description: Name of the primary release branch (master, main, ...)
+    default: 'main'
+    required: false
+  mvn_settings_filepath:
+    description: Filepath to the settings.xml file
+    default: '.circleci/.circleci.settings.xml'
+    required: false
+  nexus_username:
+    description: 'Nexus Username'
+    required: true
+  nexus_password:
+    description: 'Nexus Password'
+    required: true
+  github_slug:
+    description: "GitHub SLUG of the module (for example: jahia/sandbox)"
+    required: true
+  release_id:
+    description: GitHub release ID
+    required: true
+  release_version:
+    description: Version to release
+    required: true
+  git_user_name:
+    description: Git user name
+    default: 'Jahia CI'
+    required: false
+  git_user_email:
+    description: Git user email
+    default: 'jahia-ci@jahia.com'
+    required: false
+  github_api_token:
+    description: GitHub API token
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set environment variables from parameters
+      shell: bash
+      run: |
+        echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
+        echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
+        echo "NEXUS_RELEASE_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
+        echo "NEXUS_RELEASE_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV        
+
+    - name: Generate maven cache seeed
+      shell: bash
+      run: |
+        find . -name 'pom.xml' | sort | xargs cat > ./maven_cache_seed
+
+    - name: Cache local Maven repository
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2/repository
+        key: v1-maven-dependencies-${{ hashFiles('**/maven_cache_seed') }}
+        restore-keys: |
+          v1-maven-dependencies-${{ hashFiles('**/maven_cache_seed') }}
+
+    - name: Getting latest changes from the remote branch
+      shell: bash
+      run: |
+        git fetch --all
+        git pull origin ${{ inputs.primary_release_branch }} --quiet
+
+    - name: Delete github tag ${{ inputs.release_version }}
+      shell: bash
+      run: |
+        git config user.email ${{ inputs.git_user_email }}
+        git config user.name ${{ inputs.git_user_name }}
+        git tag --delete ${{ inputs.release_version }}
+        git push --delete origin ${{ inputs.release_version }}
+
+    - name: Remove any previous changes, this is required by mvn release prepare
+      shell: bash
+      run: |
+        git reset --hard
+        git checkout ${{ inputs.primary_release_branch }}
+
+    - name: Added some debug details
+      shell: bash
+      run: |
+        git branch
+        echo "---"
+        git status
+        echo "---"
+        git show --summary
+
+    - name: Release prepare version for ${{ inputs.release_version }}
+      shell: bash
+      run: |
+        TAG_VERSION=$(echo ${{ inputs.release_version }})
+        FINAL_RELEASE_VERSION=$(echo ${{ inputs.release_version }} | tr '_' '.' | cut -d'-' -f 1)
+        MAJOR_VERSION=`echo $FINAL_RELEASE_VERSION | cut -d. -f1`
+        MINOR_VERSION=`echo $FINAL_RELEASE_VERSION | cut -d. -f2`
+        REVISION=`echo $FINAL_RELEASE_VERSION | cut -d. -f3`
+        if [[ "${{ inputs.primary_release_branch }}" == "master"  || "${{ inputs.primary_release_branch }}" == "main"  ||  "${{ inputs.primary_release_branch }}" =~ ^[0-9]_x$ ]]; then
+          NEXT_MINOR_VERSION=`expr $MINOR_VERSION + 1`
+          NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$NEXT_MINOR_VERSION.0"-SNAPSHOT
+        else
+          NEXT_REVISION=`expr $REVISION + 1`
+          NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$MINOR_VERSION.$NEXT_REVISION"-SNAPSHOT
+        fi
+        mvn -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=$TAG_VERSION release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin]"
+
+    - name: Cache local Maven repository
+      uses: actions/cache@v2
+      with:
+        path: |
+          pom.xml.releaseBackup
+          release.properties
+        key: v1-rollback-${{ inputs.release_id }}
+
+    - name:  Update github release for id ${{ inputs.release_id }}
+      shell: bash
+      run: |
+        echo "Update github release for id ${{ inputs.release_id }}"
+        curl -X PATCH \
+        -H "Accept:application/vnd.github.v3+json" \
+        -d "{\"tag_name\":\"${{ inputs.release_version }}\", \"prerelease\": false, \"draft\": false}" -u \
+        jahia-ci:${{ inputs.github_api_token }} https://api.github.com/repos/${{ inputs.github_slug }}/releases/${{ inputs.release_id }}
+        curl \
+        -H "Content-Type: $(file -b --mime-type CHANGELOG.md)" \
+        -u jahia-ci:${{ inputs.github_api_token }}  \
+        --data-binary @CHANGELOG.md \
+        "https://uploads.github.com/repos/${{ inputs.github_slug }}/releases/${{ inputs.release_id }}/assets?name=$(basename CHANGELOG.md)"
+
+    - name: Perform release
+      shell: bash
+      run: mvn -s ${{ inputs.mvn_settings_filepath }} release:perform -Prelease-to-staging-repository
+
+    - name: Copy artifacts
+      shell: bash
+      run: |
+        mkdir /tmp/artifacts/
+        cd ~
+        find . -name "*.jar" -type f  -maxdepth 3 -mindepth 3 -exec cp {} /tmp/artifacts/ \;
+
+    - name: Release Artifacts
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: release-artifacts
+        path: |
+          /tmp/artifacts/
+        retention-days: 7

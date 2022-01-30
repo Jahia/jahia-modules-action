@@ -1,0 +1,79 @@
+name: Build 
+description: Build a Jahia module
+
+inputs:
+  module_id:
+    description: Module ID
+    required: true
+  mvn_settings_filepath:
+    description: Filepath to the settings.xml file
+    default: '.circleci/.circleci.settings.xml'
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+
+    # This step save the maven cache between runs
+    # More details can be found here: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
+    - name: Cache local Maven repository
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+
+    - name: Build package
+      shell: bash
+      run: mvn -s ${{ inputs.mvn_settings_filepath }} clean install
+
+    - name: Copy dependencies to provision artifacts
+      shell: bash
+      run: mvn -ntp -s ${{ inputs.mvn_settings_filepath }} dependency:copy-dependencies -DexcludeTransitive=true -DincludeScope=provided -DincludeGroupIds=org.jahia.modules -DincludeTypes=jar
+
+    - name: Prepare artifacts
+      shell: bash
+      run: |
+        mkdir /tmp/artifacts/
+        find . -type f -path '*/target/*-SNAPSHOT*.jar' -exec cp '{}' /tmp/artifacts/ ';' || :
+        if [ -f target/*source-release.zip ]; then
+          echo "A source file is present, copying it to the artifacts folder"
+          cp target/*source-release.zip /tmp/artifacts/ || :
+        fi
+        if [ -d ${{ inputs.module_id }}/ ]; then
+          echo "Copying jar from: ${{ inputs.module_id }}/"
+          cp ${{ inputs.module_id }}/target/*.jar /tmp/artifacts/ || :
+          if [ ! -d target/ ]; then
+            mkdir target/
+          fi
+          cp ${{ inputs.module_id }}/target/*.jar target/ || :
+        fi
+
+    - name: Archive build artifacts
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: build-artifacts
+        path: |
+          target/*
+          ./*/target/*
+        retention-days: 7
+
+    # Note: The two steps below are derived from graphql-dxm-provider setup
+    # This might not be applicable to other modules for the same complexity
+    - name: Copy test report (if present)
+      shell: bash
+      run: |
+        mkdir /tmp/artifacts/test-results/
+        if [[ -d "{{ inputs.module_id }}/target/surefire-reports/" ]]; then
+          cp {{ inputs.module_id }}/target/surefire-reports/*.xml /tmp/artifacts/test-results/ || :
+        fi
+
+    - name: Archive code coverage results
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: test-artifacts
+        path: /tmp/artifacts/test-results/
+        retention-days: 7

@@ -1,0 +1,88 @@
+name: Sonar Analysis
+description: Analyze the code with SonarQube
+
+inputs:
+  primary_release_branch:
+    description: Name of the primary release branch (master, main, ...)
+    required: false
+    default: main
+  github_slug:
+    description: "GitHub SLUG of the module (for example: jahia/sandbox)"
+    required: true
+  sonar_url:
+    description: "URL to the SONAR server"
+    required: true
+  sonar_token:
+    description: "Authentication token for the SONAR server"
+    required: true
+  github_pr_id:
+    description: "ID of the pull request (for example: 5)"
+    required: false
+    default: ''
+  mvn_settings_filepath:
+    description: Filepath to the settings.xml file
+    required: false
+    default: '.circleci/.circleci.settings.xml'
+
+runs:
+  using: "composite"
+  steps:
+
+    - name: Generate Cache Key Seeds
+      shell: bash
+      run: |
+        find . -name 'pom.xml' | sort | xargs cat > maven_cache_seed
+        if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
+          echo "true" > is_pr
+        else
+          echo "false" > is_pr
+        fi
+
+    - name: Set environment variables from parameters
+      shell: bash
+      run: |
+        echo "SONAR_URL=${{ inputs.sonar_url }}" >> $GITHUB_ENV
+        echo "SONAR_TOKEN=${{ inputs.sonar_token }}" >> $GITHUB_ENV
+
+    - name: Displaying important variables
+      shell: bash
+      run: |
+        echo "github_pr_id = ${{ inputs.github_pr_id }}"
+
+    - name: Cache local Maven repository
+      uses: actions/cache@v2
+      with:
+        path: | 
+          ~/.owasp/dependency-check-data
+          ~/.sonar/cache
+        key: v2-sonar-owasp-dependencies-{{ checksum "is_pr" }}
+        restore-keys: |
+          v2-sonar-owasp-dependencies-{{ checksum "is_pr" }}
+
+    - name: Sonar Release branch analysis
+      shell: bash
+      run: |
+        echo "Pull request number: ${{ inputs.github_pr_id }}"
+        if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
+          echo "Executing a PR based analysis"
+          mvn -s ${{ inputs.mvn_settings_filepath }} sonar:sonar \
+              -Dsonar.pullrequest.branch=$CIRCLE_BRANCH \
+              -Dsonar.pullrequest.key=${{ inputs.github_pr_id }} \
+              -Dsonar.pullrequest.base=${{ inputs.primary_release_branch }} \
+              -Dsonar.pullrequest.github.repository=${{ inputs.github_slug }}
+        elif [[ $GITHUB_REF == ${{ inputs.primary_release_branch }} ]]; then
+          echo "Executing an analysis on the main branch"
+          mvn -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:6.1.6:aggregate sonar:sonar \
+            -DfailOnError=false -DskipProvidedScope=true -DskipTestScope=false -DskipSystemScope=true -Dformats=HTML,JSON \
+            -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
+            -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
+            -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data
+        else
+          echo "Executing an analysis on branch: $GITHUB_REF"
+          mvn -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:6.1.6:aggregate sonar:sonar \
+              -Dsonar.branch.name=$GITHUB_REF \
+              -DfailOnError=false -DskipProvidedScope=true -DskipTestScope=false -DskipSystemScope=true -Dformats=HTML,JSON \
+              -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
+              -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
+              -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data
+        fi

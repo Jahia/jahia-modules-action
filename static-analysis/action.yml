@@ -1,0 +1,91 @@
+name: Static Analysis
+description: Performs static code analysis (linters, security)
+
+inputs:
+  primary_release_branch:
+    description: 'Primary release branch'
+    required: false
+    default: 'main'
+  module_path:
+    description: 'Path to the module'
+    required: false
+    default: './'
+  tests_path:
+    description: 'Path to the module'
+    required: false
+    default: './'
+  max_warning:
+    description: 'Maximum number of warning before failing the linting step'
+    required: false
+    default: '1'
+  auditci_level:
+    description: 'Security level to check against for the module codebase, will fail the step if higher'
+    required: false
+    default: 'moderate'
+  auditci_level_tests:
+    description: 'Security level to check against for the tests codebase, will fail the step if higher'
+    required: false
+    default: 'critical'
+  node_version:
+    description: 'Version of node to install on the host'
+    required: false
+    default: 'lts/*'
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@v2
+      with:
+        node-version: ${{ inputs.node_version }}
+
+    # Install node dependencies
+    - name: Run yarn if package.json exists in module folder
+      shell: bash
+      run: |
+        if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
+          cd ${{ inputs.module_path }}
+          yarn
+        fi
+    - name: Run yarn if package.json exists in module folder
+      shell: bash
+      run: |
+        if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
+          cd ${{ inputs.tests_path }}
+          yarn
+        fi
+
+    # Lint the codebase
+    - name: Lint module (javascript only)
+      shell: bash
+      run: |
+        if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
+          cd ${{ inputs.module_path }}
+          yarn run lint --max-warnings ${{ inputs.max_warning }}
+        fi
+    - name: Lint tests (javascript only)
+      shell: bash
+      run: |
+        if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
+          cd ${{ inputs.tests_path }}
+          yarn run lint --max-warnings ${{ inputs.max_warning }}
+        fi
+
+    # Runs the security checks
+    - name: Install audit-ci
+      shell: bash
+      run: |
+        sudo npm install -g audit-ci
+    - name: Audit-ci module (javascript only)
+      shell: bash
+      run: |
+        if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
+          cd ${{ inputs.module_path }}
+          audit-ci --${{ inputs.auditci_level }}
+        fi
+    - name: Audit-ci tests (javascript only)
+      shell: bash
+      run: |
+        if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
+          cd ${{ inputs.tests_path }}
+          audit-ci --${{ inputs.auditci_level_tests }}
+        fi
