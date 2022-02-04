@@ -1,79 +1,11 @@
-name: Helper 
-description: Display environment details to assist in debugging jobs
-
+name: 'Helper'
+description: 'Display environment details to assist in debugging jobs'
+author: 'Jahia'
+inputs:
+  milliseconds: # change this
+    required: true
+    description: 'input description here'
+    default: 'default value if applicable'
 runs:
-  using: "composite"
-  steps:
-    - name: Display EC2 Metadata
-      shell: bash
-      run: |
-        if ! command -v ec2metadata &> /dev/null
-        then
-          echo "ec2metadata could not be found"
-          echo "You're likely not running this job in a self-hosted runner"
-        else
-          ec2metadata
-        fi
-
-    - name: Display EC2 Instance ID
-      shell: bash
-      run: |
-        if ! command -v ec2metadata &> /dev/null
-        then
-          echo "ec2metadata could not be found"
-          echo "You're likely not running this job in a self-hosted runner"
-        else
-          ec2metadata | grep instance-id
-        fi
-
-    - name: AWS SSM (System Manager) Installation instructions
-      shell: bash
-      run: |
-        echo "(once) Step 1: Install the AWS CLI"
-        echo "_____________ Follow the instructions here: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"
-        echo "_____________ In Short (macOS):"
-        echo "_____________ #> curl \"https://awscli.amazonaws.com/AWSCLIV2.pkg\" -o \"AWSCLIV2.pkg\" "
-        echo "_____________ #> sudo installer -pkg AWSCLIV2.pkg -target / "
-        echo "_____________ #> aws --version"
-        echo "(once) Step 2: Configure the AWS CLI with your credentials"
-        echo "_____________ #> aws configure"        
-        echo "(once) Step 3: Install Session Manager plugin on your machine"
-        echo "_____________ Instructions are available here: https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html"
-        echo "_____________ In Short (macOS):"
-        echo "_____________ #> curl \"https://s3.amazonaws.com/session-manager-downloads/plugin/latest/mac/sessionmanager-bundle.zip\" -o \"sessionmanager-bundle.zip\" "
-        echo "_____________ #> unzip sessionmanager-bundle.zip "
-        echo "_____________ #> sudo ./sessionmanager-bundle/install -i /usr/local/sessionmanagerplugin -b /usr/local/bin/session-manager-plugin "
-
-    - name: How to use ''SSH'' into a runner
-      shell: bash
-      run: |
-        echo "Step 1: Connect using the AWS CLI"
-        echo "_____________ INSTANCE_ID: AWS EC2 Instance ID, displayed at the top of this job, or via the EC2 console"
-        echo "_____________ #> aws ssm start-session --target INSTANCE_ID"
-
-    - name: How to use Portforward to access Jahia UI
-      shell: bash
-      run: |
-        echo "(once) Step 1: Install the AWS CLI"
-        echo "_____________ Follow the instructions here: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"
-        echo "_____________ In Short (macOS):"
-        echo "_____________ #> curl \"https://awscli.amazonaws.com/AWSCLIV2.pkg\" -o \"AWSCLIV2.pkg\" "
-        echo "_____________ #> sudo installer -pkg AWSCLIV2.pkg -target / "
-        echo "_____________ #> aws --version"
-        echo "(once) Step 2: Configure the AWS CLI with your credentials"
-        echo "_____________ #> aws configure"        
-        echo "(once) Step 3: Install Session Manager plugin on your machine"
-        echo "_____________ Instructions are available here: https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html"
-        echo "_____________ #> curl \"https://s3.amazonaws.com/session-manager-downloads/plugin/latest/mac/sessionmanager-bundle.zip\" -o \"sessionmanager-bundle.zip\" "
-        echo "_____________ #> unzip sessionmanager-bundle.zip "
-        echo "_____________ #> sudo ./sessionmanager-bundle/install -i /usr/local/sessionmanagerplugin -b /usr/local/bin/session-manager-plugin "
-        echo "Step 3: Establish the tunnel"
-        echo "_____________ Replace the VARIABLE below"
-        echo "_____________ INSTANCE_ID: AWS EC2 Instance ID, displayed at the top of this job, or via the EC2 console"
-        echo "_____________ REMOTE_PORT: TCP Port to bind to on the EC2 Instance (for example: 8080)"
-        echo "_____________ LOCAL_PORT: TCP Port to use on your local machine"
-        echo "_____________ #> aws ssm start-session --target INSTANCE_ID --document-name AWS-StartPortForwardingSession --parameters '{\"portNumber\":[\"REMOTE_PORT\"],\"localPortNumber\":[\"LOCAL_PORT\"]}'"
-        echo "_____________ For Example: "
-        echo "_____________ #> aws ssm start-session --target INSTANCE_ID --document-name AWS-StartPortForwardingSession --parameters '{\"portNumber\":[\"8080\"],\"localPortNumber\":[\"8080\"]}'"
-
-
+  using: 'node16'
+  main: 'dist/index.js'
