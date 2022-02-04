@@ -72,9 +72,7 @@ runs:
         echo "_____________ INSTANCE_ID: AWS EC2 Instance ID, displayed at the top of this job, or via the EC2 console"
         echo "_____________ REMOTE_PORT: TCP Port to bind to on the EC2 Instance (for example: 8080)"
         echo "_____________ LOCAL_PORT: TCP Port to use on your local machine"
-        echo "_____________ #> aws ssm start-session --target INSTANCE_ID \
-                       --document-name AWS-StartPortForwardingSession \
-                       --parameters '{\"portNumber\":[\"REMOTE_PORT\"],\"localPortNumber\":[\"LOCAL_PORT\"]}'"
+        echo "_____________ #> aws ssm start-session --target INSTANCE_ID --document-name AWS-StartPortForwardingSession --parameters '{\"portNumber\":[\"REMOTE_PORT\"],\"localPortNumber\":[\"LOCAL_PORT\"]}'"
         echo "_____________ For Example: "
         echo "_____________ #> aws ssm start-session --target INSTANCE_ID --document-name AWS-StartPortForwardingSession --parameters '{\"portNumber\":[\"8080\"],\"localPortNumber\":[\"8080\"]}'"
 
