@@ -1,4 +1,4 @@
-name: Debug 
+name: Helper 
 description: Display environment details to assist in debugging jobs
 
 runs:
