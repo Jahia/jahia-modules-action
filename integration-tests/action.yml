@@ -427,7 +427,7 @@ runs:
       uses: mikepenz/action-junit-report@v2
       if: always()
       with:
-        report_paths: '${{ inputs.tests_path }}artifacts/results/xml_reports/*'
+        report_paths: '${{ inputs.tests_path }}artifacts/results/xml_reports/**'
 
     - name: Archive test results
       if: always()
