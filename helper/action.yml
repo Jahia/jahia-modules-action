@@ -2,6 +2,10 @@ name: 'Helper'
 description: 'Display environment details to assist in debugging jobs'
 author: 'Jahia'
 inputs:
+  token:
+    description: 'Specify the token to use to publish the check.'
+    required: false
+    default: ${{ github.token }}
   milliseconds: # change this
     required: true
     description: 'input description here'
