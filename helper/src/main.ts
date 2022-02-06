@@ -1,5 +1,7 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
+const { execSync } = require('child_process');
+
 
 async function run(): Promise<void> {
   try {
@@ -20,9 +22,9 @@ async function run(): Promise<void> {
       return
     }
 
-    core.startGroup(`📘 Display EC2 Metadata`)
-    core.info('TODO')
-    core.endGroup()
+    const instanceId = execSync('ec2metadata --instance-id');    
+    const instanceType = execSync('ec2metadata --instance-type');
+    core.notice(`Job is running on instance: ${instanceId} (spec: ${instanceType}) - Connect to the instance using: #> aws ssm start-session --target ${instanceId}`)
 
     core.startGroup(`📘 Keep a session open for Debugging`)
     core.info('Step 1: Log')
