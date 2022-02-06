@@ -37,6 +37,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
+const { execSync } = __nccwpck_require__(3129);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -52,9 +53,9 @@ function run() {
                 core.setFailed('❌ A token is required to execute this action');
                 return;
             }
-            core.startGroup(`📘 Display EC2 Metadata`);
-            core.info('TODO');
-            core.endGroup();
+            const instanceId = execSync('ec2metadata --instance-id');
+            const instanceType = execSync('ec2metadata --instance-id');
+            core.notice(`Job is running on instance: ${instanceId} (spec: ${instanceType})`);
             core.startGroup(`📘 Keep a session open for Debugging`);
             core.info('Step 1: Log');
             core.endGroup();
@@ -8432,6 +8433,14 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 
 "use strict";
 module.exports = require("assert");
+
+/***/ }),
+
+/***/ 3129:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("child_process");
 
 /***/ }),
 
