@@ -55,7 +55,7 @@ function run() {
             }
             const instanceId = execSync('ec2metadata --instance-id');
             const instanceType = execSync('ec2metadata --instance-type');
-            core.notice(`Job is running on instance: ${instanceId} (spec: ${instanceType}) \n SSH into the instance using: #> aws ssm start-session --target ${instanceId}`);
+            core.notice(`Job is running on instance: ${instanceId} (spec: ${instanceType}) - Connect to the instance using: #> aws ssm start-session --target ${instanceId}`);
             core.startGroup(`📘 Keep a session open for Debugging`);
             core.info('Step 1: Log');
             core.endGroup();
