@@ -56,6 +56,28 @@ function run() {
             core.startGroup(`📘 Display EC2 Metadata`);
             core.info('TODO');
             core.endGroup();
+            core.startGroup(`📘 AWS SSM (System Manager) Installation instructions`);
+            core.info('(once) Step 1: Install the AWS CLI');
+            core.info('_____________ Follow the instructions here: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html');
+            core.info('_____________ In Short (macOS):');
+            core.info('_____________ #> curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"');
+            core.info('_____________ #> sudo installer -pkg AWSCLIV2.pkg -target /');
+            core.info('_____________ #> aws --version');
+            core.info('(once) Step 2: Configure the AWS CLI with your credentials');
+            core.info('_____________ #> aws configure');
+            core.info('(once) Step 3: Install Session Manager plugin on your machine');
+            core.info('_____________ Instructions are available here: https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html');
+            core.info('_____________ In Short (macOS):');
+            core.info('_____________ #> curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/mac/sessionmanager-bundle.zip" -o "sessionmanager-bundle.zip"');
+            core.info('_____________ #> unzip sessionmanager-bundle.zip ');
+            core.info('_____________ #> sudo ./sessionmanager-bundle/install -i /usr/local/sessionmanagerplugin -b /usr/local/bin/session-manager-plugin');
+            core.info('ssss');
+            core.endGroup();
+            core.startGroup(`📘 How to use "SSH" into a runner`);
+            core.info('Step 1: Connect using the AWS CLI');
+            core.info('_____________ INSTANCE_ID: AWS EC2 Instance ID, displayed at the top of this job, or via the EC2 console');
+            core.info('_____________ #> aws ssm start-session --target INSTANCE_ID');
+            core.endGroup();
             core.startGroup(`📘 SSH Connection instructions`);
             const conclusion = 'success';
             const createCheckRequest = Object.assign(Object.assign({}, github.context.repo), { name: checkName, head_sha, status: 'completed', conclusion, output: {
