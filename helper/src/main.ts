@@ -26,6 +26,10 @@ async function run(): Promise<void> {
     core.info('TODO')
     core.endGroup()
 
+    core.startGroup(`📘 Keep a session open for Debugging`)
+    core.info('Step 1: Log')
+    core.endGroup()
+
     core.startGroup(`📘 AWS SSM (System Manager) Installation instructions`)
     core.info('(once) Step 1: Install the AWS CLI')
     core.info('_____________ Follow the instructions here: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html')
@@ -50,45 +54,28 @@ async function run(): Promise<void> {
     core.info('_____________ #> aws ssm start-session --target INSTANCE_ID')
     core.endGroup()
 
-    core.startGroup(`📘 SSH Connection instructions`)
-
-    const conclusion = 'success'
-
-    const createCheckRequest = {
-      ...github.context.repo,
-      name: checkName,
-      head_sha,
-      status: 'completed',
-      conclusion,
-      output: {
-        title: 'SSH Connection instructions',
-        summary,
-        annotations: [{
-          path: 'README.md',
-          start_line:1,
-          end_line:1,
-          annotation_level: 'notice',
-          message: 'This is the message \n \n #Title Markdown \n \n some more text'
-        }]
-      }
-    }
-
-    core.info(`ℹ️ Creating check`)
-    const octokit = github.getOctokit(token)
-
-    await octokit.rest.checks.create(createCheckRequest)
-    core.info('TODO')
-
+    core.startGroup(`📘 How to use Portforward to access Jahia UI`)
+    core.info('Step 1: Establish the tunnel')
+    core.info('_____________ Replace the VARIABLE below')
+    core.info('_____________ INSTANCE_ID: AWS EC2 Instance ID, displayed at the top of this job, or via the EC2 console')
+    core.info('_____________ REMOTE_PORT: TCP Port to bind to on the EC2 Instance (for example: 8080)')
+    core.info('_____________ LOCAL_PORT: TCP Port to use on your local machine')
+    core.info('_____________ #> aws ssm start-session --target INSTANCE_ID --document-name AWS-StartPortForwardingSession --parameters \'{"portNumber":["REMOTE_PORT"],"localPortNumber":["LOCAL_PORT"]}\'')
+    core.info('_____________ For Example: ')
+    core.info('_____________ #> aws ssm start-session --target INSTANCE_ID --document-name AWS-StartPortForwardingSession --parameters \'{"portNumber":["8080"],"localPortNumber":["8080"]}\'')
     core.endGroup()
 
-    const ms: string = core.getInput('milliseconds')
-    core.debug(`Waiting ${ms} milliseconds ...`) // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
-
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
-
-    core.setOutput('time', new Date().toTimeString())
+    core.startGroup(`📘 Keep a session open for Debugging`)
+    core.info('By default, the server will be terminated at the end of execution.')
+    core.info('To prevent the session for terminating, simply SSH into the server and create a "/tmp/debug" file')
+    core.info('Step 1: SSH into the instance')
+    core.info('_____________ #> aws ssm start-session --target INSTANCE_ID')
+    core.info('Step 2: Create the debug file')
+    core.info('_____________ #> touch /tmp/debug')
+    core.info('The session will stay open until it hits the timeout (default to 2 hours)')
+    core.info('Step 3: Once done, remove the file')
+    core.info('_____________ #> rm /tmp/debug')
+    core.endGroup()
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
