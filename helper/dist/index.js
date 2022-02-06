@@ -78,19 +78,32 @@ function run() {
             core.info('_____________ INSTANCE_ID: AWS EC2 Instance ID, displayed at the top of this job, or via the EC2 console');
             core.info('_____________ #> aws ssm start-session --target INSTANCE_ID');
             core.endGroup();
+            core.startGroup(`📘 How to use Portforward to access Jahia UI`);
+            core.info('Step 1: Establish the tunnel');
+            core.info('_____________ Replace the VARIABLE below');
+            core.info('_____________ INSTANCE_ID: AWS EC2 Instance ID, displayed at the top of this job, or via the EC2 console');
+            core.info('_____________ REMOTE_PORT: TCP Port to bind to on the EC2 Instance (for example: 8080)');
+            core.info('_____________ LOCAL_PORT: TCP Port to use on your local machine');
+            core.info('_____________ #> aws ssm start-session --target INSTANCE_ID --document-name AWS-StartPortForwardingSession --parameters \'{"portNumber":["REMOTE_PORT"],"localPortNumber":["LOCAL_PORT"]}\'');
+            core.info('_____________ For Example: ');
+            core.info('_____________ #> aws ssm start-session --target INSTANCE_ID --document-name AWS-StartPortForwardingSession --parameters \'{"portNumber":["8080"],"localPortNumber":["8080"]}\'');
+            core.endGroup();
             core.startGroup(`📘 SSH Connection instructions`);
             const conclusion = 'success';
             const createCheckRequest = Object.assign(Object.assign({}, github.context.repo), { name: checkName, head_sha, status: 'completed', conclusion, output: {
                     title: 'SSH Connection instructions',
-                    summary,
+                    summary: 'This is a summary',
                     annotations: [{
                             path: 'README.md',
                             start_line: 1,
                             end_line: 1,
-                            annotation_level: 'notice',
-                            message: 'This is the message \n \n #Title Markdown \n \n some more text'
+                            annotation_level: 'failure',
+                            message: 'This is the message \n \n #Title Markdown \n \n some more text',
+                            start_column: 1,
+                            end_column: 1
                         }]
                 } });
+            core.info(JSON.stringify(createCheckRequest));
             core.info(`ℹ️ Creating check`);
             const octokit = github.getOctokit(token);
             yield octokit.rest.checks.create(createCheckRequest);
