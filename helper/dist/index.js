@@ -97,7 +97,7 @@ function run() {
                             path: 'README.md',
                             start_line: 1,
                             end_line: 1,
-                            annotation_level: 'failure',
+                            annotation_level: 'notice',
                             message: 'This is the message \n \n #Title Markdown \n \n some more text',
                             start_column: 1,
                             end_column: 1
