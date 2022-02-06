@@ -54,7 +54,7 @@ function run() {
                 return;
             }
             const instanceId = execSync('ec2metadata --instance-id');
-            const instanceType = execSync('ec2metadata --instance-id');
+            const instanceType = execSync('ec2metadata --instance-type');
             core.notice(`Job is running on instance: ${instanceId} (spec: ${instanceType})`);
             core.startGroup(`📘 Keep a session open for Debugging`);
             core.info('Step 1: Log');
