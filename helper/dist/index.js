@@ -62,7 +62,7 @@ function run() {
                     title: 'SSH Connection instructions',
                     summary,
                     annotations: [{
-                            path: 'this is a path',
+                            path: 'README.md',
                             start_line: 1,
                             end_line: 1,
                             annotation_level: 'notice',

@@ -3,7 +3,7 @@ description: 'Display environment details to assist in debugging jobs'
 author: 'Jahia'
 inputs:
   token:
-    description: 'Specify the token to use to publish the check.'
+    description: 'Specify the token to use to publish the annotation'
     required: false
     default: ${{ github.token }}
   milliseconds: # change this
