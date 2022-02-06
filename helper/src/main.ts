@@ -2,6 +2,7 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 const { execSync } = require('child_process');
 
+
 async function run(): Promise<void> {
   try {
     const checkName = core.getInput('check_name')
