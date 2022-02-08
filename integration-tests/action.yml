@@ -323,6 +323,7 @@ runs:
       if: always()
       run: |
         cd ${{ inputs.tests_path }}
+        . ./set-env.sh
         docker-compose logs -t --tail="all" > ./artifacts/results/all-containers.log
         docker logs jahia > ./artifacts/results/jahia.log
         docker logs ${{ inputs.tests_container_name }} > ./artifacts/results/${{ inputs.tests_container_name }}.log
