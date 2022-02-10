@@ -136,6 +136,10 @@ inputs:
     description: 'Google Client email to allow access to Google API'
     required: false
     default: ''
+  incident_google_update_state:
+    description: 'Should the state column in the spreadsheet be updated'
+    required: false
+    default: 'true'    
   incident_google_api_key_base64:
     description: 'Google base64 encoded private key to allow access to Google API'
     required: false
@@ -396,6 +400,7 @@ runs:
             --googleSpreadsheetId="${{ inputs.incident_google_spreadsheet_id }}" \
             --googleClientEmail="${{ inputs.incident_google_client_email }}" \
             --googleApiKey="${{ inputs.incident_google_api_key_base64 }}" \
+            --googleUpdateState="${{ inputs.incident_google_update_state }}" \
             --service="${{ inputs.module_id }}" \
             --sourceUrl=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
         fi  
