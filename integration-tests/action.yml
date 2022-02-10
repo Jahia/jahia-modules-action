@@ -172,6 +172,10 @@ inputs:
     description: 'In seconds, timeout in seconds before terminating the session'
     required: false
     default: '7200'
+  artifact_retention:
+    description: 'Time during which artifact are kept in Github infrastructure'
+    required: false
+    default: 2   
 
 runs:
   using: "composite"
@@ -442,7 +446,7 @@ runs:
       with:
         name: integration-tests-results
         path: ${{ inputs.tests_path }}artifacts/results/
-        retention-days: 7
+        retention-days: ${{ inputs.artifact_retention }}
 
     - name: Keep session opened if a particular file is present
       shell: bash
