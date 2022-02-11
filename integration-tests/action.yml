@@ -388,6 +388,7 @@ runs:
       shell: bash 
       if: failure()
       run: |
+        echo "Current branch is: $GITHUB_REF"
         if [ ${{ inputs.primary_release_branch }} == $GITHUB_REF ] || [ master == $GITHUB_REF ]; then
           cd ${{ inputs.tests_path }}
           jahia-reporter pagerduty:incident \
