@@ -51,6 +51,7 @@ runs:
       if: ${{ inputs.destination == 'jahia' }}
       shell: bash
       run: |
+        ls -lah
         if ! sh -c "rsync -rvz -e 'ssh -A -o \"ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com\" -o StrictHostKeyChecking=off' ${{ inputs.path }} jahia@rqa1.int.jahia.com:${RSYNC_FOLDER}"
         then
           echo ::set-output name=status::'There was an issue syncing the content.'
