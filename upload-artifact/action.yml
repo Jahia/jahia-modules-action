@@ -50,7 +50,7 @@ runs:
       with:
         flags: '-avzr'
         options: 'StrictHostKeyChecking=off'
-        ssh_options: 'ProxyCommand="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com"'
+        ssh_options: 'ProxyCommand="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p" -p 220 jahia-ci@circleci-bastion-prod.jahia.com'
         src: ${{ inputs.path }}
         dest: 'jahia@rqa1.int.jahia.com:${RSYNC_FOLDER}'
 
