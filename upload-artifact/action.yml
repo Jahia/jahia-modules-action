@@ -59,18 +59,6 @@ runs:
           echo ::set-output name=status::'Content synced successfully.'
         fi
 
-    # - name: rsync files to Jahia
-    #   if: ${{ inputs.destination == 'jahia' }}
-    #   uses: Pendect/action-rsyncer@v1.1.0
-    #   env:
-    #     DEPLOY_KEY: ${{ inputs.ssh-key }}
-    #   with:
-    #     flags: '-avzr'
-    #     options: 'StrictHostKeyChecking=off'
-    #     ssh_options: 'ProxyCommand="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p" -p 220 jahia-ci@circleci-bastion-prod.jahia.com'
-    #     src: ${{ inputs.path }}
-    #     dest: 'jahia@rqa1.int.jahia.com:${RSYNC_FOLDER}'
-
     - name: Send notice about file location
       shell: bash
       if: ${{ inputs.destination == 'jahia' }}
