@@ -35,6 +35,6 @@ runs:
         DST_FOLDER=/temp-artifacts/will-be-deleted-on-${DST_EXPIRY}/$(echo $GITHUB_REPOSITORY|sed 's#/#_#g')_${GITHUB_RUN_ID}
         echo "Will be uploading artifact to: ${DST_FOLDER}"
         # echo "::set-env name=RSYNC_FOLDER::$DST_FOLDER"
-        echo "::notice file=README.md,title=Artifacts location::Artifacts are available at: $DST_FOLDER"
+        echo "::notice title=Artifacts location::Artifacts are available at: $DST_FOLDER"
         echo "RSYNC_FOLDER=${DST_FOLDER}" >> $GITHUB_ENV
 
