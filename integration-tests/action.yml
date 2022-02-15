@@ -407,7 +407,7 @@ runs:
             --googleSpreadsheetId="${{ inputs.incident_google_spreadsheet_id }}" \
             --googleClientEmail="${{ inputs.incident_google_client_email }}" \
             --googleApiKey="${{ inputs.incident_google_api_key_base64 }}" \
-            --googleUpdateState="${{ inputs.incident_google_update_state }}" \
+            --googleUpdateState=${{ inputs.incident_google_update_state }} \
             --service="${{ inputs.module_id }}" \
             --sourceUrl=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
         fi  
