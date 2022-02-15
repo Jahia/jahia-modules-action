@@ -14,6 +14,10 @@ inputs:
   retention-days:
     description: Duration after which artifact will expire in days.
     required: true
+  ssh-key:
+    description: 'Private key necessary to send the document via rsync (jahia only)'
+    required: false
+    default: ''
 
 runs:
   using: "composite"
@@ -40,4 +44,14 @@ runs:
         echo "::notice title=Artifacts location::Artifacts have been uploaded to: $DST_URL"
         echo "RSYNC_FOLDER=${DST_FILEPATH}" >> $GITHUB_ENV
 
-
+    - name: rsync files to Jahia
+      if: ${{ inputs.destination == 'jahia' }}
+      uses: Pendect/action-rsyncer@v1.1.0
+      env:
+        DEPLOY_KEY: ${{ inputs.ssh-key }}
+      with:
+        flags: '-avzr'
+        options: 'ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com'
+        ssh_options: '-p 2222'
+        src: ${{ inputs.path }}
+        dest: 'jahia@rqa1.int.jahia.com:${RSYNC_FOLDER}'
