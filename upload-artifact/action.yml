@@ -35,7 +35,7 @@ runs:
       if: ${{ inputs.destination == 'jahia' }}
       run: |
         DST_EXPIRY=$(date -d "+${{ inputs.retention-days }} days" +%Y-%m-%d)
-        DST_PATH=del-on-${DST_EXPIRY}_$(echo $GITHUB_REPOSITORY|sed 's#/#_#g')_${GITHUB_RUN_ID}/
+        DST_PATH=del-on-${DST_EXPIRY}_$(echo $GITHUB_REPOSITORY|sed 's#/#_#g')_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}/
         DST_FILEPATH=/temp-artifacts/${DST_PATH}
         DST_URL=https://qa.jahia.com/artifacts-ci/${DST_PATH}
         echo "Will be uploading artifact to: ${DST_FILEPATH}"
