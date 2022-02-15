@@ -51,7 +51,7 @@ runs:
         DEPLOY_KEY: ${{ inputs.ssh-key }}
       with:
         flags: '-avzr'
-        options: 'ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com'
-        ssh_options: '-p 2222'
+        options: 'StrictHostKeyChecking=off'
+        ssh_options: 'ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com'
         src: ${{ inputs.path }}
         dest: 'jahia@rqa1.int.jahia.com:${RSYNC_FOLDER}'
