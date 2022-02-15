@@ -44,15 +44,35 @@ runs:
 
     - name: rsync files to Jahia
       if: ${{ inputs.destination == 'jahia' }}
-      uses: Pendect/action-rsyncer@v1.1.0
-      env:
-        DEPLOY_KEY: ${{ inputs.ssh-key }}
-      with:
-        flags: '-avzr'
-        options: 'StrictHostKeyChecking=off'
-        ssh_options: 'ProxyCommand="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p" -p 220 jahia-ci@circleci-bastion-prod.jahia.com'
-        src: ${{ inputs.path }}
-        dest: 'jahia@rqa1.int.jahia.com:${RSYNC_FOLDER}'
+      shell: bash
+      run: |
+        SSH_PATH="$HOME/.ssh"
+        mkdir -p "$SSH_PATH"
+        touch "$SSH_PATH/known_hosts"
+        printf '%b\n' "$DEPLOY_KEY" > "$SSH_PATH/deploy_key"
+        chmod 700 "$SSH_PATH"
+        chmod 600 "$SSH_PATH/known_hosts" "$SSH_PATH/deploy_key"
+        eval "$(ssh-agent)"
+        ssh-add "$SSH_PATH/deploy_key"
+        if ! sh -c "rsync -rvz -e 'ssh -A -i ~/.ssh/deploy_key -o "ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com" -o StrictHostKeyChecking=off' $GITHUB_WORKSPACE/${{ inputs.path }} jahia@rqa1.int.jahia.com:/temp-artifacts/${RSYNC_FOLDER}"
+        then
+          echo ::set-output name=status::'There was an issue syncing the content.'
+          exit 1
+        else
+          echo ::set-output name=status::'Content synced successfully.'
+        fi
+
+    # - name: rsync files to Jahia
+    #   if: ${{ inputs.destination == 'jahia' }}
+    #   uses: Pendect/action-rsyncer@v1.1.0
+    #   env:
+    #     DEPLOY_KEY: ${{ inputs.ssh-key }}
+    #   with:
+    #     flags: '-avzr'
+    #     options: 'StrictHostKeyChecking=off'
+    #     ssh_options: 'ProxyCommand="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p" -p 220 jahia-ci@circleci-bastion-prod.jahia.com'
+    #     src: ${{ inputs.path }}
+    #     dest: 'jahia@rqa1.int.jahia.com:${RSYNC_FOLDER}'
 
     - name: Send notice about file location
       shell: bash
