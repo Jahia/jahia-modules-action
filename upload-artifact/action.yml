@@ -52,7 +52,7 @@ runs:
       shell: bash
       run: |
         ls -lah ~/.ssh/
-        if ! sh -c "rsync -rvz -e 'ssh -A -i ~/.ssh/id_rsa -o "ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com" -o StrictHostKeyChecking=off' $GITHUB_WORKSPACE/${{ inputs.path }} jahia@rqa1.int.jahia.com:/temp-artifacts/${RSYNC_FOLDER}"
+        if ! sh -c "rsync -rvz -e 'ssh -A -o \"ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com\" -o StrictHostKeyChecking=off' $GITHUB_WORKSPACE/${{ inputs.path }} jahia@rqa1.int.jahia.com:/temp-artifacts/${RSYNC_FOLDER}"
         then
           echo ::set-output name=status::'There was an issue syncing the content.'
           exit 1
