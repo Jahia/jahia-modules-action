@@ -1,0 +1,37 @@
+name: Upload 
+description: Upload artifacts to either our own servers or GitHub
+
+inputs:
+  destination:
+    description: Where to store the artifact (github or jahia)
+    required: true
+  name:
+    description: The name of the archive or folder where the artifact will be placed
+    required: true
+  path:
+    description: A file, directory or wildcard pattern that describes what to upload
+    required: true
+  retention-days:
+    description: Duration after which artifact will expire in days.
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Uploading artifact to GitHub
+      if: ${{ inputs.destination == 'github' }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ inputs.path }}
+        retention-days:  ${{ inputs.retention-days }}
+
+    - name: Send Test data to https://zencrepes.jahia.com
+      shell: bash
+      if: ${{ inputs.destination == 'jahia' }}
+      run: |
+        # Step 1, based on retention, build the path
+        DST_EXPIRY=$(date -v +${{ inputs.retention-days }}d" +%Y-%m-%d)
+        DST_FOLDER=/temp-artifacts/will-be-deleted-on-${DST_EXPIRY}/$(echo $GITHUB_REPOSITORY|sed 's#/#_#g')_${GITHUB_RUN_ID}
+        echo "Will be uploading artifact to: ${DST_FOLDER}"
+        echo "::set-env name=RSYNC_FOLDER::$DST_FOLDER"
