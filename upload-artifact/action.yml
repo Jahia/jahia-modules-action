@@ -42,19 +42,17 @@ runs:
         echo "RSYNC_FOLDER=${DST_FILEPATH}" >> $GITHUB_ENV
         echo "DOWNLOAD_URL=${DST_URL}" >> $GITHUB_ENV
 
+    - uses: webfactory/ssh-agent@v0.5.4
+      if: ${{ inputs.destination == 'jahia' }}
+      with:
+          ssh-private-key: ${{ inputs.ssh-key }}
+
     - name: rsync files to Jahia
       if: ${{ inputs.destination == 'jahia' }}
       shell: bash
       run: |
-        SSH_PATH="$HOME/.ssh"
-        mkdir -p "$SSH_PATH"
-        touch "$SSH_PATH/known_hosts"
-        printf '%b\n' "$DEPLOY_KEY" > "$SSH_PATH/deploy_key"
-        chmod 700 "$SSH_PATH"
-        chmod 600 "$SSH_PATH/known_hosts" "$SSH_PATH/deploy_key"
-        eval "$(ssh-agent)"
-        ssh-add "$SSH_PATH/deploy_key"
-        if ! sh -c "rsync -rvz -e 'ssh -A -i ~/.ssh/deploy_key -o "ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com" -o StrictHostKeyChecking=off' $GITHUB_WORKSPACE/${{ inputs.path }} jahia@rqa1.int.jahia.com:/temp-artifacts/${RSYNC_FOLDER}"
+        ls -lah ~/.ssh/
+        if ! sh -c "rsync -rvz -e 'ssh -A -i ~/.ssh/id_rsa -o "ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com" -o StrictHostKeyChecking=off' $GITHUB_WORKSPACE/${{ inputs.path }} jahia@rqa1.int.jahia.com:/temp-artifacts/${RSYNC_FOLDER}"
         then
           echo ::set-output name=status::'There was an issue syncing the content.'
           exit 1
