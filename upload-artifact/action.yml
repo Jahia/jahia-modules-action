@@ -35,7 +35,7 @@ runs:
       if: ${{ inputs.destination == 'jahia' }}
       run: |
         DST_EXPIRY=$(date -d "+${{ inputs.retention-days }} days" +%Y-%m-%d)
-        DST_PATH=del-on-${DST_EXPIRY}_$(echo $GITHUB_REPOSITORY|sed 's#/#_#g')_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}/
+        DST_PATH=delete-on-${DST_EXPIRY}_$(echo $GITHUB_REPOSITORY|sed 's#/#_#g')_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}/
         DST_FILEPATH=/temp-artifacts/${DST_PATH}
         DST_URL=https://qa.jahia.com/artifacts-ci/${DST_PATH}
         echo "Will be uploading artifact to: ${DST_FILEPATH}"
@@ -51,7 +51,7 @@ runs:
       if: ${{ inputs.destination == 'jahia' }}
       shell: bash
       run: |
-        if ! sh -c "rsync -rvz -e 'ssh -A -o \"ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com\" -o StrictHostKeyChecking=off' $GITHUB_WORKSPACE/${{ inputs.path }} jahia@rqa1.int.jahia.com:${RSYNC_FOLDER}"
+        if ! sh -c "rsync -rvz -e 'ssh -A -o \"ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com\" -o StrictHostKeyChecking=off' ${{ inputs.path }} jahia@rqa1.int.jahia.com:${RSYNC_FOLDER}"
         then
           echo ::set-output name=status::'There was an issue syncing the content.'
           exit 1
