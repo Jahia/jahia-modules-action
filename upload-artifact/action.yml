@@ -32,9 +32,12 @@ runs:
       run: |
         # Step 1, based on retention, build the path
         DST_EXPIRY=$(date -d "+${{ inputs.retention-days }} days" +%Y-%m-%d)
-        DST_FOLDER=/temp-artifacts/will-be-deleted-on-${DST_EXPIRY}/$(echo $GITHUB_REPOSITORY|sed 's#/#_#g')_${GITHUB_RUN_ID}
-        echo "Will be uploading artifact to: ${DST_FOLDER}"
+        DST_PATH=will-be-deleted-on-${DST_EXPIRY}/$(echo $GITHUB_REPOSITORY|sed 's#/#_#g')_${GITHUB_RUN_ID}
+        DST_FILEPATH=/temp-artifacts/${DST_PATH}
+        DST_URL=https://qa.jahia.com/artifacts-ci/${DST_PATH}
+        echo "Will be uploading artifact to: ${DST_FILEPATH}"
         # echo "::set-env name=RSYNC_FOLDER::$DST_FOLDER"
-        echo "::notice title=Artifacts location::Artifacts have been uploaded to: https://qa.jahia.com/artifacts-ci/$DST_FOLDER"
-        echo "RSYNC_FOLDER=${DST_FOLDER}" >> $GITHUB_ENV
+        echo "::notice title=Artifacts location::Artifacts have been uploaded to: $DST_URL"
+        echo "RSYNC_FOLDER=${DST_FILEPATH}" >> $GITHUB_ENV
+
 
