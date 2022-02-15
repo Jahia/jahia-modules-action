@@ -30,19 +30,17 @@ runs:
         path: ${{ inputs.path }}
         retention-days:  ${{ inputs.retention-days }}
 
-    - name: Send Test data to https://zencrepes.jahia.com
+    - name: Prepare environment variables
       shell: bash
       if: ${{ inputs.destination == 'jahia' }}
       run: |
-        # Step 1, based on retention, build the path
         DST_EXPIRY=$(date -d "+${{ inputs.retention-days }} days" +%Y-%m-%d)
         DST_PATH=will-be-deleted-on-${DST_EXPIRY}/$(echo $GITHUB_REPOSITORY|sed 's#/#_#g')_${GITHUB_RUN_ID}
         DST_FILEPATH=/temp-artifacts/${DST_PATH}
         DST_URL=https://qa.jahia.com/artifacts-ci/${DST_PATH}
         echo "Will be uploading artifact to: ${DST_FILEPATH}"
-        # echo "::set-env name=RSYNC_FOLDER::$DST_FOLDER"
-        echo "::notice title=Artifacts location::Artifacts have been uploaded to: $DST_URL"
         echo "RSYNC_FOLDER=${DST_FILEPATH}" >> $GITHUB_ENV
+        echo "DOWNLOAD_URL=${DST_URL}" >> $GITHUB_ENV
 
     - name: rsync files to Jahia
       if: ${{ inputs.destination == 'jahia' }}
@@ -55,3 +53,9 @@ runs:
         ssh_options: 'ProxyCommand="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com"'
         src: ${{ inputs.path }}
         dest: 'jahia@rqa1.int.jahia.com:${RSYNC_FOLDER}'
+
+    - name: Send notice about file location
+      shell: bash
+      if: ${{ inputs.destination == 'jahia' }}
+      run: |
+        echo "::notice title=Artifacts location::Artifacts have been uploaded to: $DOWNLOAD_URL"
