@@ -222,7 +222,7 @@ runs:
         echo "JCUSTOMER_IMAGE=${{ inputs.jcustomer_image }}" >> $GITHUB_ENV
         echo "ELASTICSEARCH_IMAGE=${{ inputs.elasticsearch_image }}" >> $GITHUB_ENV
         echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
-        echo "NEXUS_PASSWORD=${{ inputs.nexus_PASSWORD }}" >> $GITHUB_ENV
+        echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
         echo "CURRENT_BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
 
     - name: Display important versions and environment variables
@@ -278,8 +278,8 @@ runs:
           docker save -o tests_image.tar ${{ inputs.tests_image }}
         fi    
 
-    # Pull the latest version of ${JAHIA_IMAGE}  
-    - name: Pull the latest version of Jahia and print docker images cache to console
+    # Pull the latest version of ${JAHIA_IMAGE} and ${JCUSTOMER_IMAGE}
+    - name: Pull the latest version of Jahia and jCustomer and print docker images cache to console
       shell: bash
       run: |
         cd ${{ inputs.tests_path }}
@@ -287,7 +287,12 @@ runs:
         echo "List of docker images in local cache PRIOR pull" > ./artifacts/docker.log
         docker images --digests --all 2>&1 | tee -a ./artifacts/docker.log
         echo "--------------------------------------------------" >> ./artifacts/docker.log
-        docker pull ${JAHIA_IMAGE}
+        if [[ "$JAHIA_IMAGE" != "" ]]; then
+          docker pull ${JAHIA_IMAGE}
+        fi
+        if [[ "$JCUSTOMER_IMAGE" != "" ]]; then
+          docker pull ${JCUSTOMER_IMAGE}
+        fi        
         echo "List of docker images in local cache AFTER pull" >> ./artifacts/docker.log
         docker images --digests --all 2>&1 | tee -a ./artifacts/docker.log
         echo "--------------------------------------------------" >> ./artifacts/docker.log  
