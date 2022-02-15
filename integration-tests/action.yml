@@ -192,6 +192,7 @@ runs:
       shell: bash
       run: | 
         npm install -g @jahia/jahia-reporter
+        jahia-reporter -v
 
     # Download the artifacts that were saved at build time.
     - name: Download a single artifact
