@@ -205,7 +205,6 @@ runs:
     - name: Set environment variables from parameters
       shell: bash
       run: |
-        echo "::group::Set environment variables from parameters"
         echo "MANIFEST=${{ inputs.tests_manifest }}" >> $GITHUB_ENV
         echo "JAHIA_IMAGE=${{ inputs.jahia_image }}" >> $GITHUB_ENV
         echo "JAHIA_LICENSE=${{ inputs.jahia_license }}" >> $GITHUB_ENV
@@ -216,7 +215,6 @@ runs:
         echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
         echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
         echo "CURRENT_BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
-        echo "::endgroup::"
 
     - name: Display important versions and environment variables
       shell: bash
@@ -235,22 +233,17 @@ runs:
     - name: Prepare export folder
       shell: bash
       run: |
-        echo "::group::Prepare export folder"
         mkdir -p ${{ inputs.tests_path }}artifacts
-        echo "::endgroup::"
   
     # Login to the docker registry is needed to access some images (snapshots, ...)
     - name: Docker login
       shell: bash
       run: | 
-        echo "::group::Docker login"
         echo "${{ inputs.docker_password }}" | docker login -u "${{ inputs.docker_username }}" --password-stdin
-        echo "::endgroup::"
 
     - name: Preparing build artifacts
       shell: bash
       run: |
-        echo "::group::Preparing build artifacts"
         if [ ${{ inputs.should_skip_artifacts }} == false ]; then
           find . -type f -path '*/target/*-SNAPSHOT.jar' -exec cp '{}' ${{ inputs.tests_path }}artifacts/ ';' || :
           if [ -d ./build-dependencies/ ]; then
@@ -261,7 +254,6 @@ runs:
           fi
           ls -lah ${{ inputs.tests_path }}artifacts
         fi
-        echo "::endgroup::"
 
     # We always build the test container from scratch
     # Docker layer caching makes this quick if it was already previously built
@@ -269,16 +261,16 @@ runs:
     - name: Build the tests image
       shell: bash
       run: |
-        echo "::group::Build the tests image"
         if [ ${{ inputs.should_build_testsimage }} == true ]; then
+          echo "::group::Build the tests image"
           cd ${{ inputs.tests_path }}
           if [[ "${{ inputs.tests_container_branch }}" != "" ]]; then
             git checkout ${{ inputs.tests_container_branch }}
           fi
           docker build -t ${{ inputs.tests_image }} .
           docker save -o tests_image.tar ${{ inputs.tests_image }}
+          echo "::endgroup::"
         fi
-        echo "::endgroup::"
 
     # Pull the latest version of ${JAHIA_IMAGE} and ${JCUSTOMER_IMAGE}
     - name: Pull the latest version of Jahia and jCustomer and print docker images cache to console
@@ -323,10 +315,8 @@ runs:
       shell: bash
       if: always()
       run: |
-        echo "::group::Export containers artifacts (reports, secreenshots, videos)"
         cd ${{ inputs.tests_path }}
         docker cp ${{ inputs.tests_container_name }}:/home/jahians/results ./artifacts
-        echo "::endgroup::"
 
     # Running logs with -t adds a timestamp, this might feel redundant with the timestamp provided
     # by directly jahia but this allows for easy comparison between various containers that might
@@ -350,31 +340,29 @@ runs:
       shell: bash
       if: always()
       run: |
-        echo "::group::Analyze Test results"
         cd ${{ inputs.tests_path }}
         if [[ ! -e ./artifacts/results/test_success ]]; then
           echo "More than one failure found, sending exit signal"
           exit 1
         fi
-        echo "::endgroup::"
 
     # If a ci.postrun.sh script is present, this script is executed
     # The main purpose of this script is to export additional artifacts,
     # capture logs from other containers, ...    
-    - name: Execute Postrun script is present
+    - name: Execute Postrun script if present
       shell: bash
       if: always()
       run: |
-        echo "::group::Execute Postrun script is present"
         cd ${{ inputs.tests_path }}
         export DOCKER_CLIENT_TIMEOUT=120
         export COMPOSE_HTTP_TIMEOUT=120
         . ./set-env.sh
         if [[ -f "${{ inputs.ci_postrun_script }}" ]]; then
+          echo "::group::Execute Postrun script"
           echo "Postrun script is present"
           bash ${{ inputs.ci_postrun_script }}
+          echo "::endgroup::"
         fi
-        echo "::endgroup::"
 
     # Once all is executed, results are submitted to external platforms
     # Testrail report and Slack (failure only) notifications are sent during scheduled executions or merged into the main branch 
@@ -382,8 +370,8 @@ runs:
       shell: bash
       if: always()
       run: |
-        echo "::group::Publish results to testrail"
         if [ ${{ inputs.should_skip_testrail }} == false ] || [ ${{ inputs.primary_release_branch }} == $CURRENT_BRANCH ]; then
+          echo "::group::Publish results to testrail"
           cd ${{ inputs.tests_path }}
           jahia-reporter testrail \
             --testrailUsername="${{ inputs.testrail_username }}" \
@@ -393,17 +381,17 @@ runs:
             --projectName="${{ inputs.testrail_project }}" \
             --milestone="${{ inputs.testrail_milestone }}" \
             --defaultRunDescription="This test was executed on Github Actions, $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          echo "::endgroup::"
         fi
-        echo "::endgroup::"
 
     # See https://theoephraim.github.io/node-google-spreadsheet/#/getting-started/authentication for Google Auth setup
     - name: Create incident in PagerDuty
       shell: bash 
       if: failure()
       run: |
-        echo "::group::Create incident in PagerDuty"
         echo "Current branch is: $CURRENT_BRANCH"
         if [ ${{ inputs.primary_release_branch }} == $CURRENT_BRANCH ] || [ master == $CURRENT_BRANCH ]; then
+          echo "::group::Create incident in PagerDuty"
           cd ${{ inputs.tests_path }}
           jahia-reporter pagerduty:incident \
             --sourcePath="artifacts/results/xml_reports" \
@@ -418,15 +406,15 @@ runs:
             --googleUpdateState \
             --service="${{ inputs.module_id }}" \
             --sourceUrl=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+          echo "::endgroup::"
         fi  
-        echo "::endgroup::"
 
     - name: Send Notifications to Slack
       shell: bash 
       if: always()
       run: |
-        echo "::group::Send Notifications to Slack"
         if [ ${{ inputs.should_skip_notifications }} == false ] || [ ${{ inputs.primary_release_branch }} == $CURRENT_BRANCH ]; then
+          echo "::group::Send Notifications to Slack"
           cd ${{ inputs.tests_path }}
           jahia-reporter slack \
             --channelId="${{ inputs.slack_channel_id_notifications }}" \
@@ -438,15 +426,15 @@ runs:
             --moduleFilepath="artifacts/results/installed-jahia-modules.json" \
             --msgAuthor="Github Actions ($GITHUB_REPOSITORY)" \
             --runUrl=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+          echo "::endgroup::"
         fi 
-        echo "::endgroup::"
 
     - name: Send Test data to https://zencrepes.jahia.com
       shell: bash
       if: always()
       run: |
-        echo "::group::Send Test data to https://zencrepes.jahia.com"
         if [ ${{ inputs.should_skip_zencrepes }} == false ] || [ ${{ inputs.primary_release_branch }} == $CURRENT_BRANCH ]; then
+          echo "::group::Send Test data to https://zencrepes.jahia.com"
           cd ${{ inputs.tests_path }}
           jahia-reporter zencrepes \
             --webhook="https://zencrepes.jahia.com/zqueue/testing/webhook" \
@@ -456,8 +444,8 @@ runs:
             --moduleFilepath="artifacts/results/installed-jahia-modules.json" \
             --name="${{ inputs.module_id }}" \
             --runUrl=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+          echo "::endgroup::"
         fi
-        echo "::endgroup::"
 
     - name: Publish Test Report
       uses: mikepenz/action-junit-report@v2
