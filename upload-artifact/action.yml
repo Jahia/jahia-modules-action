@@ -39,6 +39,7 @@ runs:
         DST_FILEPATH=/temp-artifacts/${DST_PATH}
         DST_URL=https://qa.jahia.com/artifacts-ci/${DST_PATH}
         echo "Will be uploading artifact to: ${DST_FILEPATH}"
+        echo "Artifacts will be available at: ${DST_URL}"
         echo "RSYNC_FOLDER=${DST_FILEPATH}" >> $GITHUB_ENV
         echo "DOWNLOAD_URL=${DST_URL}" >> $GITHUB_ENV
 
@@ -64,4 +65,4 @@ runs:
       shell: bash
       if: ${{ inputs.destination == 'jahia' }}
       run: |
-        echo "::notice title=Artifacts location::Artifacts have been uploaded to: $DOWNLOAD_URL"
+        echo "::notice title=Artifacts location (require VPN)::Artifacts have been uploaded to: $DOWNLOAD_URL"
