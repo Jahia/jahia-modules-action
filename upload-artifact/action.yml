@@ -1,0 +1,68 @@
+name: Upload 
+description: Upload artifacts to either our own servers or GitHub
+
+inputs:
+  destination:
+    description: Where to store the artifact (github or jahia)
+    required: true
+  name:
+    description: The name of the archive or folder where the artifact will be placed
+    required: true
+  path:
+    description: A file, directory or wildcard pattern that describes what to upload
+    required: true
+  retention-days:
+    description: Duration after which artifact will expire in days.
+    required: true
+  ssh-key:
+    description: 'Private key necessary to send the document via rsync (jahia only)'
+    required: false
+    default: ''
+
+runs:
+  using: "composite"
+  steps:
+    - name: Uploading artifact to GitHub
+      if: ${{ inputs.destination == 'github' }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ inputs.path }}
+        retention-days:  ${{ inputs.retention-days }}
+
+    - name: Prepare environment variables
+      shell: bash
+      if: ${{ inputs.destination == 'jahia' }}
+      run: |
+        DST_EXPIRY=$(date -d "+${{ inputs.retention-days }} days" +%Y-%m-%d)
+        DST_PATH=delete-on-${DST_EXPIRY}_$(echo $GITHUB_REPOSITORY|sed 's#/#_#g')_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}/
+        DST_FILEPATH=/temp-artifacts/${DST_PATH}
+        DST_URL=https://qa.jahia.com/artifacts-ci/${DST_PATH}
+        echo "Will be uploading artifact to: ${DST_FILEPATH}"
+        echo "Artifacts will be available at: ${DST_URL}"
+        echo "RSYNC_FOLDER=${DST_FILEPATH}" >> $GITHUB_ENV
+        echo "DOWNLOAD_URL=${DST_URL}" >> $GITHUB_ENV
+
+    - uses: webfactory/ssh-agent@v0.5.4
+      if: ${{ inputs.destination == 'jahia' }}
+      with:
+          ssh-private-key: ${{ inputs.ssh-key }}
+
+    - name: rsync files to Jahia
+      if: ${{ inputs.destination == 'jahia' }}
+      shell: bash
+      run: |
+        ls -lah
+        if ! sh -c "rsync -rvz -e 'ssh -A -o \"ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com\" -o StrictHostKeyChecking=off' ${{ inputs.path }} jahia@rqa1.int.jahia.com:${RSYNC_FOLDER}"
+        then
+          echo ::set-output name=status::'There was an issue syncing the content.'
+          exit 1
+        else
+          echo ::set-output name=status::'Content synced successfully.'
+        fi
+
+    - name: Send notice about file location
+      shell: bash
+      if: ${{ inputs.destination == 'jahia' }}
+      run: |
+        echo "::notice title=Artifacts location (require VPN)::Artifacts have been uploaded to: $DOWNLOAD_URL"
