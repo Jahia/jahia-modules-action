@@ -178,6 +178,10 @@ inputs:
     description: 'Time during which artifact are kept in Github infrastructure'
     required: false
     default: '2'
+  artifact_destination:
+    description: 'Destination where to store the artifacts (jahia or github)'
+    required: false
+    default: 'jahia'
 
 runs:
   using: "composite"
@@ -214,6 +218,7 @@ runs:
         echo "ELASTICSEARCH_IMAGE=${{ inputs.elasticsearch_image }}" >> $GITHUB_ENV
         echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
         echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
+        echo "DOCKER_USERNAME=${{ inputs.docker_username }}" >> $GITHUB_ENV
         echo "CURRENT_BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
 
     - name: Display important versions and environment variables
@@ -228,6 +233,8 @@ runs:
         echo "TESTS_IMAGE=${TESTS_IMAGE}"
         echo "JCUSTOMER_IMAGE=${JCUSTOMER_IMAGE}"
         echo "ELASTICSEARCH_IMAGE=${ELASTICSEARCH_IMAGE}"
+        echo "NEXUS_USERNAME=${NEXUS_USERNAME}"
+        echo "DOCKER_USERNAME=${DOCKER_USERNAME}"
         echo "Current branch is: CURRENT_BRANCH=${CURRENT_BRANCH}"
 
     - name: Prepare export folder
@@ -453,10 +460,12 @@ runs:
       with:
         report_paths: '${{ inputs.tests_path }}artifacts/results/xml_reports/**/*.xml'
 
+    # This is used an alternative to actions/upload-artifact@v2 to limit costs on GitHub infrastructure
     - name: Archive test results
       if: failure()
-      uses: actions/upload-artifact@v2
+      uses: jahia/jahia-modules-action/integration-tests@v1
       with:
+        destination: ${{ inputs.artifact_destination }}
         name: integration-tests-results
         path: ${{ inputs.tests_path }}artifacts/results/
         retention-days: ${{ inputs.artifact_retention }}
