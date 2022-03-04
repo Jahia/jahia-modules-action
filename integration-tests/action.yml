@@ -460,15 +460,23 @@ runs:
       with:
         report_paths: '${{ inputs.tests_path }}artifacts/results/xml_reports/**/*.xml'
 
-    # This is used an alternative to actions/upload-artifact@v2 to limit costs on GitHub infrastructure
     - name: Archive test results
       if: failure()
-      uses: jahia/jahia-modules-action/integration-tests@v1
+      uses: actions/upload-artifact@v2
       with:
-        destination: ${{ inputs.artifact_destination }}
         name: integration-tests-results
         path: ${{ inputs.tests_path }}artifacts/results/
         retention-days: ${{ inputs.artifact_retention }}
+
+    # This is used an alternative to actions/upload-artifact@v2 to limit costs on GitHub infrastructure
+    # - name: Archive test results
+    #   if: failure()
+    #   uses: jahia/jahia-modules-action/integration-tests@v1
+    #   with:
+    #     destination: ${{ inputs.artifact_destination }}
+    #     name: integration-tests-results
+    #     path: ${{ inputs.tests_path }}artifacts/results/
+    #     retention-days: ${{ inputs.artifact_retention }}
 
     - name: Keep session opened if /tmp/debug file is present
       shell: bash
