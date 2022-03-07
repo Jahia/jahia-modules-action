@@ -75,7 +75,7 @@ runs:
         if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
           echo "Executing a PR based analysis"
           mvn -s ${{ inputs.mvn_settings_filepath }} sonar:sonar \
-              -Dsonar.pullrequest.branch=$CIRCLE_BRANCH \
+              -Dsonar.pullrequest.branch=$GITHUB_REF \
               -Dsonar.pullrequest.key=${{ inputs.github_pr_id }} \
               -Dsonar.pullrequest.base=${{ inputs.primary_release_branch }} \
               -Dsonar.pullrequest.github.repository=${{ inputs.github_slug }}
