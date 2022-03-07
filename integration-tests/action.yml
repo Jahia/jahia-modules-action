@@ -58,6 +58,10 @@ inputs:
     description: 'Branch containing the tests (if different from current)'
     required: false
     default: ''
+  tests_report_name:
+    description: 'Name of the check report'
+    required: false
+    default: 'JUnit Test Report'
   jahia_license:
     description: 'Base64 encoded Jahia license'
     required: false
@@ -459,6 +463,7 @@ runs:
       if: always()
       with:
         report_paths: '${{ inputs.tests_path }}artifacts/results/xml_reports/**/*.xml'
+        check_name: ${{ inputs.tests_report_name }}
 
     - name: Archive test results
       if: failure()
