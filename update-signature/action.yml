@@ -91,6 +91,7 @@ runs:
         root_dir=$(pwd)
         packaging_type=$(mvn help:evaluate -Dexpression=project.packaging -q -DforceStdout | xargs)
         if [[ ${packaging_type} == "pom" ]]; then
+          mvn install
           project_modules=($(mvn -q --also-make exec:exec -Dexec.executable="pwd"))
           for module in ${project_modules[@]:1}; do
             if [[ ${module} != ${root_dir} ]]; then
