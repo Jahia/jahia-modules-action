@@ -473,7 +473,7 @@ runs:
       if: failure()
       uses: actions/upload-artifact@v2
       with:
-        name: ${{ artifact_name }}
+        name: ${{ inputs.artifact_name }}
         path: ${{ inputs.tests_path }}artifacts/results/
         retention-days: ${{ inputs.artifact_retention }}
 
