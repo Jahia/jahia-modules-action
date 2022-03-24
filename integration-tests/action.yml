@@ -178,6 +178,10 @@ inputs:
     description: 'In seconds, timeout in seconds before terminating the session'
     required: false
     default: '7200'
+  artifact_name:
+    description: 'Name for the artifacts saved at the end of the run'
+    required: false
+    default: 'integration-tests-results'
   artifact_retention:
     description: 'Time during which artifact are kept in Github infrastructure'
     required: false
@@ -469,7 +473,7 @@ runs:
       if: failure()
       uses: actions/upload-artifact@v2
       with:
-        name: integration-tests-results
+        name: ${{ artifact_name }}
         path: ${{ inputs.tests_path }}artifacts/results/
         retention-days: ${{ inputs.artifact_retention }}
 
