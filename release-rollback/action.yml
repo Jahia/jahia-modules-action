@@ -52,5 +52,5 @@ runs:
       shell: bash
       run: |
         git tag --delete ${{ inputs.release_version }}
-        git push --delete origin ${{ inputs.release_version }}
+        git push origin :refs/tags/${{ inputs.release_version }}
 
