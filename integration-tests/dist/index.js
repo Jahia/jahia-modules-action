@@ -75,6 +75,7 @@ function displaySystemInfo() {
         core.info(`Testing module ${moduleId} ...`);
         yield exec.exec('node -v', [], Object.assign(Object.assign({}, options), { silent: true }));
         core.info(`node -v: ${myOutput}`);
+        yield exec.exec('echo ${DOCKER_USERNAME}', [], Object.assign(Object.assign({}, options), { silent: true }));
         core.endGroup();
     });
 }
@@ -127,7 +128,9 @@ const init_1 = __nccwpck_require__(849);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            // Set environment variables from parameters
             yield (0, init_1.setEnvironmentVariables)();
+            // Display important versions and environment variables
             yield (0, init_1.displaySystemInfo)();
             // core.debug(new Date().toTimeString())
             // await wait(parseInt(ms, 10))

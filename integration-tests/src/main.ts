@@ -7,8 +7,10 @@ import {setEnvironmentVariables, displaySystemInfo} from './init'
 
 async function run(): Promise<void> {
   try {
+    // Set environment variables from parameters
     await setEnvironmentVariables()
 
+    // Display important versions and environment variables
     await displaySystemInfo()
 
     // core.debug(new Date().toTimeString())
