@@ -15,7 +15,6 @@ options.listeners = {
     myError += data.toString()
   }
 }
-options.cwd = './lib'
 
 async function run(): Promise<void> {
   try {
