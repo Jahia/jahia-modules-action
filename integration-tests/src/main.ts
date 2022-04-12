@@ -6,7 +6,7 @@ import {wait} from './wait'
 let myOutput = ''
 let myError = ''
 
-const options: any = {}
+const options: exec.ExecOptions = {}
 options.listeners = {
   stdout: (data: Buffer) => {
     myOutput += data.toString()
@@ -24,7 +24,7 @@ async function run(): Promise<void> {
       'Displaying important environment variables and system info'
     )
     core.info(`Testing module ${moduleId} ...`)
-    await exec.exec('node', ['-v'], options)
+    await exec.exec('node', ['-v'], {...options, silent: true})
     core.info(`node -v: ${myOutput}`)
     core.endGroup()
 
