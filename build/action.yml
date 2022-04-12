@@ -32,7 +32,7 @@ runs:
 
     - name: Copy dependencies to provision artifacts
       shell: bash
-      run: mvn -B -ntp -s ${{ inputs.mvn_settings_filepath }} dependency:copy-dependencies -DexcludeTransitive=true -DincludeScope=provided -DincludeGroupIds=org.jahia.modules -DincludeTypes=jar
+      run: mvn -B -s ${{ inputs.mvn_settings_filepath }} dependency:copy-dependencies -DexcludeTransitive=true -DincludeScope=provided -DincludeGroupIds=org.jahia.modules -DincludeTypes=jar
 
     - name: Prepare artifacts
       shell: bash
