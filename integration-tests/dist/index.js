@@ -59,24 +59,32 @@ function setEnvironmentVariables() {
 exports.setEnvironmentVariables = setEnvironmentVariables;
 function displaySystemInfo() {
     return __awaiter(this, void 0, void 0, function* () {
-        let myOutput = '';
-        let myError = '';
-        const options = {};
-        options.listeners = {
-            stdout: (data) => {
-                myOutput += data.toString();
-            },
-            stderr: (data) => {
-                myError += data.toString();
-            }
-        };
-        const moduleId = core.getInput('module_id');
+        const runCommands = [
+            'node -v',
+            'npm -v',
+            'jahia-reporter -v',
+            'printenv'
+        ];
         core.startGroup('🛠️ Displaying important environment variables and system info');
+        for (const cmd of runCommands) {
+            let stdOut = '';
+            let stdErr = '';
+            const options = {};
+            options.listeners = {
+                stdout: (data) => {
+                    stdOut += data.toString();
+                },
+                stderr: (data) => {
+                    stdErr += data.toString();
+                }
+            };
+            yield exec.exec(cmd, [], Object.assign(Object.assign({}, options), { silent: true }));
+            core.info(`${cmd}: ${stdOut}${stdErr}`);
+        }
+        const moduleId = core.getInput('module_id');
         core.info(`Testing module ${moduleId} ...`);
-        yield exec.exec('node -v', [], Object.assign(Object.assign({}, options), { silent: true }));
-        core.info(`node -v: ${myOutput}`);
-        yield exec.exec('echo ${DOCKER_USERNAME}', [], Object.assign(Object.assign({}, options), { silent: true }));
-        core.info(`echo: ${myOutput}`);
+        //   await exec.exec('echo ${DOCKER_USERNAME}', [], {...options, silent: true})
+        //   core.info(`echo: ${myOutput}`)
         core.endGroup();
     });
 }

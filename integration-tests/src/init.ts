@@ -21,30 +21,40 @@ export async function setEnvironmentVariables(): Promise<any> {
 }
 
 export async function displaySystemInfo(): Promise<any> {
-  let myOutput = ''
-  let myError = ''
-
-  const options: exec.ExecOptions = {}
-  options.listeners = {
-    stdout: (data: Buffer) => {
-      myOutput += data.toString()
-    },
-    stderr: (data: Buffer) => {
-      myError += data.toString()
-    }
-  }
-
-  const moduleId: string = core.getInput('module_id')
+  const runCommands: Array<string> = [
+    'node -v',
+    'npm -v',
+    'jahia-reporter -v',
+    'printenv'
+  ]
 
   core.startGroup(
     '🛠️ Displaying important environment variables and system info'
   )
-  core.info(`Testing module ${moduleId} ...`)
-  await exec.exec('node -v', [], {...options, silent: true})
-  core.info(`node -v: ${myOutput}`)
 
-  await exec.exec('echo ${DOCKER_USERNAME}', [], {...options, silent: true})
-  core.info(`echo: ${myOutput}`)
+  for (const cmd of runCommands) {
+    let stdOut = ''
+    let stdErr = ''
+
+    const options: exec.ExecOptions = {}
+    options.listeners = {
+      stdout: (data: Buffer) => {
+        stdOut += data.toString()
+      },
+      stderr: (data: Buffer) => {
+        stdErr += data.toString()
+      }
+    }
+    await exec.exec(cmd, [], {...options, silent: true})
+    core.info(`${cmd}: ${stdOut}${stdErr}`)
+  }
+
+  const moduleId: string = core.getInput('module_id')
+
+  core.info(`Testing module ${moduleId} ...`)
+
+  //   await exec.exec('echo ${DOCKER_USERNAME}', [], {...options, silent: true})
+  //   core.info(`echo: ${myOutput}`)
 
   core.endGroup()
 }
