@@ -34,4 +34,4 @@ runs:
 
     - name: Build package
       shell: bash
-      run: mvn -s ${{ inputs.mvn_settings_filepath }} clean deploy
+      run: mvn -B -s ${{ inputs.mvn_settings_filepath }} clean deploy
