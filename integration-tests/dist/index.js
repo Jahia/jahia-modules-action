@@ -1,6 +1,88 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 849:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.displaySystemInfo = exports.setEnvironmentVariables = void 0;
+const core = __importStar(__nccwpck_require__(186));
+const exec = __importStar(__nccwpck_require__(514));
+function setEnvironmentVariables() {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.exportVariable('MANIFEST', core.getInput('tests_manifest'));
+        core.exportVariable('JAHIA_IMAGE', core.getInput('jahia_image'));
+        core.exportVariable('JAHIA_LICENSE', core.getInput('jahia_license'));
+        core.exportVariable('JAHIA_CLUSTER_ENABLED', core.getInput('jahia_cluster_enabled'));
+        core.exportVariable('TESTS_IMAGE', core.getInput('tests_image'));
+        core.exportVariable('JCUSTOMER_IMAGE', core.getInput('jcustomer_image'));
+        core.exportVariable('ELASTICSEARCH_IMAGE', core.getInput('elasticsearch_image'));
+        core.exportVariable('NEXUS_USERNAME', core.getInput('nexus_username'));
+        core.exportVariable('NEXUS_PASSWORD', core.getInput('nexus_password'));
+        core.exportVariable('DOCKER_USERNAME', core.getInput('docker_username'));
+    });
+}
+exports.setEnvironmentVariables = setEnvironmentVariables;
+function displaySystemInfo() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let myOutput = '';
+        let myError = '';
+        const options = {};
+        options.listeners = {
+            stdout: (data) => {
+                myOutput += data.toString();
+            },
+            stderr: (data) => {
+                myError += data.toString();
+            }
+        };
+        const moduleId = core.getInput('module_id');
+        core.startGroup('🛠️ Displaying important environment variables and system info');
+        core.info(`Testing module ${moduleId} ...`);
+        yield exec.exec('node -v', [], Object.assign(Object.assign({}, options), { silent: true }));
+        core.info(`node -v: ${myOutput}`);
+        core.endGroup();
+    });
+}
+exports.displaySystemInfo = displaySystemInfo;
+
+
+/***/ }),
+
 /***/ 109:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -40,37 +122,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(186));
-const exec = __importStar(__nccwpck_require__(514));
-let myOutput = '';
-let myError = '';
-const options = {};
-options.listeners = {
-    stdout: (data) => {
-        myOutput += data.toString();
-    },
-    stderr: (data) => {
-        myError += data.toString();
-    }
-};
+// import {wait} from './wait'
+const init_1 = __nccwpck_require__(849);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            core.exportVariable('MANIFEST', core.getInput('tests_manifest'));
-            core.exportVariable('JAHIA_IMAGE', core.getInput('jahia_image'));
-            core.exportVariable('JAHIA_LICENSE', core.getInput('jahia_license'));
-            core.exportVariable('JAHIA_CLUSTER_ENABLED', core.getInput('jahia_cluster_enabled'));
-            core.exportVariable('TESTS_IMAGE', core.getInput('tests_image'));
-            core.exportVariable('JCUSTOMER_IMAGE', core.getInput('jcustomer_image'));
-            core.exportVariable('ELASTICSEARCH_IMAGE', core.getInput('elasticsearch_image'));
-            core.exportVariable('NEXUS_USERNAME', core.getInput('nexus_username'));
-            core.exportVariable('NEXUS_PASSWORD', core.getInput('nexus_password'));
-            core.exportVariable('DOCKER_USERNAME', core.getInput('docker_username'));
-            const moduleId = core.getInput('module_id');
-            core.startGroup('🛠️ Displaying important environment variables and system info');
-            core.info(`Testing module ${moduleId} ...`);
-            yield exec.exec('node -v', [], Object.assign(Object.assign({}, options), { silent: true }));
-            core.info(`node -v: ${myOutput}`);
-            core.endGroup();
+            yield (0, init_1.setEnvironmentVariables)();
+            yield (0, init_1.displaySystemInfo)();
             // core.debug(new Date().toTimeString())
             // await wait(parseInt(ms, 10))
             // core.debug(new Date().toTimeString())
