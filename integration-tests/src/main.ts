@@ -1,10 +1,32 @@
 import * as core from '@actions/core'
+import * as exec from '@actions/exec'
+
 import {wait} from './wait'
+
+let myOutput = ''
+let myError = ''
+
+const options: any = {}
+options.listeners = {
+  stdout: (data: Buffer) => {
+    myOutput += data.toString()
+  },
+  stderr: (data: Buffer) => {
+    myError += data.toString()
+  }
+}
+options.cwd = './lib'
 
 async function run(): Promise<void> {
   try {
     const moduleId: string = core.getInput('module_id')
-    core.info(`Testing module ${moduleId} ...`) // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
+
+    core.startGroup(
+      'Displaying important environment variables and system info'
+    )
+    core.info(`Testing module ${moduleId} ...`)
+    await exec.exec('node', ['-v'], options)
+    core.endGroup()
 
     // core.debug(new Date().toTimeString())
     // await wait(parseInt(ms, 10))
