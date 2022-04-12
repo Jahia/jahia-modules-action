@@ -42,7 +42,7 @@ runs:
       shell: bash
       run: |
         if [ -f pom.xml.releaseBackup ] && [ -f release.properties ]; then
-          mvn -s ${{ inputs.mvn_settings_filepath }} release:rollback
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} release:rollback
         else
           echo "Error: rollback artifacts don't exist"
           exit 1

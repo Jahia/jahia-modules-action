@@ -105,7 +105,7 @@ runs:
           NEXT_REVISION=`expr $REVISION + 1`
           NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$MINOR_VERSION.$NEXT_REVISION"-SNAPSHOT
         fi
-        mvn -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=$TAG_VERSION release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin]"
+        mvn -B -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=$TAG_VERSION release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin]"
 
     - name: Cache local Maven repository
       uses: actions/cache@v2
@@ -131,7 +131,7 @@ runs:
 
     - name: Perform release
       shell: bash
-      run: mvn -s ${{ inputs.mvn_settings_filepath }} release:perform -Prelease-to-staging-repository
+      run: mvn -B -s ${{ inputs.mvn_settings_filepath }} release:perform -Prelease-to-staging-repository
 
     - name: Copy artifacts
       shell: bash
