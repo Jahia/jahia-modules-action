@@ -76,6 +76,7 @@ function displaySystemInfo() {
         yield exec.exec('node -v', [], Object.assign(Object.assign({}, options), { silent: true }));
         core.info(`node -v: ${myOutput}`);
         yield exec.exec('echo ${DOCKER_USERNAME}', [], Object.assign(Object.assign({}, options), { silent: true }));
+        core.info(`echo: ${myOutput}`);
         core.endGroup();
     });
 }

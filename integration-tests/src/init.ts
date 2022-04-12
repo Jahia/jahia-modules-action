@@ -44,6 +44,7 @@ export async function displaySystemInfo(): Promise<any> {
   core.info(`node -v: ${myOutput}`)
 
   await exec.exec('echo ${DOCKER_USERNAME}', [], {...options, silent: true})
+  core.info(`echo: ${myOutput}`)
 
   core.endGroup()
 }
