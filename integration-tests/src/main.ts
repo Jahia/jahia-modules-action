@@ -41,7 +41,7 @@ async function run(): Promise<void> {
       '🛠️ Displaying important environment variables and system info'
     )
     core.info(`Testing module ${moduleId} ...`)
-    await exec.exec('node', ['-v'], {...options, silent: true})
+    await exec.exec('node -v', [], {...options, silent: true})
     core.info(`node -v: ${myOutput}`)
     core.endGroup()
 

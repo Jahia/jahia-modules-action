@@ -68,7 +68,7 @@ function run() {
             const moduleId = core.getInput('module_id');
             core.startGroup('🛠️ Displaying important environment variables and system info');
             core.info(`Testing module ${moduleId} ...`);
-            yield exec.exec('node', ['-v'], Object.assign(Object.assign({}, options), { silent: true }));
+            yield exec.exec('node -v', [], Object.assign(Object.assign({}, options), { silent: true }));
             core.info(`node -v: ${myOutput}`);
             core.endGroup();
             // core.debug(new Date().toTimeString())
