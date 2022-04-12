@@ -20,6 +20,27 @@ export async function setEnvironmentVariables(): Promise<any> {
   core.exportVariable('DOCKER_USERNAME', core.getInput('docker_username'))
 }
 
+export async function installTools(): Promise<any> {
+  let stdOut = ''
+  let stdErr = ''
+  const options: exec.ExecOptions = {}
+  options.listeners = {
+    stdout: (data: Buffer) => {
+      stdOut += data.toString()
+    },
+    stderr: (data: Buffer) => {
+      stdErr += data.toString()
+    }
+  }
+
+  core.startGroup('🛠️ Install runtime tooling')
+  await exec.exec('npm install -g @jahia/jahia-reporter', [], {
+    ...options,
+    silent: true
+  })
+  core.endGroup()
+}
+
 export async function displaySystemInfo(): Promise<any> {
   const runCommands: Array<string> = [
     'node -v',

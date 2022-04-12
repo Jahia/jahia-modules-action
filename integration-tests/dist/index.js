@@ -39,7 +39,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.displaySystemInfo = exports.setEnvironmentVariables = void 0;
+exports.displaySystemInfo = exports.installTools = exports.setEnvironmentVariables = void 0;
 const core = __importStar(__nccwpck_require__(186));
 const exec = __importStar(__nccwpck_require__(514));
 function setEnvironmentVariables() {
@@ -57,6 +57,25 @@ function setEnvironmentVariables() {
     });
 }
 exports.setEnvironmentVariables = setEnvironmentVariables;
+function installTools() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let stdOut = '';
+        let stdErr = '';
+        const options = {};
+        options.listeners = {
+            stdout: (data) => {
+                stdOut += data.toString();
+            },
+            stderr: (data) => {
+                stdErr += data.toString();
+            }
+        };
+        core.startGroup('🛠️ Install runtime tooling');
+        yield exec.exec('npm install -g @jahia/jahia-reporter', [], Object.assign(Object.assign({}, options), { silent: true }));
+        core.endGroup();
+    });
+}
+exports.installTools = installTools;
 function displaySystemInfo() {
     return __awaiter(this, void 0, void 0, function* () {
         const runCommands = [
