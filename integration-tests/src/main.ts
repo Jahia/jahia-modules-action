@@ -25,6 +25,7 @@ async function run(): Promise<void> {
     )
     core.info(`Testing module ${moduleId} ...`)
     await exec.exec('node', ['-v'], options)
+    core.info(`node -v: ${myOutput}`)
     core.endGroup()
 
     // core.debug(new Date().toTimeString())
