@@ -56,7 +56,7 @@ function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const moduleId = core.getInput('module_id');
-            core.startGroup('Displaying important environment variables and system info');
+            core.startGroup('🛠️ Displaying important environment variables and system info');
             core.info(`Testing module ${moduleId} ...`);
             yield exec.exec('node', ['-v'], Object.assign(Object.assign({}, options), { silent: true }));
             core.info(`node -v: ${myOutput}`);

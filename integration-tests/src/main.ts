@@ -21,7 +21,7 @@ async function run(): Promise<void> {
     const moduleId: string = core.getInput('module_id')
 
     core.startGroup(
-      'Displaying important environment variables and system info'
+      '🛠️ Displaying important environment variables and system info'
     )
     core.info(`Testing module ${moduleId} ...`)
     await exec.exec('node', ['-v'], {...options, silent: true})
