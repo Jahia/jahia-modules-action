@@ -27,35 +27,27 @@ export async function uploadArtifact(
 ): Promise<any> {
   const artifactClient = artifact.create()
 
-  if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
-    core.startGroup('🗄️ Uploading artifacts')
+  core.startGroup('🗄️ Uploading artifacts')
 
-    const artifactsFiles = await getFiles(
-      path.join(
-        process.env.GITHUB_WORKSPACE,
-        process.env.TESTS_PATH,
-        artifactPath
-      )
-    )
+  const artifactsFiles = await getFiles(artifactPath)
 
-    core.info('About the upload the following files as artifacts: ')
-    for (const f of artifactsFiles) {
-      const stats = fs.statSync(f)
-      core.info(`File: ${f} - size: ${stats.size} bytes`)
-    }
-
-    const uploadResponse = await artifactClient.uploadArtifact(
-      artifactName,
-      artifactsFiles,
-      path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH),
-      {
-        continueOnError: true,
-        retentionDays: retentionDays
-      }
-    )
-    core.info(
-      `Uploaded: ${uploadResponse.artifactName} for a total size of: ${uploadResponse.size}`
-    )
-    core.endGroup()
+  core.info('About the upload the following files as artifacts: ')
+  for (const f of artifactsFiles) {
+    const stats = fs.statSync(f)
+    core.info(`File: ${f} - size: ${stats.size} bytes`)
   }
+
+  const uploadResponse = await artifactClient.uploadArtifact(
+    artifactName,
+    artifactsFiles,
+    artifactPath,
+    {
+      continueOnError: true,
+      retentionDays: retentionDays
+    }
+  )
+  core.info(
+    `Uploaded: ${uploadResponse.artifactName} for a total size of: ${uploadResponse.size}`
+  )
+  core.endGroup()
 }

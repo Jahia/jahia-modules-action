@@ -9,6 +9,7 @@ import {
 } from './artifacts'
 import {
   buildDockerTestImage,
+  copyRunArtifacts,
   login,
   pullDockerImages,
   startDockerEnvironment
@@ -95,10 +96,16 @@ async function run(): Promise<void> {
       core.getInput('docker_compose_file')
     )
 
+    // Export containers artifacts (reports, secreenshots, videos)
+    await copyRunArtifacts(
+      core.getInput('tests_container_name'),
+      artifactsFolder
+    )
+
     // Finally, upload the artifacts
     await uploadArtifact(
       core.getInput('artifact_name'),
-      'artifacts',
+      artifactsFolder,
       Number(core.getInput('artifact_retention'))
     )
   } catch (error) {

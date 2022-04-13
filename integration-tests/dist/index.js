@@ -228,7 +228,6 @@ exports.uploadArtifact = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const artifact = __importStar(__nccwpck_require__(2605));
 const fs = __importStar(__nccwpck_require__(5747));
-const path = __importStar(__nccwpck_require__(5622));
 // Recursively get all files under the path
 const getFiles = (path, scannedFiles = []) => __awaiter(void 0, void 0, void 0, function* () {
     const files = fs.readdirSync(path);
@@ -249,24 +248,75 @@ const getFiles = (path, scannedFiles = []) => __awaiter(void 0, void 0, void 0, 
 function uploadArtifact(artifactName, artifactPath, retentionDays) {
     return __awaiter(this, void 0, void 0, function* () {
         const artifactClient = artifact.create();
-        if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
-            core.startGroup('🗄️ Uploading artifacts');
-            const artifactsFiles = yield getFiles(path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH, artifactPath));
-            core.info('About the upload the following files as artifacts: ');
-            for (const f of artifactsFiles) {
-                const stats = fs.statSync(f);
-                core.info(`File: ${f} - size: ${stats.size} bytes`);
-            }
-            const uploadResponse = yield artifactClient.uploadArtifact(artifactName, artifactsFiles, path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH), {
-                continueOnError: true,
-                retentionDays: retentionDays
-            });
-            core.info(`Uploaded: ${uploadResponse.artifactName} for a total size of: ${uploadResponse.size}`);
-            core.endGroup();
+        core.startGroup('🗄️ Uploading artifacts');
+        const artifactsFiles = yield getFiles(artifactPath);
+        core.info('About the upload the following files as artifacts: ');
+        for (const f of artifactsFiles) {
+            const stats = fs.statSync(f);
+            core.info(`File: ${f} - size: ${stats.size} bytes`);
         }
+        const uploadResponse = yield artifactClient.uploadArtifact(artifactName, artifactsFiles, artifactPath, {
+            continueOnError: true,
+            retentionDays: retentionDays
+        });
+        core.info(`Uploaded: ${uploadResponse.artifactName} for a total size of: ${uploadResponse.size}`);
+        core.endGroup();
     });
 }
 exports.uploadArtifact = uploadArtifact;
+
+
+/***/ }),
+
+/***/ 263:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.copyRunArtifacts = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const system_1 = __nccwpck_require__(7885);
+function copyRunArtifacts(containerName, desinationPath) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.startGroup('🐋 Export containers artifacts (reports, secreenshots, videos) ');
+        yield (0, system_1.runShellCommands)([`docker cp ${containerName}:/home/jahians/results ${desinationPath}`], 'artifacts/cypress-artifacts.log');
+        core.endGroup();
+    });
+}
+exports.copyRunArtifacts = copyRunArtifacts;
 
 
 /***/ }),
@@ -366,6 +416,7 @@ __exportStar(__nccwpck_require__(9269), exports);
 __exportStar(__nccwpck_require__(642), exports);
 __exportStar(__nccwpck_require__(3105), exports);
 __exportStar(__nccwpck_require__(9530), exports);
+__exportStar(__nccwpck_require__(263), exports);
 
 
 /***/ }),
@@ -861,8 +912,10 @@ function run() {
             yield (0, docker_1.pullDockerImages)(core.getInput('jahia_image'), core.getInput('jcustomer_image'));
             // Spin-up the containers
             yield (0, docker_1.startDockerEnvironment)(core.getInput('ci_startup_script'), core.getInput('docker_compose_file'));
+            // Export containers artifacts (reports, secreenshots, videos)
+            yield (0, docker_1.copyRunArtifacts)(core.getInput('tests_container_name'), artifactsFolder);
             // Finally, upload the artifacts
-            yield (0, artifacts_1.uploadArtifact)(core.getInput('artifact_name'), 'artifacts', Number(core.getInput('artifact_retention')));
+            yield (0, artifacts_1.uploadArtifact)(core.getInput('artifact_name'), artifactsFolder, Number(core.getInput('artifact_retention')));
         }
         catch (error) {
             if (error instanceof Error)
