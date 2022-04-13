@@ -33,7 +33,7 @@ export async function prepareBuildArtifact(): Promise<any> {
       process.env.GITHUB_WORKSPACE,
       process.env.TESTS_PATH
     )
-
+    core.info(testFolder)
     const artifactsFolder = path.join(testFolder, 'artifacts/')
     // Search for target/ folder
     const folders = await getTargetFolders(process.env.GITHUB_WORKSPACE)
