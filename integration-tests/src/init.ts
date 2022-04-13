@@ -71,11 +71,5 @@ export async function displaySystemInfo(): Promise<any> {
   }
 
   const moduleId: string = core.getInput('module_id')
-
-  core.info(`Testing module ${moduleId} ...`)
-
-  //   await exec.exec('echo ${DOCKER_USERNAME}', [], {...options, silent: true})
-  //   core.info(`echo: ${myOutput}`)
-
   core.endGroup()
 }

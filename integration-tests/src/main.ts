@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
+import {download} from './artifacts'
 
 // import {wait} from './wait'
 
@@ -20,11 +21,10 @@ async function run(): Promise<void> {
     // Display important versions and environment variables
     await displaySystemInfo()
 
-    // core.debug(new Date().toTimeString())
-    // await wait(parseInt(ms, 10))
-    // core.debug(new Date().toTimeString())
-
-    // core.setOutput('time', new Date().toTimeString())
+    // Download the build artifact
+    if (core.getInput('should_use_build_artifacts') === 'true') {
+      await download('build-artifacts')
+    }
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
