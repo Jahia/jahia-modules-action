@@ -103,12 +103,29 @@ async function run(): Promise<void> {
       artifactsFolder
     )
 
-    // Finally, upload the artifacts
+    // upload the artifacts
     await uploadArtifact(
       core.getInput('artifact_name'),
       artifactsFolder,
       Number(core.getInput('artifact_retention'))
     )
+
+    //Finally, analyze the results
+    if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
+      core.setFailed(
+        `Could not locate file ${path.join(
+          artifactsFolder,
+          'results/test_success'
+        )}, run has FAILED`
+      )
+    } else {
+      core.info(
+        `File ${path.join(
+          artifactsFolder,
+          'results/test_success'
+        )} is present, run is SUCCESSFUL`
+      )
+    }
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }

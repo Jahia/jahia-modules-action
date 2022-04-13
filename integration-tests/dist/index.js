@@ -915,8 +915,15 @@ function run() {
             yield (0, docker_1.startDockerEnvironment)(testsFolder, core.getInput('ci_startup_script'), core.getInput('docker_compose_file'));
             // Export containers artifacts (reports, secreenshots, videos)
             yield (0, docker_1.copyRunArtifacts)(core.getInput('tests_container_name'), artifactsFolder);
-            // Finally, upload the artifacts
+            // upload the artifacts
             yield (0, artifacts_1.uploadArtifact)(core.getInput('artifact_name'), artifactsFolder, Number(core.getInput('artifact_retention')));
+            //Finally, analyze the results
+            if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
+                core.setFailed(`Could not locate file ${path.join(artifactsFolder, 'results/test_success')}, run has FAILED`);
+            }
+            else {
+                core.info(`File ${path.join(artifactsFolder, 'results/test_success')} is present, run is SUCCESSFUL`);
+            }
         }
         catch (error) {
             if (error instanceof Error)
