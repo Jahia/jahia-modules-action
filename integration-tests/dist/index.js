@@ -142,13 +142,13 @@ const getTargetFolders = (path, targets = [], dirName = 'target') => __awaiter(v
     }
     return targets;
 });
-function prepareBuildArtifact(modulePath, testsPath) {
+function prepareBuildArtifact(rootProjectFolder, testsPath) {
     return __awaiter(this, void 0, void 0, function* () {
         if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
             core.startGroup('🛠️ Preparing build artifactsabcd');
             const artifactsFolder = path.join(testsPath, 'artifacts');
-            if (!fs.existsSync(modulePath)) {
-                core.info(`Folder: ${modulePath} does not exist`);
+            if (!fs.existsSync(rootProjectFolder)) {
+                core.info(`Folder: ${rootProjectFolder} does not exist`);
                 return;
             }
             if (!fs.existsSync(artifactsFolder)) {
@@ -156,7 +156,7 @@ function prepareBuildArtifact(modulePath, testsPath) {
                 return;
             }
             // Search for target/ folder
-            const folders = yield getTargetFolders(modulePath);
+            const folders = yield getTargetFolders(rootProjectFolder);
             core.info(`Identified the following target folders: ${JSON.stringify(folders)}`);
             for (const targetFolder of folders) {
                 const files = fs.readdirSync(targetFolder);
@@ -819,14 +819,23 @@ const init_1 = __nccwpck_require__(976);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            // Prepare the export folder
-            if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
-                const artifactsFolder = path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH, 'artifacts');
-                if (!fs.existsSync(artifactsFolder)) {
-                    core.info(`📁 Creating folder: ${artifactsFolder}`);
-                    fs.mkdirSync(artifactsFolder);
-                }
+            if (!process.env.GITHUB_WORKSPACE || !process.env.TESTS_PATH) {
+                return;
             }
+            // Set the various project folders
+            const rootProjectFolder = process.env.GITHUB_WORKSPACE;
+            if (!fs.existsSync(rootProjectFolder))
+                core.setFailed(`Folder (rootProjectFolder) does not exist: ${rootProjectFolder}`);
+            const testsFolder = path.join(rootProjectFolder, core.getInput('tests_path'));
+            if (!fs.existsSync(testsFolder))
+                core.setFailed(`Folder (testsFolder) does not exist: ${testsFolder}`);
+            const artifactsFolder = path.join(testsFolder, 'artifacts');
+            if (!fs.existsSync(artifactsFolder)) {
+                core.info(`📁 Creating folder: ${artifactsFolder}`);
+                fs.mkdirSync(artifactsFolder);
+            }
+            if (!fs.existsSync(artifactsFolder))
+                core.setFailed(`Folder (artifactsFolder) does not exist: ${artifactsFolder}`);
             // Set environment variables from parameters
             yield (0, init_1.setEnvironmentVariables)();
             // Install various tools (such as jahia-reporter) needed for the workflow
@@ -840,11 +849,8 @@ function run() {
                 yield (0, artifacts_1.downloadArtifact)('build-artifacts');
             }
             // Prepare the build artifacts to include them in the docker image
-            if (core.getInput('should_skip_artifacts') === 'false' &&
-                process.env.GITHUB_WORKSPACE &&
-                process.env.TESTS_PATH) {
-                const testsFolder = path.join(process.env.GITHUB_WORKSPACE, core.getInput('tests_path'));
-                yield (0, artifacts_1.prepareBuildArtifact)(process.env.GITHUB_WORKSPACE, testsFolder);
+            if (core.getInput('should_skip_artifacts') === 'false') {
+                yield (0, artifacts_1.prepareBuildArtifact)(rootProjectFolder, testsFolder);
             }
             // Build the test image
             if (core.getInput('should_build_testsimage') === 'true') {

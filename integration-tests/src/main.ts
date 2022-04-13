@@ -21,18 +21,33 @@ import {
 
 async function run(): Promise<void> {
   try {
-    // Prepare the export folder
-    if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
-      const artifactsFolder = path.join(
-        process.env.GITHUB_WORKSPACE,
-        process.env.TESTS_PATH,
-        'artifacts'
-      )
-      if (!fs.existsSync(artifactsFolder)) {
-        core.info(`📁 Creating folder: ${artifactsFolder}`)
-        fs.mkdirSync(artifactsFolder)
-      }
+    if (!process.env.GITHUB_WORKSPACE || !process.env.TESTS_PATH) {
+      return
     }
+
+    // Set the various project folders
+    const rootProjectFolder = process.env.GITHUB_WORKSPACE
+    if (!fs.existsSync(rootProjectFolder))
+      core.setFailed(
+        `Folder (rootProjectFolder) does not exist: ${rootProjectFolder}`
+      )
+
+    const testsFolder = path.join(
+      rootProjectFolder,
+      core.getInput('tests_path')
+    )
+    if (!fs.existsSync(testsFolder))
+      core.setFailed(`Folder (testsFolder) does not exist: ${testsFolder}`)
+
+    const artifactsFolder = path.join(testsFolder, 'artifacts')
+    if (!fs.existsSync(artifactsFolder)) {
+      core.info(`📁 Creating folder: ${artifactsFolder}`)
+      fs.mkdirSync(artifactsFolder)
+    }
+    if (!fs.existsSync(artifactsFolder))
+      core.setFailed(
+        `Folder (artifactsFolder) does not exist: ${artifactsFolder}`
+      )
 
     // Set environment variables from parameters
     await setEnvironmentVariables()
@@ -55,17 +70,8 @@ async function run(): Promise<void> {
     }
 
     // Prepare the build artifacts to include them in the docker image
-    if (
-      core.getInput('should_skip_artifacts') === 'false' &&
-      process.env.GITHUB_WORKSPACE &&
-      process.env.TESTS_PATH
-    ) {
-      const testsFolder = path.join(
-        process.env.GITHUB_WORKSPACE,
-        core.getInput('tests_path')
-      )
-
-      await prepareBuildArtifact(process.env.GITHUB_WORKSPACE, testsFolder)
+    if (core.getInput('should_skip_artifacts') === 'false') {
+      await prepareBuildArtifact(rootProjectFolder, testsFolder)
     }
 
     // Build the test image

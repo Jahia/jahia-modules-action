@@ -26,7 +26,7 @@ const getTargetFolders = async (
 }
 
 export async function prepareBuildArtifact(
-  modulePath: string,
+  rootProjectFolder: string,
   testsPath: string
 ): Promise<any> {
   if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
@@ -34,8 +34,8 @@ export async function prepareBuildArtifact(
 
     const artifactsFolder = path.join(testsPath, 'artifacts')
 
-    if (!fs.existsSync(modulePath)) {
-      core.info(`Folder: ${modulePath} does not exist`)
+    if (!fs.existsSync(rootProjectFolder)) {
+      core.info(`Folder: ${rootProjectFolder} does not exist`)
       return
     }
 
@@ -45,7 +45,7 @@ export async function prepareBuildArtifact(
     }
 
     // Search for target/ folder
-    const folders = await getTargetFolders(modulePath)
+    const folders = await getTargetFolders(rootProjectFolder)
 
     core.info(
       `Identified the following target folders: ${JSON.stringify(folders)}`
