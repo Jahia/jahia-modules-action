@@ -15,17 +15,22 @@ export async function startDockerEnvironment(
     const startupFile = path.join(testsFolder, ciStartupScript)
     const composeFile = path.join(testsFolder, dockerComposeFile)
 
+    // Note that we're ignoring the return code on purpose.
+    // The last step of the action will take care of verifying
+    // if execution was successful
+
     if (fs.existsSync(startupFile)) {
       core.info(`Starting environment using startup script: ${startupFile}`)
       await runShellCommands([`bash ${startupFile}`], 'artifacts/startup.log', {
-        cwd: testsFolder
+        cwd: testsFolder,
+        ignoreReturnCode: true
       })
     } else if (fs.existsSync(composeFile)) {
       core.info(`Starting environment using compose file: ${composeFile}`)
       await runShellCommands(
         [`docker -f ${composeFile} up --abord-on-container-exit`],
         'artifacts/startup.log',
-        {cwd: testsFolder}
+        {cwd: testsFolder, ignoreReturnCode: true}
       )
     } else {
       core.setFailed(
