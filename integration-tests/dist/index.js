@@ -147,31 +147,35 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.buildDockerTestImage = void 0;
 const core = __importStar(__nccwpck_require__(2186));
-const exec = __importStar(__nccwpck_require__(1514));
+const cp = __importStar(__nccwpck_require__(3129));
 function buildDockerTestImage(testsPath, testsContainerBranch, testsImage) {
     return __awaiter(this, void 0, void 0, function* () {
         core.startGroup('🛠️ Build test docker container');
-        const runCommands = [
-            // `git checkout ${testsContainerBranch}`,
-            `docker build -t ${testsImage} .`,
-            `docker save -o tests_image.tar ${testsImage}`
-        ];
-        for (const cmd of runCommands) {
-            core.info(`Executing: ${cmd}`);
-            let stdOut = '';
-            let stdErr = '';
-            const options = {};
-            options.listeners = {
-                stdout: (data) => {
-                    stdOut += data.toString();
-                },
-                stderr: (data) => {
-                    stdErr += data.toString();
-                }
-            };
-            yield exec.exec('bash', [`cd ${testsPath}; ${cmd}`], Object.assign(Object.assign({}, options), { silent: false }));
-            core.info(`${stdOut}${stdErr}`);
-        }
+        cp.execSync(`docker build -t  ${testsImage} ${testsPath}.`);
+        // const runCommands: Array<string> = [
+        //   // `git checkout ${testsContainerBranch}`,
+        //   `docker build -t ${testsImage} .`,
+        //   `docker save -o tests_image.tar ${testsImage}`
+        // ]
+        // for (const cmd of runCommands) {
+        //   core.info(`Executing: ${cmd}`)
+        //   let stdOut = ''
+        //   let stdErr = ''
+        //   const options: exec.ExecOptions = {}
+        //   options.listeners = {
+        //     stdout: (data: Buffer) => {
+        //       stdOut += data.toString()
+        //     },
+        //     stderr: (data: Buffer) => {
+        //       stdErr += data.toString()
+        //     }
+        //   }
+        //   await exec.exec('bash', [`cd ${testsPath}; ${cmd}`], {
+        //     ...options,
+        //     silent: false
+        //   })
+        //   core.info(`${stdOut}${stdErr}`)
+        // }
         core.endGroup();
     });
 }
