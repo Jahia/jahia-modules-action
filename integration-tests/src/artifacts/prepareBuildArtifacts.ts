@@ -30,39 +30,44 @@ export async function prepareBuildArtifact(
 ): Promise<any> {
   core.startGroup('🛠️ Preparing build artifacts')
   const artifactFolder = `${testsPath}artifacts/`
-  // Search for target/ folder
-  const folders = await getTargetFolders(rootPath)
-  core.info(
-    `Identified the following target folders: ${JSON.stringify(folders)}`
-  )
 
-  if (folders.length > 0 && !fs.existsSync(artifactFolder)) {
-    fs.mkdirSync(artifactFolder)
-  }
+  if (fs.existsSync(artifactFolder)) {
+    // Search for target/ folder
+    const folders = await getTargetFolders(rootPath)
+    core.info(
+      `Identified the following target folders: ${JSON.stringify(folders)}`
+    )
 
-  for (const targetFolder of folders) {
-    const files = fs.readdirSync(targetFolder)
-    for (const f of files) {
-      if (f.includes('-SNAPSHOT.jar')) {
-        core.info(
-          `Copying file: ${targetFolder} + '/' + ${f} to ${artifactFolder}`
-        )
-        fs.copyFileSync(
-          `${targetFolder} + '/' + ${f}`,
-          `${artifactFolder} + '/' + ${f}`
-        )
+    if (folders.length > 0 && !fs.existsSync(artifactFolder)) {
+      fs.mkdirSync(artifactFolder)
+    }
+
+    for (const targetFolder of folders) {
+      const files = fs.readdirSync(targetFolder)
+      for (const f of files) {
+        if (f.includes('-SNAPSHOT.jar')) {
+          core.info(
+            `Copying file: ${targetFolder} + '/' + ${f} to ${artifactFolder}`
+          )
+          fs.copyFileSync(
+            `${targetFolder} + '/' + ${f}`,
+            `${artifactFolder} + '/' + ${f}`
+          )
+        }
       }
     }
-  }
 
-  const files = fs.readdirSync(artifactFolder)
-  if (files.length > 0) {
-    core.info(`The following files are present in: ${artifactFolder}`)
-    for (const f of files) {
-      core.info(f)
+    const files = fs.readdirSync(artifactFolder)
+    if (files.length > 0) {
+      core.info(`The following files are present in: ${artifactFolder}`)
+      for (const f of files) {
+        core.info(f)
+      }
+    } else {
+      core.info(`Artifacts folder is empty: ${artifactFolder}`)
     }
   } else {
-    core.info(`Artifacts folder is empty: ${artifactFolder}`)
+    core.info(`Folder: ${artifactFolder} does not exist`)
   }
 
   core.endGroup()
