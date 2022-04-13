@@ -13,7 +13,7 @@ export async function buildDockerTestImage(
   core.startGroup('🐋 Build test docker container')
 
   const git = simpleGit({
-    baseDir: testsPath
+    baseDir: `../${testsPath}`
   })
   const currentBranch = git.branch()
   core.info(JSON.stringify(currentBranch))

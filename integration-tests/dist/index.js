@@ -156,7 +156,7 @@ function buildDockerTestImage(testsPath, testsContainerBranch, testsImage) {
     return __awaiter(this, void 0, void 0, function* () {
         core.startGroup('🐋 Build test docker container');
         const git = (0, simple_git_1.default)({
-            baseDir: testsPath
+            baseDir: `../${testsPath}`
         });
         const currentBranch = git.branch();
         core.info(JSON.stringify(currentBranch));
