@@ -15,7 +15,7 @@ export async function downloadArtifact(artifactName: string): Promise<any> {
 const getTargetFolders = async (
   path: string,
   targets: Array<string> = [],
-  dirName: string = 'cypress'
+  dirName: string = 'target'
 ) => {
   const files = fs.readdirSync(path)
   for (const f of files) {
@@ -38,11 +38,38 @@ export async function prepareBuildArtifact(
   rootPath: string,
   testsPath: string
 ): Promise<any> {
+  core.startGroup('🛠️ Preparing build artifacts')
+  const artifactFolder = `${testsPath}/artifacts/`
   // Search for target/ folder
   const folders = await getTargetFolders(rootPath)
-  core.info(JSON.stringify(folders))
+  core.info(
+    `Identified the following target folders ${JSON.stringify(folders)}`
+  )
 
-  if (!fs.existsSync(`${testsPath}/artifacts/`)) {
-    fs.mkdirSync(`${testsPath}/artifacts/`)
+  if (folders.length > 0 && !fs.existsSync(artifactFolder)) {
+    fs.mkdirSync(artifactFolder)
   }
+
+  for (const targetFolder of folders) {
+    const files = fs.readdirSync(targetFolder)
+    for (const f of files) {
+      if (f.includes('-SNAPSHOT.jar')) {
+        core.info(
+          `Copying file: ${targetFolder} + '/' + ${f} to ${artifactFolder}`
+        )
+        fs.copyFileSync(
+          `${targetFolder} + '/' + ${f}`,
+          `${artifactFolder} + '/' + ${f}`
+        )
+      }
+    }
+  }
+
+  core.info(`The following files are present in: ${artifactFolder}`)
+  const files = fs.readdirSync(artifactFolder)
+  for (const f of files) {
+    core.info(f)
+  }
+
+  core.endGroup()
 }

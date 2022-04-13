@@ -52,7 +52,7 @@ function downloadArtifact(artifactName) {
 }
 exports.downloadArtifact = downloadArtifact;
 // Recursively get all folder matching dirName under the path
-const getTargetFolders = (path, targets = [], dirName = 'cypress') => __awaiter(void 0, void 0, void 0, function* () {
+const getTargetFolders = (path, targets = [], dirName = 'target') => __awaiter(void 0, void 0, void 0, function* () {
     const files = fs.readdirSync(path);
     for (const f of files) {
         const filePath = path + '/' + f;
@@ -72,12 +72,29 @@ const getTargetFolders = (path, targets = [], dirName = 'cypress') => __awaiter(
 });
 function prepareBuildArtifact(rootPath, testsPath) {
     return __awaiter(this, void 0, void 0, function* () {
+        core.startGroup('🛠️ Preparing build artifacts');
+        const artifactFolder = `${testsPath}/artifacts/`;
         // Search for target/ folder
         const folders = yield getTargetFolders(rootPath);
-        core.info(JSON.stringify(folders));
-        if (!fs.existsSync(`${testsPath}/artifacts/`)) {
-            fs.mkdirSync(`${testsPath}/artifacts/`);
+        core.info(`Identified the following target folders ${JSON.stringify(folders)}`);
+        if (folders.length > 0 && !fs.existsSync(artifactFolder)) {
+            fs.mkdirSync(artifactFolder);
         }
+        for (const targetFolder of folders) {
+            const files = fs.readdirSync(targetFolder);
+            for (const f of files) {
+                if (f.includes('-SNAPSHOT.jar')) {
+                    core.info(`Copying file: ${targetFolder} + '/' + ${f} to ${artifactFolder}`);
+                    fs.copyFileSync(`${targetFolder} + '/' + ${f}`, `${artifactFolder} + '/' + ${f}`);
+                }
+            }
+        }
+        core.info(`The following files are present in: ${artifactFolder}`);
+        const files = fs.readdirSync(artifactFolder);
+        for (const f of files) {
+            core.info(f);
+        }
+        core.endGroup();
     });
 }
 exports.prepareBuildArtifact = prepareBuildArtifact;
