@@ -417,6 +417,7 @@ __exportStar(__nccwpck_require__(642), exports);
 __exportStar(__nccwpck_require__(3105), exports);
 __exportStar(__nccwpck_require__(9530), exports);
 __exportStar(__nccwpck_require__(263), exports);
+__exportStar(__nccwpck_require__(8329), exports);
 
 
 /***/ }),
@@ -488,6 +489,74 @@ function login(username, password) {
     });
 }
 exports.login = login;
+
+
+/***/ }),
+
+/***/ 8329:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.executePostrunScript = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const fs = __importStar(__nccwpck_require__(5747));
+const path = __importStar(__nccwpck_require__(5622));
+const system_1 = __nccwpck_require__(7885);
+function executePostrunScript(testsFolder, postrunScript) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const postrunFile = path.join(testsFolder, postrunScript);
+        // Note that we're ignoring the return code on purpose.
+        // The last step of the action will take care of verifying
+        // if execution was successful
+        if (fs.existsSync(postrunFile)) {
+            core.startGroup('🐋 Execute Postrun script');
+            core.info(`Executing postrun script: ${postrunFile}`);
+            yield (0, system_1.runShellCommands)([`bash ${postrunFile}`], 'artifacts/postrun.log', {
+                cwd: testsFolder,
+                ignoreReturnCode: true
+            });
+            core.endGroup();
+        }
+        else {
+            core.info(`Postrun script not found: ${postrunFile}, skipping...`);
+        }
+    });
+}
+exports.executePostrunScript = executePostrunScript;
 
 
 /***/ }),
@@ -600,29 +669,27 @@ const path = __importStar(__nccwpck_require__(5622));
 const system_1 = __nccwpck_require__(7885);
 function startDockerEnvironment(testsFolder, ciStartupScript, dockerComposeFile) {
     return __awaiter(this, void 0, void 0, function* () {
-        if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
-            core.startGroup('🐋 Starting the Docker environment');
-            const startupFile = path.join(testsFolder, ciStartupScript);
-            const composeFile = path.join(testsFolder, dockerComposeFile);
-            // Note that we're ignoring the return code on purpose.
-            // The last step of the action will take care of verifying
-            // if execution was successful
-            if (fs.existsSync(startupFile)) {
-                core.info(`Starting environment using startup script: ${startupFile}`);
-                yield (0, system_1.runShellCommands)([`bash ${startupFile}`], 'artifacts/startup.log', {
-                    cwd: testsFolder,
-                    ignoreReturnCode: true
-                });
-            }
-            else if (fs.existsSync(composeFile)) {
-                core.info(`Starting environment using compose file: ${composeFile}`);
-                yield (0, system_1.runShellCommands)([`docker -f ${composeFile} up --abord-on-container-exit`], 'artifacts/startup.log', { cwd: testsFolder, ignoreReturnCode: true });
-            }
-            else {
-                core.setFailed(`Unable to find environment startup instructions. Could not find startup script (${startupFile}) NOR compose file ${composeFile}`);
-            }
-            core.endGroup();
+        core.startGroup('🐋 Starting the Docker environment');
+        const startupFile = path.join(testsFolder, ciStartupScript);
+        const composeFile = path.join(testsFolder, dockerComposeFile);
+        // Note that we're ignoring the return code on purpose.
+        // The last step of the action will take care of verifying
+        // if execution was successful
+        if (fs.existsSync(startupFile)) {
+            core.info(`Starting environment using startup script: ${startupFile}`);
+            yield (0, system_1.runShellCommands)([`bash ${startupFile}`], 'artifacts/startup.log', {
+                cwd: testsFolder,
+                ignoreReturnCode: true
+            });
         }
+        else if (fs.existsSync(composeFile)) {
+            core.info(`Starting environment using compose file: ${composeFile}`);
+            yield (0, system_1.runShellCommands)([`docker -f ${composeFile} up --abord-on-container-exit`], 'artifacts/startup.log', { cwd: testsFolder, ignoreReturnCode: true });
+        }
+        else {
+            core.setFailed(`Unable to find environment startup instructions. Could not find startup script (${startupFile}) NOR compose file ${composeFile}`);
+        }
+        core.endGroup();
     });
 }
 exports.startDockerEnvironment = startDockerEnvironment;
@@ -919,6 +986,8 @@ function run() {
             yield (0, docker_1.startDockerEnvironment)(testsFolder, core.getInput('ci_startup_script'), core.getInput('docker_compose_file'));
             // Export containers artifacts (reports, secreenshots, videos)
             yield (0, docker_1.copyRunArtifacts)(core.getInput('tests_container_name'), artifactsFolder);
+            // Spin-up the containers
+            yield (0, docker_1.executePostrunScript)(testsFolder, core.getInput('ci_startup_script'));
             // upload the artifacts
             yield (0, artifacts_1.uploadArtifact)(core.getInput('artifact_name'), artifactsFolder, Number(core.getInput('artifact_retention')));
             //Finally, analyze the results

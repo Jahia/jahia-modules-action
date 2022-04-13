@@ -10,6 +10,7 @@ import {
 import {
   buildDockerTestImage,
   copyRunArtifacts,
+  executePostrunScript,
   login,
   pullDockerImages,
   startDockerEnvironment
@@ -102,6 +103,9 @@ async function run(): Promise<void> {
       core.getInput('tests_container_name'),
       artifactsFolder
     )
+
+    // Spin-up the containers
+    await executePostrunScript(testsFolder, core.getInput('ci_startup_script'))
 
     // upload the artifacts
     await uploadArtifact(
