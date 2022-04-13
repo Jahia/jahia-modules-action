@@ -4,7 +4,7 @@ import {
   prepareBuildArtifact,
   uploadArtifact
 } from './artifacts'
-import {buildDockerTestImage} from './docker'
+import {buildDockerTestImage, pullDockerImages} from './docker'
 import {
   setEnvironmentVariables,
   displaySystemInfo,
@@ -44,6 +44,12 @@ async function run(): Promise<void> {
         core.getInput('tests_image')
       )
     }
+
+    // Pull the latest version of Jahia and jCustomer and print docker images cache to console
+    pullDockerImages(
+      core.getInput('jahia_image'),
+      core.getInput('jcustomer_image')
+    )
 
     // Finally, upload the artifacts
     await uploadArtifact(core.getInput('artifact_name'), ['artifacts/'])

@@ -187,7 +187,7 @@ function buildDockerTestImage(testsPath, testsContainerBranch, testsImage) {
     });
 }
 exports.buildDockerTestImage = buildDockerTestImage;
-function pullDockerImages(testsPath, testsContainerBranch, testsImage, jahiaImage, jCustomerImage) {
+function pullDockerImages(jahiaImage, jCustomerImage) {
     return __awaiter(this, void 0, void 0, function* () {
         core.startGroup('🐋 Pull the latest version of Jahia and jCustomer and print docker images cache to console');
         // Get list of docker images in local cache BEFORE the pull
@@ -367,6 +367,8 @@ function run() {
             if (core.getInput('should_build_testsimage') === 'true') {
                 yield (0, docker_1.buildDockerTestImage)(core.getInput('tests_path'), core.getInput('tests_container_branch'), core.getInput('tests_image'));
             }
+            // Pull the latest version of Jahia and jCustomer and print docker images cache to console
+            (0, docker_1.pullDockerImages)(core.getInput('jahia_image'), core.getInput('jcustomer_image'));
             // Finally, upload the artifacts
             yield (0, artifacts_1.uploadArtifact)(core.getInput('artifact_name'), ['artifacts/']);
         }

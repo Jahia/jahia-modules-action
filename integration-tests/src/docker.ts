@@ -34,9 +34,6 @@ export async function buildDockerTestImage(
 }
 
 export async function pullDockerImages(
-  testsPath: string,
-  testsContainerBranch: string,
-  testsImage: string,
   jahiaImage: string,
   jCustomerImage: string
 ): Promise<any> {
