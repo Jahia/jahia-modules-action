@@ -28,7 +28,7 @@ export async function prepareBuildArtifact(
   rootPath: string,
   testsPath: string
 ): Promise<any> {
-  core.startGroup('🛠️ Preparing build artifacts _')
+  core.startGroup('🛠️ Preparing build artifactsabc')
   const artifactFolder = `${testsPath}artifacts/`
 
   if (!fs.existsSync(rootPath)) {
