@@ -89,7 +89,7 @@ inputs:
   slack_channel_id_notifications:
     description: 'Channel id to be used for failure notifications'
     required: false
-    default: ''    
+    default: ''
   slack_channel_id_notifications_all:
     description: 'Channel id to be used for all notifications (failure and success)'
     required: false
@@ -141,7 +141,7 @@ inputs:
   incident_google_client_email:
     description: 'Google Client email to allow access to Google API'
     required: false
-    default: ''   
+    default: ''
   incident_google_api_key_base64:
     description: 'Google base64 encoded private key to allow access to Google API'
     required: false
@@ -149,7 +149,7 @@ inputs:
   testrail_project:
     description: 'Testrail Project to send data to'
     required: false
-    default: 'Default'    
+    default: 'Default'
   testrail_milestone:
     description: 'Milestone to be used when submitting the results to Testrail'
     required: false
@@ -192,7 +192,7 @@ inputs:
     default: 'jahia'
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - uses: actions/setup-node@v2
       with:
@@ -200,7 +200,7 @@ runs:
 
     - name: Install @jahia/jahia-reporter
       shell: bash
-      run: | 
+      run: |
         echo "::group::Install @jahia/jahia-reporter"
         npm install -g @jahia/jahia-reporter
         echo "::endgroup::"
@@ -249,7 +249,7 @@ runs:
       shell: bash
       run: |
         mkdir -p ${{ inputs.tests_path }}artifacts
-  
+
     # Login to the docker registry is needed to access some images (snapshots, ...)
     - name: Docker login
       uses: docker/login-action@v1
@@ -273,7 +273,7 @@ runs:
 
     # We always build the test container from scratch
     # Docker layer caching makes this quick if it was already previously built
-    # To test a previous release, a specific branch can be provided      
+    # To test a previous release, a specific branch can be provided
     - name: Build the tests image
       shell: bash
       run: |
@@ -312,7 +312,7 @@ runs:
     # Using abort-on-container-exit will exit on first container failure, which
     # for us will be the test container
     - name: Spin-up the containers
-      shell: bash  
+      shell: bash
       run: |
         echo "::group::Spin-up the containers"
         cd ${{ inputs.tests_path }}
@@ -364,7 +364,7 @@ runs:
 
     # If a ci.postrun.sh script is present, this script is executed
     # The main purpose of this script is to export additional artifacts,
-    # capture logs from other containers, ...    
+    # capture logs from other containers, ...
     - name: Execute Postrun script if present
       shell: bash
       if: always()
@@ -381,7 +381,7 @@ runs:
         fi
 
     # Once all is executed, results are submitted to external platforms
-    # Testrail report and Slack (failure only) notifications are sent during scheduled executions or merged into the main branch 
+    # Testrail report and Slack (failure only) notifications are sent during scheduled executions or merged into the main branch
     - name: Publish results to testrail
       shell: bash
       if: always()
@@ -402,7 +402,7 @@ runs:
 
     # See https://theoephraim.github.io/node-google-spreadsheet/#/getting-started/authentication for Google Auth setup
     - name: Create incident in PagerDuty
-      shell: bash 
+      shell: bash
       if: failure()
       run: |
         echo "Current branch is: $CURRENT_BRANCH"
@@ -423,10 +423,10 @@ runs:
             --service="${{ inputs.module_id }}" \
             --sourceUrl=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
           echo "::endgroup::"
-        fi  
+        fi
 
     - name: Send Notifications to Slack
-      shell: bash 
+      shell: bash
       if: always()
       run: |
         if [ ${{ inputs.should_skip_notifications }} == false ] || [ ${{ inputs.primary_release_branch }} == $CURRENT_BRANCH ]; then
@@ -443,7 +443,7 @@ runs:
             --msgAuthor="Github Actions ($GITHUB_REPOSITORY)" \
             --runUrl=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
           echo "::endgroup::"
-        fi 
+        fi
 
     - name: Send Test data to https://zencrepes.jahia.com
       shell: bash
@@ -504,4 +504,3 @@ runs:
           sleep 1;
         done
         echo "::endgroup::"
-

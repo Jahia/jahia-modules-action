@@ -3,7 +3,7 @@ description: 'Runs Jahia integration tests on an Ubuntu server'
 author: 'Jahia'
 
 # To review: https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions
-
+# Please see: https://github.com/actions/toolkit/blob/master/README.md#packages for available packages
 inputs:
   milliseconds: # change this
     required: true
@@ -94,7 +94,7 @@ inputs:
   slack_channel_id_notifications:
     description: 'Channel id to be used for failure notifications'
     required: false
-    default: ''    
+    default: ''
   slack_channel_id_notifications_all:
     description: 'Channel id to be used for all notifications (failure and success)'
     required: false
@@ -146,7 +146,7 @@ inputs:
   incident_google_client_email:
     description: 'Google Client email to allow access to Google API'
     required: false
-    default: ''   
+    default: ''
   incident_google_api_key_base64:
     description: 'Google base64 encoded private key to allow access to Google API'
     required: false
@@ -154,7 +154,7 @@ inputs:
   testrail_project:
     description: 'Testrail Project to send data to'
     required: false
-    default: 'Default'    
+    default: 'Default'
   testrail_milestone:
     description: 'Milestone to be used when submitting the results to Testrail'
     required: false
