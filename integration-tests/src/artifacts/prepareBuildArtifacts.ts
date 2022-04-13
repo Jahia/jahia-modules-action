@@ -4,7 +4,7 @@ import * as path from 'path'
 
 // Recursively get all folder matching dirName under the path
 const getTargetFolders = async (
-  path: string,
+  path: any,
   targets: Array<string> = [],
   dirName: string = 'target'
 ) => {
@@ -28,8 +28,6 @@ const getTargetFolders = async (
 export async function prepareBuildArtifact(): Promise<any> {
   if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
     core.startGroup('🛠️ Preparing build artifacts')
-    core.info(process.env.GITHUB_WORKSPACE)
-    core.info(process.env.TESTS_PATH)
 
     const testFolder = path.join(
       process.env.GITHUB_WORKSPACE,
