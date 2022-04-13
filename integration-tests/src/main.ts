@@ -4,7 +4,7 @@ import {
   prepareBuildArtifact,
   uploadArtifact
 } from './artifacts'
-import {buildDockerTestImage, pullDockerImages} from './docker'
+import {buildDockerTestImage, login, pullDockerImages} from './docker'
 import {
   setEnvironmentVariables,
   displaySystemInfo,
@@ -22,6 +22,12 @@ async function run(): Promise<void> {
 
     // Display important versions and environment variables
     await displaySystemInfo()
+
+    // Docker login
+    await login(
+      core.getInput('docker_username'),
+      core.getInput('docker_password')
+    )
 
     // Download the build artifact
     if (core.getInput('should_use_build_artifacts') === 'true') {

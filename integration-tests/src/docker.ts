@@ -62,6 +62,7 @@ export async function pullDockerImages(
 
 // See: https://github.com/docker/login-action/blob/master/src/docker.ts
 export async function login(username: string, password: string): Promise<void> {
+  core.startGroup('🐋 Docker login')
   if (!username || !password) {
     throw new Error('Username and password required')
   }
@@ -83,4 +84,5 @@ export async function login(username: string, password: string): Promise<void> {
       }
       core.info(`Login Succeeded!`)
     })
+  core.endGroup()
 }

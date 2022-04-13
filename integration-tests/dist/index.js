@@ -209,6 +209,7 @@ exports.pullDockerImages = pullDockerImages;
 // See: https://github.com/docker/login-action/blob/master/src/docker.ts
 function login(username, password) {
     return __awaiter(this, void 0, void 0, function* () {
+        core.startGroup('🐋 Docker login');
         if (!username || !password) {
             throw new Error('Username and password required');
         }
@@ -227,6 +228,7 @@ function login(username, password) {
             }
             core.info(`Login Succeeded!`);
         });
+        core.endGroup();
     });
 }
 exports.login = login;
@@ -378,6 +380,8 @@ function run() {
             yield (0, init_1.installTooling)();
             // Display important versions and environment variables
             yield (0, init_1.displaySystemInfo)();
+            // Docker login
+            yield (0, docker_1.login)(core.getInput('docker_username'), core.getInput('docker_password'));
             // Download the build artifact
             if (core.getInput('should_use_build_artifacts') === 'true') {
                 yield (0, artifacts_1.downloadArtifact)('build-artifacts');
