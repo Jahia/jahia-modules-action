@@ -186,9 +186,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.login = exports.pullDockerImages = exports.buildDockerTestImage = void 0;
+exports.startDockerEnvironment = exports.login = exports.pullDockerImages = exports.buildDockerTestImage = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
+const fs = __importStar(__nccwpck_require__(5747));
+const path = __importStar(__nccwpck_require__(5622));
 const simple_git_1 = __importDefault(__nccwpck_require__(9103));
 const system_1 = __nccwpck_require__(7885);
 function buildDockerTestImage(testsPath, testsContainerBranch, testsImage) {
@@ -225,7 +227,7 @@ function pullDockerImages(jahiaImage, jCustomerImage) {
             runCommands.push(`docker pull ${jCustomerImage}`);
         }
         // Get list of docker images in local cache AFTER the pull
-        runCommands.push(`docker pull ${jCustomerImage}`);
+        runCommands.push(`docker images --digests --all`);
         yield (0, system_1.runShellCommands)(runCommands, 'artifacts/docker.log');
         core.endGroup();
     });
@@ -257,6 +259,28 @@ function login(username, password) {
     });
 }
 exports.login = login;
+function startDockerEnvironment(ciStartupScript, dockerComposeFile) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
+            core.startGroup('🐋 Starting the Docker environment');
+            const startupFile = path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH, ciStartupScript);
+            const composeFile = path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH, dockerComposeFile);
+            if (fs.existsSync(startupFile)) {
+                core.info(`Starting environment using startup script: ${startupFile}`);
+                yield (0, system_1.runShellCommands)([`bash ${startupFile}`], 'artifacts/startup.log');
+            }
+            else if (fs.existsSync(composeFile)) {
+                core.info(`Starting environment using compose file: ${composeFile}`);
+                yield (0, system_1.runShellCommands)([`docker`], 'artifacts/startup.log');
+            }
+            else {
+                core.setFailed(`Unable to find environment startup instructions. Could not find startup script (${startupFile}) NOR compose file ${composeFile}`);
+            }
+            core.endGroup();
+        }
+    });
+}
+exports.startDockerEnvironment = startDockerEnvironment;
 
 
 /***/ }),
