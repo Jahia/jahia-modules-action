@@ -15,7 +15,7 @@ export async function downloadArtifact(artifactName: string): Promise<any> {
 const getTargetFolders = async (
   path: string,
   targets: Array<string> = [],
-  dirName: string = 'jexperience'
+  dirName: string = 'cypress'
 ) => {
   const files = fs.readdirSync(path)
   for (const f of files) {

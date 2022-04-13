@@ -52,7 +52,7 @@ function downloadArtifact(artifactName) {
 }
 exports.downloadArtifact = downloadArtifact;
 // Recursively get all folder matching dirName under the path
-const getTargetFolders = (path, targets = [], dirName = 'jexperience') => __awaiter(void 0, void 0, void 0, function* () {
+const getTargetFolders = (path, targets = [], dirName = 'cypress') => __awaiter(void 0, void 0, void 0, function* () {
     const files = fs.readdirSync(path);
     for (const f of files) {
         if (fs.statSync(path + '/' + f).isDirectory() && f !== dirName) {
