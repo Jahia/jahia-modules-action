@@ -447,7 +447,7 @@ function run() {
             }
             // Prepare the build artifacts to include them in the docker image
             if (core.getInput('should_skip_artifacts') === 'false') {
-                yield (0, artifacts_1.prepareBuildArtifact)('', '');
+                yield (0, artifacts_1.prepareBuildArtifact)();
             }
             // Build the test image
             if (core.getInput('should_build_testsimage') === 'true') {

@@ -25,10 +25,7 @@ const getTargetFolders = async (
   return targets
 }
 
-export async function prepareBuildArtifact(
-  rootPath: string,
-  testsPath: string
-): Promise<any> {
+export async function prepareBuildArtifact(): Promise<any> {
   if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
     core.startGroup('🛠️ Preparing build artifacts')
 
@@ -37,8 +34,7 @@ export async function prepareBuildArtifact(
       process.env.TESTS_PATH
     )
 
-    testsPath = testFolder
-    const artifactFolder = `${testsPath}artifacts/`
+    const artifactFolder = `${testFolder}/artifacts/`
     // Search for target/ folder
     const folders = await getTargetFolders(process.env.GITHUB_WORKSPACE)
     core.info(
