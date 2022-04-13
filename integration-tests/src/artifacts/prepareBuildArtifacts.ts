@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 import * as fs from 'fs'
+import * as path from 'path'
 
 // Recursively get all folder matching dirName under the path
 const getTargetFolders = async (
@@ -25,58 +26,56 @@ const getTargetFolders = async (
 }
 
 export async function prepareBuildArtifact(
-  rootPath: string,
+  modulePath: string,
   testsPath: string
 ): Promise<any> {
-  core.startGroup('🛠️ Preparing build artifactsabc')
-  const artifactFolder = `${testsPath}artifacts/`
+  if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
+    core.startGroup('🛠️ Preparing build artifactsabcd')
 
-  if (!fs.existsSync(rootPath)) {
-    core.info(`Folder: ${rootPath} does not exist`)
-    return
-  } else {
-    core.info(`Folder: ${rootPath} does exist`)
-  }
+    const artifactsFolder = path.join(testsPath, 'artifacts')
 
-  if (!fs.existsSync(artifactFolder)) {
-    core.info(`Folder: ${artifactFolder} does not exist`)
-    return
-  } else {
-    core.info(`Folder: ${artifactFolder} does exist`)
-  }
+    if (!fs.existsSync(modulePath)) {
+      core.info(`Folder: ${modulePath} does not exist`)
+      return
+    }
 
-  // Search for target/ folder
-  const folders = await getTargetFolders(rootPath)
-  core.info(`Folder: ${rootPath} does exist`)
-  core.info(`Folder: ${artifactFolder} does exist`)
-  core.info(
-    `Identified the following target folders: ${JSON.stringify(folders)}`
-  )
+    if (!fs.existsSync(artifactsFolder)) {
+      core.info(`Folder: ${artifactsFolder} does not exist`)
+      return
+    }
 
-  for (const targetFolder of folders) {
-    const files = fs.readdirSync(targetFolder)
-    for (const f of files) {
-      if (f.includes('-SNAPSHOT.jar')) {
-        core.info(
-          `Copying file: ${targetFolder} + '/' + ${f} to ${artifactFolder}`
-        )
-        fs.copyFileSync(
-          `${targetFolder} + '/' + ${f}`,
-          `${artifactFolder} + '/' + ${f}`
-        )
+    // Search for target/ folder
+    const folders = await getTargetFolders(modulePath)
+
+    core.info(
+      `Identified the following target folders: ${JSON.stringify(folders)}`
+    )
+
+    for (const targetFolder of folders) {
+      const files = fs.readdirSync(targetFolder)
+      for (const f of files) {
+        if (f.includes('-SNAPSHOT.jar')) {
+          core.info(
+            `Copying file: ${targetFolder} + '/' + ${f} to ${artifactsFolder}`
+          )
+          fs.copyFileSync(
+            `${targetFolder} + '/' + ${f}`,
+            `${artifactsFolder} + '/' + ${f}`
+          )
+        }
       }
     }
-  }
 
-  const files = fs.readdirSync(artifactFolder)
-  if (files.length > 0) {
-    core.info(`The following files are present in: ${artifactFolder}`)
-    for (const f of files) {
-      core.info(f)
+    const files = fs.readdirSync(artifactsFolder)
+    if (files.length > 0) {
+      core.info(`The following files are present in: ${artifactsFolder}`)
+      for (const f of files) {
+        core.info(f)
+      }
+    } else {
+      core.info(`Artifacts folder is empty: ${artifactsFolder}`)
     }
-  } else {
-    core.info(`Artifacts folder is empty: ${artifactFolder}`)
-  }
 
-  core.endGroup()
+    core.endGroup()
+  }
 }

@@ -122,6 +122,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.prepareBuildArtifact = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const fs = __importStar(__nccwpck_require__(5747));
+const path = __importStar(__nccwpck_require__(5622));
 // Recursively get all folder matching dirName under the path
 const getTargetFolders = (path, targets = [], dirName = 'target') => __awaiter(void 0, void 0, void 0, function* () {
     const files = fs.readdirSync(path);
@@ -141,49 +142,43 @@ const getTargetFolders = (path, targets = [], dirName = 'target') => __awaiter(v
     }
     return targets;
 });
-function prepareBuildArtifact(rootPath, testsPath) {
+function prepareBuildArtifact(modulePath, testsPath) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('🛠️ Preparing build artifactsabc');
-        const artifactFolder = `${testsPath}artifacts/`;
-        if (!fs.existsSync(rootPath)) {
-            core.info(`Folder: ${rootPath} does not exist`);
-            return;
-        }
-        else {
-            core.info(`Folder: ${rootPath} does exist`);
-        }
-        if (!fs.existsSync(artifactFolder)) {
-            core.info(`Folder: ${artifactFolder} does not exist`);
-            return;
-        }
-        else {
-            core.info(`Folder: ${artifactFolder} does exist`);
-        }
-        // Search for target/ folder
-        const folders = yield getTargetFolders(rootPath);
-        core.info(`Folder: ${rootPath} does exist`);
-        core.info(`Folder: ${artifactFolder} does exist`);
-        core.info(`Identified the following target folders: ${JSON.stringify(folders)}`);
-        for (const targetFolder of folders) {
-            const files = fs.readdirSync(targetFolder);
-            for (const f of files) {
-                if (f.includes('-SNAPSHOT.jar')) {
-                    core.info(`Copying file: ${targetFolder} + '/' + ${f} to ${artifactFolder}`);
-                    fs.copyFileSync(`${targetFolder} + '/' + ${f}`, `${artifactFolder} + '/' + ${f}`);
+        if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
+            core.startGroup('🛠️ Preparing build artifactsabcd');
+            const artifactsFolder = path.join(testsPath, 'artifacts');
+            if (!fs.existsSync(modulePath)) {
+                core.info(`Folder: ${modulePath} does not exist`);
+                return;
+            }
+            if (!fs.existsSync(artifactsFolder)) {
+                core.info(`Folder: ${artifactsFolder} does not exist`);
+                return;
+            }
+            // Search for target/ folder
+            const folders = yield getTargetFolders(modulePath);
+            core.info(`Identified the following target folders: ${JSON.stringify(folders)}`);
+            for (const targetFolder of folders) {
+                const files = fs.readdirSync(targetFolder);
+                for (const f of files) {
+                    if (f.includes('-SNAPSHOT.jar')) {
+                        core.info(`Copying file: ${targetFolder} + '/' + ${f} to ${artifactsFolder}`);
+                        fs.copyFileSync(`${targetFolder} + '/' + ${f}`, `${artifactsFolder} + '/' + ${f}`);
+                    }
                 }
             }
-        }
-        const files = fs.readdirSync(artifactFolder);
-        if (files.length > 0) {
-            core.info(`The following files are present in: ${artifactFolder}`);
-            for (const f of files) {
-                core.info(f);
+            const files = fs.readdirSync(artifactsFolder);
+            if (files.length > 0) {
+                core.info(`The following files are present in: ${artifactsFolder}`);
+                for (const f of files) {
+                    core.info(f);
+                }
             }
+            else {
+                core.info(`Artifacts folder is empty: ${artifactsFolder}`);
+            }
+            core.endGroup();
         }
-        else {
-            core.info(`Artifacts folder is empty: ${artifactFolder}`);
-        }
-        core.endGroup();
     });
 }
 exports.prepareBuildArtifact = prepareBuildArtifact;
@@ -845,8 +840,11 @@ function run() {
                 yield (0, artifacts_1.downloadArtifact)('build-artifacts');
             }
             // Prepare the build artifacts to include them in the docker image
-            if (core.getInput('should_skip_artifacts') === 'false') {
-                yield (0, artifacts_1.prepareBuildArtifact)('.', core.getInput('tests_path'));
+            if (core.getInput('should_skip_artifacts') === 'false' &&
+                process.env.GITHUB_WORKSPACE &&
+                process.env.TESTS_PATH) {
+                const testsFolder = path.join(process.env.GITHUB_WORKSPACE, core.getInput('tests_path'));
+                yield (0, artifacts_1.prepareBuildArtifact)(process.env.GITHUB_WORKSPACE, testsFolder);
             }
             // Build the test image
             if (core.getInput('should_build_testsimage') === 'true') {
