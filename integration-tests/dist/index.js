@@ -400,7 +400,7 @@ function run() {
             yield (0, docker_1.pullDockerImages)(core.getInput('jahia_image'), core.getInput('jcustomer_image'));
             // Finally, upload the artifacts
             yield (0, artifacts_1.uploadArtifact)(core.getInput('artifact_name'), [
-                'artifacts/docker.log'
+                '/home/runner/work/jexperience/jexperience/tests/artifacts/docker.log'
             ]);
         }
         catch (error) {
