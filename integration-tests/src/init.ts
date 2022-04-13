@@ -1,5 +1,8 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
+import * as fs from 'fs'
+
+import {runShellCommands} from './utils/system'
 
 export async function setEnvironmentVariables(): Promise<any> {
   core.exportVariable('MANIFEST', core.getInput('tests_manifest'))
@@ -21,29 +24,16 @@ export async function setEnvironmentVariables(): Promise<any> {
 }
 
 export async function installTooling(): Promise<any> {
-  let stdOut = ''
-  let stdErr = ''
-  const options: exec.ExecOptions = {}
-  options.listeners = {
-    stdout: (data: Buffer) => {
-      stdOut += data.toString()
-    },
-    stderr: (data: Buffer) => {
-      stdErr += data.toString()
-    }
-  }
-
   core.startGroup('🛠️ Install runtime tooling')
-  core.info(`npm install -g @jahia/jahia-reporter`)
-  await exec.exec('npm install -g @jahia/jahia-reporter', [], {
-    ...options,
-    silent: true
-  })
-  core.info(`${stdOut}${stdErr}`)
+  await runShellCommands(['npm install -g @jahia/jahia-reporter'])
   core.endGroup()
 }
 
 export async function displaySystemInfo(): Promise<any> {
+  core.startGroup(
+    '🛠️ Displaying important environment variables and system info'
+  )
+
   const runCommands: Array<string> = [
     'node -v',
     'npm -v',
@@ -51,53 +41,14 @@ export async function displaySystemInfo(): Promise<any> {
     'printenv'
   ]
 
-  core.startGroup(
-    '🛠️ Displaying important environment variables and system info'
-  )
+  await runShellCommands(runCommands)
 
-  for (const cmd of runCommands) {
-    let stdOut = ''
-    let stdErr = ''
-
-    const options: exec.ExecOptions = {}
-    options.listeners = {
-      stdout: (data: Buffer) => {
-        stdOut += data.toString()
-      },
-      stderr: (data: Buffer) => {
-        stdErr += data.toString()
-      }
-    }
-    await exec.exec(cmd, [], {...options, silent: true})
-    core.info(`${cmd}: ${stdOut}${stdErr}`)
-  }
-
-  const moduleId: string = core.getInput('module_id')
   core.endGroup()
 }
 
 export async function createFolder(folder: string): Promise<any> {
-  let stdOut = ''
-  let stdErr = ''
-  const options: exec.ExecOptions = {}
-  options.listeners = {
-    stdout: (data: Buffer) => {
-      stdOut += data.toString()
-    },
-    stderr: (data: Buffer) => {
-      stdErr += data.toString()
-    }
-  }
-
-  await exec.exec(`mkdir -p ${folder}`, [], {
-    ...options,
-    silent: true
-  })
-
-  if (stdOut !== '' || stdErr !== '') {
+  if (!fs.existsSync(folder)) {
     core.info(`📁 Creating folder: ${folder}`)
-    core.info(`${stdOut}${stdErr}`)
-  } else {
-    core.info(`📁 Created folder: ${folder}`)
+    fs.mkdirSync(folder)
   }
 }

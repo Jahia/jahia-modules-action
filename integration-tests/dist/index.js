@@ -147,32 +147,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.buildDockerTestImage = void 0;
 const core = __importStar(__nccwpck_require__(2186));
-const exec = __importStar(__nccwpck_require__(1514));
+const system_1 = __nccwpck_require__(7885);
 function buildDockerTestImage(testsPath, testsContainerBranch, testsImage) {
     return __awaiter(this, void 0, void 0, function* () {
         core.startGroup('🐋 Build test docker container');
-        // cp.execSync(`docker build -t ${testsImage} ${testsPath}.`)
         const runCommands = [
             // `git checkout ${testsContainerBranch}`,
             `docker build -t ${testsImage} ${testsPath}.`,
             `docker save -o ${testsPath}/tests_image.tar ${testsImage}`
         ];
-        for (const cmd of runCommands) {
-            core.info(`Executing: ${cmd}`);
-            let stdOut = '';
-            let stdErr = '';
-            const options = {};
-            options.listeners = {
-                stdout: (data) => {
-                    stdOut += data.toString();
-                },
-                stderr: (data) => {
-                    stdErr += data.toString();
-                }
-            };
-            yield exec.exec(cmd, [], Object.assign(Object.assign({}, options), { silent: false }));
-            core.info(`${stdOut}${stdErr}`);
-        }
+        yield (0, system_1.runShellCommands)(runCommands);
         core.endGroup();
     });
 }
@@ -221,7 +205,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.createFolder = exports.displaySystemInfo = exports.installTooling = exports.setEnvironmentVariables = void 0;
 const core = __importStar(__nccwpck_require__(2186));
-const exec = __importStar(__nccwpck_require__(1514));
+const fs = __importStar(__nccwpck_require__(5747));
+const system_1 = __nccwpck_require__(7885);
 function setEnvironmentVariables() {
     return __awaiter(this, void 0, void 0, function* () {
         core.exportVariable('MANIFEST', core.getInput('tests_manifest'));
@@ -239,74 +224,31 @@ function setEnvironmentVariables() {
 exports.setEnvironmentVariables = setEnvironmentVariables;
 function installTooling() {
     return __awaiter(this, void 0, void 0, function* () {
-        let stdOut = '';
-        let stdErr = '';
-        const options = {};
-        options.listeners = {
-            stdout: (data) => {
-                stdOut += data.toString();
-            },
-            stderr: (data) => {
-                stdErr += data.toString();
-            }
-        };
         core.startGroup('🛠️ Install runtime tooling');
-        core.info(`npm install -g @jahia/jahia-reporter`);
-        yield exec.exec('npm install -g @jahia/jahia-reporter', [], Object.assign(Object.assign({}, options), { silent: true }));
-        core.info(`${stdOut}${stdErr}`);
+        yield (0, system_1.runShellCommands)(['npm install -g @jahia/jahia-reporter']);
         core.endGroup();
     });
 }
 exports.installTooling = installTooling;
 function displaySystemInfo() {
     return __awaiter(this, void 0, void 0, function* () {
+        core.startGroup('🛠️ Displaying important environment variables and system info');
         const runCommands = [
             'node -v',
             'npm -v',
             'jahia-reporter -v',
             'printenv'
         ];
-        core.startGroup('🛠️ Displaying important environment variables and system info');
-        for (const cmd of runCommands) {
-            let stdOut = '';
-            let stdErr = '';
-            const options = {};
-            options.listeners = {
-                stdout: (data) => {
-                    stdOut += data.toString();
-                },
-                stderr: (data) => {
-                    stdErr += data.toString();
-                }
-            };
-            yield exec.exec(cmd, [], Object.assign(Object.assign({}, options), { silent: true }));
-            core.info(`${cmd}: ${stdOut}${stdErr}`);
-        }
-        const moduleId = core.getInput('module_id');
+        yield (0, system_1.runShellCommands)(runCommands);
         core.endGroup();
     });
 }
 exports.displaySystemInfo = displaySystemInfo;
 function createFolder(folder) {
     return __awaiter(this, void 0, void 0, function* () {
-        let stdOut = '';
-        let stdErr = '';
-        const options = {};
-        options.listeners = {
-            stdout: (data) => {
-                stdOut += data.toString();
-            },
-            stderr: (data) => {
-                stdErr += data.toString();
-            }
-        };
-        yield exec.exec(`mkdir -p ${folder}`, [], Object.assign(Object.assign({}, options), { silent: true }));
-        if (stdOut !== '' || stdErr !== '') {
+        if (!fs.existsSync(folder)) {
             core.info(`📁 Creating folder: ${folder}`);
-            core.info(`${stdOut}${stdErr}`);
-        }
-        else {
-            core.info(`📁 Created folder: ${folder}`);
+            fs.mkdirSync(folder);
         }
     });
 }
@@ -388,6 +330,72 @@ function run() {
     });
 }
 run();
+
+
+/***/ }),
+
+/***/ 7885:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.runShellCommands = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const exec = __importStar(__nccwpck_require__(1514));
+function runShellCommands(commands) {
+    return __awaiter(this, void 0, void 0, function* () {
+        for (const cmd of commands) {
+            core.info(`Executing: ${cmd}`);
+            let stdOut = '';
+            let stdErr = '';
+            const options = {};
+            options.listeners = {
+                stdout: (data) => {
+                    stdOut += data.toString();
+                },
+                stderr: (data) => {
+                    stdErr += data.toString();
+                }
+            };
+            yield exec.exec(cmd, [], Object.assign(Object.assign({}, options), { silent: false }));
+            core.info(`${stdOut}${stdErr}`);
+        }
+    });
+}
+exports.runShellCommands = runShellCommands;
 
 
 /***/ }),
