@@ -28,7 +28,7 @@ export async function buildDockerTestImage(
         stdErr += data.toString()
       }
     }
-    await exec.exec('bash', [`ls -lah && cd ${testsPath} && ${cmd}`], {
+    await exec.exec('bash', [`cd ${testsPath}; ${cmd}`], {
       ...options,
       silent: false
     })
