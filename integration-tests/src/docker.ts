@@ -1,6 +1,8 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 
+import simpleGit from 'simple-git'
+
 import {runShellCommands} from './utils/system'
 
 export async function buildDockerTestImage(
@@ -9,6 +11,14 @@ export async function buildDockerTestImage(
   testsImage: string
 ): Promise<any> {
   core.startGroup('🐋 Build test docker container')
+
+  const git = simpleGit()
+  const currentBranch = git.branch()
+  core.info(JSON.stringify(currentBranch))
+  if (testsContainerBranch !== '') {
+    core.info(`Switching repository to branch: ${testsContainerBranch}`)
+    await git.checkout(testsContainerBranch)
+  }
 
   const runCommands: Array<string> = [
     // `git checkout ${testsContainerBranch}`,
