@@ -51,10 +51,6 @@ export async function prepareBuildArtifact(
     `Identified the following target folders: ${JSON.stringify(folders)}`
   )
 
-  if (folders.length > 0 && !fs.existsSync(artifactFolder)) {
-    fs.mkdirSync(artifactFolder)
-  }
-
   for (const targetFolder of folders) {
     const files = fs.readdirSync(targetFolder)
     for (const f of files) {
