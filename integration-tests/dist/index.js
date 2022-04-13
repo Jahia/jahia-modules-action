@@ -478,11 +478,13 @@ function runShellCommands(commands, logfile = '') {
                 process.env.GITHUB_WORKSPACE &&
                 process.env.TESTS_PATH) {
                 process.env.GITHUB_WORKSPACE;
-                const logFileStream = fs.createWriteStream(path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH, logfile), { flags: 'a+' });
+                const filepath = path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH, logfile);
+                const logFileStream = fs.createWriteStream(filepath, { flags: 'a+' });
                 logFileStream.write(`Executing: ${cmd}`);
                 logFileStream.write(stdOut);
                 logFileStream.write(stdErr);
                 logFileStream.end();
+                core.info(`Saved file to: ${filepath}`);
             }
         }
     });
