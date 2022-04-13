@@ -4,7 +4,12 @@ import {
   prepareBuildArtifact,
   uploadArtifact
 } from './artifacts'
-import {buildDockerTestImage, login, pullDockerImages} from './docker'
+import {
+  buildDockerTestImage,
+  login,
+  pullDockerImages,
+  startDockerEnvironment
+} from './docker'
 import {
   setEnvironmentVariables,
   displaySystemInfo,
@@ -57,8 +62,14 @@ async function run(): Promise<void> {
       core.getInput('jcustomer_image')
     )
 
+    // Spin-up the containers
+    await startDockerEnvironment(
+      core.getInput('ci_startup_script'),
+      core.getInput('docker_compose_file')
+    )
+
     // Finally, upload the artifacts
-    await uploadArtifact(core.getInput('artifact_name'), 'artifacts/')
+    await uploadArtifact(core.getInput('artifact_name'), 'artifacts')
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }

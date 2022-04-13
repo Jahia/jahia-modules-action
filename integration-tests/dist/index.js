@@ -447,8 +447,10 @@ function run() {
             }
             // Pull the latest version of Jahia and jCustomer and print docker images cache to console
             yield (0, docker_1.pullDockerImages)(core.getInput('jahia_image'), core.getInput('jcustomer_image'));
+            // Spin-up the containers
+            yield (0, docker_1.startDockerEnvironment)(core.getInput('ci_startup_script'), core.getInput('docker_compose_file'));
             // Finally, upload the artifacts
-            yield (0, artifacts_1.uploadArtifact)(core.getInput('artifact_name'), 'artifacts/');
+            yield (0, artifacts_1.uploadArtifact)(core.getInput('artifact_name'), 'artifacts');
         }
         catch (error) {
             if (error instanceof Error)
