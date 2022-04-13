@@ -89,11 +89,11 @@ export async function createFolder(folder: string): Promise<any> {
     }
   }
 
-  core.startGroup(`🛠️ Creating folder: ${folder}`)
   await exec.exec(`mkdir -p ${folder}`, [], {
     ...options,
     silent: true
   })
+
+  core.info(`📁 Creating folder: ${folder}`)
   core.info(`${stdOut}${stdErr}`)
-  core.endGroup()
 }

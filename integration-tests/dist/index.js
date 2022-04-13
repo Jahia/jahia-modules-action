@@ -46,9 +46,7 @@ function download(artifactName) {
     return __awaiter(this, void 0, void 0, function* () {
         const artifactClient = artifact.create();
         const downloadResponse = yield artifactClient.downloadArtifact(artifactName);
-        core.startGroup('🛠️ Download build artifact');
-        core.info(`The following file was downloaded: ${downloadResponse.artifactName} to ${downloadResponse.downloadPath}`);
-        core.endGroup();
+        core.info(`🗄️ The following file was downloaded: ${downloadResponse.artifactName} to ${downloadResponse.downloadPath}`);
     });
 }
 exports.download = download;
@@ -175,10 +173,9 @@ function createFolder(folder) {
                 stdErr += data.toString();
             }
         };
-        core.startGroup(`🛠️ Creating folder: ${folder}`);
         yield exec.exec(`mkdir -p ${folder}`, [], Object.assign(Object.assign({}, options), { silent: true }));
+        core.info(`📁 Creating folder: ${folder}`);
         core.info(`${stdOut}${stdErr}`);
-        core.endGroup();
     });
 }
 exports.createFolder = createFolder;
