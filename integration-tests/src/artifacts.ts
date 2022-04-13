@@ -29,6 +29,7 @@ const getTargetFolders = async (
     // else {
     //   core.info(`NO Match (${dirName}: ${JSON.stringify(f)}`)
     // }
+    core.info(`Targets (${path}): ${JSON.stringify(targets)}`)
   }
   return targets
 }

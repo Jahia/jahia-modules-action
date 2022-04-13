@@ -66,6 +66,7 @@ const getTargetFolders = (path, targets = [], dirName = 'jexperience') => __awai
         // else {
         //   core.info(`NO Match (${dirName}: ${JSON.stringify(f)}`)
         // }
+        core.info(`Targets (${path}): ${JSON.stringify(targets)}`);
     }
     return targets;
 });
