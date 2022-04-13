@@ -30,7 +30,7 @@ export async function buildDockerTestImage(
     }
     await exec.exec('bash', [`cd ${testsPath} && ${cmd}`], {
       ...options,
-      silent: true
+      silent: false
     })
     core.info(`${stdOut}${stdErr}`)
   }
