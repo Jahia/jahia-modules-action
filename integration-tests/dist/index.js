@@ -39,17 +39,40 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.download = void 0;
+exports.prepareBuildArtifact = exports.downloadArtifact = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const artifact = __importStar(__nccwpck_require__(2605));
-function download(artifactName) {
+const fs = __importStar(__nccwpck_require__(5747));
+function downloadArtifact(artifactName) {
     return __awaiter(this, void 0, void 0, function* () {
         const artifactClient = artifact.create();
         const downloadResponse = yield artifactClient.downloadArtifact(artifactName);
         core.info(`🗄️ The following file was downloaded: ${downloadResponse.artifactName} to ${downloadResponse.downloadPath}`);
     });
 }
-exports.download = download;
+exports.downloadArtifact = downloadArtifact;
+// Recursively get all folder matching dirName under the path
+const getTargetFolders = (path, targets = [], dirName = 'jexperience') => __awaiter(void 0, void 0, void 0, function* () {
+    const files = fs.readdirSync(path);
+    for (const f of files) {
+        if (fs.statSync(path + '/' + f).isDirectory() && f !== dirName) {
+            const folders = yield getTargetFolders(path + '/' + f, targets);
+            targets = [...targets, ...folders];
+        }
+        else if (fs.statSync(path + '/' + f).isDirectory() && f === dirName) {
+            targets.push(path + '/' + f);
+        }
+    }
+    return targets;
+});
+function prepareBuildArtifact(testsPath) {
+    return __awaiter(this, void 0, void 0, function* () {
+        // Search for target/ folder
+        const folders = yield getTargetFolders(testsPath);
+        core.info(JSON.stringify(folders));
+    });
+}
+exports.prepareBuildArtifact = prepareBuildArtifact;
 
 
 /***/ }),
@@ -228,7 +251,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const artifacts_1 = __nccwpck_require__(5671);
-// import {wait} from './wait'
 const init_1 = __nccwpck_require__(9849);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -241,10 +263,14 @@ function run() {
             yield (0, init_1.displaySystemInfo)();
             // Download the build artifact
             if (core.getInput('should_use_build_artifacts') === 'true') {
-                yield (0, artifacts_1.download)('build-artifacts');
+                yield (0, artifacts_1.downloadArtifact)('build-artifacts');
             }
             // Prepare the export folder
             yield (0, init_1.createFolder)(`${core.getInput('tests_path')}artifacts`);
+            // Prepare the build artifacts to include them in the docker image
+            if (core.getInput('should_skip_artifacts') === 'false') {
+                yield (0, artifacts_1.prepareBuildArtifact)(core.getInput('tests_path'));
+            }
         }
         catch (error) {
             if (error instanceof Error)

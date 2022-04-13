@@ -1,11 +1,36 @@
 import * as core from '@actions/core'
 import * as artifact from '@actions/artifact'
+import * as fs from 'fs'
 
-export async function download(artifactName: string): Promise<any> {
+export async function downloadArtifact(artifactName: string): Promise<any> {
   const artifactClient = artifact.create()
 
   const downloadResponse = await artifactClient.downloadArtifact(artifactName)
   core.info(
     `🗄️ The following file was downloaded: ${downloadResponse.artifactName} to ${downloadResponse.downloadPath}`
   )
+}
+
+// Recursively get all folder matching dirName under the path
+const getTargetFolders = async (
+  path: string,
+  targets: Array<string> = [],
+  dirName: string = 'jexperience'
+) => {
+  const files = fs.readdirSync(path)
+  for (const f of files) {
+    if (fs.statSync(path + '/' + f).isDirectory() && f !== dirName) {
+      const folders = await getTargetFolders(path + '/' + f, targets)
+      targets = [...targets, ...folders]
+    } else if (fs.statSync(path + '/' + f).isDirectory() && f === dirName) {
+      targets.push(path + '/' + f)
+    }
+  }
+  return targets
+}
+
+export async function prepareBuildArtifact(testsPath: string): Promise<any> {
+  // Search for target/ folder
+  const folders = await getTargetFolders(testsPath)
+  core.info(JSON.stringify(folders))
 }

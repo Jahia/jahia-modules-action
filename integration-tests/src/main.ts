@@ -1,9 +1,5 @@
 import * as core from '@actions/core'
-import * as exec from '@actions/exec'
-import {download} from './artifacts'
-
-// import {wait} from './wait'
-
+import {downloadArtifact, prepareBuildArtifact} from './artifacts'
 import {
   setEnvironmentVariables,
   displaySystemInfo,
@@ -24,11 +20,16 @@ async function run(): Promise<void> {
 
     // Download the build artifact
     if (core.getInput('should_use_build_artifacts') === 'true') {
-      await download('build-artifacts')
+      await downloadArtifact('build-artifacts')
     }
 
     // Prepare the export folder
     await createFolder(`${core.getInput('tests_path')}artifacts`)
+
+    // Prepare the build artifacts to include them in the docker image
+    if (core.getInput('should_skip_artifacts') === 'false') {
+      await prepareBuildArtifact(core.getInput('tests_path'))
+    }
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
