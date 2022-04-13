@@ -161,8 +161,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.pullDockerImages = exports.buildDockerTestImage = void 0;
+exports.login = exports.pullDockerImages = exports.buildDockerTestImage = void 0;
 const core = __importStar(__nccwpck_require__(2186));
+const exec = __importStar(__nccwpck_require__(1514));
 const simple_git_1 = __importDefault(__nccwpck_require__(9103));
 const system_1 = __nccwpck_require__(7885);
 function buildDockerTestImage(testsPath, testsContainerBranch, testsImage) {
@@ -205,6 +206,30 @@ function pullDockerImages(jahiaImage, jCustomerImage) {
     });
 }
 exports.pullDockerImages = pullDockerImages;
+// See: https://github.com/docker/login-action/blob/master/src/docker.ts
+function login(username, password) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!username || !password) {
+            throw new Error('Username and password required');
+        }
+        const loginArgs = ['login', '--password-stdin'];
+        loginArgs.push('--username', username);
+        core.info(`Logging into Docker Hub...`);
+        yield exec
+            .getExecOutput('docker', loginArgs, {
+            ignoreReturnCode: true,
+            silent: true,
+            input: Buffer.from(password)
+        })
+            .then(res => {
+            if (res.stderr.length > 0 && res.exitCode != 0) {
+                throw new Error(res.stderr.trim());
+            }
+            core.info(`Login Succeeded!`);
+        });
+    });
+}
+exports.login = login;
 
 
 /***/ }),
