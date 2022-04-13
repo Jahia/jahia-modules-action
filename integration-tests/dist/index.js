@@ -305,14 +305,26 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.copyRunArtifacts = void 0;
 const core = __importStar(__nccwpck_require__(2186));
+const posix_1 = __importDefault(__nccwpck_require__(3301));
 const system_1 = __nccwpck_require__(7885);
 function copyRunArtifacts(containerName, desinationPath) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('🐋 Export containers artifacts (reports, secreenshots, videos) ');
+        core.startGroup('🐋 Export containers artifacts (reports, secreenshots, videos, logs) ');
         yield (0, system_1.runShellCommands)([`docker cp ${containerName}:/home/jahians/results ${desinationPath}`], 'artifacts/cypress-artifacts.log');
+        const otherCommands = [
+            `docker stats --all --no-stream > ${posix_1.default.join(desinationPath, 'results/docker-stats.log')}`,
+            `docker-compose logs -t --tail="all" > ${posix_1.default.join(desinationPath, 'results/all-containers.log')}`,
+            `docker logs jahia > ${posix_1.default.join(desinationPath, 'results/jahia.log')}`,
+            `docker logs ${containerName} > ${posix_1.default.join(desinationPath, `results/${containerName}.log`)}`,
+            `cp ${posix_1.default.join(desinationPath, `docker.log`)} ${posix_1.default.join(desinationPath, `results/docker.log`)}`
+        ];
+        yield (0, system_1.runShellCommands)(otherCommands, 'artifacts/copy-run-artifacts.log');
         core.endGroup();
     });
 }
@@ -15575,6 +15587,14 @@ function wrappy (fn, cb) {
     return ret
   }
 }
+
+
+/***/ }),
+
+/***/ 3301:
+/***/ ((module) => {
+
+module.exports = eval("require")("path/posix");
 
 
 /***/ }),
