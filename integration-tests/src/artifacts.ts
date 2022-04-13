@@ -1,6 +1,7 @@
 import * as core from '@actions/core'
 import * as artifact from '@actions/artifact'
 import * as fs from 'fs'
+import * as path from 'path'
 
 export async function downloadArtifact(artifactName: string): Promise<any> {
   const artifactClient = artifact.create()
@@ -9,6 +10,27 @@ export async function downloadArtifact(artifactName: string): Promise<any> {
   core.info(
     `🗄️ The following file was downloaded: ${downloadResponse.artifactName} to ${downloadResponse.downloadPath}`
   )
+}
+
+export async function uploadArtifact(
+  artifactName: string,
+  artifactPath: Array<string>
+): Promise<any> {
+  const artifactClient = artifact.create()
+
+  if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
+    const uploadResponse = await artifactClient.uploadArtifact(
+      artifactName,
+      artifactPath,
+      path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH),
+      {
+        continueOnError: true
+      }
+    )
+    core.info(
+      `Uploaded: ${uploadResponse.artifactName} for a total size of: ${uploadResponse.size}`
+    )
+  }
 }
 
 // Recursively get all folder matching dirName under the path

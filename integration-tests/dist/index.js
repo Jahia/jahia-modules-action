@@ -39,10 +39,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.prepareBuildArtifact = exports.downloadArtifact = void 0;
+exports.prepareBuildArtifact = exports.uploadArtifact = exports.downloadArtifact = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const artifact = __importStar(__nccwpck_require__(2605));
 const fs = __importStar(__nccwpck_require__(5747));
+const path = __importStar(__nccwpck_require__(5622));
 function downloadArtifact(artifactName) {
     return __awaiter(this, void 0, void 0, function* () {
         const artifactClient = artifact.create();
@@ -51,6 +52,18 @@ function downloadArtifact(artifactName) {
     });
 }
 exports.downloadArtifact = downloadArtifact;
+function uploadArtifact(artifactName, artifactPath) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const artifactClient = artifact.create();
+        if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
+            const uploadResponse = yield artifactClient.uploadArtifact(artifactName, artifactPath, path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH), {
+                continueOnError: true
+            });
+            core.info(`Uploaded: ${uploadResponse.artifactName} for a total size of: ${uploadResponse.size}`);
+        }
+    });
+}
+exports.uploadArtifact = uploadArtifact;
 // Recursively get all folder matching dirName under the path
 const getTargetFolders = (path, targets = [], dirName = 'target') => __awaiter(void 0, void 0, void 0, function* () {
     const files = fs.readdirSync(path);
@@ -148,7 +161,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.buildDockerTestImage = void 0;
+exports.pullDockerImages = exports.buildDockerTestImage = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const simple_git_1 = __importDefault(__nccwpck_require__(9103));
 const system_1 = __nccwpck_require__(7885);
@@ -174,6 +187,24 @@ function buildDockerTestImage(testsPath, testsContainerBranch, testsImage) {
     });
 }
 exports.buildDockerTestImage = buildDockerTestImage;
+function pullDockerImages(testsPath, testsContainerBranch, testsImage, jahiaImage, jCustomerImage) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.startGroup('🐋 Pull the latest version of Jahia and jCustomer and print docker images cache to console');
+        // Get list of docker images in local cache BEFORE the pull
+        const runCommands = [`docker images --digests --all`];
+        if (jahiaImage !== '') {
+            runCommands.push(`docker pull ${jahiaImage}`);
+        }
+        if (jCustomerImage !== '') {
+            runCommands.push(`docker pull ${jCustomerImage}`);
+        }
+        // Get list of docker images in local cache AFTER the pull
+        runCommands.push(`docker pull ${jCustomerImage}`);
+        yield (0, system_1.runShellCommands)(runCommands, 'artifacts/docker.log');
+        core.endGroup();
+    });
+}
+exports.pullDockerImages = pullDockerImages;
 
 
 /***/ }),
@@ -232,6 +263,7 @@ function setEnvironmentVariables() {
         core.exportVariable('NEXUS_USERNAME', core.getInput('nexus_username'));
         core.exportVariable('NEXUS_PASSWORD', core.getInput('nexus_password'));
         core.exportVariable('DOCKER_USERNAME', core.getInput('docker_username'));
+        core.exportVariable('TESTS_PATH', core.getInput('tests_path'));
     });
 }
 exports.setEnvironmentVariables = setEnvironmentVariables;
@@ -335,6 +367,8 @@ function run() {
             if (core.getInput('should_build_testsimage') === 'true') {
                 yield (0, docker_1.buildDockerTestImage)(core.getInput('tests_path'), core.getInput('tests_container_branch'), core.getInput('tests_image'));
             }
+            // Finally, upload the artifacts
+            yield (0, artifacts_1.uploadArtifact)(core.getInput('artifact_name'), ['artifacts/']);
         }
         catch (error) {
             if (error instanceof Error)
@@ -388,7 +422,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.runShellCommands = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
-function runShellCommands(commands) {
+const fs = __importStar(__nccwpck_require__(5747));
+const path = __importStar(__nccwpck_require__(5622));
+function runShellCommands(commands, logfile = '') {
     return __awaiter(this, void 0, void 0, function* () {
         for (const cmd of commands) {
             core.info(`Executing: ${cmd}`);
@@ -405,6 +441,16 @@ function runShellCommands(commands) {
             };
             yield exec.exec(cmd, [], Object.assign(Object.assign({}, options), { silent: false }));
             core.info(`${stdOut}${stdErr}`);
+            if (logfile !== '' &&
+                process.env.GITHUB_WORKSPACE &&
+                process.env.TESTS_PATH) {
+                process.env.GITHUB_WORKSPACE;
+                const logFileStream = fs.createWriteStream(path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH, logfile), { flags: 'a+' });
+                logFileStream.write(`Executing: ${cmd}`);
+                logFileStream.write(stdOut);
+                logFileStream.write(stdErr);
+                logFileStream.end();
+            }
         }
     });
 }

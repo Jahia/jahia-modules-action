@@ -1,5 +1,9 @@
 import * as core from '@actions/core'
-import {downloadArtifact, prepareBuildArtifact} from './artifacts'
+import {
+  downloadArtifact,
+  prepareBuildArtifact,
+  uploadArtifact
+} from './artifacts'
 import {buildDockerTestImage} from './docker'
 import {
   setEnvironmentVariables,
@@ -40,6 +44,9 @@ async function run(): Promise<void> {
         core.getInput('tests_image')
       )
     }
+
+    // Finally, upload the artifacts
+    await uploadArtifact(core.getInput('artifact_name'), ['artifacts/'])
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
