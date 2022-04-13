@@ -23,14 +23,14 @@ async function run(): Promise<void> {
   try {
     // Prepare the export folder
     if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
-      const artifactFolder = path.join(
+      const artifactsFolder = path.join(
         process.env.GITHUB_WORKSPACE,
         process.env.TESTS_PATH,
         'artifacts'
       )
-      if (!fs.existsSync(artifactFolder)) {
-        core.info(`📁 Creating folder: ${artifactFolder}`)
-        fs.mkdirSync(artifactFolder)
+      if (!fs.existsSync(artifactsFolder)) {
+        core.info(`📁 Creating folder: ${artifactsFolder}`)
+        fs.mkdirSync(artifactsFolder)
       }
     }
 
@@ -56,7 +56,7 @@ async function run(): Promise<void> {
 
     // Prepare the build artifacts to include them in the docker image
     if (core.getInput('should_skip_artifacts') === 'false') {
-      await prepareBuildArtifact('.', core.getInput('tests_path'))
+      await prepareBuildArtifact()
     }
 
     // Build the test image
