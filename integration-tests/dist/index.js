@@ -61,7 +61,7 @@ const getTargetFolders = (path, targets = [], dirName = 'cypress') => __awaiter(
         }
         else if (fs.statSync(path + '/' + f).isDirectory() && f === dirName) {
             if (!targets.includes(path + '/' + f)) {
-                targets.push();
+                targets.push(path + '/' + f);
             }
             //   core.info(`Match (${dirName}): ${JSON.stringify(f)}`)
         }
