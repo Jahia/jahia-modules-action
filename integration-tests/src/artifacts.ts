@@ -23,7 +23,9 @@ const getTargetFolders = async (
       const folders = await getTargetFolders(path + '/' + f, targets)
       targets = [...targets, ...folders]
     } else if (fs.statSync(path + '/' + f).isDirectory() && f === dirName) {
-      targets.push(path + '/' + f)
+      if (!targets.includes(path + '/' + f)) {
+        targets.push()
+      }
       //   core.info(`Match (${dirName}): ${JSON.stringify(f)}`)
     }
     // else {
@@ -41,4 +43,8 @@ export async function prepareBuildArtifact(
   // Search for target/ folder
   const folders = await getTargetFolders(rootPath)
   core.info(JSON.stringify(folders))
+
+  if (!fs.existsSync(`${testsPath}/artifacts/`)) {
+    fs.mkdirSync(`${testsPath}/artifacts/`)
+  }
 }

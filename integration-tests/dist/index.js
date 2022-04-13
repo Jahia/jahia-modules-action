@@ -60,7 +60,9 @@ const getTargetFolders = (path, targets = [], dirName = 'jexperience') => __awai
             targets = [...targets, ...folders];
         }
         else if (fs.statSync(path + '/' + f).isDirectory() && f === dirName) {
-            targets.push(path + '/' + f);
+            if (!targets.includes(path + '/' + f)) {
+                targets.push();
+            }
             //   core.info(`Match (${dirName}): ${JSON.stringify(f)}`)
         }
         // else {
@@ -75,6 +77,9 @@ function prepareBuildArtifact(rootPath, testsPath) {
         // Search for target/ folder
         const folders = yield getTargetFolders(rootPath);
         core.info(JSON.stringify(folders));
+        if (!fs.existsSync(`${testsPath}/artifacts/`)) {
+            fs.mkdirSync(`${testsPath}/artifacts/`);
+        }
     });
 }
 exports.prepareBuildArtifact = prepareBuildArtifact;
