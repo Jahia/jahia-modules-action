@@ -94,7 +94,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.displaySystemInfo = exports.installTooling = exports.setEnvironmentVariables = void 0;
+exports.createFolder = exports.displaySystemInfo = exports.installTooling = exports.setEnvironmentVariables = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 function setEnvironmentVariables() {
@@ -160,6 +160,26 @@ function displaySystemInfo() {
     });
 }
 exports.displaySystemInfo = displaySystemInfo;
+function createFolder(folder) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let stdOut = '';
+        let stdErr = '';
+        const options = {};
+        options.listeners = {
+            stdout: (data) => {
+                stdOut += data.toString();
+            },
+            stderr: (data) => {
+                stdErr += data.toString();
+            }
+        };
+        core.startGroup(`🛠️ Creating folder: ${folder}`);
+        yield exec.exec(`mkdir -p ${folder}`, [], Object.assign(Object.assign({}, options), { silent: true }));
+        core.info(`${stdOut}${stdErr}`);
+        core.endGroup();
+    });
+}
+exports.createFolder = createFolder;
 
 
 /***/ }),
@@ -219,6 +239,8 @@ function run() {
             if (core.getInput('should_use_build_artifacts') === 'true') {
                 yield (0, artifacts_1.download)('build-artifacts');
             }
+            // Prepare the export folder
+            yield (0, init_1.createFolder)(`${core.getInput('tests_path')}artifacts`);
         }
         catch (error) {
             if (error instanceof Error)

@@ -73,3 +73,25 @@ export async function displaySystemInfo(): Promise<any> {
   const moduleId: string = core.getInput('module_id')
   core.endGroup()
 }
+
+export async function createFolder(folder: string): Promise<any> {
+  let stdOut = ''
+  let stdErr = ''
+  const options: exec.ExecOptions = {}
+  options.listeners = {
+    stdout: (data: Buffer) => {
+      stdOut += data.toString()
+    },
+    stderr: (data: Buffer) => {
+      stdErr += data.toString()
+    }
+  }
+
+  core.startGroup(`🛠️ Creating folder: ${folder}`)
+  await exec.exec(`mkdir -p ${folder}`, [], {
+    ...options,
+    silent: true
+  })
+  core.info(`${stdOut}${stdErr}`)
+  core.endGroup()
+}
