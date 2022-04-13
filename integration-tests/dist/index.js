@@ -598,20 +598,19 @@ const core = __importStar(__nccwpck_require__(2186));
 const fs = __importStar(__nccwpck_require__(5747));
 const path = __importStar(__nccwpck_require__(5622));
 const system_1 = __nccwpck_require__(7885);
-function startDockerEnvironment(ciStartupScript, dockerComposeFile) {
+function startDockerEnvironment(testsFolder, ciStartupScript, dockerComposeFile) {
     return __awaiter(this, void 0, void 0, function* () {
         if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
             core.startGroup('🐋 Starting the Docker environment');
-            const testFolder = path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH);
-            const startupFile = path.join(testFolder, ciStartupScript);
-            const composeFile = path.join(testFolder, dockerComposeFile);
+            const startupFile = path.join(testsFolder, ciStartupScript);
+            const composeFile = path.join(testsFolder, dockerComposeFile);
             if (fs.existsSync(startupFile)) {
                 core.info(`Starting environment using startup script: ${startupFile}`);
-                yield (0, system_1.runShellCommands)([`(cd ${testFolder}; bash ${startupFile})`], 'artifacts/startup.log', { cwd: testFolder });
+                yield (0, system_1.runShellCommands)([`bash ${startupFile})`], 'artifacts/startup.log', { cwd: testsFolder });
             }
             else if (fs.existsSync(composeFile)) {
                 core.info(`Starting environment using compose file: ${composeFile}`);
-                yield (0, system_1.runShellCommands)([`docker -f ${composeFile} up --abord-on-container-exit`], 'artifacts/startup.log', { cwd: testFolder });
+                yield (0, system_1.runShellCommands)([`docker -f ${composeFile} up --abord-on-container-exit`], 'artifacts/startup.log', { cwd: testsFolder });
             }
             else {
                 core.setFailed(`Unable to find environment startup instructions. Could not find startup script (${startupFile}) NOR compose file ${composeFile}`);
@@ -911,7 +910,7 @@ function run() {
             // Pull the latest version of Jahia and jCustomer and print docker images cache to console
             yield (0, docker_1.pullDockerImages)(core.getInput('jahia_image'), core.getInput('jcustomer_image'));
             // Spin-up the containers
-            yield (0, docker_1.startDockerEnvironment)(core.getInput('ci_startup_script'), core.getInput('docker_compose_file'));
+            yield (0, docker_1.startDockerEnvironment)(testsFolder, core.getInput('ci_startup_script'), core.getInput('docker_compose_file'));
             // Export containers artifacts (reports, secreenshots, videos)
             yield (0, docker_1.copyRunArtifacts)(core.getInput('tests_container_name'), artifactsFolder);
             // Finally, upload the artifacts

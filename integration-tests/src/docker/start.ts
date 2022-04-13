@@ -5,34 +5,30 @@ import * as path from 'path'
 import {runShellCommands} from '../utils/system'
 
 export async function startDockerEnvironment(
+  testsFolder: string,
   ciStartupScript: string,
   dockerComposeFile: string
 ): Promise<void> {
   if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
     core.startGroup('🐋 Starting the Docker environment')
 
-    const testFolder = path.join(
-      process.env.GITHUB_WORKSPACE,
-      process.env.TESTS_PATH
-    )
+    const startupFile = path.join(testsFolder, ciStartupScript)
 
-    const startupFile = path.join(testFolder, ciStartupScript)
-
-    const composeFile = path.join(testFolder, dockerComposeFile)
+    const composeFile = path.join(testsFolder, dockerComposeFile)
 
     if (fs.existsSync(startupFile)) {
       core.info(`Starting environment using startup script: ${startupFile}`)
       await runShellCommands(
-        [`(cd ${testFolder}; bash ${startupFile})`],
+        [`bash ${startupFile})`],
         'artifacts/startup.log',
-        {cwd: testFolder}
+        {cwd: testsFolder}
       )
     } else if (fs.existsSync(composeFile)) {
       core.info(`Starting environment using compose file: ${composeFile}`)
       await runShellCommands(
         [`docker -f ${composeFile} up --abord-on-container-exit`],
         'artifacts/startup.log',
-        {cwd: testFolder}
+        {cwd: testsFolder}
       )
     } else {
       core.setFailed(

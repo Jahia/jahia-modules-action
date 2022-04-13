@@ -92,6 +92,7 @@ async function run(): Promise<void> {
 
     // Spin-up the containers
     await startDockerEnvironment(
+      testsFolder,
       core.getInput('ci_startup_script'),
       core.getInput('docker_compose_file')
     )
