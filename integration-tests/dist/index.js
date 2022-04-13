@@ -155,6 +155,7 @@ const system_1 = __nccwpck_require__(7885);
 function buildDockerTestImage(testsPath, testsContainerBranch, testsImage) {
     return __awaiter(this, void 0, void 0, function* () {
         core.startGroup('🐋 Build test docker container');
+        core.info(JSON.stringify(process.env.GITHUB_WORKSPACE));
         const git = (0, simple_git_1.default)({
             baseDir: `${testsPath}`
         });
