@@ -1,4 +1,7 @@
 import * as core from '@actions/core'
+import * as fs from 'fs'
+import * as path from 'path'
+
 import {
   downloadArtifact,
   prepareBuildArtifact,
@@ -13,12 +16,24 @@ import {
 import {
   setEnvironmentVariables,
   displaySystemInfo,
-  installTooling,
-  createFolder
+  installTooling
 } from './init'
 
 async function run(): Promise<void> {
   try {
+    // Prepare the export folder
+    if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
+      const artifactFolder = path.join(
+        process.env.GITHUB_WORKSPACE,
+        process.env.TESTS_PATH,
+        'artifacts'
+      )
+      if (!fs.existsSync(artifactFolder)) {
+        core.info(`📁 Creating folder: ${artifactFolder}`)
+        fs.mkdirSync(artifactFolder)
+      }
+    }
+
     // Set environment variables from parameters
     await setEnvironmentVariables()
 
@@ -38,9 +53,6 @@ async function run(): Promise<void> {
     if (core.getInput('should_use_build_artifacts') === 'true') {
       await downloadArtifact('build-artifacts')
     }
-
-    // Prepare the export folder
-    await createFolder(`${core.getInput('tests_path')}artifacts`)
 
     // Prepare the build artifacts to include them in the docker image
     if (core.getInput('should_skip_artifacts') === 'false') {

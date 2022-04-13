@@ -417,12 +417,22 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
+const fs = __importStar(__nccwpck_require__(5747));
+const path = __importStar(__nccwpck_require__(5622));
 const artifacts_1 = __nccwpck_require__(5671);
 const docker_1 = __nccwpck_require__(3758);
 const init_1 = __nccwpck_require__(9849);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            // Prepare the export folder
+            if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
+                const artifactFolder = path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH, 'artifacts');
+                if (!fs.existsSync(artifactFolder)) {
+                    core.info(`📁 Creating folder: ${artifactFolder}`);
+                    fs.mkdirSync(artifactFolder);
+                }
+            }
             // Set environment variables from parameters
             yield (0, init_1.setEnvironmentVariables)();
             // Install various tools (such as jahia-reporter) needed for the workflow
@@ -435,8 +445,6 @@ function run() {
             if (core.getInput('should_use_build_artifacts') === 'true') {
                 yield (0, artifacts_1.downloadArtifact)('build-artifacts');
             }
-            // Prepare the export folder
-            yield (0, init_1.createFolder)(`${core.getInput('tests_path')}artifacts`);
             // Prepare the build artifacts to include them in the docker image
             if (core.getInput('should_skip_artifacts') === 'false') {
                 yield (0, artifacts_1.prepareBuildArtifact)('.', core.getInput('tests_path'));
