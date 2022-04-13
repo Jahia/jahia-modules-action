@@ -1,7 +1,7 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 5671:
+/***/ 665:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -39,11 +39,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.prepareBuildArtifact = exports.uploadArtifact = exports.downloadArtifact = void 0;
+exports.downloadArtifact = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const artifact = __importStar(__nccwpck_require__(2605));
-const fs = __importStar(__nccwpck_require__(5747));
-const path = __importStar(__nccwpck_require__(5622));
 function downloadArtifact(artifactName) {
     return __awaiter(this, void 0, void 0, function* () {
         const artifactClient = artifact.create();
@@ -52,6 +50,190 @@ function downloadArtifact(artifactName) {
     });
 }
 exports.downloadArtifact = downloadArtifact;
+
+
+/***/ }),
+
+/***/ 4369:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(665), exports);
+__exportStar(__nccwpck_require__(3188), exports);
+__exportStar(__nccwpck_require__(4348), exports);
+
+
+/***/ }),
+
+/***/ 4348:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.prepareBuildArtifact = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const fs = __importStar(__nccwpck_require__(5747));
+// Recursively get all folder matching dirName under the path
+const getTargetFolders = (path, targets = [], dirName = 'target') => __awaiter(void 0, void 0, void 0, function* () {
+    const files = fs.readdirSync(path);
+    for (const f of files) {
+        const filePath = path + '/' + f;
+        if (fs.statSync(filePath).isDirectory()) {
+            if (f !== dirName) {
+                const folders = yield getTargetFolders(`${filePath}/`, targets);
+                targets = [...targets, ...folders];
+            }
+            else {
+                if (!targets.includes(filePath)) {
+                    targets.push(filePath);
+                }
+            }
+        }
+    }
+    return targets;
+});
+function prepareBuildArtifact(rootPath, testsPath) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.startGroup('🛠️ Preparing build artifactsabc');
+        const artifactFolder = `${testsPath}artifacts/`;
+        if (!fs.existsSync(rootPath)) {
+            core.info(`Folder: ${rootPath} does not exist`);
+            return;
+        }
+        else {
+            core.info(`Folder: ${rootPath} does exist`);
+        }
+        if (!fs.existsSync(artifactFolder)) {
+            core.info(`Folder: ${artifactFolder} does not exist`);
+            return;
+        }
+        else {
+            core.info(`Folder: ${artifactFolder} does exist`);
+        }
+        // Search for target/ folder
+        const folders = yield getTargetFolders(rootPath);
+        core.info(`Folder: ${rootPath} does exist`);
+        core.info(`Folder: ${artifactFolder} does exist`);
+        core.info(`Identified the following target folders: ${JSON.stringify(folders)}`);
+        for (const targetFolder of folders) {
+            const files = fs.readdirSync(targetFolder);
+            for (const f of files) {
+                if (f.includes('-SNAPSHOT.jar')) {
+                    core.info(`Copying file: ${targetFolder} + '/' + ${f} to ${artifactFolder}`);
+                    fs.copyFileSync(`${targetFolder} + '/' + ${f}`, `${artifactFolder} + '/' + ${f}`);
+                }
+            }
+        }
+        const files = fs.readdirSync(artifactFolder);
+        if (files.length > 0) {
+            core.info(`The following files are present in: ${artifactFolder}`);
+            for (const f of files) {
+                core.info(f);
+            }
+        }
+        else {
+            core.info(`Artifacts folder is empty: ${artifactFolder}`);
+        }
+        core.endGroup();
+    });
+}
+exports.prepareBuildArtifact = prepareBuildArtifact;
+
+
+/***/ }),
+
+/***/ 3188:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.uploadArtifact = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const artifact = __importStar(__nccwpck_require__(2605));
+const fs = __importStar(__nccwpck_require__(5747));
+const path = __importStar(__nccwpck_require__(5622));
 // Recursively get all files under the path
 const getFiles = (path, scannedFiles = []) => __awaiter(void 0, void 0, void 0, function* () {
     const files = fs.readdirSync(path);
@@ -89,63 +271,11 @@ function uploadArtifact(artifactName, artifactPath) {
     });
 }
 exports.uploadArtifact = uploadArtifact;
-// Recursively get all folder matching dirName under the path
-const getTargetFolders = (path, targets = [], dirName = 'target') => __awaiter(void 0, void 0, void 0, function* () {
-    const files = fs.readdirSync(path);
-    for (const f of files) {
-        const filePath = path + '/' + f;
-        if (fs.statSync(filePath).isDirectory()) {
-            if (f !== dirName) {
-                const folders = yield getTargetFolders(`${filePath}/`, targets);
-                targets = [...targets, ...folders];
-            }
-            else {
-                if (!targets.includes(filePath)) {
-                    targets.push(filePath);
-                }
-            }
-        }
-    }
-    return targets;
-});
-function prepareBuildArtifact(rootPath, testsPath) {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('🛠️ Preparing build artifacts');
-        const artifactFolder = `${testsPath}artifacts/`;
-        // Search for target/ folder
-        const folders = yield getTargetFolders(rootPath);
-        core.info(`Identified the following target folders: ${JSON.stringify(folders)}`);
-        if (folders.length > 0 && !fs.existsSync(artifactFolder)) {
-            fs.mkdirSync(artifactFolder);
-        }
-        for (const targetFolder of folders) {
-            const files = fs.readdirSync(targetFolder);
-            for (const f of files) {
-                if (f.includes('-SNAPSHOT.jar')) {
-                    core.info(`Copying file: ${targetFolder} + '/' + ${f} to ${artifactFolder}`);
-                    fs.copyFileSync(`${targetFolder} + '/' + ${f}`, `${artifactFolder} + '/' + ${f}`);
-                }
-            }
-        }
-        const files = fs.readdirSync(artifactFolder);
-        if (files.length > 0) {
-            core.info(`The following files are present in: ${artifactFolder}`);
-            for (const f of files) {
-                core.info(f);
-            }
-        }
-        else {
-            core.info(`Artifacts folder is empty: ${artifactFolder}`);
-        }
-        core.endGroup();
-    });
-}
-exports.prepareBuildArtifact = prepareBuildArtifact;
 
 
 /***/ }),
 
-/***/ 3758:
+/***/ 9269:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -186,11 +316,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.startDockerEnvironment = exports.login = exports.pullDockerImages = exports.buildDockerTestImage = void 0;
+exports.buildDockerTestImage = void 0;
 const core = __importStar(__nccwpck_require__(2186));
-const exec = __importStar(__nccwpck_require__(1514));
-const fs = __importStar(__nccwpck_require__(5747));
-const path = __importStar(__nccwpck_require__(5622));
 const simple_git_1 = __importDefault(__nccwpck_require__(9103));
 const system_1 = __nccwpck_require__(7885);
 function buildDockerTestImage(testsPath, testsContainerBranch, testsImage) {
@@ -215,77 +342,39 @@ function buildDockerTestImage(testsPath, testsContainerBranch, testsImage) {
     });
 }
 exports.buildDockerTestImage = buildDockerTestImage;
-function pullDockerImages(jahiaImage, jCustomerImage) {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('🐋 Pull the latest version of Jahia and jCustomer and print docker images cache to console');
-        // Get list of docker images in local cache BEFORE the pull
-        const runCommands = [`docker images --digests --all`];
-        if (jahiaImage !== '') {
-            runCommands.push(`docker pull ${jahiaImage}`);
-        }
-        if (jCustomerImage !== '') {
-            runCommands.push(`docker pull ${jCustomerImage}`);
-        }
-        // Get list of docker images in local cache AFTER the pull
-        runCommands.push(`docker images --digests --all`);
-        yield (0, system_1.runShellCommands)(runCommands, 'artifacts/docker.log');
-        core.endGroup();
-    });
-}
-exports.pullDockerImages = pullDockerImages;
-// See: https://github.com/docker/login-action/blob/master/src/docker.ts
-function login(username, password) {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('🐋 Docker login');
-        if (!username || !password) {
-            throw new Error('Username and password required');
-        }
-        const loginArgs = ['login', '--password-stdin'];
-        loginArgs.push('--username', username);
-        core.info(`Logging into Docker Hub...`);
-        yield exec
-            .getExecOutput('docker', loginArgs, {
-            ignoreReturnCode: true,
-            silent: true,
-            input: Buffer.from(password)
-        })
-            .then(res => {
-            if (res.stderr.length > 0 && res.exitCode != 0) {
-                throw new Error(res.stderr.trim());
-            }
-            core.info(`Login Succeeded!`);
-        });
-        core.endGroup();
-    });
-}
-exports.login = login;
-function startDockerEnvironment(ciStartupScript, dockerComposeFile) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
-            core.startGroup('🐋 Starting the Docker environment');
-            const startupFile = path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH, ciStartupScript);
-            const composeFile = path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH, dockerComposeFile);
-            if (fs.existsSync(startupFile)) {
-                core.info(`Starting environment using startup script: ${startupFile}`);
-                yield (0, system_1.runShellCommands)([`bash ${startupFile}`], 'artifacts/startup.log');
-            }
-            else if (fs.existsSync(composeFile)) {
-                core.info(`Starting environment using compose file: ${composeFile}`);
-                yield (0, system_1.runShellCommands)([`docker`], 'artifacts/startup.log');
-            }
-            else {
-                core.setFailed(`Unable to find environment startup instructions. Could not find startup script (${startupFile}) NOR compose file ${composeFile}`);
-            }
-            core.endGroup();
-        }
-    });
-}
-exports.startDockerEnvironment = startDockerEnvironment;
 
 
 /***/ }),
 
-/***/ 9849:
+/***/ 7594:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(9269), exports);
+__exportStar(__nccwpck_require__(642), exports);
+__exportStar(__nccwpck_require__(3105), exports);
+__exportStar(__nccwpck_require__(9530), exports);
+
+
+/***/ }),
+
+/***/ 3105:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -323,10 +412,351 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.createFolder = exports.displaySystemInfo = exports.installTooling = exports.setEnvironmentVariables = void 0;
+exports.login = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const exec = __importStar(__nccwpck_require__(1514));
+// See: https://github.com/docker/login-action/blob/master/src/docker.ts
+function login(username, password) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.startGroup('🐋 Docker login');
+        if (!username || !password) {
+            throw new Error('Username and password required');
+        }
+        const loginArgs = ['login', '--password-stdin'];
+        loginArgs.push('--username', username);
+        core.info(`Logging into Docker Hub...`);
+        yield exec
+            .getExecOutput('docker', loginArgs, {
+            ignoreReturnCode: true,
+            silent: true,
+            input: Buffer.from(password)
+        })
+            .then(res => {
+            if (res.stderr.length > 0 && res.exitCode != 0) {
+                throw new Error(res.stderr.trim());
+            }
+            core.info(`Login Succeeded!`);
+        });
+        core.endGroup();
+    });
+}
+exports.login = login;
+
+
+/***/ }),
+
+/***/ 642:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.pullDockerImages = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const system_1 = __nccwpck_require__(7885);
+function pullDockerImages(jahiaImage, jCustomerImage) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.startGroup('🐋 Pull the latest version of Jahia and jCustomer and print docker images cache to console');
+        // Get list of docker images in local cache BEFORE the pull
+        const runCommands = [`docker images --digests --all`];
+        if (jahiaImage !== '') {
+            runCommands.push(`docker pull ${jahiaImage}`);
+        }
+        if (jCustomerImage !== '') {
+            runCommands.push(`docker pull ${jCustomerImage}`);
+        }
+        // Get list of docker images in local cache AFTER the pull
+        runCommands.push(`docker images --digests --all`);
+        yield (0, system_1.runShellCommands)(runCommands, 'artifacts/docker.log');
+        core.endGroup();
+    });
+}
+exports.pullDockerImages = pullDockerImages;
+
+
+/***/ }),
+
+/***/ 9530:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.startDockerEnvironment = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const fs = __importStar(__nccwpck_require__(5747));
+const path = __importStar(__nccwpck_require__(5622));
 const system_1 = __nccwpck_require__(7885);
+function startDockerEnvironment(ciStartupScript, dockerComposeFile) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
+            core.startGroup('🐋 Starting the Docker environment');
+            const testFolder = path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH);
+            const startupFile = path.join(testFolder, ciStartupScript);
+            const composeFile = path.join(testFolder, dockerComposeFile);
+            if (fs.existsSync(startupFile)) {
+                core.info(`Starting environment using startup script: ${startupFile}`);
+                yield (0, system_1.runShellCommands)([`(cd ${testFolder}; bash ${startupFile})`], 'artifacts/startup.log');
+            }
+            else if (fs.existsSync(composeFile)) {
+                core.info(`Starting environment using compose file: ${composeFile}`);
+                yield (0, system_1.runShellCommands)([`docker -f ${composeFile} up --abord-on-container-exit`], 'artifacts/startup.log');
+            }
+            else {
+                core.setFailed(`Unable to find environment startup instructions. Could not find startup script (${startupFile}) NOR compose file ${composeFile}`);
+            }
+            core.endGroup();
+        }
+    });
+}
+exports.startDockerEnvironment = startDockerEnvironment;
+
+
+/***/ }),
+
+/***/ 1194:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.displaySystemInfo = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const system_1 = __nccwpck_require__(7885);
+function displaySystemInfo() {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.startGroup('🛠️ Displaying important environment variables and system info');
+        const runCommands = [
+            'node -v',
+            'npm -v',
+            'jahia-reporter -v',
+            'printenv'
+        ];
+        yield (0, system_1.runShellCommands)(runCommands);
+        core.endGroup();
+    });
+}
+exports.displaySystemInfo = displaySystemInfo;
+
+
+/***/ }),
+
+/***/ 976:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(5465), exports);
+__exportStar(__nccwpck_require__(3471), exports);
+__exportStar(__nccwpck_require__(1194), exports);
+
+
+/***/ }),
+
+/***/ 5465:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.installTooling = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const system_1 = __nccwpck_require__(7885);
+function installTooling() {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.startGroup('🛠️ Install runtime tooling');
+        yield (0, system_1.runShellCommands)(['npm install -g @jahia/jahia-reporter']);
+        core.endGroup();
+    });
+}
+exports.installTooling = installTooling;
+
+
+/***/ }),
+
+/***/ 3471:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.setEnvironmentVariables = void 0;
+const core = __importStar(__nccwpck_require__(2186));
 function setEnvironmentVariables() {
     return __awaiter(this, void 0, void 0, function* () {
         core.exportVariable('MANIFEST', core.getInput('tests_manifest'));
@@ -343,37 +773,6 @@ function setEnvironmentVariables() {
     });
 }
 exports.setEnvironmentVariables = setEnvironmentVariables;
-function installTooling() {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('🛠️ Install runtime tooling');
-        yield (0, system_1.runShellCommands)(['npm install -g @jahia/jahia-reporter']);
-        core.endGroup();
-    });
-}
-exports.installTooling = installTooling;
-function displaySystemInfo() {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('🛠️ Displaying important environment variables and system info');
-        const runCommands = [
-            'node -v',
-            'npm -v',
-            'jahia-reporter -v',
-            'printenv'
-        ];
-        yield (0, system_1.runShellCommands)(runCommands);
-        core.endGroup();
-    });
-}
-exports.displaySystemInfo = displaySystemInfo;
-function createFolder(folder) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (!fs.existsSync(folder)) {
-            core.info(`📁 Creating folder: ${folder}`);
-            fs.mkdirSync(folder);
-        }
-    });
-}
-exports.createFolder = createFolder;
 
 
 /***/ }),
@@ -419,9 +818,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const fs = __importStar(__nccwpck_require__(5747));
 const path = __importStar(__nccwpck_require__(5622));
-const artifacts_1 = __nccwpck_require__(5671);
-const docker_1 = __nccwpck_require__(3758);
-const init_1 = __nccwpck_require__(9849);
+const artifacts_1 = __nccwpck_require__(4369);
+const docker_1 = __nccwpck_require__(7594);
+const init_1 = __nccwpck_require__(976);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
