@@ -34,6 +34,7 @@ export async function installTooling(): Promise<any> {
   }
 
   core.startGroup('🛠️ Install runtime tooling')
+  core.info(`npm install -g @jahia/jahia-reporter`)
   await exec.exec('npm install -g @jahia/jahia-reporter', [], {
     ...options,
     silent: true
