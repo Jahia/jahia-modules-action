@@ -55,20 +55,18 @@ exports.downloadArtifact = downloadArtifact;
 const getTargetFolders = (path, targets = [], dirName = 'cypress') => __awaiter(void 0, void 0, void 0, function* () {
     const files = fs.readdirSync(path);
     for (const f of files) {
-        if (fs.statSync(path + '/' + f).isDirectory() && f !== dirName) {
-            const folders = yield getTargetFolders(path + '/' + f, targets);
-            targets = [...targets, ...folders];
-        }
-        else if (fs.statSync(path + '/' + f).isDirectory() && f === dirName) {
-            if (!targets.includes(path + '/' + f)) {
-                targets.push(path + '/' + f);
+        if (fs.statSync(path + '/' + f).isDirectory()) {
+            if (f !== dirName) {
+                const folders = yield getTargetFolders(path + '/' + f, targets);
+                targets = [...targets, ...folders];
             }
-            //   core.info(`Match (${dirName}): ${JSON.stringify(f)}`)
+            else {
+                if (!targets.includes(path + '/' + f)) {
+                    targets.push(path + '/' + f);
+                }
+            }
+            core.info(`Targets (${path}): ${JSON.stringify(targets)}`);
         }
-        // else {
-        //   core.info(`NO Match (${dirName}: ${JSON.stringify(f)}`)
-        // }
-        core.info(`Targets (${path}): ${JSON.stringify(targets)}`);
     }
     return targets;
 });
