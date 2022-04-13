@@ -34,11 +34,15 @@ export async function prepareBuildArtifact(
   if (!fs.existsSync(rootPath)) {
     core.info(`Folder: ${rootPath} does not exist`)
     return
+  } else {
+    core.info(`Folder: ${rootPath} does exist`)
   }
 
   if (!fs.existsSync(artifactFolder)) {
     core.info(`Folder: ${artifactFolder} does not exist`)
     return
+  } else {
+    core.info(`Folder: ${artifactFolder} does exist`)
   }
 
   // Search for target/ folder
