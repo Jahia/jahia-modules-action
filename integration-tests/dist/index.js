@@ -169,7 +169,7 @@ function buildDockerTestImage(testsPath, testsContainerBranch, testsImage) {
                     stdErr += data.toString();
                 }
             };
-            yield exec.exec(`cd ${testsPath} && ${cmd}`, [], Object.assign(Object.assign({}, options), { silent: true }));
+            yield exec.exec('bash', [`cd ${testsPath} && ${cmd}`], Object.assign(Object.assign({}, options), { silent: true }));
             core.info(`${stdOut}${stdErr}`);
         }
         core.endGroup();
