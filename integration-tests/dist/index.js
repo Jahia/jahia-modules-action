@@ -69,10 +69,10 @@ const getTargetFolders = (path, targets = [], dirName = 'jexperience') => __awai
     }
     return targets;
 });
-function prepareBuildArtifact(testsPath) {
+function prepareBuildArtifact(rootPath, testsPath) {
     return __awaiter(this, void 0, void 0, function* () {
         // Search for target/ folder
-        const folders = yield getTargetFolders(testsPath);
+        const folders = yield getTargetFolders(rootPath);
         core.info(JSON.stringify(folders));
     });
 }
@@ -273,7 +273,7 @@ function run() {
             yield (0, init_1.createFolder)(`${core.getInput('tests_path')}artifacts`);
             // Prepare the build artifacts to include them in the docker image
             if (core.getInput('should_skip_artifacts') === 'false') {
-                yield (0, artifacts_1.prepareBuildArtifact)(core.getInput('tests_path'));
+                yield (0, artifacts_1.prepareBuildArtifact)('.', core.getInput('tests_path'));
             }
         }
         catch (error) {

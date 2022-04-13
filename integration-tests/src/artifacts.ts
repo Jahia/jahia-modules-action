@@ -32,8 +32,11 @@ const getTargetFolders = async (
   return targets
 }
 
-export async function prepareBuildArtifact(testsPath: string): Promise<any> {
+export async function prepareBuildArtifact(
+  rootPath: string,
+  testsPath: string
+): Promise<any> {
   // Search for target/ folder
-  const folders = await getTargetFolders(testsPath)
+  const folders = await getTargetFolders(rootPath)
   core.info(JSON.stringify(folders))
 }
