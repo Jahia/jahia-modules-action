@@ -15,7 +15,7 @@ export async function buildDockerTestImage(
   ]
 
   for (const cmd of runCommands) {
-    core.info(`Exceuting: ${cmd}`)
+    core.info(`Executing: ${cmd}`)
     let stdOut = ''
     let stdErr = ''
 
@@ -28,8 +28,8 @@ export async function buildDockerTestImage(
         stdErr += data.toString()
       }
     }
-    await exec.exec(cmd, [], {...options, silent: true})
-    core.info(`${cmd}: ${stdOut}${stdErr}`)
+    await exec.exec(`cd ${testsPath} && ${cmd}`, [], {...options, silent: true})
+    core.info(`${stdOut}${stdErr}`)
   }
 
   core.endGroup()

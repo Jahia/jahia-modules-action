@@ -157,7 +157,7 @@ function buildDockerTestImage(testsPath, testsContainerBranch, testsImage) {
             `docker save -o tests_image.tar ${testsImage}`
         ];
         for (const cmd of runCommands) {
-            core.info(`Exceuting: ${cmd}`);
+            core.info(`Executing: ${cmd}`);
             let stdOut = '';
             let stdErr = '';
             const options = {};
@@ -169,8 +169,8 @@ function buildDockerTestImage(testsPath, testsContainerBranch, testsImage) {
                     stdErr += data.toString();
                 }
             };
-            yield exec.exec(cmd, [], Object.assign(Object.assign({}, options), { silent: true }));
-            core.info(`${cmd}: ${stdOut}${stdErr}`);
+            yield exec.exec(`cd ${testsPath} && ${cmd}`, [], Object.assign(Object.assign({}, options), { silent: true }));
+            core.info(`${stdOut}${stdErr}`);
         }
         core.endGroup();
     });
