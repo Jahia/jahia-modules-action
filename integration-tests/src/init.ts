@@ -38,6 +38,7 @@ export async function installTooling(): Promise<any> {
     ...options,
     silent: true
   })
+  core.info(`${stdOut}${stdErr}`)
   core.endGroup()
 }
 

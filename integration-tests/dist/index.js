@@ -127,6 +127,7 @@ function installTooling() {
         };
         core.startGroup('🛠️ Install runtime tooling');
         yield exec.exec('npm install -g @jahia/jahia-reporter', [], Object.assign(Object.assign({}, options), { silent: true }));
+        core.info(`${stdOut}${stdErr}`);
         core.endGroup();
     });
 }
