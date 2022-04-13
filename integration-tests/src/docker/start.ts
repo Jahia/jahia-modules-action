@@ -24,13 +24,15 @@ export async function startDockerEnvironment(
       core.info(`Starting environment using startup script: ${startupFile}`)
       await runShellCommands(
         [`(cd ${testFolder}; bash ${startupFile})`],
-        'artifacts/startup.log'
+        'artifacts/startup.log',
+        {cwd: testFolder}
       )
     } else if (fs.existsSync(composeFile)) {
       core.info(`Starting environment using compose file: ${composeFile}`)
       await runShellCommands(
         [`docker -f ${composeFile} up --abord-on-container-exit`],
-        'artifacts/startup.log'
+        'artifacts/startup.log',
+        {cwd: testFolder}
       )
     } else {
       core.setFailed(

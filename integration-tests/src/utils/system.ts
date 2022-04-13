@@ -5,14 +5,14 @@ import * as path from 'path'
 
 export async function runShellCommands(
   commands: Array<string>,
-  logfile: string = ''
+  logfile: string = '',
+  options: exec.ExecOptions = {}
 ): Promise<any> {
   for (const cmd of commands) {
     core.info(`Executing: ${cmd}`)
     let stdOut = ''
     let stdErr = ''
 
-    const options: exec.ExecOptions = {}
     options.listeners = {
       stdout: (data: Buffer) => {
         stdOut += data.toString()

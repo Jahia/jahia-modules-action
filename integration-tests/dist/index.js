@@ -607,11 +607,11 @@ function startDockerEnvironment(ciStartupScript, dockerComposeFile) {
             const composeFile = path.join(testFolder, dockerComposeFile);
             if (fs.existsSync(startupFile)) {
                 core.info(`Starting environment using startup script: ${startupFile}`);
-                yield (0, system_1.runShellCommands)([`(cd ${testFolder}; bash ${startupFile})`], 'artifacts/startup.log');
+                yield (0, system_1.runShellCommands)([`(cd ${testFolder}; bash ${startupFile})`], 'artifacts/startup.log', { cwd: testFolder });
             }
             else if (fs.existsSync(composeFile)) {
                 core.info(`Starting environment using compose file: ${composeFile}`);
-                yield (0, system_1.runShellCommands)([`docker -f ${composeFile} up --abord-on-container-exit`], 'artifacts/startup.log');
+                yield (0, system_1.runShellCommands)([`docker -f ${composeFile} up --abord-on-container-exit`], 'artifacts/startup.log', { cwd: testFolder });
             }
             else {
                 core.setFailed(`Unable to find environment startup instructions. Could not find startup script (${startupFile}) NOR compose file ${composeFile}`);
@@ -971,13 +971,12 @@ const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 const fs = __importStar(__nccwpck_require__(5747));
 const path = __importStar(__nccwpck_require__(5622));
-function runShellCommands(commands, logfile = '') {
+function runShellCommands(commands, logfile = '', options = {}) {
     return __awaiter(this, void 0, void 0, function* () {
         for (const cmd of commands) {
             core.info(`Executing: ${cmd}`);
             let stdOut = '';
             let stdErr = '';
-            const options = {};
             options.listeners = {
                 stdout: (data) => {
                     stdOut += data.toString();
