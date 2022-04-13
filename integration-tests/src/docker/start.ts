@@ -13,7 +13,6 @@ export async function startDockerEnvironment(
     core.startGroup('🐋 Starting the Docker environment')
 
     const startupFile = path.join(testsFolder, ciStartupScript)
-
     const composeFile = path.join(testsFolder, dockerComposeFile)
 
     if (fs.existsSync(startupFile)) {
