@@ -73,10 +73,10 @@ const getTargetFolders = (path, targets = [], dirName = 'target') => __awaiter(v
 function prepareBuildArtifact(rootPath, testsPath) {
     return __awaiter(this, void 0, void 0, function* () {
         core.startGroup('🛠️ Preparing build artifacts');
-        const artifactFolder = `${testsPath}/artifacts/`;
+        const artifactFolder = `${testsPath}artifacts/`;
         // Search for target/ folder
         const folders = yield getTargetFolders(rootPath);
-        core.info(`Identified the following target folders ${JSON.stringify(folders)}`);
+        core.info(`Identified the following target folders: ${JSON.stringify(folders)}`);
         if (folders.length > 0 && !fs.existsSync(artifactFolder)) {
             fs.mkdirSync(artifactFolder);
         }
@@ -89,10 +89,15 @@ function prepareBuildArtifact(rootPath, testsPath) {
                 }
             }
         }
-        core.info(`The following files are present in: ${artifactFolder}`);
         const files = fs.readdirSync(artifactFolder);
-        for (const f of files) {
-            core.info(f);
+        if (files.length > 0) {
+            core.info(`The following files are present in: ${artifactFolder}`);
+            for (const f of files) {
+                core.info(f);
+            }
+        }
+        else {
+            core.info(`Artifacts folder is empty: ${artifactFolder}`);
         }
         core.endGroup();
     });

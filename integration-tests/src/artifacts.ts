@@ -39,11 +39,11 @@ export async function prepareBuildArtifact(
   testsPath: string
 ): Promise<any> {
   core.startGroup('🛠️ Preparing build artifacts')
-  const artifactFolder = `${testsPath}/artifacts/`
+  const artifactFolder = `${testsPath}artifacts/`
   // Search for target/ folder
   const folders = await getTargetFolders(rootPath)
   core.info(
-    `Identified the following target folders ${JSON.stringify(folders)}`
+    `Identified the following target folders: ${JSON.stringify(folders)}`
   )
 
   if (folders.length > 0 && !fs.existsSync(artifactFolder)) {
@@ -65,10 +65,14 @@ export async function prepareBuildArtifact(
     }
   }
 
-  core.info(`The following files are present in: ${artifactFolder}`)
   const files = fs.readdirSync(artifactFolder)
-  for (const f of files) {
-    core.info(f)
+  if (files.length > 0) {
+    core.info(`The following files are present in: ${artifactFolder}`)
+    for (const f of files) {
+      core.info(f)
+    }
+  } else {
+    core.info(`Artifacts folder is empty: ${artifactFolder}`)
   }
 
   core.endGroup()
