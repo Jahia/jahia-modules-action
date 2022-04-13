@@ -94,6 +94,10 @@ export async function createFolder(folder: string): Promise<any> {
     silent: true
   })
 
-  core.info(`📁 Creating folder: ${folder}`)
-  core.info(`${stdOut}${stdErr}`)
+  if (stdOut !== '' || stdErr !== '') {
+    core.info(`📁 Creating folder: ${folder}`)
+    core.info(`${stdOut}${stdErr}`)
+  } else {
+    core.info(`📁 Created folder: ${folder}`)
+  }
 }

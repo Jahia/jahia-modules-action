@@ -174,8 +174,13 @@ function createFolder(folder) {
             }
         };
         yield exec.exec(`mkdir -p ${folder}`, [], Object.assign(Object.assign({}, options), { silent: true }));
-        core.info(`📁 Creating folder: ${folder}`);
-        core.info(`${stdOut}${stdErr}`);
+        if (stdOut !== '' || stdErr !== '') {
+            core.info(`📁 Creating folder: ${folder}`);
+            core.info(`${stdOut}${stdErr}`);
+        }
+        else {
+            core.info(`📁 Created folder: ${folder}`);
+        }
     });
 }
 exports.createFolder = createFolder;
