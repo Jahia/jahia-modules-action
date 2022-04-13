@@ -317,14 +317,13 @@ function copyRunArtifacts(containerName, desinationPath) {
     return __awaiter(this, void 0, void 0, function* () {
         core.startGroup('🐋 Export containers artifacts (reports, secreenshots, videos, logs) ');
         yield (0, system_1.runShellCommands)([`docker cp ${containerName}:/home/jahians/results ${desinationPath}`], 'artifacts/cypress-artifacts.log');
-        const otherCommands = [
-            `docker stats --all --no-stream > ${posix_1.default.join(desinationPath, 'results/docker-stats.log')}`,
-            `docker-compose logs -t --tail="all" > ${posix_1.default.join(desinationPath, 'results/all-containers.log')}`,
-            `docker logs jahia > ${posix_1.default.join(desinationPath, 'results/jahia.log')}`,
-            `docker logs ${containerName} > ${posix_1.default.join(desinationPath, `results/${containerName}.log`)}`,
-            `cp ${posix_1.default.join(desinationPath, `docker.log`)} ${posix_1.default.join(desinationPath, `results/docker.log`)}`
-        ];
-        yield (0, system_1.runShellCommands)(otherCommands, 'artifacts/copy-run-artifacts.log');
+        yield (0, system_1.runShellCommands)([`docker stats --all --no-stream`], 'artifacts/results/cypress-stats.log');
+        yield (0, system_1.runShellCommands)([`docker-compose logs -t --tail="all" `], 'artifacts/results/all-containers.log');
+        yield (0, system_1.runShellCommands)([`docker logs jahia`], 'artifacts/results/jahia.log');
+        yield (0, system_1.runShellCommands)([`docker logs ${containerName}`], `artifacts/results/${containerName}.log`);
+        yield (0, system_1.runShellCommands)([
+            `docker ${posix_1.default.join(desinationPath, `docker.log`)} ${posix_1.default.join(desinationPath, `results/docker.log`)}`
+        ]);
         core.endGroup();
     });
 }

@@ -16,27 +16,29 @@ export async function copyRunArtifacts(
     'artifacts/cypress-artifacts.log'
   )
 
-  const otherCommands = [
-    `docker stats --all --no-stream > ${path.join(
-      desinationPath,
-      'results/docker-stats.log'
-    )}`,
-    `docker-compose logs -t --tail="all" > ${path.join(
-      desinationPath,
-      'results/all-containers.log'
-    )}`,
-    `docker logs jahia > ${path.join(desinationPath, 'results/jahia.log')}`,
-    `docker logs ${containerName} > ${path.join(
-      desinationPath,
-      `results/${containerName}.log`
-    )}`,
-    `cp ${path.join(desinationPath, `docker.log`)} ${path.join(
+  await runShellCommands(
+    [`docker stats --all --no-stream`],
+    'artifacts/results/cypress-stats.log'
+  )
+
+  await runShellCommands(
+    [`docker-compose logs -t --tail="all" `],
+    'artifacts/results/all-containers.log'
+  )
+
+  await runShellCommands([`docker logs jahia`], 'artifacts/results/jahia.log')
+
+  await runShellCommands(
+    [`docker logs ${containerName}`],
+    `artifacts/results/${containerName}.log`
+  )
+
+  await runShellCommands([
+    `docker ${path.join(desinationPath, `docker.log`)} ${path.join(
       desinationPath,
       `results/docker.log`
     )}`
-  ]
-
-  await runShellCommands(otherCommands, 'artifacts/copy-run-artifacts.log')
+  ])
 
   core.endGroup()
 }
