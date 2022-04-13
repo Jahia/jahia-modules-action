@@ -313,12 +313,12 @@ exports.copyRunArtifacts = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const posix_1 = __importDefault(__nccwpck_require__(3301));
 const system_1 = __nccwpck_require__(7885);
-function copyRunArtifacts(containerName, desinationPath) {
+function copyRunArtifacts(containerName, desinationPath, testsFolder) {
     return __awaiter(this, void 0, void 0, function* () {
         core.startGroup('🐋 Export containers artifacts (reports, secreenshots, videos, logs) ');
         yield (0, system_1.runShellCommands)([`docker cp ${containerName}:/home/jahians/results ${desinationPath}`], 'artifacts/cypress-artifacts.log');
         yield (0, system_1.runShellCommands)([`docker stats --all --no-stream`], 'artifacts/results/cypress-stats.log');
-        yield (0, system_1.runShellCommands)([`docker-compose logs -t --tail="all" `], 'artifacts/results/all-containers.log');
+        yield (0, system_1.runShellCommands)([`docker-compose logs -t --tail="all" `], 'artifacts/results/all-containers.log', { cwd: testsFolder, ignoreReturnCode: true });
         yield (0, system_1.runShellCommands)([`docker logs jahia`], 'artifacts/results/jahia.log');
         yield (0, system_1.runShellCommands)([`docker logs ${containerName}`], `artifacts/results/${containerName}.log`);
         yield (0, system_1.runShellCommands)([
@@ -996,7 +996,7 @@ function run() {
             // Spin-up the containers
             yield (0, docker_1.startDockerEnvironment)(testsFolder, core.getInput('ci_startup_script'), core.getInput('docker_compose_file'));
             // Export containers artifacts (reports, secreenshots, videos)
-            yield (0, docker_1.copyRunArtifacts)(core.getInput('tests_container_name'), artifactsFolder);
+            yield (0, docker_1.copyRunArtifacts)(core.getInput('tests_container_name'), artifactsFolder, testsFolder);
             // Spin-up the containers
             yield (0, docker_1.executePostrunScript)(testsFolder, core.getInput('ci_startup_script'));
             // upload the artifacts

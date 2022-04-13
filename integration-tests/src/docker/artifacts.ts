@@ -5,7 +5,8 @@ import {runShellCommands} from '../utils/system'
 
 export async function copyRunArtifacts(
   containerName: string,
-  desinationPath: string
+  desinationPath: string,
+  testsFolder: string
 ): Promise<void> {
   core.startGroup(
     '🐋 Export containers artifacts (reports, secreenshots, videos, logs) '
@@ -23,7 +24,8 @@ export async function copyRunArtifacts(
 
   await runShellCommands(
     [`docker-compose logs -t --tail="all" `],
-    'artifacts/results/all-containers.log'
+    'artifacts/results/all-containers.log',
+    {cwd: testsFolder, ignoreReturnCode: true}
   )
 
   await runShellCommands([`docker logs jahia`], 'artifacts/results/jahia.log')

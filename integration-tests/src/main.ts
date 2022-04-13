@@ -101,7 +101,8 @@ async function run(): Promise<void> {
     // Export containers artifacts (reports, secreenshots, videos)
     await copyRunArtifacts(
       core.getInput('tests_container_name'),
-      artifactsFolder
+      artifactsFolder,
+      testsFolder
     )
 
     // Spin-up the containers
