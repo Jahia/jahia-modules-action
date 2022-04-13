@@ -19,16 +19,16 @@ const getTargetFolders = async (
 ) => {
   const files = fs.readdirSync(path)
   for (const f of files) {
-    if (fs.statSync(path + '/' + f).isDirectory()) {
+    const filePath = path + '/' + f
+    if (fs.statSync(filePath).isDirectory()) {
       if (f !== dirName) {
-        const folders = await getTargetFolders(path + '/' + f, targets)
+        const folders = await getTargetFolders(`${filePath}/`, targets)
         targets = [...targets, ...folders]
       } else {
-        if (!targets.includes(path + '/' + f)) {
-          targets.push(path + '/' + f)
+        if (!targets.includes(filePath)) {
+          targets.push(filePath)
         }
       }
-      core.info(`Targets (${path}): ${JSON.stringify(targets)}`)
     }
   }
   return targets
