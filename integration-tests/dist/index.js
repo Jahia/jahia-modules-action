@@ -606,7 +606,9 @@ function startDockerEnvironment(testsFolder, ciStartupScript, dockerComposeFile)
             const composeFile = path.join(testsFolder, dockerComposeFile);
             if (fs.existsSync(startupFile)) {
                 core.info(`Starting environment using startup script: ${startupFile}`);
-                yield (0, system_1.runShellCommands)([`bash ${startupFile})`], 'artifacts/startup.log', { cwd: testsFolder });
+                yield (0, system_1.runShellCommands)([`bash ${startupFile}`], 'artifacts/startup.log', {
+                    cwd: testsFolder
+                });
             }
             else if (fs.existsSync(composeFile)) {
                 core.info(`Starting environment using compose file: ${composeFile}`);

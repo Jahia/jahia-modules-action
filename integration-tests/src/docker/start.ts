@@ -18,11 +18,9 @@ export async function startDockerEnvironment(
 
     if (fs.existsSync(startupFile)) {
       core.info(`Starting environment using startup script: ${startupFile}`)
-      await runShellCommands(
-        [`bash ${startupFile})`],
-        'artifacts/startup.log',
-        {cwd: testsFolder}
-      )
+      await runShellCommands([`bash ${startupFile}`], 'artifacts/startup.log', {
+        cwd: testsFolder
+      })
     } else if (fs.existsSync(composeFile)) {
       core.info(`Starting environment using compose file: ${composeFile}`)
       await runShellCommands(
