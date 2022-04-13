@@ -12,7 +12,9 @@ export async function buildDockerTestImage(
 ): Promise<any> {
   core.startGroup('🐋 Build test docker container')
 
-  const git = simpleGit()
+  const git = simpleGit({
+    baseDir: testsPath
+  })
   const currentBranch = git.branch()
   core.info(JSON.stringify(currentBranch))
   if (testsContainerBranch !== '') {
