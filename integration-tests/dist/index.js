@@ -819,7 +819,7 @@ const init_1 = __nccwpck_require__(976);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            if (!process.env.GITHUB_WORKSPACE || !process.env.TESTS_PATH) {
+            if (!process.env.GITHUB_WORKSPACE) {
                 return;
             }
             // Set the various project folders

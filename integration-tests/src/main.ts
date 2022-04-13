@@ -21,7 +21,7 @@ import {
 
 async function run(): Promise<void> {
   try {
-    if (!process.env.GITHUB_WORKSPACE || !process.env.TESTS_PATH) {
+    if (!process.env.GITHUB_WORKSPACE) {
       return
     }
 
