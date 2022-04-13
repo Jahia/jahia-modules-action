@@ -145,7 +145,7 @@ const getTargetFolders = (path, targets = [], dirName = 'target') => __awaiter(v
 function prepareBuildArtifact(rootProjectFolder, testsPath) {
     return __awaiter(this, void 0, void 0, function* () {
         if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
-            core.startGroup('🛠️ Preparing build artifactsabcd');
+            core.startGroup('🛠️ Preparing build artifacts');
             const artifactsFolder = path.join(testsPath, 'artifacts');
             if (!fs.existsSync(rootProjectFolder)) {
                 core.info(`Folder: ${rootProjectFolder} does not exist`);
@@ -246,7 +246,7 @@ const getFiles = (path, scannedFiles = []) => __awaiter(void 0, void 0, void 0, 
     }
     return scannedFiles;
 });
-function uploadArtifact(artifactName, artifactPath) {
+function uploadArtifact(artifactName, artifactPath, retentionDays) {
     return __awaiter(this, void 0, void 0, function* () {
         const artifactClient = artifact.create();
         if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
@@ -258,7 +258,8 @@ function uploadArtifact(artifactName, artifactPath) {
                 core.info(`File: ${f} - size: ${stats.size} bytes`);
             }
             const uploadResponse = yield artifactClient.uploadArtifact(artifactName, artifactsFiles, path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH), {
-                continueOnError: true
+                continueOnError: true,
+                retentionDays: retentionDays
             });
             core.info(`Uploaded: ${uploadResponse.artifactName} for a total size of: ${uploadResponse.size}`);
             core.endGroup();
@@ -861,7 +862,7 @@ function run() {
             // Spin-up the containers
             yield (0, docker_1.startDockerEnvironment)(core.getInput('ci_startup_script'), core.getInput('docker_compose_file'));
             // Finally, upload the artifacts
-            yield (0, artifacts_1.uploadArtifact)(core.getInput('artifact_name'), 'artifacts');
+            yield (0, artifacts_1.uploadArtifact)(core.getInput('artifact_name'), 'artifacts', Number(core.getInput('artifact_retention')));
         }
         catch (error) {
             if (error instanceof Error)

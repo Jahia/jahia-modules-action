@@ -96,7 +96,11 @@ async function run(): Promise<void> {
     )
 
     // Finally, upload the artifacts
-    await uploadArtifact(core.getInput('artifact_name'), 'artifacts')
+    await uploadArtifact(
+      core.getInput('artifact_name'),
+      'artifacts',
+      Number(core.getInput('artifact_retention'))
+    )
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }

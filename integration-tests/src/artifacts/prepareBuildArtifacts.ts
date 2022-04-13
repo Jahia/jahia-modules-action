@@ -30,7 +30,7 @@ export async function prepareBuildArtifact(
   testsPath: string
 ): Promise<any> {
   if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
-    core.startGroup('🛠️ Preparing build artifactsabcd')
+    core.startGroup('🛠️ Preparing build artifacts')
 
     const artifactsFolder = path.join(testsPath, 'artifacts')
 

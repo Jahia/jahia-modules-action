@@ -22,7 +22,8 @@ const getFiles = async (path: string, scannedFiles: Array<string> = []) => {
 
 export async function uploadArtifact(
   artifactName: string,
-  artifactPath: string
+  artifactPath: string,
+  retentionDays: number
 ): Promise<any> {
   const artifactClient = artifact.create()
 
@@ -48,7 +49,8 @@ export async function uploadArtifact(
       artifactsFiles,
       path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH),
       {
-        continueOnError: true
+        continueOnError: true,
+        retentionDays: retentionDays
       }
     )
     core.info(
