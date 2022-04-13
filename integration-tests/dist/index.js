@@ -159,14 +159,13 @@ function buildDockerTestImage(testsPath, testsContainerBranch, testsImage) {
         const git = (0, simple_git_1.default)({
             baseDir: `${testsPath}`
         });
-        const currentBranch = git.branch();
+        const currentBranch = git.branch(['-v', '-a']);
         core.info(JSON.stringify(currentBranch));
         if (testsContainerBranch !== '') {
             core.info(`Switching repository to branch: ${testsContainerBranch}`);
             yield git.checkout(testsContainerBranch);
         }
         const runCommands = [
-            // `git checkout ${testsContainerBranch}`,
             `docker build -t ${testsImage} ${testsPath}.`,
             `docker save -o ${testsPath}/tests_image.tar ${testsImage}`
         ];

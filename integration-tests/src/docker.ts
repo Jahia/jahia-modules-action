@@ -16,7 +16,7 @@ export async function buildDockerTestImage(
   const git = simpleGit({
     baseDir: `${testsPath}`
   })
-  const currentBranch = git.branch()
+  const currentBranch = git.branch(['-v', '-a'])
   core.info(JSON.stringify(currentBranch))
   if (testsContainerBranch !== '') {
     core.info(`Switching repository to branch: ${testsContainerBranch}`)
@@ -24,7 +24,6 @@ export async function buildDockerTestImage(
   }
 
   const runCommands: Array<string> = [
-    // `git checkout ${testsContainerBranch}`,
     `docker build -t ${testsImage} ${testsPath}.`,
     `docker save -o ${testsPath}/tests_image.tar ${testsImage}`
   ]
