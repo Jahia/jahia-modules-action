@@ -58,9 +58,7 @@ async function run(): Promise<void> {
     )
 
     // Finally, upload the artifacts
-    await uploadArtifact(core.getInput('artifact_name'), [
-      '/home/runner/work/jexperience/jexperience/tests/artifacts/docker.log'
-    ])
+    await uploadArtifact(core.getInput('artifact_name'), 'artifacts/')
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }

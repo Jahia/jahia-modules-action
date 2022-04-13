@@ -52,14 +52,39 @@ function downloadArtifact(artifactName) {
     });
 }
 exports.downloadArtifact = downloadArtifact;
+// Recursively get all files under the path
+const getFiles = (path, scannedFiles = []) => __awaiter(void 0, void 0, void 0, function* () {
+    const files = fs.readdirSync(path);
+    for (const f of files) {
+        const filePath = path + '/' + f;
+        if (fs.statSync(filePath).isDirectory()) {
+            const resultFiles = yield getFiles(`${filePath}/`, scannedFiles);
+            scannedFiles = [...scannedFiles, ...resultFiles];
+        }
+        else if (fs.statSync(filePath).isFile()) {
+            if (!scannedFiles.includes(filePath)) {
+                scannedFiles.push(filePath);
+            }
+        }
+    }
+    return scannedFiles;
+});
 function uploadArtifact(artifactName, artifactPath) {
     return __awaiter(this, void 0, void 0, function* () {
         const artifactClient = artifact.create();
         if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
-            const uploadResponse = yield artifactClient.uploadArtifact(artifactName, artifactPath, path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH), {
+            core.startGroup('🗄️ Uploading artifacts');
+            const artifactsFiles = yield getFiles(path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH, artifactPath));
+            core.info('About the upload the following files as artifacts: ');
+            for (const f of artifactsFiles) {
+                const stats = fs.statSync(f);
+                core.info(`File: ${f} - size: ${stats.size} bytes`);
+            }
+            const uploadResponse = yield artifactClient.uploadArtifact(artifactName, artifactsFiles, path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH), {
                 continueOnError: true
             });
             core.info(`Uploaded: ${uploadResponse.artifactName} for a total size of: ${uploadResponse.size}`);
+            core.endGroup();
         }
     });
 }
@@ -399,9 +424,7 @@ function run() {
             // Pull the latest version of Jahia and jCustomer and print docker images cache to console
             yield (0, docker_1.pullDockerImages)(core.getInput('jahia_image'), core.getInput('jcustomer_image'));
             // Finally, upload the artifacts
-            yield (0, artifacts_1.uploadArtifact)(core.getInput('artifact_name'), [
-                '/home/runner/work/jexperience/jexperience/tests/artifacts/docker.log'
-            ]);
+            yield (0, artifacts_1.uploadArtifact)(core.getInput('artifact_name'), 'artifacts/');
         }
         catch (error) {
             if (error instanceof Error)
