@@ -47,6 +47,8 @@ export async function prepareBuildArtifact(
 
   // Search for target/ folder
   const folders = await getTargetFolders(rootPath)
+  core.info(`Folder: ${rootPath} does exist`)
+  core.info(`Folder: ${artifactFolder} does exist`)
   core.info(
     `Identified the following target folders: ${JSON.stringify(folders)}`
   )
