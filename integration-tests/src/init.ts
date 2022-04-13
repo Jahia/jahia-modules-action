@@ -20,7 +20,7 @@ export async function setEnvironmentVariables(): Promise<any> {
   core.exportVariable('DOCKER_USERNAME', core.getInput('docker_username'))
 }
 
-export async function installTools(): Promise<any> {
+export async function installTooling(): Promise<any> {
   let stdOut = ''
   let stdErr = ''
   const options: exec.ExecOptions = {}

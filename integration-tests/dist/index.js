@@ -39,7 +39,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.displaySystemInfo = exports.installTools = exports.setEnvironmentVariables = void 0;
+exports.displaySystemInfo = exports.installTooling = exports.setEnvironmentVariables = void 0;
 const core = __importStar(__nccwpck_require__(186));
 const exec = __importStar(__nccwpck_require__(514));
 function setEnvironmentVariables() {
@@ -57,7 +57,7 @@ function setEnvironmentVariables() {
     });
 }
 exports.setEnvironmentVariables = setEnvironmentVariables;
-function installTools() {
+function installTooling() {
     return __awaiter(this, void 0, void 0, function* () {
         let stdOut = '';
         let stdErr = '';
@@ -75,7 +75,7 @@ function installTools() {
         core.endGroup();
     });
 }
-exports.installTools = installTools;
+exports.installTooling = installTooling;
 function displaySystemInfo() {
     return __awaiter(this, void 0, void 0, function* () {
         const runCommands = [
@@ -158,6 +158,8 @@ function run() {
         try {
             // Set environment variables from parameters
             yield (0, init_1.setEnvironmentVariables)();
+            // Install various tools (such as jahia-reporter) needed for the workflow
+            yield (0, init_1.installTooling)();
             // Display important versions and environment variables
             yield (0, init_1.displaySystemInfo)();
             // core.debug(new Date().toTimeString())
