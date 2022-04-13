@@ -155,7 +155,7 @@ function buildDockerTestImage(testsPath, testsContainerBranch, testsImage) {
         const runCommands = [
             // `git checkout ${testsContainerBranch}`,
             `docker build -t ${testsImage} ${testsPath}.`,
-            `docker save -o ${testsImage}/tests_image.tar ${testsImage}`
+            `docker save -o ${testsPath}/tests_image.tar ${testsImage}`
         ];
         for (const cmd of runCommands) {
             core.info(`Executing: ${cmd}`);
