@@ -46,7 +46,7 @@ async function run(): Promise<void> {
     }
 
     // Pull the latest version of Jahia and jCustomer and print docker images cache to console
-    pullDockerImages(
+    await pullDockerImages(
       core.getInput('jahia_image'),
       core.getInput('jcustomer_image')
     )
