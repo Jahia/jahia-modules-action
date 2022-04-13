@@ -24,6 +24,9 @@ const getTargetFolders = async (
       targets = [...targets, ...folders]
     } else if (fs.statSync(path + '/' + f).isDirectory() && f === dirName) {
       targets.push(path + '/' + f)
+      core.info(`Match: ${JSON.stringify(f)}`)
+    } else {
+      core.info(`NO Match: ${JSON.stringify(f)}`)
     }
   }
   return targets
