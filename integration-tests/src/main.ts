@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 import {downloadArtifact, prepareBuildArtifact} from './artifacts'
+import {buildDockerTestImage} from './docker'
 import {
   setEnvironmentVariables,
   displaySystemInfo,
@@ -29,6 +30,15 @@ async function run(): Promise<void> {
     // Prepare the build artifacts to include them in the docker image
     if (core.getInput('should_skip_artifacts') === 'false') {
       await prepareBuildArtifact('.', core.getInput('tests_path'))
+    }
+
+    // Build the test image
+    if (core.getInput('should_build_testsimage') === 'true') {
+      await buildDockerTestImage(
+        core.getInput('tests_path'),
+        core.getInput('tests_container_branch'),
+        core.getInput('tests_image')
+      )
     }
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)

@@ -107,6 +107,79 @@ exports.prepareBuildArtifact = prepareBuildArtifact;
 
 /***/ }),
 
+/***/ 3758:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.buildDockerTestImage = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const exec = __importStar(__nccwpck_require__(1514));
+function buildDockerTestImage(testsPath, testsContainerBranch, testsImage) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.startGroup('🛠️ Build test docker container');
+        const runCommands = [
+            // `git checkout ${testsContainerBranch}`,
+            `docker build -t ${testsImage} .`,
+            `docker save -o tests_image.tar ${testsImage}`
+        ];
+        for (const cmd of runCommands) {
+            core.info(`Exceuting: ${cmd}`);
+            let stdOut = '';
+            let stdErr = '';
+            const options = {};
+            options.listeners = {
+                stdout: (data) => {
+                    stdOut += data.toString();
+                },
+                stderr: (data) => {
+                    stdErr += data.toString();
+                }
+            };
+            yield exec.exec(cmd, [], Object.assign(Object.assign({}, options), { silent: true }));
+            core.info(`${cmd}: ${stdOut}${stdErr}`);
+        }
+        core.endGroup();
+    });
+}
+exports.buildDockerTestImage = buildDockerTestImage;
+
+
+/***/ }),
+
 /***/ 9849:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -281,6 +354,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const artifacts_1 = __nccwpck_require__(5671);
+const docker_1 = __nccwpck_require__(3758);
 const init_1 = __nccwpck_require__(9849);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -300,6 +374,10 @@ function run() {
             // Prepare the build artifacts to include them in the docker image
             if (core.getInput('should_skip_artifacts') === 'false') {
                 yield (0, artifacts_1.prepareBuildArtifact)('.', core.getInput('tests_path'));
+            }
+            // Build the test image
+            if (core.getInput('should_build_testsimage') === 'true') {
+                yield (0, docker_1.buildDockerTestImage)(core.getInput('tests_path'), core.getInput('tests_container_branch'), core.getInput('tests_image'));
             }
         }
         catch (error) {
