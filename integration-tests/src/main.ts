@@ -56,7 +56,7 @@ async function run(): Promise<void> {
 
     // Prepare the build artifacts to include them in the docker image
     if (core.getInput('should_skip_artifacts') === 'false') {
-      await prepareBuildArtifact()
+      await prepareBuildArtifact('', '')
     }
 
     // Build the test image
