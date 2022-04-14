@@ -1397,16 +1397,16 @@ function runShellCommands(commands, logfile = null, options = {}) {
                 }
             };
             yield exec.exec(cmd, [], Object.assign(Object.assign({}, options), { silent: silent }));
-            if (silent === false) {
-                if (stdOut.length > 0) {
-                    core.info('===== STDOUT =====');
-                    core.info(stdOut);
-                }
-                if (stdErr.length > 0) {
-                    core.info('===== STDERR =====');
-                    core.info(stdErr);
-                }
-            }
+            // if (silent === false) {
+            //   if (stdOut.length > 0) {
+            //     core.info('===== STDOUT =====')
+            //     core.info(stdOut)
+            //   }
+            //   if (stdErr.length > 0) {
+            //     core.info('===== STDERR =====')
+            //     core.info(stdErr)
+            //   }
+            // }
             if (logfile !== null &&
                 logfile !== '' &&
                 process.env.GITHUB_WORKSPACE &&
