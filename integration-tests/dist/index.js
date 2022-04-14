@@ -935,6 +935,143 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 __exportStar(__nccwpck_require__(1693), exports);
+__exportStar(__nccwpck_require__(2585), exports);
+__exportStar(__nccwpck_require__(7557), exports);
+__exportStar(__nccwpck_require__(6410), exports);
+
+
+/***/ }),
+
+/***/ 2585:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.createPagerdutyIncident = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const path = __importStar(__nccwpck_require__(5622));
+const system_1 = __nccwpck_require__(7885);
+function createPagerdutyIncident(testsPath, options) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.startGroup('🛠️ Creating incident in Pagerduty');
+        const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
+        let command = 'jahia-reporter pagerduty:incident';
+        command += ` --sourcePath="${reportsPath}"`;
+        command += ' --sourceType="xml"';
+        command += ` --pdApiKey="${options.pdApiKey}"`;
+        command += ` --pdReporterEmail="${options.pdReporterEmail}"`;
+        command += ` --pdReporterId="${options.pdReporterId}"`;
+        command += ` --pdTwoStepsAssign`;
+        command += ` --googleSpreadsheetId="${options.googleSpreadsheetId}"`;
+        command += ` --googleClientEmail="${options.googleClientEmail}"`;
+        command += ` --googleApiKey="${options.googleApiKey}"`;
+        command += ` --googleUpdateState`;
+        command += ` --service="${options.service}"`;
+        command += ` --sourceUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
+        yield (0, system_1.runShellCommands)([command]);
+        core.endGroup();
+    });
+}
+exports.createPagerdutyIncident = createPagerdutyIncident;
+
+
+/***/ }),
+
+/***/ 7557:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.sendSlackNotification = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const path = __importStar(__nccwpck_require__(5622));
+const system_1 = __nccwpck_require__(7885);
+function sendSlackNotification(testsPath, options) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.startGroup('🛠️ Send notification to Slack');
+        const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
+        const moduleFilepath = path.join(testsPath, 'artifacts/results/installed-jahia-modules.json');
+        let command = 'jahia-reporter slack';
+        command += ` --sourcePath="${reportsPath}"`;
+        command += ' --sourceType="xml"';
+        command += ` --channelId="${options.channelId}"`;
+        command += ` --channelAllId="${options.channelAllId}"`;
+        command += ` --token="${options.token}"`;
+        command += ` --skipSuccessful`;
+        command += ` --moduleFilepath="${moduleFilepath}"`;
+        command += ` --msgAuthor="Github Actions (${process.env.GITHUB_REPOSITORY})"`;
+        command += ` --runUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
+        yield (0, system_1.runShellCommands)([command]);
+        core.endGroup();
+    });
+}
+exports.sendSlackNotification = sendSlackNotification;
 
 
 /***/ }),
@@ -986,18 +1123,82 @@ function publishToTestrail(testsPath, options) {
         core.startGroup('🛠️ Publishing results to Testrail');
         const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         let command = 'jahia-reporter testrail';
-        command += `--testrailUsername="${options.testrailUsername}"`;
-        command += `--testrailPassword="${options.testrailPassword}"`;
-        command += `--sourcePath="${reportsPath}"`;
-        command += '--sourceType="xml"';
-        command += `--projectName="${options.testrailProject}"`;
-        command += `--milestone="${options.testrailMilestone}"`;
-        command += `--defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
+        command += ` --testrailUsername="${options.testrailUsername}"`;
+        command += ` --testrailPassword="${options.testrailPassword}"`;
+        command += ` --sourcePath="${reportsPath}"`;
+        command += ' --sourceType="xml"';
+        command += ` --projectName="${options.testrailProject}"`;
+        command += ` --milestone="${options.testrailMilestone}"`;
+        command += ` --defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
         yield (0, system_1.runShellCommands)([command]);
         core.endGroup();
     });
 }
 exports.publishToTestrail = publishToTestrail;
+
+
+/***/ }),
+
+/***/ 6410:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.sendResultsToZencrepes = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const path = __importStar(__nccwpck_require__(5622));
+const system_1 = __nccwpck_require__(7885);
+function sendResultsToZencrepes(testsPath, options) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.startGroup('🛠️ Send Results to ZenCrepes');
+        const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
+        const moduleFilepath = path.join(testsPath, 'artifacts/results/installed-jahia-modules.json');
+        let command = 'jahia-reporter zencrepes';
+        command += ` --sourcePath="${reportsPath}"`;
+        command += ' --sourceType="xml"';
+        command += ` --webhook="https://zencrepes.jahia.com/zqueue/testing/webhook"`;
+        command += ` --webhookSecret="${options.webhookSecret}"`;
+        command += ` --moduleFilepath="${moduleFilepath}"`;
+        command += ` --name="${options.service}"`;
+        command += ` --runUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
+        yield (0, system_1.runShellCommands)([command]);
+        core.endGroup();
+    });
+}
+exports.sendResultsToZencrepes = sendResultsToZencrepes;
 
 
 /***/ }),
@@ -1108,6 +1309,40 @@ function run() {
                     testrailMilestone: core.getInput('testrail_milestone')
                 });
             }
+            // Create incident in PagerDuty
+            if (process.env.CURRENT_BRANCH === 'master' ||
+                process.env.CURRENT_BRANCH === 'main' ||
+                // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
+                core.getInput('primary_release_branch') === 'TECH-533_ts_action') {
+                yield (0, jahia_reporter_1.createPagerdutyIncident)(testsFolder, {
+                    service: core.getInput('module_id'),
+                    pdApiKey: core.getInput('incident_pagerduty_api_key'),
+                    pdReporterEmail: core.getInput('incident_pagerduty_reporter_email'),
+                    pdReporterId: core.getInput('incident_pagerduty_reporter_id'),
+                    googleSpreadsheetId: core.getInput('incident_google_spreadsheet_id'),
+                    googleClientEmail: core.getInput('incident_google_client_email'),
+                    googleApiKey: core.getInput('incident_google_api_key_base64')
+                });
+            }
+            // Send notifications to slack
+            if (core.getInput('should_skip_notifications') === 'false' ||
+                // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
+                core.getInput('primary_release_branch') === 'TECH-533_ts_action') {
+                yield (0, jahia_reporter_1.sendSlackNotification)(testsFolder, {
+                    channelId: core.getInput('slack_channel_id_notifications'),
+                    channelAllId: core.getInput('slack_channel_id_notifications_all'),
+                    token: core.getInput('slack_client_token')
+                });
+            }
+            // Send results to zencrepes
+            if (core.getInput('should_skip_zencrepes') === 'false' ||
+                // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
+                core.getInput('primary_release_branch') === 'TECH-533_ts_action') {
+                yield (0, jahia_reporter_1.sendResultsToZencrepes)(testsFolder, {
+                    service: core.getInput('module_id'),
+                    webhookSecret: core.getInput('zencrepes_secret')
+                });
+            }
             //Finally, analyze the results
             if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
                 core.setFailed(`Could not locate file ${path.join(artifactsFolder, 'results/test_success')}, run has FAILED`);
@@ -1170,10 +1405,12 @@ const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 const fs = __importStar(__nccwpck_require__(5747));
 const path = __importStar(__nccwpck_require__(5622));
-function runShellCommands(commands, logfile = '', options = {}) {
+function runShellCommands(commands, logfile = null, options = {}) {
     return __awaiter(this, void 0, void 0, function* () {
         for (const cmd of commands) {
-            core.info(`Executing: ${cmd}`);
+            if (options.printCmd === undefined || options.printCmd === true) {
+                core.info(`Executing: ${cmd}`);
+            }
             let stdOut = '';
             let stdErr = '';
             options.listeners = {
@@ -1185,8 +1422,14 @@ function runShellCommands(commands, logfile = '', options = {}) {
                 }
             };
             yield exec.exec(cmd, [], Object.assign(Object.assign({}, options), { silent: false }));
-            core.info(`${stdOut}${stdErr}`);
-            if (logfile !== '' &&
+            if (options.printStdOut === undefined || options.printStdOut === true) {
+                core.info(stdOut);
+            }
+            if (options.printStdErr === undefined || options.printStdErr === true) {
+                core.info(stdErr);
+            }
+            if (logfile !== null &&
+                logfile !== '' &&
                 process.env.GITHUB_WORKSPACE &&
                 process.env.TESTS_PATH) {
                 process.env.GITHUB_WORKSPACE;

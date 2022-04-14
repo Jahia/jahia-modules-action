@@ -20,8 +20,12 @@ import {
   displaySystemInfo,
   installTooling
 } from './init'
-
-import {publishToTestrail} from './jahia-reporter'
+import {
+  publishToTestrail,
+  createPagerdutyIncident,
+  sendSlackNotification,
+  sendResultsToZencrepes
+} from './jahia-reporter'
 
 async function run(): Promise<void> {
   try {
@@ -128,6 +132,49 @@ async function run(): Promise<void> {
         testrailPassword: core.getInput('testrail_password'),
         testrailProject: core.getInput('testrail_project'),
         testrailMilestone: core.getInput('testrail_milestone')
+      })
+    }
+
+    // Create incident in PagerDuty
+    if (
+      process.env.CURRENT_BRANCH === 'master' ||
+      process.env.CURRENT_BRANCH === 'main' ||
+      // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
+      core.getInput('primary_release_branch') === 'TECH-533_ts_action'
+    ) {
+      await createPagerdutyIncident(testsFolder, {
+        service: core.getInput('module_id'),
+        pdApiKey: core.getInput('incident_pagerduty_api_key'),
+        pdReporterEmail: core.getInput('incident_pagerduty_reporter_email'),
+        pdReporterId: core.getInput('incident_pagerduty_reporter_id'),
+        googleSpreadsheetId: core.getInput('incident_google_spreadsheet_id'),
+        googleClientEmail: core.getInput('incident_google_client_email'),
+        googleApiKey: core.getInput('incident_google_api_key_base64')
+      })
+    }
+
+    // Send notifications to slack
+    if (
+      core.getInput('should_skip_notifications') === 'false' ||
+      // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
+      core.getInput('primary_release_branch') === 'TECH-533_ts_action'
+    ) {
+      await sendSlackNotification(testsFolder, {
+        channelId: core.getInput('slack_channel_id_notifications'),
+        channelAllId: core.getInput('slack_channel_id_notifications_all'),
+        token: core.getInput('slack_client_token')
+      })
+    }
+
+    // Send results to zencrepes
+    if (
+      core.getInput('should_skip_zencrepes') === 'false' ||
+      // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
+      core.getInput('primary_release_branch') === 'TECH-533_ts_action'
+    ) {
+      await sendResultsToZencrepes(testsFolder, {
+        service: core.getInput('module_id'),
+        webhookSecret: core.getInput('zencrepes_secret')
       })
     }
 

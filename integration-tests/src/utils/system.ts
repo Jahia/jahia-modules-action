@@ -3,13 +3,21 @@ import * as exec from '@actions/exec'
 import * as fs from 'fs'
 import * as path from 'path'
 
+interface CustomOptions {
+  printCmd?: boolean
+  printStdOut?: boolean
+  printStdErr?: boolean
+}
+
 export async function runShellCommands(
   commands: Array<string>,
-  logfile: string = '',
-  options: exec.ExecOptions = {}
+  logfile: string | null = null,
+  options: exec.ExecOptions & CustomOptions = {}
 ): Promise<any> {
   for (const cmd of commands) {
-    core.info(`Executing: ${cmd}`)
+    if (options.printCmd === undefined || options.printCmd === true) {
+      core.info(`Executing: ${cmd}`)
+    }
     let stdOut = ''
     let stdErr = ''
 
@@ -25,9 +33,15 @@ export async function runShellCommands(
       ...options,
       silent: false
     })
-    core.info(`${stdOut}${stdErr}`)
+    if (options.printStdOut === undefined || options.printStdOut === true) {
+      core.info(stdOut)
+    }
+    if (options.printStdErr === undefined || options.printStdErr === true) {
+      core.info(stdErr)
+    }
 
     if (
+      logfile !== null &&
       logfile !== '' &&
       process.env.GITHUB_WORKSPACE &&
       process.env.TESTS_PATH
