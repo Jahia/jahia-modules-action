@@ -1063,12 +1063,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.sendResultsToZencrepes = void 0;
-const core = __importStar(__nccwpck_require__(2186));
 const path = __importStar(__nccwpck_require__(5622));
 const system_1 = __nccwpck_require__(7885);
 function sendResultsToZencrepes(testsPath, options) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('🛠️ Send Results to ZenCrepes');
         const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         const moduleFilepath = path.join(testsPath, 'artifacts/results/installed-jahia-modules.json');
         let command = 'jahia-reporter zencrepes';
@@ -1080,7 +1078,6 @@ function sendResultsToZencrepes(testsPath, options) {
         command += ` --name="${options.service}"`;
         command += ` --runUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
         yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
-        core.endGroup();
     });
 }
 exports.sendResultsToZencrepes = sendResultsToZencrepes;
@@ -1291,9 +1288,25 @@ run();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.formatDate = exports.timeSinceStart = void 0;
 const date_fns_1 = __nccwpck_require__(3314);
+// Return time since start in the [+HH:MM:SS] format
 const timeSinceStart = (stardDate) => {
     const currentDate = new Date();
-    return `[+${Math.round((0, date_fns_1.differenceInHours)(currentDate, stardDate))}:${Math.round((0, date_fns_1.differenceInMinutes)(currentDate, stardDate))}:${Math.round((0, date_fns_1.differenceInSeconds)(currentDate, stardDate))}]`;
+    let secondsDiff = (0, date_fns_1.differenceInSeconds)(currentDate, stardDate);
+    let hours = 0;
+    let minutes = 0;
+    let seconds = 0;
+    if (secondsDiff > 3600) {
+        hours = Math.round(secondsDiff / 3600);
+        secondsDiff = secondsDiff - hours * 3600;
+    }
+    if (secondsDiff > 60) {
+        minutes = Math.round(secondsDiff / 60);
+        secondsDiff = secondsDiff - minutes * 3600;
+    }
+    if (secondsDiff > 0) {
+        seconds = secondsDiff;
+    }
+    return `[+${hours < 10 ? `0${hours}` : hours}:${minutes < 10 ? `0${minutes}` : minutes}:${seconds < 10 ? `0${seconds}` : seconds}]`;
 };
 exports.timeSinceStart = timeSinceStart;
 const formatDate = (date) => {
@@ -1397,16 +1410,6 @@ function runShellCommands(commands, logfile = null, options = {}) {
                 }
             };
             yield exec.exec(cmd, [], Object.assign(Object.assign({}, options), { silent: silent }));
-            // if (silent === false) {
-            //   if (stdOut.length > 0) {
-            //     core.info('===== STDOUT =====')
-            //     core.info(stdOut)
-            //   }
-            //   if (stdErr.length > 0) {
-            //     core.info('===== STDERR =====')
-            //     core.info(stdErr)
-            //   }
-            // }
             if (logfile !== null &&
                 logfile !== '' &&
                 process.env.GITHUB_WORKSPACE &&

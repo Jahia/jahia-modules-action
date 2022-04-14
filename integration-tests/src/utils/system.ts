@@ -41,16 +41,6 @@ export async function runShellCommands(
       ...options,
       silent: silent
     })
-    // if (silent === false) {
-    //   if (stdOut.length > 0) {
-    //     core.info('===== STDOUT =====')
-    //     core.info(stdOut)
-    //   }
-    //   if (stdErr.length > 0) {
-    //     core.info('===== STDERR =====')
-    //     core.info(stdErr)
-    //   }
-    // }
 
     if (
       logfile !== null &&

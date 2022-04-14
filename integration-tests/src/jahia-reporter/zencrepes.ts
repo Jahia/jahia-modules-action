@@ -12,8 +12,6 @@ export async function sendResultsToZencrepes(
   testsPath: string,
   options: JahiaReporterZencrepes
 ): Promise<any> {
-  core.startGroup('🛠️ Send Results to ZenCrepes')
-
   const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
   const moduleFilepath = path.join(
     testsPath,
@@ -30,6 +28,4 @@ export async function sendResultsToZencrepes(
   command += ` --runUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`
 
   await runShellCommands([command], null, {printCmd: false})
-
-  core.endGroup()
 }
