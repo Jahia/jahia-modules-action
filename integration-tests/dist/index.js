@@ -487,7 +487,7 @@ const exec = __importStar(__nccwpck_require__(1514));
 // See: https://github.com/docker/login-action/blob/master/src/docker.ts
 function login(username, password) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('🐋 Docker login');
+        //   core.startGroup('🐋 Docker login')
         if (!username || !password) {
             throw new Error('Username and password required');
         }
@@ -506,7 +506,7 @@ function login(username, password) {
             }
             core.info(`Login Succeeded!`);
         });
-        core.endGroup();
+        //   core.endGroup()
     });
 }
 exports.login = login;
@@ -1254,15 +1254,11 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const fs = __importStar(__nccwpck_require__(5747));
 const path = __importStar(__nccwpck_require__(5622));
-const date_fns_1 = __nccwpck_require__(3314);
+const utils_1 = __nccwpck_require__(1606);
 const artifacts_1 = __nccwpck_require__(4369);
 const docker_1 = __nccwpck_require__(7594);
 const init_1 = __nccwpck_require__(976);
 const jahia_reporter_1 = __nccwpck_require__(6601);
-const timeSinceStart = (stardDate) => {
-    const currentDate = new Date();
-    return `[+${Math.round((0, date_fns_1.differenceInHours)(currentDate, stardDate))}:${Math.round((0, date_fns_1.differenceInMinutes)(currentDate, stardDate))}:${Math.round((0, date_fns_1.differenceInSeconds)(currentDate, stardDate))}]`;
-};
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -1270,7 +1266,7 @@ function run() {
                 return;
             }
             const startTime = new Date();
-            core.info(`Started job at: ${(0, date_fns_1.format)(startTime, 'PPPP pppp')}`);
+            core.info(`Started job at: ${(0, utils_1.formatDate)(startTime)}`);
             // Set the various project folders
             const rootProjectFolder = process.env.GITHUB_WORKSPACE;
             if (!fs.existsSync(rootProjectFolder))
@@ -1286,7 +1282,7 @@ function run() {
             if (!fs.existsSync(artifactsFolder))
                 core.setFailed(`Folder (artifactsFolder) does not exist: ${artifactsFolder}`);
             // Set environment variables from parameters
-            yield core.group(`${timeSinceStart} Set Environment variables`, () => __awaiter(this, void 0, void 0, function* () {
+            yield core.group(`${utils_1.timeSinceStart} Set Environment variables`, () => __awaiter(this, void 0, void 0, function* () {
                 yield (0, init_1.setEnvironmentVariables)();
             }));
             // await setEnvironmentVariables()
@@ -1299,7 +1295,7 @@ function run() {
             //   core.getInput('docker_username'),
             //   core.getInput('docker_password')
             // )
-            yield core.group(`${timeSinceStart} 🐋 Docker Login`, () => __awaiter(this, void 0, void 0, function* () {
+            yield core.group(`${utils_1.timeSinceStart} 🐋 Docker Login`, () => __awaiter(this, void 0, void 0, function* () {
                 yield (0, docker_1.login)(core.getInput('docker_username'), core.getInput('docker_password'));
             }));
             // Download the build artifact
@@ -1369,6 +1365,7 @@ function run() {
                     webhookSecret: core.getInput('zencrepes_secret')
                 });
             }
+            core.info(`Completed job at: ${(0, utils_1.formatDate)(new Date())}`);
             //Finally, analyze the results
             if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
                 core.setFailed(`Could not locate file ${path.join(artifactsFolder, 'results/test_success')}, run has FAILED`);
@@ -1384,6 +1381,53 @@ function run() {
     });
 }
 run();
+
+
+/***/ }),
+
+/***/ 6154:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.formatDate = exports.timeSinceStart = void 0;
+const date_fns_1 = __nccwpck_require__(3314);
+const timeSinceStart = (stardDate) => {
+    const currentDate = new Date();
+    return `[+${Math.round((0, date_fns_1.differenceInHours)(currentDate, stardDate))}:${Math.round((0, date_fns_1.differenceInMinutes)(currentDate, stardDate))}:${Math.round((0, date_fns_1.differenceInSeconds)(currentDate, stardDate))}]`;
+};
+exports.timeSinceStart = timeSinceStart;
+const formatDate = (date) => {
+    return (0, date_fns_1.format)(date, 'PPPP pppp');
+};
+exports.formatDate = formatDate;
+
+
+/***/ }),
+
+/***/ 1606:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(7885), exports);
+__exportStar(__nccwpck_require__(6154), exports);
 
 
 /***/ }),
@@ -3962,7 +4006,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getExecOutput = exports.exec = void 0;
 const string_decoder_1 = __nccwpck_require__(4304);
-const tr = __importStar(__nccwpck_require__(4691));
+const tr = __importStar(__nccwpck_require__(8159));
 /**
  * Exec a command.
  * Output will be streamed to the live console.
@@ -4036,7 +4080,7 @@ exports.getExecOutput = getExecOutput;
 
 /***/ }),
 
-/***/ 4691:
+/***/ 8159:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -17901,7 +17945,7 @@ var _index173 = _interopRequireDefault(__nccwpck_require__(1287));
 
 var _index174 = _interopRequireDefault(__nccwpck_require__(3390));
 
-var _index175 = _interopRequireDefault(__nccwpck_require__(8159));
+var _index175 = _interopRequireDefault(__nccwpck_require__(4737));
 
 var _index176 = _interopRequireDefault(__nccwpck_require__(8756));
 
@@ -25467,7 +25511,7 @@ module.exports = exports.default;
 
 /***/ }),
 
-/***/ 8159:
+/***/ 4737:
 /***/ ((module, exports, __nccwpck_require__) => {
 
 "use strict";

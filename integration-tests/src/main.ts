@@ -2,12 +2,7 @@ import * as core from '@actions/core'
 import * as fs from 'fs'
 import * as path from 'path'
 
-import {
-  format,
-  differenceInHours,
-  differenceInMinutes,
-  differenceInSeconds
-} from 'date-fns'
+import {timeSinceStart, formatDate} from './utils'
 
 import {
   downloadArtifact,
@@ -34,15 +29,6 @@ import {
   sendResultsToZencrepes
 } from './jahia-reporter'
 
-const timeSinceStart = (stardDate: Date) => {
-  const currentDate = new Date()
-  return `[+${Math.round(
-    differenceInHours(currentDate, stardDate)
-  )}:${Math.round(differenceInMinutes(currentDate, stardDate))}:${Math.round(
-    differenceInSeconds(currentDate, stardDate)
-  )}]`
-}
-
 async function run(): Promise<void> {
   try {
     if (!process.env.GITHUB_WORKSPACE) {
@@ -50,7 +36,7 @@ async function run(): Promise<void> {
     }
 
     const startTime = new Date()
-    core.info(`Started job at: ${format(startTime, 'PPPP pppp')}`)
+    core.info(`Started job at: ${formatDate(startTime)}`)
 
     // Set the various project folders
     const rootProjectFolder = process.env.GITHUB_WORKSPACE
@@ -208,6 +194,8 @@ async function run(): Promise<void> {
         webhookSecret: core.getInput('zencrepes_secret')
       })
     }
+
+    core.info(`Completed job at: ${formatDate(new Date())}`)
 
     //Finally, analyze the results
     if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
