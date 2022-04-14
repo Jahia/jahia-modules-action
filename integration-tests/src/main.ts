@@ -64,7 +64,7 @@ async function run(): Promise<void> {
 
     // Set environment variables from parameters
     await core.group(
-      `${timeSinceStart} Set Environment variables`,
+      `${timeSinceStart(startTime)} Set Environment variables`,
       async () => {
         await setEnvironmentVariables()
       }
@@ -82,12 +82,15 @@ async function run(): Promise<void> {
     //   core.getInput('docker_username'),
     //   core.getInput('docker_password')
     // )
-    await core.group(`${timeSinceStart} 🐋 Docker Login`, async () => {
-      await login(
-        core.getInput('docker_username'),
-        core.getInput('docker_password')
-      )
-    })
+    await core.group(
+      `${timeSinceStart(startTime)} 🐋 Docker Login`,
+      async () => {
+        await login(
+          core.getInput('docker_username'),
+          core.getInput('docker_password')
+        )
+      }
+    )
 
     // Download the build artifact
     if (core.getInput('should_use_build_artifacts') === 'true') {

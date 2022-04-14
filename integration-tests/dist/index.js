@@ -1282,7 +1282,7 @@ function run() {
             if (!fs.existsSync(artifactsFolder))
                 core.setFailed(`Folder (artifactsFolder) does not exist: ${artifactsFolder}`);
             // Set environment variables from parameters
-            yield core.group(`${utils_1.timeSinceStart} Set Environment variables`, () => __awaiter(this, void 0, void 0, function* () {
+            yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} Set Environment variables`, () => __awaiter(this, void 0, void 0, function* () {
                 yield (0, init_1.setEnvironmentVariables)();
             }));
             // await setEnvironmentVariables()
@@ -1295,7 +1295,7 @@ function run() {
             //   core.getInput('docker_username'),
             //   core.getInput('docker_password')
             // )
-            yield core.group(`${utils_1.timeSinceStart} 🐋 Docker Login`, () => __awaiter(this, void 0, void 0, function* () {
+            yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🐋 Docker Login`, () => __awaiter(this, void 0, void 0, function* () {
                 yield (0, docker_1.login)(core.getInput('docker_username'), core.getInput('docker_password'));
             }));
             // Download the build artifact
