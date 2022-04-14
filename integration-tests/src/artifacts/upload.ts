@@ -4,12 +4,15 @@ import * as fs from 'fs'
 import * as path from 'path'
 
 // Recursively get all files under the path
-const getFiles = async (path: string, scannedFiles: Array<string> = []) => {
-  const files = fs.readdirSync(path)
+const getFiles = async (
+  currentPath: string,
+  scannedFiles: Array<string> = []
+) => {
+  const files = fs.readdirSync(currentPath)
   for (const f of files) {
-    const filePath = path + '/' + f
+    const filePath = path.join(currentPath, f)
     if (fs.statSync(filePath).isDirectory()) {
-      const resultFiles = await getFiles(`${filePath}/`, scannedFiles)
+      const resultFiles = await getFiles(filePath, scannedFiles)
       scannedFiles = [...scannedFiles, ...resultFiles]
     } else if (fs.statSync(filePath).isFile()) {
       if (!scannedFiles.includes(filePath)) {
@@ -17,7 +20,8 @@ const getFiles = async (path: string, scannedFiles: Array<string> = []) => {
       }
     }
   }
-  return scannedFiles
+  // Remove duplicates
+  return [...new Set(scannedFiles)]
 }
 
 export async function uploadArtifact(

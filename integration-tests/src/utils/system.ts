@@ -5,8 +5,6 @@ import * as path from 'path'
 
 interface CustomOptions {
   printCmd?: boolean
-  printStdOut?: boolean
-  printStdErr?: boolean
 }
 
 export async function runShellCommands(
@@ -15,6 +13,10 @@ export async function runShellCommands(
   options: exec.ExecOptions & CustomOptions = {}
 ): Promise<any> {
   for (const cmd of commands) {
+    let silent = false
+    if (options.silent === undefined || options.silent === true) {
+      silent = true
+    }
     if (options.printCmd === undefined || options.printCmd === true) {
       core.info(`Executing: ${cmd} with options: ${JSON.stringify(options)}`)
     } else {
@@ -37,12 +39,12 @@ export async function runShellCommands(
     }
     await exec.exec(cmd, [], {
       ...options,
-      silent: true
+      silent: silent
     })
-    if (options.printStdOut === undefined || options.printStdOut === true) {
+    if (silent === false) {
+      core.info('===== STDOUT =====')
       core.info(stdOut)
-    }
-    if (options.printStdErr === undefined || options.printStdErr === true) {
+      core.info('===== STDERR =====')
       core.info(stdErr)
     }
 

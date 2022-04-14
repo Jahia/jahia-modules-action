@@ -228,13 +228,14 @@ exports.uploadArtifact = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const artifact = __importStar(__nccwpck_require__(2605));
 const fs = __importStar(__nccwpck_require__(5747));
+const path = __importStar(__nccwpck_require__(5622));
 // Recursively get all files under the path
-const getFiles = (path, scannedFiles = []) => __awaiter(void 0, void 0, void 0, function* () {
-    const files = fs.readdirSync(path);
+const getFiles = (currentPath, scannedFiles = []) => __awaiter(void 0, void 0, void 0, function* () {
+    const files = fs.readdirSync(currentPath);
     for (const f of files) {
-        const filePath = path + '/' + f;
+        const filePath = path.join(currentPath, f);
         if (fs.statSync(filePath).isDirectory()) {
-            const resultFiles = yield getFiles(`${filePath}/`, scannedFiles);
+            const resultFiles = yield getFiles(filePath, scannedFiles);
             scannedFiles = [...scannedFiles, ...resultFiles];
         }
         else if (fs.statSync(filePath).isFile()) {
@@ -243,7 +244,8 @@ const getFiles = (path, scannedFiles = []) => __awaiter(void 0, void 0, void 0, 
             }
         }
     }
-    return scannedFiles;
+    // Remove duplicates
+    return [...new Set(scannedFiles)];
 });
 function uploadArtifact(artifactName, artifactPath, retentionDays) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -321,16 +323,13 @@ function copyRunArtifacts(containerName, desinationPath, testsFolder) {
         yield (0, system_1.runShellCommands)([`docker-compose logs -t --tail="all" `], 'artifacts/results/all-containers.log', {
             cwd: testsFolder,
             ignoreReturnCode: true,
-            printStdOut: false,
-            printStdErr: false
+            silent: true
         });
         yield (0, system_1.runShellCommands)([`docker logs jahia`], 'artifacts/results/jahia.log', {
-            printStdOut: false,
-            printStdErr: false
+            silent: true
         });
         yield (0, system_1.runShellCommands)([`docker logs ${containerName}`], `artifacts/results/${containerName}.log`, {
-            printStdOut: false,
-            printStdErr: false
+            silent: true
         });
         yield (0, system_1.runShellCommands)([
             `cp ${posix_1.default.join(desinationPath, `docker.log`)} ${posix_1.default.join(desinationPath, `results/docker.log`)}`
@@ -1012,7 +1011,7 @@ function createPagerdutyIncident(testsPath, options) {
         command += ` --googleUpdateState`;
         command += ` --service="${options.service}"`;
         command += ` --sourceUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
-        yield (0, system_1.runShellCommands)([command]);
+        yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
         core.endGroup();
     });
 }
@@ -1078,7 +1077,7 @@ function sendSlackNotification(testsPath, options) {
         command += ` --moduleFilepath="${moduleFilepath}"`;
         command += ` --msgAuthor="Github Actions (${process.env.GITHUB_REPOSITORY})"`;
         command += ` --runUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
-        yield (0, system_1.runShellCommands)([command]);
+        yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
         core.endGroup();
     });
 }
@@ -1141,7 +1140,7 @@ function publishToTestrail(testsPath, options) {
         command += ` --projectName="${options.testrailProject}"`;
         command += ` --milestone="${options.testrailMilestone}"`;
         command += ` --defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
-        yield (0, system_1.runShellCommands)([command]);
+        yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
         core.endGroup();
     });
 }
@@ -1205,7 +1204,7 @@ function sendResultsToZencrepes(testsPath, options) {
         command += ` --moduleFilepath="${moduleFilepath}"`;
         command += ` --name="${options.service}"`;
         command += ` --runUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
-        yield (0, system_1.runShellCommands)([command]);
+        yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
         core.endGroup();
     });
 }
@@ -1419,6 +1418,10 @@ const path = __importStar(__nccwpck_require__(5622));
 function runShellCommands(commands, logfile = null, options = {}) {
     return __awaiter(this, void 0, void 0, function* () {
         for (const cmd of commands) {
+            let silent = false;
+            if (options.silent === undefined || options.silent === true) {
+                silent = true;
+            }
             if (options.printCmd === undefined || options.printCmd === true) {
                 core.info(`Executing: ${cmd} with options: ${JSON.stringify(options)}`);
             }
@@ -1435,11 +1438,11 @@ function runShellCommands(commands, logfile = null, options = {}) {
                     stdErr += data.toString();
                 }
             };
-            yield exec.exec(cmd, [], Object.assign(Object.assign({}, options), { silent: true }));
-            if (options.printStdOut === undefined || options.printStdOut === true) {
+            yield exec.exec(cmd, [], Object.assign(Object.assign({}, options), { silent: silent }));
+            if (silent === false) {
+                core.info('===== STDOUT =====');
                 core.info(stdOut);
-            }
-            if (options.printStdErr === undefined || options.printStdErr === true) {
+                core.info('===== STDERR =====');
                 core.info(stdErr);
             }
             if (logfile !== null &&

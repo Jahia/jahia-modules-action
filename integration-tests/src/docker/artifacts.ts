@@ -28,22 +28,19 @@ export async function copyRunArtifacts(
     {
       cwd: testsFolder,
       ignoreReturnCode: true,
-      printStdOut: false,
-      printStdErr: false
+      silent: true
     }
   )
 
   await runShellCommands([`docker logs jahia`], 'artifacts/results/jahia.log', {
-    printStdOut: false,
-    printStdErr: false
+    silent: true
   })
 
   await runShellCommands(
     [`docker logs ${containerName}`],
     `artifacts/results/${containerName}.log`,
     {
-      printStdOut: false,
-      printStdErr: false
+      silent: true
     }
   )
 

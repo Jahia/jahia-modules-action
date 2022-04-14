@@ -29,7 +29,7 @@ export async function sendResultsToZencrepes(
   command += ` --name="${options.service}"`
   command += ` --runUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`
 
-  await runShellCommands([command])
+  await runShellCommands([command], null, {printCmd: false})
 
   core.endGroup()
 }

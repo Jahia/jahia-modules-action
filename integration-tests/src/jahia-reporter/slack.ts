@@ -32,7 +32,7 @@ export async function sendSlackNotification(
   command += ` --msgAuthor="Github Actions (${process.env.GITHUB_REPOSITORY})"`
   command += ` --runUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`
 
-  await runShellCommands([command])
+  await runShellCommands([command], null, {printCmd: false})
 
   core.endGroup()
 }
