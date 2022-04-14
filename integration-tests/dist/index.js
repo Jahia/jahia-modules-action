@@ -1435,7 +1435,7 @@ function runShellCommands(commands, logfile = null, options = {}) {
                     stdErr += data.toString();
                 }
             };
-            yield exec.exec(cmd, [], Object.assign(Object.assign({}, options), { silent: false }));
+            yield exec.exec(cmd, [], Object.assign(Object.assign({}, options), { silent: true }));
             if (options.printStdOut === undefined || options.printStdOut === true) {
                 core.info(stdOut);
             }

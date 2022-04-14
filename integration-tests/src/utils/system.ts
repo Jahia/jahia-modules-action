@@ -37,7 +37,7 @@ export async function runShellCommands(
     }
     await exec.exec(cmd, [], {
       ...options,
-      silent: false
+      silent: true
     })
     if (options.printStdOut === undefined || options.printStdOut === true) {
       core.info(stdOut)
