@@ -178,7 +178,7 @@ async function run(): Promise<void> {
       async () => {
         await executePostrunScript(
           testsFolder,
-          core.getInput('ci_startup_script')
+          core.getInput('ci_postrun_script')
         )
       }
     )

@@ -1204,7 +1204,7 @@ function run() {
             }));
             // Execute post-run script
             yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🐋 Execute Postrun script`, () => __awaiter(this, void 0, void 0, function* () {
-                yield (0, docker_1.executePostrunScript)(testsFolder, core.getInput('ci_startup_script'));
+                yield (0, docker_1.executePostrunScript)(testsFolder, core.getInput('ci_postrun_script'));
             }));
             // upload the artifacts
             yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🗄️ Uploading artifacts`, () => __awaiter(this, void 0, void 0, function* () {
@@ -1398,10 +1398,14 @@ function runShellCommands(commands, logfile = null, options = {}) {
             };
             yield exec.exec(cmd, [], Object.assign(Object.assign({}, options), { silent: silent }));
             if (silent === false) {
-                core.info('===== STDOUT =====');
-                core.info(stdOut);
-                core.info('===== STDERR =====');
-                core.info(stdErr);
+                if (stdOut.length > 0) {
+                    core.info('===== STDOUT =====');
+                    core.info(stdOut);
+                }
+                if (stdErr.length > 0) {
+                    core.info('===== STDERR =====');
+                    core.info(stdErr);
+                }
             }
             if (logfile !== null &&
                 logfile !== '' &&
