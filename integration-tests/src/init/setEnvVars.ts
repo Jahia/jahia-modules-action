@@ -18,4 +18,12 @@ export async function setEnvironmentVariables(): Promise<any> {
   core.exportVariable('NEXUS_PASSWORD', core.getInput('nexus_password'))
   core.exportVariable('DOCKER_USERNAME', core.getInput('docker_username'))
   core.exportVariable('TESTS_PATH', core.getInput('tests_path'))
+
+  if (process.env.GITHUB_REF) {
+    const branchName = process.env.GITHUB_REF.split('/')
+      .slice(2)
+      .join('/')
+      .replace(/\//g, '-')
+    core.exportVariable('CURRENT_BRANCH', branchName)
+  }
 }

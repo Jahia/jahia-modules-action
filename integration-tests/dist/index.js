@@ -322,7 +322,7 @@ function copyRunArtifacts(containerName, desinationPath, testsFolder) {
         yield (0, system_1.runShellCommands)([`docker logs jahia`], 'artifacts/results/jahia.log');
         yield (0, system_1.runShellCommands)([`docker logs ${containerName}`], `artifacts/results/${containerName}.log`);
         yield (0, system_1.runShellCommands)([
-            `docker ${posix_1.default.join(desinationPath, `docker.log`)} ${posix_1.default.join(desinationPath, `results/docker.log`)}`
+            `cp ${posix_1.default.join(desinationPath, `docker.log`)} ${posix_1.default.join(desinationPath, `results/docker.log`)}`
         ]);
         core.endGroup();
     });
@@ -900,9 +900,104 @@ function setEnvironmentVariables() {
         core.exportVariable('NEXUS_PASSWORD', core.getInput('nexus_password'));
         core.exportVariable('DOCKER_USERNAME', core.getInput('docker_username'));
         core.exportVariable('TESTS_PATH', core.getInput('tests_path'));
+        if (process.env.GITHUB_REF) {
+            const branchName = process.env.GITHUB_REF.split('/')
+                .slice(2)
+                .join('/')
+                .replace(/\//g, '-');
+            core.exportVariable('CURRENT_BRANCH', branchName);
+        }
     });
 }
 exports.setEnvironmentVariables = setEnvironmentVariables;
+
+
+/***/ }),
+
+/***/ 6601:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(1693), exports);
+
+
+/***/ }),
+
+/***/ 1693:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.publishToTestrail = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const path = __importStar(__nccwpck_require__(5622));
+const system_1 = __nccwpck_require__(7885);
+function publishToTestrail(testsPath, options) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.startGroup('🛠️ Publishing results to Testrail');
+        const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
+        let command = 'jahia-reporter testrail';
+        command += `--testrailUsername="${options.testrailUsername}"`;
+        command += `--testrailPassword="${options.testrailPassword}"`;
+        command += `--sourcePath="${reportsPath}"`;
+        command += '--sourceType="xml"';
+        command += `--projectName="${options.testrailProject}"`;
+        command += `--milestone="${options.testrailMilestone}"`;
+        command += `--defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
+        yield (0, system_1.runShellCommands)([command]);
+        core.endGroup();
+    });
+}
+exports.publishToTestrail = publishToTestrail;
 
 
 /***/ }),
@@ -951,6 +1046,7 @@ const path = __importStar(__nccwpck_require__(5622));
 const artifacts_1 = __nccwpck_require__(4369);
 const docker_1 = __nccwpck_require__(7594);
 const init_1 = __nccwpck_require__(976);
+const jahia_reporter_1 = __nccwpck_require__(6601);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -1001,6 +1097,17 @@ function run() {
             yield (0, docker_1.executePostrunScript)(testsFolder, core.getInput('ci_startup_script'));
             // upload the artifacts
             yield (0, artifacts_1.uploadArtifact)(core.getInput('artifact_name'), artifactsFolder, Number(core.getInput('artifact_retention')));
+            // Publish results to testrail
+            if (core.getInput('should_skip_testrail') === 'false' ||
+                // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
+                core.getInput('primary_release_branch') === 'TECH-533_ts_action') {
+                yield (0, jahia_reporter_1.publishToTestrail)(testsFolder, {
+                    testrailUsername: core.getInput('testrail_username'),
+                    testrailPassword: core.getInput('testrail_password'),
+                    testrailProject: core.getInput('testrail_project'),
+                    testrailMilestone: core.getInput('testrail_milestone')
+                });
+            }
             //Finally, analyze the results
             if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
                 core.setFailed(`Could not locate file ${path.join(artifactsFolder, 'results/test_success')}, run has FAILED`);

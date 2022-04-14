@@ -36,7 +36,7 @@ export async function copyRunArtifacts(
   )
 
   await runShellCommands([
-    `docker ${path.join(desinationPath, `docker.log`)} ${path.join(
+    `cp ${path.join(desinationPath, `docker.log`)} ${path.join(
       desinationPath,
       `results/docker.log`
     )}`

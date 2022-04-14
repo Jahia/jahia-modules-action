@@ -21,6 +21,8 @@ import {
   installTooling
 } from './init'
 
+import {publishToTestrail} from './jahia-reporter'
+
 async function run(): Promise<void> {
   try {
     if (!process.env.GITHUB_WORKSPACE) {
@@ -114,6 +116,20 @@ async function run(): Promise<void> {
       artifactsFolder,
       Number(core.getInput('artifact_retention'))
     )
+
+    // Publish results to testrail
+    if (
+      core.getInput('should_skip_testrail') === 'false' ||
+      // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
+      core.getInput('primary_release_branch') === 'TECH-533_ts_action'
+    ) {
+      await publishToTestrail(testsFolder, {
+        testrailUsername: core.getInput('testrail_username'),
+        testrailPassword: core.getInput('testrail_password'),
+        testrailProject: core.getInput('testrail_project'),
+        testrailMilestone: core.getInput('testrail_milestone')
+      })
+    }
 
     //Finally, analyze the results
     if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
