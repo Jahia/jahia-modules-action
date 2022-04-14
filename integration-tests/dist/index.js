@@ -1479,7 +1479,7 @@ function runShellCommands(commands, logfile = null, options = {}) {
     return __awaiter(this, void 0, void 0, function* () {
         for (const cmd of commands) {
             let silent = false;
-            if (options.silent === undefined || options.silent === true) {
+            if (options.silent !== undefined || options.silent === true) {
                 silent = true;
             }
             if (options.printCmd === undefined || options.printCmd === true) {

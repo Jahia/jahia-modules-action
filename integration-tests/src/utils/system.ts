@@ -14,7 +14,7 @@ export async function runShellCommands(
 ): Promise<any> {
   for (const cmd of commands) {
     let silent = false
-    if (options.silent === undefined || options.silent === true) {
+    if (options.silent !== undefined || options.silent === true) {
       silent = true
     }
     if (options.printCmd === undefined || options.printCmd === true) {
