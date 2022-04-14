@@ -16,7 +16,13 @@ export async function runShellCommands(
 ): Promise<any> {
   for (const cmd of commands) {
     if (options.printCmd === undefined || options.printCmd === true) {
-      core.info(`Executing: ${cmd}`)
+      core.info(`Executing: ${cmd} with options: ${JSON.stringify(options)}`)
+    } else {
+      core.info(
+        `Executing a ##OBFUSCATED## command with options: ${JSON.stringify(
+          options
+        )}`
+      )
     }
     let stdOut = ''
     let stdErr = ''
@@ -55,10 +61,12 @@ export async function runShellCommands(
       )
       const logFileStream = fs.createWriteStream(filepath, {flags: 'a+'})
       logFileStream.write(`Executing: ${cmd}`)
+      logFileStream.write('===== STDOUT =====')
       logFileStream.write(stdOut)
+      logFileStream.write('===== STDERR =====')
       logFileStream.write(stdErr)
       logFileStream.end()
-      core.info(`Saved file to: ${filepath}`)
+      core.info(`Saved command output to: ${filepath}`)
     }
   }
 }

@@ -1420,7 +1420,10 @@ function runShellCommands(commands, logfile = null, options = {}) {
     return __awaiter(this, void 0, void 0, function* () {
         for (const cmd of commands) {
             if (options.printCmd === undefined || options.printCmd === true) {
-                core.info(`Executing: ${cmd}`);
+                core.info(`Executing: ${cmd} with options: ${JSON.stringify(options)}`);
+            }
+            else {
+                core.info(`Executing a ##OBFUSCATED## command with options: ${JSON.stringify(options)}`);
             }
             let stdOut = '';
             let stdErr = '';
@@ -1447,10 +1450,12 @@ function runShellCommands(commands, logfile = null, options = {}) {
                 const filepath = path.join(process.env.GITHUB_WORKSPACE, process.env.TESTS_PATH, logfile);
                 const logFileStream = fs.createWriteStream(filepath, { flags: 'a+' });
                 logFileStream.write(`Executing: ${cmd}`);
+                logFileStream.write('===== STDOUT =====');
                 logFileStream.write(stdOut);
+                logFileStream.write('===== STDERR =====');
                 logFileStream.write(stdErr);
                 logFileStream.end();
-                core.info(`Saved file to: ${filepath}`);
+                core.info(`Saved command output to: ${filepath}`);
             }
         }
     });
