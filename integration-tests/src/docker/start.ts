@@ -9,8 +9,6 @@ export async function startDockerEnvironment(
   ciStartupScript: string,
   dockerComposeFile: string
 ): Promise<void> {
-  core.startGroup('🐋 Starting the Docker environment')
-
   const startupFile = path.join(testsFolder, ciStartupScript)
   const composeFile = path.join(testsFolder, dockerComposeFile)
 
@@ -36,5 +34,4 @@ export async function startDockerEnvironment(
       `Unable to find environment startup instructions. Could not find startup script (${startupFile}) NOR compose file ${composeFile}`
     )
   }
-  core.endGroup()
 }

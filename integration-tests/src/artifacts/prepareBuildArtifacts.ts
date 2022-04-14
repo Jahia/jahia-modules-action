@@ -22,7 +22,8 @@ const getTargetFolders = async (
       }
     }
   }
-  return targets
+  // Remove duplicates
+  return [...new Set(targets)]
 }
 
 export async function prepareBuildArtifact(
@@ -30,8 +31,6 @@ export async function prepareBuildArtifact(
   testsPath: string
 ): Promise<any> {
   if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
-    core.startGroup('🛠️ Preparing build artifacts')
-
     const artifactsFolder = path.join(testsPath, 'artifacts')
 
     if (!fs.existsSync(rootProjectFolder)) {
@@ -75,7 +74,5 @@ export async function prepareBuildArtifact(
     } else {
       core.info(`Artifacts folder is empty: ${artifactsFolder}`)
     }
-
-    core.endGroup()
   }
 }

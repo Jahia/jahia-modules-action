@@ -17,8 +17,6 @@ export async function createPagerdutyIncident(
   testsPath: string,
   options: JahiaReporterPagerduty
 ): Promise<any> {
-  core.startGroup('🛠️ Creating incident in Pagerduty')
-
   const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
 
   let command = 'jahia-reporter pagerduty:incident'
@@ -36,6 +34,4 @@ export async function createPagerdutyIncident(
   command += ` --sourceUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`
 
   await runShellCommands([command], null, {printCmd: false})
-
-  core.endGroup()
 }

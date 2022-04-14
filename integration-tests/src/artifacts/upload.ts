@@ -30,9 +30,6 @@ export async function uploadArtifact(
   retentionDays: number
 ): Promise<any> {
   const artifactClient = artifact.create()
-
-  core.startGroup('🗄️ Uploading artifacts')
-
   const artifactsFiles = await getFiles(artifactPath)
 
   core.info('About the upload the following files as artifacts: ')
@@ -53,5 +50,4 @@ export async function uploadArtifact(
   core.info(
     `Uploaded: ${uploadResponse.artifactName} for a total size of: ${uploadResponse.size}`
   )
-  core.endGroup()
 }

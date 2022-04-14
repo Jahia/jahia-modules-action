@@ -140,12 +140,12 @@ const getTargetFolders = (path, targets = [], dirName = 'target') => __awaiter(v
             }
         }
     }
-    return targets;
+    // Remove duplicates
+    return [...new Set(targets)];
 });
 function prepareBuildArtifact(rootProjectFolder, testsPath) {
     return __awaiter(this, void 0, void 0, function* () {
         if (process.env.GITHUB_WORKSPACE && process.env.TESTS_PATH) {
-            core.startGroup('🛠️ Preparing build artifacts');
             const artifactsFolder = path.join(testsPath, 'artifacts');
             if (!fs.existsSync(rootProjectFolder)) {
                 core.info(`Folder: ${rootProjectFolder} does not exist`);
@@ -177,7 +177,6 @@ function prepareBuildArtifact(rootProjectFolder, testsPath) {
             else {
                 core.info(`Artifacts folder is empty: ${artifactsFolder}`);
             }
-            core.endGroup();
         }
     });
 }
@@ -250,7 +249,6 @@ const getFiles = (currentPath, scannedFiles = []) => __awaiter(void 0, void 0, v
 function uploadArtifact(artifactName, artifactPath, retentionDays) {
     return __awaiter(this, void 0, void 0, function* () {
         const artifactClient = artifact.create();
-        core.startGroup('🗄️ Uploading artifacts');
         const artifactsFiles = yield getFiles(artifactPath);
         core.info('About the upload the following files as artifacts: ');
         for (const f of artifactsFiles) {
@@ -262,7 +260,6 @@ function uploadArtifact(artifactName, artifactPath, retentionDays) {
             retentionDays: retentionDays
         });
         core.info(`Uploaded: ${uploadResponse.artifactName} for a total size of: ${uploadResponse.size}`);
-        core.endGroup();
     });
 }
 exports.uploadArtifact = uploadArtifact;
@@ -275,29 +272,6 @@ exports.uploadArtifact = uploadArtifact;
 
 "use strict";
 
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -312,12 +286,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.copyRunArtifacts = void 0;
-const core = __importStar(__nccwpck_require__(2186));
 const posix_1 = __importDefault(__nccwpck_require__(3301));
 const system_1 = __nccwpck_require__(7885);
 function copyRunArtifacts(containerName, desinationPath, testsFolder) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('🐋 Export containers artifacts (reports, secreenshots, videos, logs) ');
         yield (0, system_1.runShellCommands)([`docker cp ${containerName}:/home/jahians/results ${desinationPath}`], 'artifacts/cypress-artifacts.log');
         yield (0, system_1.runShellCommands)([`docker stats --all --no-stream`], 'artifacts/results/cypress-stats.log');
         yield (0, system_1.runShellCommands)([`docker-compose logs -t --tail="all" `], 'artifacts/results/all-containers.log', {
@@ -334,7 +306,6 @@ function copyRunArtifacts(containerName, desinationPath, testsFolder) {
         yield (0, system_1.runShellCommands)([
             `cp ${posix_1.default.join(desinationPath, `docker.log`)} ${posix_1.default.join(desinationPath, `results/docker.log`)}`
         ]);
-        core.endGroup();
     });
 }
 exports.copyRunArtifacts = copyRunArtifacts;
@@ -389,8 +360,6 @@ const simple_git_1 = __importDefault(__nccwpck_require__(9103));
 const system_1 = __nccwpck_require__(7885);
 function buildDockerTestImage(testsPath, testsContainerBranch, testsImage) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('🐋 Build test docker container');
-        core.info(JSON.stringify(process.env.GITHUB_WORKSPACE));
         const git = (0, simple_git_1.default)({
             baseDir: `${testsPath}`
         });
@@ -405,7 +374,6 @@ function buildDockerTestImage(testsPath, testsContainerBranch, testsImage) {
             `docker save -o ${testsPath}/tests_image.tar ${testsImage}`
         ];
         yield (0, system_1.runShellCommands)(runCommands);
-        core.endGroup();
     });
 }
 exports.buildDockerTestImage = buildDockerTestImage;
@@ -487,7 +455,6 @@ const exec = __importStar(__nccwpck_require__(1514));
 // See: https://github.com/docker/login-action/blob/master/src/docker.ts
 function login(username, password) {
     return __awaiter(this, void 0, void 0, function* () {
-        //   core.startGroup('🐋 Docker login')
         if (!username || !password) {
             throw new Error('Username and password required');
         }
@@ -506,7 +473,6 @@ function login(username, password) {
             }
             core.info(`Login Succeeded!`);
         });
-        //   core.endGroup()
     });
 }
 exports.login = login;
@@ -564,13 +530,11 @@ function executePostrunScript(testsFolder, postrunScript) {
         // The last step of the action will take care of verifying
         // if execution was successful
         if (fs.existsSync(postrunFile)) {
-            core.startGroup('🐋 Execute Postrun script');
             core.info(`Executing postrun script: ${postrunFile}`);
             yield (0, system_1.runShellCommands)([`bash ${postrunFile}`], 'artifacts/postrun.log', {
                 cwd: testsFolder,
                 ignoreReturnCode: true
             });
-            core.endGroup();
         }
         else {
             core.info(`Postrun script not found: ${postrunFile}, skipping...`);
@@ -587,29 +551,6 @@ exports.executePostrunScript = executePostrunScript;
 
 "use strict";
 
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -621,11 +562,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.pullDockerImages = void 0;
-const core = __importStar(__nccwpck_require__(2186));
 const system_1 = __nccwpck_require__(7885);
 function pullDockerImages(jahiaImage, jCustomerImage) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('🐋 Pull the latest version of Jahia and jCustomer and print docker images cache to console');
         // Get list of docker images in local cache BEFORE the pull
         const runCommands = [`docker images --digests --all`];
         if (jahiaImage !== '') {
@@ -637,7 +576,6 @@ function pullDockerImages(jahiaImage, jCustomerImage) {
         // Get list of docker images in local cache AFTER the pull
         runCommands.push(`docker images --digests --all`);
         yield (0, system_1.runShellCommands)(runCommands, 'artifacts/docker.log');
-        core.endGroup();
     });
 }
 exports.pullDockerImages = pullDockerImages;
@@ -690,7 +628,6 @@ const path = __importStar(__nccwpck_require__(5622));
 const system_1 = __nccwpck_require__(7885);
 function startDockerEnvironment(testsFolder, ciStartupScript, dockerComposeFile) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('🐋 Starting the Docker environment');
         const startupFile = path.join(testsFolder, ciStartupScript);
         const composeFile = path.join(testsFolder, dockerComposeFile);
         // Note that we're ignoring the return code on purpose.
@@ -710,7 +647,6 @@ function startDockerEnvironment(testsFolder, ciStartupScript, dockerComposeFile)
         else {
             core.setFailed(`Unable to find environment startup instructions. Could not find startup script (${startupFile}) NOR compose file ${composeFile}`);
         }
-        core.endGroup();
     });
 }
 exports.startDockerEnvironment = startDockerEnvironment;
@@ -723,29 +659,6 @@ exports.startDockerEnvironment = startDockerEnvironment;
 
 "use strict";
 
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -757,11 +670,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.displaySystemInfo = void 0;
-const core = __importStar(__nccwpck_require__(2186));
 const system_1 = __nccwpck_require__(7885);
 function displaySystemInfo() {
     return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('🛠️ Displaying important environment variables and system info');
         const runCommands = [
             'node -v',
             'npm -v',
@@ -769,7 +680,6 @@ function displaySystemInfo() {
             'printenv'
         ];
         yield (0, system_1.runShellCommands)(runCommands);
-        core.endGroup();
     });
 }
 exports.displaySystemInfo = displaySystemInfo;
@@ -809,29 +719,6 @@ __exportStar(__nccwpck_require__(1194), exports);
 
 "use strict";
 
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -843,13 +730,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.installTooling = void 0;
-const core = __importStar(__nccwpck_require__(2186));
 const system_1 = __nccwpck_require__(7885);
 function installTooling() {
     return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('🛠️ Install runtime tooling');
         yield (0, system_1.runShellCommands)(['npm install -g @jahia/jahia-reporter']);
-        core.endGroup();
     });
 }
 exports.installTooling = installTooling;
@@ -991,12 +875,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.createPagerdutyIncident = void 0;
-const core = __importStar(__nccwpck_require__(2186));
 const path = __importStar(__nccwpck_require__(5622));
 const system_1 = __nccwpck_require__(7885);
 function createPagerdutyIncident(testsPath, options) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('🛠️ Creating incident in Pagerduty');
         const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         let command = 'jahia-reporter pagerduty:incident';
         command += ` --sourcePath="${reportsPath}"`;
@@ -1012,7 +894,6 @@ function createPagerdutyIncident(testsPath, options) {
         command += ` --service="${options.service}"`;
         command += ` --sourceUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
         yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
-        core.endGroup();
     });
 }
 exports.createPagerdutyIncident = createPagerdutyIncident;
@@ -1059,12 +940,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.sendSlackNotification = void 0;
-const core = __importStar(__nccwpck_require__(2186));
 const path = __importStar(__nccwpck_require__(5622));
 const system_1 = __nccwpck_require__(7885);
 function sendSlackNotification(testsPath, options) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('🛠️ Send notification to Slack');
         const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         const moduleFilepath = path.join(testsPath, 'artifacts/results/installed-jahia-modules.json');
         let command = 'jahia-reporter slack';
@@ -1078,7 +957,6 @@ function sendSlackNotification(testsPath, options) {
         command += ` --msgAuthor="Github Actions (${process.env.GITHUB_REPOSITORY})"`;
         command += ` --runUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
         yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
-        core.endGroup();
     });
 }
 exports.sendSlackNotification = sendSlackNotification;
@@ -1125,12 +1003,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.publishToTestrail = void 0;
-const core = __importStar(__nccwpck_require__(2186));
 const path = __importStar(__nccwpck_require__(5622));
 const system_1 = __nccwpck_require__(7885);
 function publishToTestrail(testsPath, options) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.startGroup('🛠️ Publishing results to Testrail');
         const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         let command = 'jahia-reporter testrail';
         command += ` --testrailUsername="${options.testrailUsername}"`;
@@ -1141,7 +1017,6 @@ function publishToTestrail(testsPath, options) {
         command += ` --milestone="${options.testrailMilestone}"`;
         command += ` --defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
         yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
-        core.endGroup();
     });
 }
 exports.publishToTestrail = publishToTestrail;
@@ -1285,85 +1160,108 @@ function run() {
             yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} Set Environment variables`, () => __awaiter(this, void 0, void 0, function* () {
                 yield (0, init_1.setEnvironmentVariables)();
             }));
-            // await setEnvironmentVariables()
             // Install various tools (such as jahia-reporter) needed for the workflow
-            yield (0, init_1.installTooling)();
+            yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Install runtime tooling`, () => __awaiter(this, void 0, void 0, function* () {
+                yield (0, init_1.installTooling)();
+            }));
             // Display important versions and environment variables
-            yield (0, init_1.displaySystemInfo)();
+            yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Displaying important environment variables and system info`, () => __awaiter(this, void 0, void 0, function* () {
+                yield (0, init_1.displaySystemInfo)();
+            }));
             // Docker login
-            // await login(
-            //   core.getInput('docker_username'),
-            //   core.getInput('docker_password')
-            // )
             yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🐋 Docker Login`, () => __awaiter(this, void 0, void 0, function* () {
                 yield (0, docker_1.login)(core.getInput('docker_username'), core.getInput('docker_password'));
             }));
             // Download the build artifact
             if (core.getInput('should_use_build_artifacts') === 'true') {
-                yield (0, artifacts_1.downloadArtifact)('build-artifacts');
+                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Download previous artifact`, () => __awaiter(this, void 0, void 0, function* () {
+                    yield (0, artifacts_1.downloadArtifact)('build-artifacts');
+                }));
             }
             // Prepare the build artifacts to include them in the docker image
             if (core.getInput('should_skip_artifacts') === 'false') {
-                yield (0, artifacts_1.prepareBuildArtifact)(rootProjectFolder, testsFolder);
+                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Preparing build artifacts`, () => __awaiter(this, void 0, void 0, function* () {
+                    yield (0, artifacts_1.prepareBuildArtifact)(rootProjectFolder, testsFolder);
+                }));
             }
             // Build the test image
             if (core.getInput('should_build_testsimage') === 'true') {
-                yield (0, docker_1.buildDockerTestImage)(core.getInput('tests_path'), core.getInput('tests_container_branch'), core.getInput('tests_image'));
+                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🐋 Build test docker container`, () => __awaiter(this, void 0, void 0, function* () {
+                    yield (0, docker_1.buildDockerTestImage)(core.getInput('tests_path'), core.getInput('tests_container_branch'), core.getInput('tests_image'));
+                }));
             }
             // Pull the latest version of Jahia and jCustomer and print docker images cache to console
-            yield (0, docker_1.pullDockerImages)(core.getInput('jahia_image'), core.getInput('jcustomer_image'));
+            yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🐋 Pull the latest version of Jahia and jCustomer and print docker images cache to console`, () => __awaiter(this, void 0, void 0, function* () {
+                yield (0, docker_1.pullDockerImages)(core.getInput('jahia_image'), core.getInput('jcustomer_image'));
+            }));
             // Spin-up the containers
-            yield (0, docker_1.startDockerEnvironment)(testsFolder, core.getInput('ci_startup_script'), core.getInput('docker_compose_file'));
+            yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🐋 Starting the Docker environment`, () => __awaiter(this, void 0, void 0, function* () {
+                yield (0, docker_1.startDockerEnvironment)(testsFolder, core.getInput('ci_startup_script'), core.getInput('docker_compose_file'));
+            }));
             // Export containers artifacts (reports, secreenshots, videos)
-            yield (0, docker_1.copyRunArtifacts)(core.getInput('tests_container_name'), artifactsFolder, testsFolder);
-            // Spin-up the containers
-            yield (0, docker_1.executePostrunScript)(testsFolder, core.getInput('ci_startup_script'));
+            yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🐋 Export containers artifacts (reports, secreenshots, videos, logs) `, () => __awaiter(this, void 0, void 0, function* () {
+                yield (0, docker_1.copyRunArtifacts)(core.getInput('tests_container_name'), artifactsFolder, testsFolder);
+            }));
+            // Execute post-run script
+            yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🐋 Execute Postrun script`, () => __awaiter(this, void 0, void 0, function* () {
+                yield (0, docker_1.executePostrunScript)(testsFolder, core.getInput('ci_startup_script'));
+            }));
             // upload the artifacts
-            yield (0, artifacts_1.uploadArtifact)(core.getInput('artifact_name'), artifactsFolder, Number(core.getInput('artifact_retention')));
+            yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🗄️ Uploading artifacts`, () => __awaiter(this, void 0, void 0, function* () {
+                yield (0, artifacts_1.uploadArtifact)(core.getInput('artifact_name'), artifactsFolder, Number(core.getInput('artifact_retention')));
+            }));
             // Publish results to testrail
             if (core.getInput('should_skip_testrail') === 'false' ||
                 // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
                 core.getInput('primary_release_branch') === 'TECH-533_ts_action') {
-                yield (0, jahia_reporter_1.publishToTestrail)(testsFolder, {
-                    testrailUsername: core.getInput('testrail_username'),
-                    testrailPassword: core.getInput('testrail_password'),
-                    testrailProject: core.getInput('testrail_project'),
-                    testrailMilestone: core.getInput('testrail_milestone')
-                });
+                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Publishing results to Testrail`, () => __awaiter(this, void 0, void 0, function* () {
+                    yield (0, jahia_reporter_1.publishToTestrail)(testsFolder, {
+                        testrailUsername: core.getInput('testrail_username'),
+                        testrailPassword: core.getInput('testrail_password'),
+                        testrailProject: core.getInput('testrail_project'),
+                        testrailMilestone: core.getInput('testrail_milestone')
+                    });
+                }));
             }
             // Create incident in PagerDuty
             if (process.env.CURRENT_BRANCH === 'master' ||
                 process.env.CURRENT_BRANCH === 'main' ||
                 // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
                 core.getInput('primary_release_branch') === 'TECH-533_ts_action') {
-                yield (0, jahia_reporter_1.createPagerdutyIncident)(testsFolder, {
-                    service: core.getInput('module_id'),
-                    pdApiKey: core.getInput('incident_pagerduty_api_key'),
-                    pdReporterEmail: core.getInput('incident_pagerduty_reporter_email'),
-                    pdReporterId: core.getInput('incident_pagerduty_reporter_id'),
-                    googleSpreadsheetId: core.getInput('incident_google_spreadsheet_id'),
-                    googleClientEmail: core.getInput('incident_google_client_email'),
-                    googleApiKey: core.getInput('incident_google_api_key_base64')
-                });
+                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Creating incident in Pagerduty (if applicable)`, () => __awaiter(this, void 0, void 0, function* () {
+                    yield (0, jahia_reporter_1.createPagerdutyIncident)(testsFolder, {
+                        service: core.getInput('module_id'),
+                        pdApiKey: core.getInput('incident_pagerduty_api_key'),
+                        pdReporterEmail: core.getInput('incident_pagerduty_reporter_email'),
+                        pdReporterId: core.getInput('incident_pagerduty_reporter_id'),
+                        googleSpreadsheetId: core.getInput('incident_google_spreadsheet_id'),
+                        googleClientEmail: core.getInput('incident_google_client_email'),
+                        googleApiKey: core.getInput('incident_google_api_key_base64')
+                    });
+                }));
             }
             // Send notifications to slack
             if (core.getInput('should_skip_notifications') === 'false' ||
                 // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
                 core.getInput('primary_release_branch') === 'TECH-533_ts_action') {
-                yield (0, jahia_reporter_1.sendSlackNotification)(testsFolder, {
-                    channelId: core.getInput('slack_channel_id_notifications'),
-                    channelAllId: core.getInput('slack_channel_id_notifications_all'),
-                    token: core.getInput('slack_client_token')
-                });
+                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Send notification to Slack`, () => __awaiter(this, void 0, void 0, function* () {
+                    yield (0, jahia_reporter_1.sendSlackNotification)(testsFolder, {
+                        channelId: core.getInput('slack_channel_id_notifications'),
+                        channelAllId: core.getInput('slack_channel_id_notifications_all'),
+                        token: core.getInput('slack_client_token')
+                    });
+                }));
             }
             // Send results to zencrepes
             if (core.getInput('should_skip_zencrepes') === 'false' ||
                 // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
                 core.getInput('primary_release_branch') === 'TECH-533_ts_action') {
-                yield (0, jahia_reporter_1.sendResultsToZencrepes)(testsFolder, {
-                    service: core.getInput('module_id'),
-                    webhookSecret: core.getInput('zencrepes_secret')
-                });
+                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Send results to ZenCrepes`, () => __awaiter(this, void 0, void 0, function* () {
+                    yield (0, jahia_reporter_1.sendResultsToZencrepes)(testsFolder, {
+                        service: core.getInput('module_id'),
+                        webhookSecret: core.getInput('zencrepes_secret')
+                    });
+                }));
             }
             core.info(`Completed job at: ${(0, utils_1.formatDate)(new Date())}`);
             //Finally, analyze the results

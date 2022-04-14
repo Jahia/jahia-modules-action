@@ -13,8 +13,6 @@ export async function sendSlackNotification(
   testsPath: string,
   options: JahiaReporterSlack
 ): Promise<any> {
-  core.startGroup('🛠️ Send notification to Slack')
-
   const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
   const moduleFilepath = path.join(
     testsPath,
@@ -33,6 +31,4 @@ export async function sendSlackNotification(
   command += ` --runUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`
 
   await runShellCommands([command], null, {printCmd: false})
-
-  core.endGroup()
 }

@@ -8,10 +8,6 @@ export async function copyRunArtifacts(
   desinationPath: string,
   testsFolder: string
 ): Promise<void> {
-  core.startGroup(
-    '🐋 Export containers artifacts (reports, secreenshots, videos, logs) '
-  )
-
   await runShellCommands(
     [`docker cp ${containerName}:/home/jahians/results ${desinationPath}`],
     'artifacts/cypress-artifacts.log'
@@ -50,6 +46,4 @@ export async function copyRunArtifacts(
       `results/docker.log`
     )}`
   ])
-
-  core.endGroup()
 }

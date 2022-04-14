@@ -69,19 +69,26 @@ async function run(): Promise<void> {
         await setEnvironmentVariables()
       }
     )
-    // await setEnvironmentVariables()
 
     // Install various tools (such as jahia-reporter) needed for the workflow
-    await installTooling()
+    await core.group(
+      `${timeSinceStart(startTime)} 🛠️ Install runtime tooling`,
+      async () => {
+        await installTooling()
+      }
+    )
 
     // Display important versions and environment variables
-    await displaySystemInfo()
+    await core.group(
+      `${timeSinceStart(
+        startTime
+      )} 🛠️ Displaying important environment variables and system info`,
+      async () => {
+        await displaySystemInfo()
+      }
+    )
 
     // Docker login
-    // await login(
-    //   core.getInput('docker_username'),
-    //   core.getInput('docker_password')
-    // )
     await core.group(
       `${timeSinceStart(startTime)} 🐋 Docker Login`,
       async () => {
@@ -94,51 +101,98 @@ async function run(): Promise<void> {
 
     // Download the build artifact
     if (core.getInput('should_use_build_artifacts') === 'true') {
-      await downloadArtifact('build-artifacts')
+      await core.group(
+        `${timeSinceStart(startTime)} 🛠️ Download previous artifact`,
+        async () => {
+          await downloadArtifact('build-artifacts')
+        }
+      )
     }
 
     // Prepare the build artifacts to include them in the docker image
     if (core.getInput('should_skip_artifacts') === 'false') {
-      await prepareBuildArtifact(rootProjectFolder, testsFolder)
+      await core.group(
+        `${timeSinceStart(startTime)} 🛠️ Preparing build artifacts`,
+        async () => {
+          await prepareBuildArtifact(rootProjectFolder, testsFolder)
+        }
+      )
     }
 
     // Build the test image
     if (core.getInput('should_build_testsimage') === 'true') {
-      await buildDockerTestImage(
-        core.getInput('tests_path'),
-        core.getInput('tests_container_branch'),
-        core.getInput('tests_image')
+      await core.group(
+        `${timeSinceStart(startTime)} 🐋 Build test docker container`,
+        async () => {
+          await buildDockerTestImage(
+            core.getInput('tests_path'),
+            core.getInput('tests_container_branch'),
+            core.getInput('tests_image')
+          )
+        }
       )
     }
 
     // Pull the latest version of Jahia and jCustomer and print docker images cache to console
-    await pullDockerImages(
-      core.getInput('jahia_image'),
-      core.getInput('jcustomer_image')
+    await core.group(
+      `${timeSinceStart(
+        startTime
+      )} 🐋 Pull the latest version of Jahia and jCustomer and print docker images cache to console`,
+      async () => {
+        await pullDockerImages(
+          core.getInput('jahia_image'),
+          core.getInput('jcustomer_image')
+        )
+      }
     )
 
     // Spin-up the containers
-    await startDockerEnvironment(
-      testsFolder,
-      core.getInput('ci_startup_script'),
-      core.getInput('docker_compose_file')
+    await core.group(
+      `${timeSinceStart(startTime)} 🐋 Starting the Docker environment`,
+      async () => {
+        await startDockerEnvironment(
+          testsFolder,
+          core.getInput('ci_startup_script'),
+          core.getInput('docker_compose_file')
+        )
+      }
     )
 
     // Export containers artifacts (reports, secreenshots, videos)
-    await copyRunArtifacts(
-      core.getInput('tests_container_name'),
-      artifactsFolder,
-      testsFolder
+    await core.group(
+      `${timeSinceStart(
+        startTime
+      )} 🐋 Export containers artifacts (reports, secreenshots, videos, logs) `,
+      async () => {
+        await copyRunArtifacts(
+          core.getInput('tests_container_name'),
+          artifactsFolder,
+          testsFolder
+        )
+      }
     )
 
-    // Spin-up the containers
-    await executePostrunScript(testsFolder, core.getInput('ci_startup_script'))
+    // Execute post-run script
+    await core.group(
+      `${timeSinceStart(startTime)} 🐋 Execute Postrun script`,
+      async () => {
+        await executePostrunScript(
+          testsFolder,
+          core.getInput('ci_startup_script')
+        )
+      }
+    )
 
     // upload the artifacts
-    await uploadArtifact(
-      core.getInput('artifact_name'),
-      artifactsFolder,
-      Number(core.getInput('artifact_retention'))
+    await core.group(
+      `${timeSinceStart(startTime)} 🗄️ Uploading artifacts`,
+      async () => {
+        await uploadArtifact(
+          core.getInput('artifact_name'),
+          artifactsFolder,
+          Number(core.getInput('artifact_retention'))
+        )
+      }
     )
 
     // Publish results to testrail
@@ -147,12 +201,17 @@ async function run(): Promise<void> {
       // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
       core.getInput('primary_release_branch') === 'TECH-533_ts_action'
     ) {
-      await publishToTestrail(testsFolder, {
-        testrailUsername: core.getInput('testrail_username'),
-        testrailPassword: core.getInput('testrail_password'),
-        testrailProject: core.getInput('testrail_project'),
-        testrailMilestone: core.getInput('testrail_milestone')
-      })
+      await core.group(
+        `${timeSinceStart(startTime)} 🛠️ Publishing results to Testrail`,
+        async () => {
+          await publishToTestrail(testsFolder, {
+            testrailUsername: core.getInput('testrail_username'),
+            testrailPassword: core.getInput('testrail_password'),
+            testrailProject: core.getInput('testrail_project'),
+            testrailMilestone: core.getInput('testrail_milestone')
+          })
+        }
+      )
     }
 
     // Create incident in PagerDuty
@@ -162,15 +221,24 @@ async function run(): Promise<void> {
       // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
       core.getInput('primary_release_branch') === 'TECH-533_ts_action'
     ) {
-      await createPagerdutyIncident(testsFolder, {
-        service: core.getInput('module_id'),
-        pdApiKey: core.getInput('incident_pagerduty_api_key'),
-        pdReporterEmail: core.getInput('incident_pagerduty_reporter_email'),
-        pdReporterId: core.getInput('incident_pagerduty_reporter_id'),
-        googleSpreadsheetId: core.getInput('incident_google_spreadsheet_id'),
-        googleClientEmail: core.getInput('incident_google_client_email'),
-        googleApiKey: core.getInput('incident_google_api_key_base64')
-      })
+      await core.group(
+        `${timeSinceStart(
+          startTime
+        )} 🛠️ Creating incident in Pagerduty (if applicable)`,
+        async () => {
+          await createPagerdutyIncident(testsFolder, {
+            service: core.getInput('module_id'),
+            pdApiKey: core.getInput('incident_pagerduty_api_key'),
+            pdReporterEmail: core.getInput('incident_pagerduty_reporter_email'),
+            pdReporterId: core.getInput('incident_pagerduty_reporter_id'),
+            googleSpreadsheetId: core.getInput(
+              'incident_google_spreadsheet_id'
+            ),
+            googleClientEmail: core.getInput('incident_google_client_email'),
+            googleApiKey: core.getInput('incident_google_api_key_base64')
+          })
+        }
+      )
     }
 
     // Send notifications to slack
@@ -179,11 +247,16 @@ async function run(): Promise<void> {
       // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
       core.getInput('primary_release_branch') === 'TECH-533_ts_action'
     ) {
-      await sendSlackNotification(testsFolder, {
-        channelId: core.getInput('slack_channel_id_notifications'),
-        channelAllId: core.getInput('slack_channel_id_notifications_all'),
-        token: core.getInput('slack_client_token')
-      })
+      await core.group(
+        `${timeSinceStart(startTime)} 🛠️ Send notification to Slack`,
+        async () => {
+          await sendSlackNotification(testsFolder, {
+            channelId: core.getInput('slack_channel_id_notifications'),
+            channelAllId: core.getInput('slack_channel_id_notifications_all'),
+            token: core.getInput('slack_client_token')
+          })
+        }
+      )
     }
 
     // Send results to zencrepes
@@ -192,10 +265,15 @@ async function run(): Promise<void> {
       // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
       core.getInput('primary_release_branch') === 'TECH-533_ts_action'
     ) {
-      await sendResultsToZencrepes(testsFolder, {
-        service: core.getInput('module_id'),
-        webhookSecret: core.getInput('zencrepes_secret')
-      })
+      await core.group(
+        `${timeSinceStart(startTime)} 🛠️ Send results to ZenCrepes`,
+        async () => {
+          await sendResultsToZencrepes(testsFolder, {
+            service: core.getInput('module_id'),
+            webhookSecret: core.getInput('zencrepes_secret')
+          })
+        }
+      )
     }
 
     core.info(`Completed job at: ${formatDate(new Date())}`)

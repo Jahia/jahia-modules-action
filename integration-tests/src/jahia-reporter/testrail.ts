@@ -14,8 +14,6 @@ export async function publishToTestrail(
   testsPath: string,
   options: JahiaReporterTestrail
 ): Promise<any> {
-  core.startGroup('🛠️ Publishing results to Testrail')
-
   const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
 
   let command = 'jahia-reporter testrail'
@@ -28,6 +26,4 @@ export async function publishToTestrail(
   command += ` --defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`
 
   await runShellCommands([command], null, {printCmd: false})
-
-  core.endGroup()
 }

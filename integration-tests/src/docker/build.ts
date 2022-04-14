@@ -9,9 +9,6 @@ export async function buildDockerTestImage(
   testsContainerBranch: string,
   testsImage: string
 ): Promise<any> {
-  core.startGroup('🐋 Build test docker container')
-
-  core.info(JSON.stringify(process.env.GITHUB_WORKSPACE))
   const git = simpleGit({
     baseDir: `${testsPath}`
   })
@@ -28,6 +25,4 @@ export async function buildDockerTestImage(
   ]
 
   await runShellCommands(runCommands)
-
-  core.endGroup()
 }

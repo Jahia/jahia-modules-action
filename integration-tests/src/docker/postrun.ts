@@ -15,14 +15,11 @@ export async function executePostrunScript(
   // if execution was successful
 
   if (fs.existsSync(postrunFile)) {
-    core.startGroup('🐋 Execute Postrun script')
-
     core.info(`Executing postrun script: ${postrunFile}`)
     await runShellCommands([`bash ${postrunFile}`], 'artifacts/postrun.log', {
       cwd: testsFolder,
       ignoreReturnCode: true
     })
-    core.endGroup()
   } else {
     core.info(`Postrun script not found: ${postrunFile}, skipping...`)
   }
