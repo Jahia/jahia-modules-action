@@ -318,9 +318,20 @@ function copyRunArtifacts(containerName, desinationPath, testsFolder) {
         core.startGroup('🐋 Export containers artifacts (reports, secreenshots, videos, logs) ');
         yield (0, system_1.runShellCommands)([`docker cp ${containerName}:/home/jahians/results ${desinationPath}`], 'artifacts/cypress-artifacts.log');
         yield (0, system_1.runShellCommands)([`docker stats --all --no-stream`], 'artifacts/results/cypress-stats.log');
-        yield (0, system_1.runShellCommands)([`docker-compose logs -t --tail="all" `], 'artifacts/results/all-containers.log', { cwd: testsFolder, ignoreReturnCode: true });
-        yield (0, system_1.runShellCommands)([`docker logs jahia`], 'artifacts/results/jahia.log');
-        yield (0, system_1.runShellCommands)([`docker logs ${containerName}`], `artifacts/results/${containerName}.log`);
+        yield (0, system_1.runShellCommands)([`docker-compose logs -t --tail="all" `], 'artifacts/results/all-containers.log', {
+            cwd: testsFolder,
+            ignoreReturnCode: true,
+            printStdOut: false,
+            printStdErr: false
+        });
+        yield (0, system_1.runShellCommands)([`docker logs jahia`], 'artifacts/results/jahia.log', {
+            printStdOut: false,
+            printStdErr: false
+        });
+        yield (0, system_1.runShellCommands)([`docker logs ${containerName}`], `artifacts/results/${containerName}.log`, {
+            printStdOut: false,
+            printStdErr: false
+        });
         yield (0, system_1.runShellCommands)([
             `cp ${posix_1.default.join(desinationPath, `docker.log`)} ${posix_1.default.join(desinationPath, `results/docker.log`)}`
         ]);

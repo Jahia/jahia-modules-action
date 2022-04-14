@@ -25,14 +25,26 @@ export async function copyRunArtifacts(
   await runShellCommands(
     [`docker-compose logs -t --tail="all" `],
     'artifacts/results/all-containers.log',
-    {cwd: testsFolder, ignoreReturnCode: true}
+    {
+      cwd: testsFolder,
+      ignoreReturnCode: true,
+      printStdOut: false,
+      printStdErr: false
+    }
   )
 
-  await runShellCommands([`docker logs jahia`], 'artifacts/results/jahia.log')
+  await runShellCommands([`docker logs jahia`], 'artifacts/results/jahia.log', {
+    printStdOut: false,
+    printStdErr: false
+  })
 
   await runShellCommands(
     [`docker logs ${containerName}`],
-    `artifacts/results/${containerName}.log`
+    `artifacts/results/${containerName}.log`,
+    {
+      printStdOut: false,
+      printStdErr: false
+    }
   )
 
   await runShellCommands([
