@@ -3,6 +3,13 @@ import * as fs from 'fs'
 import * as path from 'path'
 
 import {
+  format,
+  differenceInHours,
+  differenceInMinutes,
+  differenceInSeconds
+} from 'date-fns'
+
+import {
   downloadArtifact,
   prepareBuildArtifact,
   uploadArtifact
@@ -27,11 +34,23 @@ import {
   sendResultsToZencrepes
 } from './jahia-reporter'
 
+const timeSinceStart = (stardDate: Date) => {
+  const currentDate = new Date()
+  return `[+${Math.round(
+    differenceInHours(currentDate, stardDate)
+  )}:${Math.round(differenceInMinutes(currentDate, stardDate))}:${Math.round(
+    differenceInSeconds(currentDate, stardDate)
+  )}]`
+}
+
 async function run(): Promise<void> {
   try {
     if (!process.env.GITHUB_WORKSPACE) {
       return
     }
+
+    const startTime = new Date()
+    core.info(`Started job at: ${format(startTime, 'PPPP pppp')}`)
 
     // Set the various project folders
     const rootProjectFolder = process.env.GITHUB_WORKSPACE
@@ -58,7 +77,13 @@ async function run(): Promise<void> {
       )
 
     // Set environment variables from parameters
-    await setEnvironmentVariables()
+    await core.group(
+      `${timeSinceStart} Set Environment variables`,
+      async () => {
+        await setEnvironmentVariables()
+      }
+    )
+    // await setEnvironmentVariables()
 
     // Install various tools (such as jahia-reporter) needed for the workflow
     await installTooling()
@@ -67,10 +92,16 @@ async function run(): Promise<void> {
     await displaySystemInfo()
 
     // Docker login
-    await login(
-      core.getInput('docker_username'),
-      core.getInput('docker_password')
-    )
+    // await login(
+    //   core.getInput('docker_username'),
+    //   core.getInput('docker_password')
+    // )
+    await core.group(`${timeSinceStart} 🐋 Docker Login`, async () => {
+      await login(
+        core.getInput('docker_username'),
+        core.getInput('docker_password')
+      )
+    })
 
     // Download the build artifact
     if (core.getInput('should_use_build_artifacts') === 'true') {
