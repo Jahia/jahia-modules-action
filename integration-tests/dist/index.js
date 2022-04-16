@@ -1401,7 +1401,7 @@ function run() {
                     if (process.env.GITHUB_REPOSITORY !== undefined &&
                         process.env.GITHUB_RUN_ID !== undefined &&
                         process.env.GITHUB_RUN_ATTEMPT !== undefined) {
-                        yield (0, artifacts_1.uploadArtifactJahia)(core.getInput('github_artifact_name'), artifactsFolder, Number(core.getInput('jahia_artifact_retention')), process.env.GITHUB_REPOSITORY, process.env.GITHUB_RUN_ID, process.env.GITHUB_RUN_ATTEMPT);
+                        yield (0, artifacts_1.uploadArtifactJahia)(core.getInput('jahia_artifact_name'), artifactsFolder, Number(core.getInput('jahia_artifact_retention')), process.env.GITHUB_REPOSITORY, process.env.GITHUB_RUN_ID, process.env.GITHUB_RUN_ATTEMPT);
                     }
                 }));
             }

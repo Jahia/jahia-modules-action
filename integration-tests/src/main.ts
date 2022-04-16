@@ -224,7 +224,7 @@ async function run(): Promise<void> {
             process.env.GITHUB_RUN_ATTEMPT !== undefined
           ) {
             await uploadArtifactJahia(
-              core.getInput('github_artifact_name'),
+              core.getInput('jahia_artifact_name'),
               artifactsFolder,
               Number(core.getInput('jahia_artifact_retention')),
               process.env.GITHUB_REPOSITORY,
