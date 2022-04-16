@@ -2,6 +2,7 @@ import * as core from '@actions/core'
 import * as fs from 'fs'
 import * as path from 'path'
 import {add, format} from 'date-fns'
+import {runShellCommands} from '../utils/system'
 
 export async function uploadArtifactJahia(
   artifactName: string,
@@ -28,6 +29,12 @@ export async function uploadArtifactJahia(
 
   core.info(`Will be uploading artifact to: ${dstFilePath}`)
   core.info(`Artifacts will be available at: ${dstUrl}`)
+
+  const runCommands = [
+    'rsync -rvz -e \'ssh -A -o "ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com" -o StrictHostKeyChecking=off\' ${{ inputs.path }} jahia@rqa1.int.jahia.com:${RSYNC_FOLDER}'
+  ]
+
+  await runShellCommands(runCommands, 'artifacts/artifacts-upload-jahia.log')
 
   /*
     - uses: webfactory/ssh-agent@v0.5.4

@@ -309,6 +309,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.uploadArtifactJahia = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const date_fns_1 = __nccwpck_require__(3314);
+const system_1 = __nccwpck_require__(7885);
 function uploadArtifactJahia(artifactName, artifactPath, retentionDays, repository, runId, runAttempt) {
     return __awaiter(this, void 0, void 0, function* () {
         const cleanedArtifactName = artifactName
@@ -320,6 +321,10 @@ function uploadArtifactJahia(artifactName, artifactPath, retentionDays, reposito
         const dstUrl = `https://qa.jahia.com/artifacts-ci/${dstPath}`;
         core.info(`Will be uploading artifact to: ${dstFilePath}`);
         core.info(`Artifacts will be available at: ${dstUrl}`);
+        const runCommands = [
+            'rsync -rvz -e \'ssh -A -o "ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com" -o StrictHostKeyChecking=off\' ${{ inputs.path }} jahia@rqa1.int.jahia.com:${RSYNC_FOLDER}'
+        ];
+        yield (0, system_1.runShellCommands)(runCommands, 'artifacts/artifacts-upload-jahia.log');
         /*
           - uses: webfactory/ssh-agent@v0.5.4
             if: ${{ inputs.destination == 'jahia' }}
