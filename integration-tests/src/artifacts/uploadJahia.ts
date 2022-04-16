@@ -3,6 +3,45 @@ import * as fs from 'fs'
 import * as path from 'path'
 import {add, format} from 'date-fns'
 import {runShellCommands} from '../utils/system'
+import * as Rsync from 'rsync'
+
+const runRsync = async (
+  artifactPath: string,
+  dstFilePath: string
+): Promise<any> => {
+  const rsync = Rsync.build({})
+
+  rsync
+    .shell('ssh')
+    .flags('rvz')
+    .set(
+      'e',
+      'ssh -A -o "ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com" -o StrictHostKeyChecking=off'
+    )
+    .source(artifactPath)
+    .destination(`jahia@rqa1.int.jahia.com:${dstFilePath}`)
+
+  core.info(`About to execute: ${rsync.command()}`)
+
+  return new Promise((resolve, reject) => {
+    try {
+      let logData = ''
+      rsync.execute(
+        (error, code, cmd) => {
+          resolve({error, code, cmd, data: logData})
+        },
+        data => {
+          logData += data
+        },
+        err => {
+          logData += err
+        }
+      )
+    } catch (error) {
+      reject(error)
+    }
+  })
+}
 
 export async function uploadArtifactJahia(
   artifactName: string,
@@ -30,11 +69,26 @@ export async function uploadArtifactJahia(
   core.info(`Will be uploading artifact to: ${dstFilePath}`)
   core.info(`Artifacts will be available at: ${dstUrl}`)
 
-  const runCommands = [
-    'rsync -rvz -e \'ssh -A -o "ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com" -o StrictHostKeyChecking=off\' ${{ inputs.path }} jahia@rqa1.int.jahia.com:${RSYNC_FOLDER}'
-  ]
+  // const rsync = build({})
+  //   .shell('ssh')
+  //   .flags('rvz')
+  //   .set(
+  //     'e',
+  //     'ssh -A -o "ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com" -o StrictHostKeyChecking=off'
+  //   )
+  //   .source(artifactPath)
+  //   .destination(`jahia@rqa1.int.jahia.com:${dstFilePath}`)
 
-  await runShellCommands(runCommands, 'artifacts/artifacts-upload-jahia.log')
+  // core.info(`About to execute: ${rsync.command()}`)
+
+  const rsyncOut = await runRsync(artifactPath, dstFilePath)
+  core.info(JSON.stringify(rsyncOut))
+
+  // const runCommands = [
+  //   `rsync -rvz -e \'ssh -A -o "ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com" -o StrictHostKeyChecking=off\' ${artifactPath} jahia@rqa1.int.jahia.com:${dstFilePath}`
+  // ]
+
+  // await runShellCommands(runCommands, 'artifacts/artifacts-upload-jahia.log')
 
   /*
     - uses: webfactory/ssh-agent@v0.5.4
