@@ -81,11 +81,11 @@ async function run(): Promise<void> {
     )
 
     // Configuring SSH on the host
-    if (core.getInput('ssh-key') !== '') {
+    if (core.getInput('ssh_private_key') !== '') {
       await core.group(
         `${timeSinceStart(startTime)} 🛠️ Configure SSH Agent with private key`,
         async () => {
-          await setupSSH(core.getInput('ssh-key'))
+          await setupSSH(core.getInput('ssh_private_key'))
         }
       )
     }

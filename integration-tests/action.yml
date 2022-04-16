@@ -127,6 +127,10 @@ inputs:
     description: 'ZenCrepes Webhook secret'
     required: false
     default: ''
+  ssh_private_key:
+    description: 'SSH Private Key used to upload artifacts to Jahia servers'
+    required: false
+    default: ''
   incident_pagerduty_api_key:
     description: 'Pageduty API key to create incidents'
     required: false
