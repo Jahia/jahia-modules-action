@@ -123,7 +123,7 @@ async function run(): Promise<void> {
       }
     )
 
-    core.setFailed('This is not a real failure')
+    return
 
     // Docker login
     await core.group(

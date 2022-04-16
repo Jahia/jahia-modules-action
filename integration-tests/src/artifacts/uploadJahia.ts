@@ -29,7 +29,7 @@ export async function uploadArtifactJahia(
   core.info(`Will be uploading artifact to: ${dstFilePath}`)
   core.info(`Artifacts will be available at: ${dstUrl}`)
 
-/*
+  /*
     - uses: webfactory/ssh-agent@v0.5.4
       if: ${{ inputs.destination == 'jahia' }}
       with:
@@ -49,7 +49,5 @@ export async function uploadArtifactJahia(
         fi
 */
 
-  core.notice(
-    `Artifacts location (require VPN)::Artifacts have been uploaded to: ${dstUrl}`
-  )
+  core.notice(`Artifacts (VPN Reqquired) have been uploaded to: ${dstUrl}`)
 }
