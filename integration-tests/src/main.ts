@@ -21,7 +21,8 @@ import {
 import {
   setEnvironmentVariables,
   displaySystemInfo,
-  installTooling
+  installTooling,
+  setupSSH
 } from './init'
 import {
   publishToTestrail,
@@ -78,6 +79,16 @@ async function run(): Promise<void> {
         await installTooling()
       }
     )
+
+    // Configuring SSH on the host
+    if (core.getInput('ssh-key') !== '') {
+      await core.group(
+        `${timeSinceStart(startTime)} 🛠️ Configure SSH Agent with private key`,
+        async () => {
+          await setupSSH(core.getInput('ssh-key'))
+        }
+      )
+    }
 
     // Display important versions and environment variables
     await core.group(

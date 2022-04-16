@@ -320,6 +320,25 @@ function uploadArtifactJahia(artifactName, artifactPath, retentionDays, reposito
         const dstUrl = `https://qa.jahia.com/artifacts-ci/${dstPath}`;
         core.info(`Will be uploading artifact to: ${dstFilePath}`);
         core.info(`Artifacts will be available at: ${dstUrl}`);
+        /*
+            - uses: webfactory/ssh-agent@v0.5.4
+              if: ${{ inputs.destination == 'jahia' }}
+              with:
+                  ssh-private-key: ${{ inputs.ssh-key }}
+        
+            - name: rsync files to Jahia
+              if: ${{ inputs.destination == 'jahia' }}
+              shell: bash
+              run: |
+                ls -lah
+                if ! sh -c "rsync -rvz -e 'ssh -A -o \"ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com\" -o StrictHostKeyChecking=off' ${{ inputs.path }} jahia@rqa1.int.jahia.com:${RSYNC_FOLDER}"
+                then
+                  echo ::set-output name=status::'There was an issue syncing the content.'
+                  exit 1
+                else
+                  echo ::set-output name=status::'Content synced successfully.'
+                fi
+        */
         core.notice(`Artifacts location (require VPN)::Artifacts have been uploaded to: ${dstUrl}`);
     });
 }
@@ -771,6 +790,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 __exportStar(__nccwpck_require__(5465), exports);
 __exportStar(__nccwpck_require__(3471), exports);
 __exportStar(__nccwpck_require__(1194), exports);
+__exportStar(__nccwpck_require__(2835), exports);
 
 
 /***/ }),
@@ -865,6 +885,91 @@ function setEnvironmentVariables() {
     });
 }
 exports.setEnvironmentVariables = setEnvironmentVariables;
+
+
+/***/ }),
+
+/***/ 2835:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.setupSSH = void 0;
+// Since we cannot call a GitHub action directly from Javascript code, copying over the logic from:
+// https://github.com/webfactory/ssh-agent/blob/master/index.js
+const core = __importStar(__nccwpck_require__(2186));
+const os = __importStar(__nccwpck_require__(2087));
+const fs = __importStar(__nccwpck_require__(5747));
+const child_process = __importStar(__nccwpck_require__(3129));
+function setupSSH(privateKey) {
+    return __awaiter(this, void 0, void 0, function* () {
+        //https://github.com/webfactory/ssh-agent/blob/master/paths.js
+        const home = os.userInfo().homedir;
+        const sshAgent = 'ssh-agent';
+        const sshAdd = 'ssh-add';
+        const homeSsh = home + '/.ssh';
+        core.info(`Adding GitHub.com keys to ${homeSsh}/known_hosts`);
+        fs.mkdirSync(homeSsh, { recursive: true });
+        fs.appendFileSync(`${homeSsh}/known_hosts`, '\ngithub.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=\n');
+        fs.appendFileSync(`${homeSsh}/known_hosts`, '\ngithub.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl\n');
+        fs.appendFileSync(`${homeSsh}/known_hosts`, '\ngithub.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==\n');
+        core.info(`Starting ssh-agent`);
+        const sshAgentArgs = [];
+        // Extract auth socket path and agent pid and set them as job variables
+        child_process
+            .execFileSync(sshAgent, sshAgentArgs)
+            .toString()
+            .split('\n')
+            .forEach(function (line) {
+            const matches = /^(SSH_AUTH_SOCK|SSH_AGENT_PID)=(.*); export \1/.exec(line);
+            if (matches && matches.length > 0) {
+                // This will also set process.env accordingly, so changes take effect for this script
+                core.exportVariable(matches[1], matches[2]);
+                console.log(`${matches[1]}=${matches[2]}`);
+            }
+        });
+        core.info('Adding private key(s) to agent');
+        privateKey.split(/(?=-----BEGIN)/).forEach(function (key) {
+            child_process.execFileSync(sshAdd, ['-'], { input: key.trim() + '\n' });
+        });
+        core.info('Key Added');
+        child_process.execFileSync(sshAdd, ['-l'], { stdio: 'inherit' });
+    });
+}
+exports.setupSSH = setupSSH;
 
 
 /***/ }),
@@ -1222,6 +1327,12 @@ function run() {
             yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Install runtime tooling`, () => __awaiter(this, void 0, void 0, function* () {
                 yield (0, init_1.installTooling)();
             }));
+            // Configuring SSH on the host
+            if (core.getInput('ssh-key') !== '') {
+                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Configure SSH Agent with private key`, () => __awaiter(this, void 0, void 0, function* () {
+                    yield (0, init_1.setupSSH)(core.getInput('ssh-key'));
+                }));
+            }
             // Display important versions and environment variables
             yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Displaying important environment variables and system info`, () => __awaiter(this, void 0, void 0, function* () {
                 yield (0, init_1.displaySystemInfo)();

@@ -29,6 +29,26 @@ export async function uploadArtifactJahia(
   core.info(`Will be uploading artifact to: ${dstFilePath}`)
   core.info(`Artifacts will be available at: ${dstUrl}`)
 
+/*
+    - uses: webfactory/ssh-agent@v0.5.4
+      if: ${{ inputs.destination == 'jahia' }}
+      with:
+          ssh-private-key: ${{ inputs.ssh-key }}
+
+    - name: rsync files to Jahia
+      if: ${{ inputs.destination == 'jahia' }}
+      shell: bash
+      run: |
+        ls -lah
+        if ! sh -c "rsync -rvz -e 'ssh -A -o \"ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com\" -o StrictHostKeyChecking=off' ${{ inputs.path }} jahia@rqa1.int.jahia.com:${RSYNC_FOLDER}"
+        then
+          echo ::set-output name=status::'There was an issue syncing the content.'
+          exit 1
+        else
+          echo ::set-output name=status::'Content synced successfully.'
+        fi
+*/
+
   core.notice(
     `Artifacts location (require VPN)::Artifacts have been uploaded to: ${dstUrl}`
   )
