@@ -5,6 +5,6 @@ import {runShellCommands} from '../utils/system'
 export async function installTooling(): Promise<any> {
   await runShellCommands([
     'npm install -g @jahia/jahia-reporter',
-    'apt-get install rsync'
+    'sudo apt-get install rsync'
   ])
 }
