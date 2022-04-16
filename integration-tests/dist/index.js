@@ -1344,7 +1344,7 @@ function run() {
             // Configuring SSH on the host
             if (core.getInput('bastion_ssh_private_key') !== '') {
                 yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Configure SSH Agent with private key`, () => __awaiter(this, void 0, void 0, function* () {
-                    yield (0, init_1.setupSSH)(core.getInput('ssh_private_key'));
+                    yield (0, init_1.setupSSH)(core.getInput('bastion_ssh_private_key'));
                 }));
             }
             // Display important versions and environment variables

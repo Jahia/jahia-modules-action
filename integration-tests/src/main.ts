@@ -85,7 +85,7 @@ async function run(): Promise<void> {
       await core.group(
         `${timeSinceStart(startTime)} 🛠️ Configure SSH Agent with private key`,
         async () => {
-          await setupSSH(core.getInput('ssh_private_key'))
+          await setupSSH(core.getInput('bastion_ssh_private_key'))
         }
       )
     }
