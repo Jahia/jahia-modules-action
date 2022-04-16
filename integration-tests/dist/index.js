@@ -315,7 +315,7 @@ function uploadArtifactJahia(artifactName, artifactPath, retentionDays, reposito
             .replace(/[^a-z0-9+]+/gi, '')
             .toLowerCase();
         const expiryDate = (0, date_fns_1.add)(new Date(), { days: retentionDays });
-        const dstPath = `delete-on-${(0, date_fns_1.format)(expiryDate, 'YYYY-MM-dd')}_${repository.replace('/', '_')}_${cleanedArtifactName}_${runId}_${runAttempt}`;
+        const dstPath = `delete-on-${(0, date_fns_1.format)(expiryDate, 'yyyy-MM-dd')}_${repository.replace('/', '_')}_${cleanedArtifactName}_${runId}_${runAttempt}`;
         const dstFilePath = `/temp-artifacts/${dstPath}`;
         const dstUrl = `https://qa.jahia.com/artifacts-ci/${dstPath}`;
         core.info(`Will be uploading artifact to: ${dstFilePath}`);

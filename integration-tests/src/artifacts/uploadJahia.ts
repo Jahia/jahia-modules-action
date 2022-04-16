@@ -18,7 +18,7 @@ export async function uploadArtifactJahia(
   const expiryDate = add(new Date(), {days: retentionDays})
   const dstPath = `delete-on-${format(
     expiryDate,
-    'YYYY-MM-dd'
+    'yyyy-MM-dd'
   )}_${repository.replace(
     '/',
     '_'
