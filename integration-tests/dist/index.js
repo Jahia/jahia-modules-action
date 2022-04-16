@@ -313,7 +313,6 @@ const Rsync = __importStar(__nccwpck_require__(125));
 const runRsync = (artifactPath, dstFilePath) => __awaiter(void 0, void 0, void 0, function* () {
     const rsync = Rsync.build({});
     rsync
-        .shell('ssh')
         .flags('rvz')
         .set('e', 'ssh -A -o "ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com" -o StrictHostKeyChecking=off')
         .source(artifactPath)

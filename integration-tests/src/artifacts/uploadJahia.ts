@@ -12,7 +12,6 @@ const runRsync = async (
   const rsync = Rsync.build({})
 
   rsync
-    .shell('ssh')
     .flags('rvz')
     .set(
       'e',
