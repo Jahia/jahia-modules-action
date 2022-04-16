@@ -345,42 +345,11 @@ function uploadArtifactJahia(artifactName, artifactPath, retentionDays, reposito
         const dstUrl = `https://qa.jahia.com/artifacts-ci/${dstPath}`;
         core.info(`Will be uploading artifact to: ${dstFilePath}`);
         core.info(`Artifacts will be available at: ${dstUrl}`);
-        // const rsync = build({})
-        //   .shell('ssh')
-        //   .flags('rvz')
-        //   .set(
-        //     'e',
-        //     'ssh -A -o "ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com" -o StrictHostKeyChecking=off'
-        //   )
-        //   .source(artifactPath)
-        //   .destination(`jahia@rqa1.int.jahia.com:${dstFilePath}`)
-        // core.info(`About to execute: ${rsync.command()}`)
         const rsyncOut = yield runRsync(artifactPath, dstFilePath);
-        core.info(JSON.stringify(rsyncOut));
-        // const runCommands = [
-        //   `rsync -rvz -e \'ssh -A -o "ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com" -o StrictHostKeyChecking=off\' ${artifactPath} jahia@rqa1.int.jahia.com:${dstFilePath}`
-        // ]
-        // await runShellCommands(runCommands, 'artifacts/artifacts-upload-jahia.log')
-        /*
-          - uses: webfactory/ssh-agent@v0.5.4
-            if: ${{ inputs.destination == 'jahia' }}
-            with:
-                ssh-private-key: ${{ inputs.ssh-key }}
-      
-          - name: rsync files to Jahia
-            if: ${{ inputs.destination == 'jahia' }}
-            shell: bash
-            run: |
-              ls -lah
-              if ! sh -c "rsync -rvz -e 'ssh -A -o \"ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com\" -o StrictHostKeyChecking=off' ${{ inputs.path }} jahia@rqa1.int.jahia.com:${RSYNC_FOLDER}"
-              then
-                echo ::set-output name=status::'There was an issue syncing the content.'
-                exit 1
-              else
-                echo ::set-output name=status::'Content synced successfully.'
-              fi
-      */
-        core.notice(`Artifacts (VPN Reqquired) have been uploaded to: ${dstUrl}`);
+        core.info(`Submission error (if present): ${JSON.stringify(rsyncOut.error)}`);
+        core.info(`cmd: ${JSON.stringify(rsyncOut.cmd)}`);
+        core.info(`Submission data (if present): ${JSON.stringify(rsyncOut.data)}`);
+        core.notice(`Artifacts (VPN Required) have been uploaded to: ${dstUrl}`);
     });
 }
 exports.uploadArtifactJahia = uploadArtifactJahia;
@@ -1373,7 +1342,7 @@ function run() {
                 yield (0, init_1.installTooling)();
             }));
             // Configuring SSH on the host
-            if (core.getInput('ssh_private_key') !== '') {
+            if (core.getInput('bastion_ssh_private_key') !== '') {
                 yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Configure SSH Agent with private key`, () => __awaiter(this, void 0, void 0, function* () {
                     yield (0, init_1.setupSSH)(core.getInput('ssh_private_key'));
                 }));
@@ -1382,15 +1351,6 @@ function run() {
             yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Displaying important environment variables and system info`, () => __awaiter(this, void 0, void 0, function* () {
                 yield (0, init_1.displaySystemInfo)();
             }));
-            // Upload some data to Jahia RQA servers
-            yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Uploading tests artifacts to Jahia servers`, () => __awaiter(this, void 0, void 0, function* () {
-                if (process.env.GITHUB_REPOSITORY !== undefined &&
-                    process.env.GITHUB_RUN_ID !== undefined &&
-                    process.env.GITHUB_RUN_ATTEMPT !== undefined) {
-                    yield (0, artifacts_1.uploadArtifactJahia)('some name', testsFolder, 3, process.env.GITHUB_REPOSITORY, process.env.GITHUB_RUN_ID, process.env.GITHUB_RUN_ATTEMPT);
-                }
-            }));
-            return;
             // Docker login
             yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🐋 Docker Login`, () => __awaiter(this, void 0, void 0, function* () {
                 yield (0, docker_1.login)(core.getInput('docker_username'), core.getInput('docker_password'));
@@ -1429,10 +1389,22 @@ function run() {
             yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🐋 Execute Postrun script`, () => __awaiter(this, void 0, void 0, function* () {
                 yield (0, docker_1.executePostrunScript)(testsFolder, core.getInput('ci_postrun_script'));
             }));
-            // upload the artifacts
-            yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🗄️ Uploading artifacts`, () => __awaiter(this, void 0, void 0, function* () {
-                yield (0, artifacts_1.uploadArtifact)(core.getInput('artifact_name'), artifactsFolder, Number(core.getInput('artifact_retention')));
-            }));
+            // Upload the artifacts to GitHub infrastructure
+            if (core.getInput('github_artifact_enable') === 'true') {
+                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🗄️ Uploading artifacts to GitHub infrastructure`, () => __awaiter(this, void 0, void 0, function* () {
+                    yield (0, artifacts_1.uploadArtifact)(core.getInput('github_artifact_name'), artifactsFolder, Number(core.getInput('github_artifact_retention')));
+                }));
+            }
+            // Upload artifacts to Jahia infrastructure
+            if (core.getInput('jahia_artifact_enable') === 'true') {
+                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Uploading tests artifacts to Jahia servers`, () => __awaiter(this, void 0, void 0, function* () {
+                    if (process.env.GITHUB_REPOSITORY !== undefined &&
+                        process.env.GITHUB_RUN_ID !== undefined &&
+                        process.env.GITHUB_RUN_ATTEMPT !== undefined) {
+                        yield (0, artifacts_1.uploadArtifactJahia)(core.getInput('github_artifact_name'), artifactsFolder, Number(core.getInput('jahia_artifact_retention')), process.env.GITHUB_REPOSITORY, process.env.GITHUB_RUN_ID, process.env.GITHUB_RUN_ATTEMPT);
+                    }
+                }));
+            }
             // Publish results to testrail
             if (core.getInput('should_skip_testrail') === 'false' ||
                 // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH

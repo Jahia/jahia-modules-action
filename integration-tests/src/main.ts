@@ -81,7 +81,7 @@ async function run(): Promise<void> {
     )
 
     // Configuring SSH on the host
-    if (core.getInput('ssh_private_key') !== '') {
+    if (core.getInput('bastion_ssh_private_key') !== '') {
       await core.group(
         `${timeSinceStart(startTime)} 🛠️ Configure SSH Agent with private key`,
         async () => {
@@ -99,31 +99,6 @@ async function run(): Promise<void> {
         await displaySystemInfo()
       }
     )
-
-    // Upload some data to Jahia RQA servers
-    await core.group(
-      `${timeSinceStart(
-        startTime
-      )} 🛠️ Uploading tests artifacts to Jahia servers`,
-      async () => {
-        if (
-          process.env.GITHUB_REPOSITORY !== undefined &&
-          process.env.GITHUB_RUN_ID !== undefined &&
-          process.env.GITHUB_RUN_ATTEMPT !== undefined
-        ) {
-          await uploadArtifactJahia(
-            'some name',
-            testsFolder,
-            3,
-            process.env.GITHUB_REPOSITORY,
-            process.env.GITHUB_RUN_ID,
-            process.env.GITHUB_RUN_ATTEMPT
-          )
-        }
-      }
-    )
-
-    return
 
     // Docker login
     await core.group(
@@ -220,17 +195,46 @@ async function run(): Promise<void> {
       }
     )
 
-    // upload the artifacts
-    await core.group(
-      `${timeSinceStart(startTime)} 🗄️ Uploading artifacts`,
-      async () => {
-        await uploadArtifact(
-          core.getInput('artifact_name'),
-          artifactsFolder,
-          Number(core.getInput('artifact_retention'))
-        )
-      }
-    )
+    // Upload the artifacts to GitHub infrastructure
+    if (core.getInput('github_artifact_enable') === 'true') {
+      await core.group(
+        `${timeSinceStart(
+          startTime
+        )} 🗄️ Uploading artifacts to GitHub infrastructure`,
+        async () => {
+          await uploadArtifact(
+            core.getInput('github_artifact_name'),
+            artifactsFolder,
+            Number(core.getInput('github_artifact_retention'))
+          )
+        }
+      )
+    }
+
+    // Upload artifacts to Jahia infrastructure
+    if (core.getInput('jahia_artifact_enable') === 'true') {
+      await core.group(
+        `${timeSinceStart(
+          startTime
+        )} 🛠️ Uploading tests artifacts to Jahia servers`,
+        async () => {
+          if (
+            process.env.GITHUB_REPOSITORY !== undefined &&
+            process.env.GITHUB_RUN_ID !== undefined &&
+            process.env.GITHUB_RUN_ATTEMPT !== undefined
+          ) {
+            await uploadArtifactJahia(
+              core.getInput('github_artifact_name'),
+              artifactsFolder,
+              Number(core.getInput('jahia_artifact_retention')),
+              process.env.GITHUB_REPOSITORY,
+              process.env.GITHUB_RUN_ID,
+              process.env.GITHUB_RUN_ATTEMPT
+            )
+          }
+        }
+      )
+    }
 
     // Publish results to testrail
     if (

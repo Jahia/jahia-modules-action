@@ -127,10 +127,6 @@ inputs:
     description: 'ZenCrepes Webhook secret'
     required: false
     default: ''
-  ssh_private_key:
-    description: 'SSH Private Key used to upload artifacts to Jahia servers'
-    required: false
-    default: ''
   incident_pagerduty_api_key:
     description: 'Pageduty API key to create incidents'
     required: false
@@ -187,18 +183,34 @@ inputs:
     description: 'In seconds, timeout in seconds before terminating the session'
     required: false
     default: '7200'
-  artifact_name:
+  github_artifact_enable:
+    description: 'Enable saving of artifacts on GitHub infra'
+    required: false
+    default: 'true'
+  github_artifact_name:
     description: 'Name for the artifacts saved at the end of the run'
     required: false
     default: 'integration-tests-results'
-  artifact_retention:
+  github_artifact_retention:
     description: 'Time during which artifact are kept in Github infrastructure'
     required: false
     default: '2'
-  artifact_destination:
-    description: 'Destination where to store the artifacts (jahia or github)'
+  jahia_artifact_enable:
+    description: 'Enable saving of artifacts on Jahia infra'
     required: false
-    default: 'jahia'
+    default: 'true'
+  jahia_artifact_name:
+    description: 'Name for the artifacts saved at the end of the run'
+    required: false
+    default: 'integration-tests-results'
+  jahia_artifact_retention:
+    description: 'Time during which artifact are kept in Jahia infrastructure'
+    required: false
+    default: '30'
+  bastion_ssh_private_key:
+    description: 'SSH Private Key used to upload artifacts to Jahia servers'
+    required: false
+    default: ''
 runs:
   using: 'node16'
   main: 'dist/index.js'
