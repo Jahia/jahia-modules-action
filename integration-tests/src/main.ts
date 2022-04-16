@@ -7,7 +7,8 @@ import {timeSinceStart, formatDate} from './utils'
 import {
   downloadArtifact,
   prepareBuildArtifact,
-  uploadArtifact
+  uploadArtifact,
+  uploadArtifactJahia
 } from './artifacts'
 import {
   buildDockerTestImage,
@@ -87,6 +88,31 @@ async function run(): Promise<void> {
         await displaySystemInfo()
       }
     )
+
+    // Upload some data to Jahia RQA servers
+    await core.group(
+      `${timeSinceStart(
+        startTime
+      )} 🛠️ Uploading tests artifacts to Jahia servers`,
+      async () => {
+        if (
+          process.env.GITHUB_REPOSITORY !== undefined &&
+          process.env.GITHUB_RUN_ID !== undefined &&
+          process.env.GITHUB_RUN_ATTEMPT !== undefined
+        ) {
+          await uploadArtifactJahia(
+            'some name',
+            testsFolder,
+            3,
+            process.env.GITHUB_REPOSITORY,
+            process.env.GITHUB_RUN_ID,
+            process.env.GITHUB_RUN_ATTEMPT
+          )
+        }
+      }
+    )
+
+    core.setFailed('This is not a real failure')
 
     // Docker login
     await core.group(
@@ -278,20 +304,22 @@ async function run(): Promise<void> {
 
     core.info(`Completed job at: ${formatDate(new Date())}`)
 
+    // TODO - Display a short report directly in the run output
+
     //Finally, analyze the results
     if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
       core.setFailed(
-        `Could not locate file ${path.join(
+        `Run has FAILED, could not locate file ${path.join(
           artifactsFolder,
           'results/test_success'
-        )}, run has FAILED`
+        )}`
       )
     } else {
       core.info(
-        `File ${path.join(
+        `Run is SUCCESSFUL, could locate file ${path.join(
           artifactsFolder,
           'results/test_success'
-        )} is present, run is SUCCESSFUL`
+        )}`
       )
     }
   } catch (error) {

@@ -77,6 +77,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 __exportStar(__nccwpck_require__(665), exports);
 __exportStar(__nccwpck_require__(3188), exports);
 __exportStar(__nccwpck_require__(4348), exports);
+__exportStar(__nccwpck_require__(8575), exports);
 
 
 /***/ }),
@@ -263,6 +264,66 @@ function uploadArtifact(artifactName, artifactPath, retentionDays) {
     });
 }
 exports.uploadArtifact = uploadArtifact;
+
+
+/***/ }),
+
+/***/ 8575:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.uploadArtifactJahia = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const date_fns_1 = __nccwpck_require__(3314);
+function uploadArtifactJahia(artifactName, artifactPath, retentionDays, repository, runId, runAttempt) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const cleanedArtifactName = artifactName
+            .replace(/[^a-z0-9+]+/gi, '')
+            .toLowerCase();
+        const expiryDate = (0, date_fns_1.add)(new Date(), { days: retentionDays });
+        const dstPath = `delete-on-${(0, date_fns_1.format)(expiryDate, 'YYYY-MM-dd')}_${repository.replace('/', '_')}_${cleanedArtifactName}_${runId}_${runAttempt}`;
+        const dstFilePath = `/temp-artifacts/${dstPath}`;
+        const dstUrl = `https://qa.jahia.com/artifacts-ci/${dstPath}`;
+        core.info(`Will be uploading artifact to: ${dstFilePath}`);
+        core.info(`Artifacts will be available at: ${dstUrl}`);
+        core.notice(`Artifacts location (require VPN)::Artifacts have been uploaded to: ${dstUrl}`);
+    });
+}
+exports.uploadArtifactJahia = uploadArtifactJahia;
 
 
 /***/ }),
@@ -1165,6 +1226,15 @@ function run() {
             yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Displaying important environment variables and system info`, () => __awaiter(this, void 0, void 0, function* () {
                 yield (0, init_1.displaySystemInfo)();
             }));
+            // Upload some data to Jahia RQA servers
+            yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Uploading tests artifacts to Jahia servers`, () => __awaiter(this, void 0, void 0, function* () {
+                if (process.env.GITHUB_REPOSITORY !== undefined &&
+                    process.env.GITHUB_RUN_ID !== undefined &&
+                    process.env.GITHUB_RUN_ATTEMPT !== undefined) {
+                    yield (0, artifacts_1.uploadArtifactJahia)('some name', testsFolder, 3, process.env.GITHUB_REPOSITORY, process.env.GITHUB_RUN_ID, process.env.GITHUB_RUN_ATTEMPT);
+                }
+            }));
+            core.setFailed('This is not a real failure');
             // Docker login
             yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🐋 Docker Login`, () => __awaiter(this, void 0, void 0, function* () {
                 yield (0, docker_1.login)(core.getInput('docker_username'), core.getInput('docker_password'));
@@ -1261,12 +1331,13 @@ function run() {
                 }));
             }
             core.info(`Completed job at: ${(0, utils_1.formatDate)(new Date())}`);
+            // TODO - Display a short report directly in the run output
             //Finally, analyze the results
             if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
-                core.setFailed(`Could not locate file ${path.join(artifactsFolder, 'results/test_success')}, run has FAILED`);
+                core.setFailed(`Run has FAILED, could not locate file ${path.join(artifactsFolder, 'results/test_success')}`);
             }
             else {
-                core.info(`File ${path.join(artifactsFolder, 'results/test_success')} is present, run is SUCCESSFUL`);
+                core.info(`Run is SUCCESSFUL, could locate file ${path.join(artifactsFolder, 'results/test_success')}`);
             }
         }
         catch (error) {
