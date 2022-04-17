@@ -218,7 +218,7 @@ async function run(): Promise<void> {
       await core.group(
         `${timeSinceStart(
           startTime
-        )} 🛠️ Uploading tests artifacts to Jahia servers`,
+        )} 🗄️ Uploading tests artifacts to Jahia servers`,
         async () => {
           if (
             process.env.GITHUB_REPOSITORY !== undefined &&

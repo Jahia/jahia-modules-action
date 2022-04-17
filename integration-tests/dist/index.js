@@ -1399,7 +1399,7 @@ function run() {
             }
             // Upload artifacts to Jahia infrastructure
             if (core.getInput('jahia_artifact_enable') === 'true') {
-                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Uploading tests artifacts to Jahia servers`, () => __awaiter(this, void 0, void 0, function* () {
+                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🗄️ Uploading tests artifacts to Jahia servers`, () => __awaiter(this, void 0, void 0, function* () {
                     if (process.env.GITHUB_REPOSITORY !== undefined &&
                         process.env.GITHUB_RUN_ID !== undefined &&
                         process.env.GITHUB_RUN_ATTEMPT !== undefined) {
