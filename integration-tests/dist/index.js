@@ -1193,7 +1193,7 @@ function showTestsSummary(testsPath) {
         command += ` --sourcePath="${reportsPath}"`;
         command += ' --sourceType="xml"';
         command += ' -s';
-        yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
+        yield (0, system_1.runShellCommands)([command]);
     });
 }
 exports.showTestsSummary = showTestsSummary;

@@ -10,5 +10,5 @@ export async function showTestsSummary(testsPath: string): Promise<any> {
   command += ' --sourceType="xml"'
   command += ' -s'
 
-  await runShellCommands([command], null, {printCmd: false})
+  await runShellCommands([command])
 }
