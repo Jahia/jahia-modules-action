@@ -240,8 +240,7 @@ async function run(): Promise<void> {
     // Publish results to testrail
     if (
       core.getInput('should_skip_testrail') === 'false' ||
-      // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
-      core.getInput('primary_release_branch') === 'TECH-533_ts_action'
+      core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
     ) {
       await core.group(
         `${timeSinceStart(startTime)} 🛠️ Publishing results to Testrail`,
@@ -260,8 +259,7 @@ async function run(): Promise<void> {
     if (
       process.env.CURRENT_BRANCH === 'master' ||
       process.env.CURRENT_BRANCH === 'main' ||
-      // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
-      core.getInput('primary_release_branch') === 'TECH-533_ts_action'
+      core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
     ) {
       await core.group(
         `${timeSinceStart(
@@ -286,8 +284,7 @@ async function run(): Promise<void> {
     // Send notifications to slack
     if (
       core.getInput('should_skip_notifications') === 'false' ||
-      // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
-      core.getInput('primary_release_branch') === 'TECH-533_ts_action'
+      core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
     ) {
       await core.group(
         `${timeSinceStart(startTime)} 🛠️ Send notification to Slack`,
@@ -304,8 +301,7 @@ async function run(): Promise<void> {
     // Send results to zencrepes
     if (
       core.getInput('should_skip_zencrepes') === 'false' ||
-      // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
-      core.getInput('primary_release_branch') === 'TECH-533_ts_action'
+      core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
     ) {
       await core.group(
         `${timeSinceStart(startTime)} 🛠️ Send results to ZenCrepes`,

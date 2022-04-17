@@ -4,13 +4,13 @@ import * as path from 'path'
 
 // Recursively get all folder matching dirName under the path
 const getTargetFolders = async (
-  path: string,
+  scanPath: string,
   targets: Array<string> = [],
   dirName: string = 'target'
 ) => {
-  const files = fs.readdirSync(path)
+  const files = fs.readdirSync(scanPath)
   for (const f of files) {
-    const filePath = path + '/' + f
+    const filePath = path.join(scanPath, f)
     if (fs.statSync(filePath).isDirectory()) {
       if (f !== dirName) {
         const folders = await getTargetFolders(`${filePath}/`, targets)
@@ -54,13 +54,10 @@ export async function prepareBuildArtifact(
       const files = fs.readdirSync(targetFolder)
       for (const f of files) {
         if (f.includes('-SNAPSHOT.jar')) {
-          core.info(
-            `Copying file: ${targetFolder} + '/' + ${f} to ${artifactsFolder}`
-          )
-          fs.copyFileSync(
-            `${targetFolder} + '/' + ${f}`,
-            `${artifactsFolder} + '/' + ${f}`
-          )
+          const srcFile = path.join(targetFolder, f)
+          const dstFile = path.join(artifactsFolder, f)
+          core.info(`Copying file: ${srcFile} to ${dstFile}`)
+          fs.copyFileSync(srcFile, dstFile)
         }
       }
     }

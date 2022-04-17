@@ -125,10 +125,10 @@ const core = __importStar(__nccwpck_require__(2186));
 const fs = __importStar(__nccwpck_require__(5747));
 const path = __importStar(__nccwpck_require__(5622));
 // Recursively get all folder matching dirName under the path
-const getTargetFolders = (path, targets = [], dirName = 'target') => __awaiter(void 0, void 0, void 0, function* () {
-    const files = fs.readdirSync(path);
+const getTargetFolders = (scanPath, targets = [], dirName = 'target') => __awaiter(void 0, void 0, void 0, function* () {
+    const files = fs.readdirSync(scanPath);
     for (const f of files) {
-        const filePath = path + '/' + f;
+        const filePath = path.join(scanPath, f);
         if (fs.statSync(filePath).isDirectory()) {
             if (f !== dirName) {
                 const folders = yield getTargetFolders(`${filePath}/`, targets);
@@ -163,8 +163,10 @@ function prepareBuildArtifact(rootProjectFolder, testsPath) {
                 const files = fs.readdirSync(targetFolder);
                 for (const f of files) {
                     if (f.includes('-SNAPSHOT.jar')) {
-                        core.info(`Copying file: ${targetFolder} + '/' + ${f} to ${artifactsFolder}`);
-                        fs.copyFileSync(`${targetFolder} + '/' + ${f}`, `${artifactsFolder} + '/' + ${f}`);
+                        const srcFile = path.join(targetFolder, f);
+                        const dstFile = path.join(artifactsFolder, f);
+                        core.info(`Copying file: ${srcFile} to ${dstFile}`);
+                        fs.copyFileSync(srcFile, dstFile);
                     }
                 }
             }
@@ -1472,8 +1474,7 @@ function run() {
             }
             // Publish results to testrail
             if (core.getInput('should_skip_testrail') === 'false' ||
-                // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
-                core.getInput('primary_release_branch') === 'TECH-533_ts_action') {
+                core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH) {
                 yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Publishing results to Testrail`, () => __awaiter(this, void 0, void 0, function* () {
                     yield (0, jahia_reporter_1.publishToTestrail)(testsFolder, {
                         testrailUsername: core.getInput('testrail_username'),
@@ -1486,8 +1487,7 @@ function run() {
             // Create incident in PagerDuty
             if (process.env.CURRENT_BRANCH === 'master' ||
                 process.env.CURRENT_BRANCH === 'main' ||
-                // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
-                core.getInput('primary_release_branch') === 'TECH-533_ts_action') {
+                core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH) {
                 yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Creating incident in Pagerduty (if applicable)`, () => __awaiter(this, void 0, void 0, function* () {
                     yield (0, jahia_reporter_1.createPagerdutyIncident)(testsFolder, {
                         service: core.getInput('module_id'),
@@ -1502,8 +1502,7 @@ function run() {
             }
             // Send notifications to slack
             if (core.getInput('should_skip_notifications') === 'false' ||
-                // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
-                core.getInput('primary_release_branch') === 'TECH-533_ts_action') {
+                core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH) {
                 yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Send notification to Slack`, () => __awaiter(this, void 0, void 0, function* () {
                     yield (0, jahia_reporter_1.sendSlackNotification)(testsFolder, {
                         channelId: core.getInput('slack_channel_id_notifications'),
@@ -1514,8 +1513,7 @@ function run() {
             }
             // Send results to zencrepes
             if (core.getInput('should_skip_zencrepes') === 'false' ||
-                // core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
-                core.getInput('primary_release_branch') === 'TECH-533_ts_action') {
+                core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH) {
                 yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Send results to ZenCrepes`, () => __awaiter(this, void 0, void 0, function* () {
                     yield (0, jahia_reporter_1.sendResultsToZencrepes)(testsFolder, {
                         service: core.getInput('module_id'),
