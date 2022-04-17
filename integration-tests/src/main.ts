@@ -28,10 +28,9 @@ import {
   publishToTestrail,
   createPagerdutyIncident,
   sendSlackNotification,
-  sendResultsToZencrepes
+  sendResultsToZencrepes,
+  showTestsSummary
 } from './jahia-reporter'
-
-import {showResults} from './results'
 
 async function run(): Promise<void> {
   try {
@@ -322,7 +321,7 @@ async function run(): Promise<void> {
     core.info(`Completed job at: ${formatDate(new Date())}`)
 
     // Display a short "console" report directly in the run output
-    await showResults(testsFolder)
+    await showTestsSummary(testsFolder)
 
     //Finally, analyze the results
     if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
