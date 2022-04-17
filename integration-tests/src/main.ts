@@ -31,6 +31,8 @@ import {
   sendResultsToZencrepes
 } from './jahia-reporter'
 
+import {showResults} from './results'
+
 async function run(): Promise<void> {
   try {
     if (!process.env.GITHUB_WORKSPACE) {
@@ -319,7 +321,8 @@ async function run(): Promise<void> {
 
     core.info(`Completed job at: ${formatDate(new Date())}`)
 
-    // TODO - Display a short report directly in the run output
+    // Display a short "console" report directly in the run output
+    await showResults(testsFolder)
 
     //Finally, analyze the results
     if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {

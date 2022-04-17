@@ -1,4 +1,3 @@
-import * as core from '@actions/core'
 import * as path from 'path'
 
 import {runShellCommands} from '../utils/system'
