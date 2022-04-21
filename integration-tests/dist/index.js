@@ -827,8 +827,8 @@ const system_1 = __nccwpck_require__(7885);
 function installTooling() {
     return __awaiter(this, void 0, void 0, function* () {
         yield (0, system_1.runShellCommands)([
-            'npm install -g @jahia/jahia-reporter',
-            'which rsync'
+            'npm install -g @jahia/jahia-reporter'
+            // 'which rsync'
             // 'sudo apt-get update',
             // 'sudo apt-get install rsync'
         ]);
