@@ -828,8 +828,9 @@ function installTooling() {
     return __awaiter(this, void 0, void 0, function* () {
         yield (0, system_1.runShellCommands)([
             'npm install -g @jahia/jahia-reporter',
-            'sudo apt-get update',
-            'sudo apt-get install rsync'
+            'which rsync'
+            // 'sudo apt-get update',
+            // 'sudo apt-get install rsync'
         ]);
     });
 }
