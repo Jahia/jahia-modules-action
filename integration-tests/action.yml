@@ -36,6 +36,10 @@ inputs:
     description: 'Folder containing the docker-compose.yml'
     required: false
     default: 'tests/'
+  tests_profile:
+    description: 'Profile to be used for the tests, this becomes an environment variable usable by the tests'
+    required: false
+    default: ''
   tests_manifest:
     description: 'Manifest contraining the provisioning script'
     required: true

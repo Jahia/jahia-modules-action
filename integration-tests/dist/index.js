@@ -892,6 +892,7 @@ function setEnvironmentVariables() {
         core.exportVariable('NEXUS_PASSWORD', core.getInput('nexus_password'));
         core.exportVariable('DOCKER_USERNAME', core.getInput('docker_username'));
         core.exportVariable('TESTS_PATH', core.getInput('tests_path'));
+        core.exportVariable('TESTS_PROFILE', core.getInput('tests_profile'));
         if (process.env.GITHUB_REF) {
             const branchName = process.env.GITHUB_REF.split('/')
                 .slice(2)
