@@ -1,4 +1,4 @@
-name: Build 
+name: Build
 description: Build a Jahia module
 
 inputs:
@@ -9,10 +9,23 @@ inputs:
     description: Filepath to the settings.xml file
     default: '.circleci/.circleci.settings.xml'
     required: false
+  nexus_username:
+    description: 'Nexus Username'
+    required: false
+    default: ''
+  nexus_password:
+    description: 'Nexus Password'
+    required: false
+    default: ''
 
 runs:
   using: "composite"
   steps:
+    - name: Set environment variables from parameters
+      shell: bash
+      run: |
+        echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
+        echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
 
     # This step save the maven cache between runs
     # More details can be found here: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
