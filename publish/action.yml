@@ -20,7 +20,7 @@ runs:
       shell: bash
       run: |
         echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
-        echo "NEXUS_PASSWORD=${{ inputs.nexus_PASSWORD }}" >> $GITHUB_ENV
+        echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
 
     # This step save the maven cache between runs
     # More details can be found here: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
