@@ -17,6 +17,10 @@ inputs:
     description: 'Nexus Password'
     required: false
     default: ''
+  nexus_internal_url:
+    description: 'Nexus Internal URL'
+    required: false
+    default: '${{ secrets.NEXUS_INTERNAL_URL }}'
 
 runs:
   using: "composite"
@@ -26,6 +30,7 @@ runs:
       run: |
         echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
         echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
+        echo "NEXUS_INTERNAL_URL=${{ inputs.nexus_internal_url }}" >> $GITHUB_ENV
 
     # This step save the maven cache between runs
     # More details can be found here: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
