@@ -66,9 +66,11 @@ function run() {
             core.info('_____________ #> curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"');
             core.info('_____________ #> sudo installer -pkg AWSCLIV2.pkg -target /');
             core.info('_____________ #> aws --version');
-            core.info('(once) Step 2: Configure the AWS CLI with your credentials');
+            core.info('(once) Step 2: Configure the AWS CLI with your credentials and the region of your instance');
+            core.info('those information can be found in your aws account, the region of your instance is not necessarily');
+            core.info('where you currently are (for testing we often use the region Ireland : eu-west-1');
             core.info('_____________ #> aws configure');
-            core.info('(once) Step 3: Install Session Manager plugin on your machine');
+            core.info('(once) Step 3: Install Session Manager plugin on your machine, python 2.7 is required for this part');
             core.info('_____________ Instructions are available here: https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html');
             core.info('_____________ In Short (macOS):');
             core.info('_____________ #> curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/mac/sessionmanager-bundle.zip" -o "sessionmanager-bundle.zip"');
@@ -80,6 +82,9 @@ function run() {
             core.info('Step 1: Connect using the AWS CLI');
             core.info('_____________ INSTANCE_ID: AWS EC2 Instance ID, displayed at the top of this job, or via the EC2 console');
             core.info('_____________ #> aws ssm start-session --target INSTANCE_ID');
+            core.info('Step 2: Access the containers');
+            core.info('_____________ #> sudo su');
+            core.info('_____________ #> docker ps');
             core.endGroup();
             core.startGroup(`📘 How to use Portforward to access Jahia UI`);
             core.info('Step 1: Establish the tunnel');
