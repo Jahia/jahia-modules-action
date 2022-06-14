@@ -23,6 +23,14 @@ inputs:
     description: Filepath to the settings.xml file
     required: false
     default: '.circleci/.circleci.settings.xml'
+  nexus_username:
+    description: 'Nexus Username'
+    required: false
+    default: ''
+  nexus_password:
+    description: 'Nexus Password'
+    required: false
+    default: ''
   build_artifacts:
     description: "Name of the artifact target folder that was saved from build stage (using upload-artifact)"
     required: false
@@ -31,6 +39,12 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Set environment variables from parameters
+      shell: bash
+      run: |
+        echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
+        echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
+
     - name: Download build artifacts
       uses: actions/download-artifact@v2
       if: ${{ inputs.build_artifacts != '' }}
