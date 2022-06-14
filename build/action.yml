@@ -20,7 +20,7 @@ inputs:
   nexus_internal_url:
     description: 'Nexus Internal URL'
     required: false
-    default: '${{ secrets.NEXUS_INTERNAL_URL }}'
+    default: ''
 
 runs:
   using: "composite"
