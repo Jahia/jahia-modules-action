@@ -231,6 +231,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const artifact = __importStar(__nccwpck_require__(2605));
 const fs = __importStar(__nccwpck_require__(5747));
 const path = __importStar(__nccwpck_require__(5622));
+const utils_1 = __nccwpck_require__(1606);
 // Recursively get all files under the path
 const getFiles = (currentPath, scannedFiles = []) => __awaiter(void 0, void 0, void 0, function* () {
     const files = fs.readdirSync(currentPath);
@@ -251,6 +252,7 @@ const getFiles = (currentPath, scannedFiles = []) => __awaiter(void 0, void 0, v
 });
 function uploadArtifact(artifactName, artifactPath, retentionDays) {
     return __awaiter(this, void 0, void 0, function* () {
+        const cleanedArtifactName = (0, utils_1.cleanArtifactName)(artifactName);
         const artifactClient = artifact.create();
         const artifactsFiles = yield getFiles(artifactPath);
         core.info('About the upload the following files as artifacts: ');
@@ -258,7 +260,7 @@ function uploadArtifact(artifactName, artifactPath, retentionDays) {
             const stats = fs.statSync(f);
             core.info(`File: ${f} - size: ${stats.size} bytes`);
         }
-        const uploadResponse = yield artifactClient.uploadArtifact(artifactName, artifactsFiles, artifactPath, {
+        const uploadResponse = yield artifactClient.uploadArtifact(cleanedArtifactName, artifactsFiles, artifactPath, {
             continueOnError: true,
             retentionDays: retentionDays
         });
@@ -312,6 +314,7 @@ exports.uploadArtifactJahia = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const date_fns_1 = __nccwpck_require__(3314);
 const Rsync = __importStar(__nccwpck_require__(125));
+const utils_1 = __nccwpck_require__(1606);
 const runRsync = (artifactPath, dstFilePath) => __awaiter(void 0, void 0, void 0, function* () {
     const rsync = Rsync.build({});
     rsync
@@ -338,9 +341,7 @@ const runRsync = (artifactPath, dstFilePath) => __awaiter(void 0, void 0, void 0
 });
 function uploadArtifactJahia(artifactName, artifactPath, retentionDays, repository, runId, runAttempt) {
     return __awaiter(this, void 0, void 0, function* () {
-        const cleanedArtifactName = artifactName
-            .replace(/[^a-z0-9+]+/gi, '')
-            .toLowerCase();
+        const cleanedArtifactName = (0, utils_1.cleanArtifactName)(artifactName);
         const expiryDate = (0, date_fns_1.add)(new Date(), { days: retentionDays });
         const dstPath = `delete-on-${(0, date_fns_1.format)(expiryDate, 'yyyy-MM-dd')}_${repository.replace('/', '_')}_${cleanedArtifactName}_${runId}_${runAttempt}`;
         const dstFilePath = `/temp-artifacts/${dstPath}`;
@@ -1604,6 +1605,25 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 __exportStar(__nccwpck_require__(7885), exports);
 __exportStar(__nccwpck_require__(6154), exports);
+__exportStar(__nccwpck_require__(7743), exports);
+
+
+/***/ }),
+
+/***/ 7743:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.cleanArtifactName = void 0;
+// Return a string containing only alphanumerical and -
+const cleanArtifactName = (string) => {
+    return String(string)
+        .replace(/[^a-z0-9\-_+]+/gi, '')
+        .toLowerCase();
+};
+exports.cleanArtifactName = cleanArtifactName;
 
 
 /***/ }),
