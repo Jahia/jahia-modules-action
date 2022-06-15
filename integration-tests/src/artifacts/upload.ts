@@ -3,6 +3,8 @@ import * as artifact from '@actions/artifact'
 import * as fs from 'fs'
 import * as path from 'path'
 
+import {cleanArtifactName} from '../utils'
+
 // Recursively get all files under the path
 const getFiles = async (
   currentPath: string,
@@ -29,6 +31,7 @@ export async function uploadArtifact(
   artifactPath: string,
   retentionDays: number
 ): Promise<any> {
+  const cleanedArtifactName = cleanArtifactName(artifactName)
   const artifactClient = artifact.create()
   const artifactsFiles = await getFiles(artifactPath)
 
@@ -39,7 +42,7 @@ export async function uploadArtifact(
   }
 
   const uploadResponse = await artifactClient.uploadArtifact(
-    artifactName,
+    cleanedArtifactName,
     artifactsFiles,
     artifactPath,
     {

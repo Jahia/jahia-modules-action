@@ -2,6 +2,8 @@ import * as core from '@actions/core'
 import {add, format} from 'date-fns'
 import * as Rsync from 'rsync'
 
+import {cleanArtifactName} from '../utils'
+
 const runRsync = async (
   artifactPath: string,
   dstFilePath: string
@@ -47,9 +49,7 @@ export async function uploadArtifactJahia(
   runId: string,
   runAttempt: string
 ): Promise<any> {
-  const cleanedArtifactName = artifactName
-    .replace(/[^a-z0-9+]+/gi, '')
-    .toLowerCase()
+  const cleanedArtifactName = cleanArtifactName(artifactName)
 
   const expiryDate = add(new Date(), {days: retentionDays})
   const dstPath = `delete-on-${format(
