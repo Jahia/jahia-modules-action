@@ -16,10 +16,6 @@ inputs:
   nexus_password:
     description: 'Nexus Password'
     required: true
-  nexus_internal_url:
-    description: 'Nexus Internal URL'
-    required: false
-    default: '${{ secrets.NEXUS_INTERNAL_URL }}'
   github_slug:
     description: "GitHub SLUG of the module (for example: jahia/sandbox)"
     required: true
@@ -50,8 +46,7 @@ runs:
         echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
         echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
         echo "NEXUS_RELEASE_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
-        echo "NEXUS_RELEASE_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV   
-        echo "NEXUS_INTERNAL_URL=${{ inputs.nexus_internal_url }}" >> $GITHUB_ENV     
+        echo "NEXUS_RELEASE_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
 
     - name: Generate maven cache seeed
       shell: bash
