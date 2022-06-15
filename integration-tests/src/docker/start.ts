@@ -25,7 +25,7 @@ export async function startDockerEnvironment(
   } else if (fs.existsSync(composeFile)) {
     core.info(`Starting environment using compose file: ${composeFile}`)
     await runShellCommands(
-      [`docker-compose -f ${composeFile} up --abord-on-container-exit`],
+      [`docker-compose -f ${composeFile} up --abort-on-container-exit`],
       'artifacts/startup.log',
       {cwd: testsFolder, ignoreReturnCode: true}
     )
