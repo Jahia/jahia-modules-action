@@ -8,7 +8,7 @@ inputs:
     required: false
   mvn_settings_filepath:
     description: Filepath to the settings.xml file
-    default: '.circleci/.circleci.settings.xml'
+    default: '.github/maven.settings.xml'
     required: false
   nexus_username:
     description: 'Nexus Username'
