@@ -19,7 +19,7 @@ inputs:
   nexus_internal_url:
     description: 'Nexus Internal URL'
     required: false
-    default: '${{ secrets.NEXUS_INTERNAL_URL }}'
+    default: ''
   github_slug:
     description: "GitHub SLUG of the module (for example: jahia/sandbox)"
     required: true
