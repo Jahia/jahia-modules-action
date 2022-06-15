@@ -22,7 +22,7 @@ inputs:
   mvn_settings_filepath:
     description: Filepath to the settings.xml file
     required: false
-    default: '.circleci/.circleci.settings.xml'
+    default: '.github/maven.settings.xml'
   nexus_username:
     description: 'Nexus Username'
     required: false
