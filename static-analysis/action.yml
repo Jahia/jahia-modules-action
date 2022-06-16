@@ -80,7 +80,7 @@ runs:
       run: |
         if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
           cd ${{ inputs.module_path }}
-          audit-ci --${{ inputs.auditci_level }}
+          audit-ci --skip-dev --${{ inputs.auditci_level }}
         fi
     - name: Audit-ci tests (javascript only)
       shell: bash
