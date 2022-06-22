@@ -268,9 +268,7 @@ async function run(): Promise<void> {
         async () => {
           await createPagerdutyIncident(testsFolder, {
             service:
-              core.getInput('incident_service') !== ''
-                ? core.getInput('incident_service')
-                : core.getInput('module_id'),
+              core.getInput('incident_service') || core.getInput('module_id'),
             pdApiKey: core.getInput('incident_pagerduty_api_key'),
             pdReporterEmail: core.getInput('incident_pagerduty_reporter_email'),
             pdReporterId: core.getInput('incident_pagerduty_reporter_id'),
