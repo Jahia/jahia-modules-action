@@ -155,6 +155,10 @@ inputs:
     description: 'Google base64 encoded private key to allow access to Google API'
     required: false
     default: ''
+  incident_service:
+    description: 'Service subject to the incident. If empty, will default to the value of module_id'
+    required: false
+    default: ''
   testrail_project:
     description: 'Testrail Project to send data to'
     required: false
