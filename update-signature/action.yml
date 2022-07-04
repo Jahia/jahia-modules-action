@@ -13,7 +13,7 @@ inputs:
   nexus_internal_releases_url:
     description: Nexus Enterprise release URL
     required: false
-    default: ${{secrets.NEXUS_INTERNAL_RELEASES_URL}}
+    default: 'https://devtools.jahia.com/nexus/content/repositories/jahia-internal-releases'
   nexus_username:
     description: Nexus Username
     required: true
