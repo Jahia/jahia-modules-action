@@ -10,9 +10,10 @@ inputs:
     description: Regular expression of folders to not analyze when looking for module to sign
     required: false
     default: '*'
-  nexus_enterprise_releases_url:
+  nexus_internal_releases_url:
     description: Nexus Enterprise release URL
-    required: true
+    required: false
+    default: 'https://devtools.jahia.com/nexus/content/repositories/jahia-internal-releases'
   nexus_username:
     description: Nexus Username
     required: true
@@ -77,7 +78,7 @@ runs:
       if: env.PERFORM_SIGNATURE == 'true'
       run: |
         mkdir -p target/keymaker
-        url="${{ inputs.nexus_enterprise_releases_url }}/content/${{ inputs.keymaker_location }}/${{ inputs.keymaker_version }}/${{ inputs.keymaker_name }}-${{ inputs.keymaker_version }}-jar-with-dependencies.jar"
+        url="${{ inputs.nexus_internal_releases_url }}/${{ inputs.keymaker_location }}/${{ inputs.keymaker_version }}/${{ inputs.keymaker_name }}-${{ inputs.keymaker_version }}-jar-with-dependencies.jar"
         curl --header "Authorization: Basic $(echo -n "${{ inputs.nexus_username }}:${{ inputs.nexus_password }}" | base64)" \
             --url "${url}" \
             --output "target/keymaker/${{ inputs.keymaker_name }}.jar"
