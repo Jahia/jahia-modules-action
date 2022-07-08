@@ -10,12 +10,14 @@ inputs:
   repo:
     default: "jahia-dev-ee"
     description: "Docker registry (i.e. Docker Hub) repository"
-  username:
-    default: "${{ secrets.DOCKERHUB_LOGIN }}"
+  docker_username:
+    default: ""
     description: "Docker registry (i.e. Docker Hub) username. Requires read/write access"
-  password:
-    default: "${{ secrets.DOCKERHUB_PASSWORD }}"
+    required: true
+  docker_password:
+    default: ""
     description: "Docker registry (i.e. Docker Hub) password. Requires read/write access"
+    required: true
   dry-run:
     default: true
     description: "Dry Run: Does not push changes if true"
