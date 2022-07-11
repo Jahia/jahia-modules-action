@@ -1,0 +1,49 @@
+name: docker-tags
+
+inputs:
+  version:
+    default: "8.0.2.0"
+    description: "Version string or path to version file to run the check towards"
+  org:
+    default: "jahia"
+    description: "Docker registry (i.e. Docker Hub) organization"
+  repo:
+    default: "jahia-dev-ee"
+    description: "Docker registry (i.e. Docker Hub) repository"
+  docker_username:
+    default: ""
+    description: "Docker registry (i.e. Docker Hub) username. Requires read/write access"
+    required: true
+  docker_password:
+    default: ""
+    description: "Docker registry (i.e. Docker Hub) password. Requires read/write access"
+    required: true
+  dry-run:
+    default: true
+    description: "Dry Run: Does not push changes if true"
+
+
+runs:
+  using: "composite"
+  steps:
+    - name: Handle version parameter (file or version string)
+      shell: bash
+      run: |
+        if [[ -e ${{ inputs.version }} ]]; then
+          echo 'PARAM_VERSION="$(cat ${{ inputs.version }})"' >> $GITHUB_ENV
+        else
+          echo 'export PARAM_VERSION="${{ inputs.version }}"' >> $GITHUB_ENV
+        fi
+    - name: Verifying version in environment variable
+      shell: bash
+      run: echo ${{ env.PARAM_VERSION }}
+    - name: Generate missing Docker tags
+      shell: bash
+      run: |
+        echo "PARAM_ORG=${{ inputs.org }}" >> $GITHUB_ENV
+        echo "PARAM_REPO=${{ inputs.repo }}" >> $GITHUB_ENV
+        echo "PARAM_DRYRUN=${{ inputs.dry-run }}" >> $GITHUB_ENV
+    - name: Run script
+      shell: bash
+      run: ./scripts/docker-tags.sh
+
