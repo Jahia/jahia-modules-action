@@ -42,8 +42,6 @@ runs:
       run: |
         echo "PARAM_ORG=${{ inputs.org }}" >> $GITHUB_ENV
         echo "PARAM_REPO=${{ inputs.repo }}" >> $GITHUB_ENV
-        echo "PARAM_USERNAME=${{ inputs.username }}" >> $GITHUB_ENV
-        echo "PARAM_PASSWORD=${{ inputs.password }}" >> $GITHUB_ENV
         echo "PARAM_DRYRUN=${{ inputs.dry-run }}" >> $GITHUB_ENV
     - name: Run script
       shell: bash
