@@ -18,18 +18,23 @@ inputs:
   # context variables
   # - code-signing-orb for prod values
   credential_id:
+    type: environment
     default: CREDENTIAL_ID
     description: "Code signer Credential ID"
   signer_username:
+    type: environment
     default: SIGNER_USERNAME
     description: "Code signer username"
   signer_password:
+    type: environment
     default: SIGNER_PASSWORD
     description: "Code signer password"
   totp_secret:
+    type: environment
     default: TOTP_SECRET
     description: "Used to generate TOTP token"
   codesigntool_url:
+    type: environment
     default: CODESIGNTOOL_URL
     description: "Used to download the CodeSignTool zip"
 runs:
