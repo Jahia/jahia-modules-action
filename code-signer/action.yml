@@ -32,64 +32,65 @@ inputs:
   codesigntool_url:
     default: CODESIGNTOOL_URL
     description: "Used to download the CodeSignTool zip"
+runs:
+  using: "composite"
+  steps:
+    - uses: checkout@v2
+    - uses: webfactory/ssh-agent@v0.5.4
+      with:
+        ssh-private-key: ${{ inputs.ssh-key-fingerprint }}
+    - name: Setting up github configuration
+      shell: bash
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
+        git config --global user.email "jahia-ci@jahia.com"
+        git config --global user.name "Jahia CI"
+    - name: Initialize code sign tools
+      shell: bash
+      run: |
+        # Download CodeSignTool
+        sudo -u root apt-get update && sudo -u root apt-get install -y oathtool
+        tool_url=${{ inputs.codesigntool_url }}
+        curl -s $tool_url --output CodeSignTool.zip
+        mkdir CodeSignTool
+        unzip -d CodeSignTool CodeSignTool.zip
+        chmod -Rc 755 CodeSignTool
 
-steps:
-  - uses: checkout@v2
-  - uses: webfactory/ssh-agent@v0.5.4
-    with:
-      ssh-private-key: ${{ inputs.ssh-key-fingerprint }}
-  - name: Setting up github configuration
-    shell: bash
-    run: |
-      mkdir -p ~/.ssh
-      ssh-keyscan github.com >> ~/.ssh/known_hosts
-      git config --global user.email "jahia-ci@jahia.com"
-      git config --global user.name "Jahia CI"
-  - name: Initialize code sign tools
-    shell: bash
-    run: |
-      # Download CodeSignTool
-      sudo -u root apt-get update && sudo -u root apt-get install -y oathtool
-      tool_url=${{ inputs.codesigntool_url }}
-      curl -s $tool_url --output CodeSignTool.zip
-      mkdir CodeSignTool
-      unzip -d CodeSignTool CodeSignTool.zip
-      chmod -Rc 755 CodeSignTool
-
-      # Download sign4j binary (to sign exes) and custom codesigntool script
-      git clone --depth 1 --branch master git@github.com:Jahia/JahiaReleaseTool.git
-      cp JahiaReleaseTool/bin/sign4j CodeSignTool
-      cp JahiaReleaseTool/codeSignTool-sign4j.sh CodeSignTool
-      
-      # Clean-up
-      rm -rf JahiaReleaseTool
-      rm -rf CodeSignTool.zip
-  - name: Generate signed installer files
-    shell: bash
-    run: |
-      cd CodeSignTool
-      export OUTPUT_DIR=/tmp/signed-installers
-      export TOTP_SECRET=${{ inputs.totp_secret }}
-      mkdir $OUTPUT_DIR
-      # sign installer jars
-      for INSTALLER_FILE in `find ${{ inputs.installer_dir }} -name "${{ inputs.file_pattern }}" \( -name "*.jar" \)`; do
-        echo "Signing $INSTALLER_FILE..."
-        printf `oathtool --totp -b -d 6 ${{ inputs.totp_secret }}` | ./CodeSignTool.sh sign \
-          -username=${{ inputs.signer_username }} \
-          -password=${{ inputs.signer_password }} \
-          -credential_id=${{ inputs.credential_id }} \
-          -output_dir_path=$OUTPUT_DIR \
-          -input_file_path=$INSTALLER_FILE
-        cp $OUTPUT_DIR/`basename $INSTALLER_FILE` $INSTALLER_FILE # overwrite original file
-      done
-      # sign installer exes
-      for INSTALLER_FILE in `find ${{ inputs.installer_dir }} -name "${{ inputs.file_pattern }}" \( -name "*.exe" \)`; do
-        echo "Signing $INSTALLER_FILE..."
-        ./sign4j ./codeSignTool-sign4j.sh sign \
-          -username=${{ inputs.signer_username }} \
-          -password=${{ inputs.signer_password }} \
-          -credential_id=${{ inputs.credential_id }} \
-          -output_dir_path=$OUTPUT_DIR \
-          $INSTALLER_FILE # -input_file_path option is replaced by last param
-        cp $OUTPUT_DIR/`basename $INSTALLER_FILE` $INSTALLER_FILE # overwrite original file
-      done
+        # Download sign4j binary (to sign exes) and custom codesigntool script
+        git clone --depth 1 --branch master git@github.com:Jahia/JahiaReleaseTool.git
+        cp JahiaReleaseTool/bin/sign4j CodeSignTool
+        cp JahiaReleaseTool/codeSignTool-sign4j.sh CodeSignTool
+        
+        # Clean-up
+        rm -rf JahiaReleaseTool
+        rm -rf CodeSignTool.zip
+    - name: Generate signed installer files
+      shell: bash
+      run: |
+        cd CodeSignTool
+        export OUTPUT_DIR=/tmp/signed-installers
+        export TOTP_SECRET=${{ inputs.totp_secret }}
+        mkdir $OUTPUT_DIR
+        # sign installer jars
+        for INSTALLER_FILE in `find ${{ inputs.installer_dir }} -name "${{ inputs.file_pattern }}" \( -name "*.jar" \)`; do
+          echo "Signing $INSTALLER_FILE..."
+          printf `oathtool --totp -b -d 6 ${{ inputs.totp_secret }}` | ./CodeSignTool.sh sign \
+            -username=${{ inputs.signer_username }} \
+            -password=${{ inputs.signer_password }} \
+            -credential_id=${{ inputs.credential_id }} \
+            -output_dir_path=$OUTPUT_DIR \
+            -input_file_path=$INSTALLER_FILE
+          cp $OUTPUT_DIR/`basename $INSTALLER_FILE` $INSTALLER_FILE # overwrite original file
+        done
+        # sign installer exes
+        for INSTALLER_FILE in `find ${{ inputs.installer_dir }} -name "${{ inputs.file_pattern }}" \( -name "*.exe" \)`; do
+          echo "Signing $INSTALLER_FILE..."
+          ./sign4j ./codeSignTool-sign4j.sh sign \
+            -username=${{ inputs.signer_username }} \
+            -password=${{ inputs.signer_password }} \
+            -credential_id=${{ inputs.credential_id }} \
+            -output_dir_path=$OUTPUT_DIR \
+            $INSTALLER_FILE # -input_file_path option is replaced by last param
+          cp $OUTPUT_DIR/`basename $INSTALLER_FILE` $INSTALLER_FILE # overwrite original file
+        done
