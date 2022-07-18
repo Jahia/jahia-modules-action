@@ -1,7 +1,7 @@
 name: code-signer
 
 inputs:
-  ssh_key_fingerprint:
+  ssh-private-key:
     description: "Used for fetching external repos"
     required: true
   installer_dir:
@@ -38,7 +38,7 @@ runs:
     - uses: actions/checkout@v2
     - uses: webfactory/ssh-agent@v0.5.4
       with:
-        ssh-private-key: ${{ inputs.ssh-key-fingerprint }}
+        ssh-private-key: ${{ inputs.ssh-private-key }}
     - name: Setting up github configuration
       shell: bash
       run: |
