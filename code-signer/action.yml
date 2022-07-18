@@ -35,7 +35,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: checkout@v2
+    - uses: actions/checkout@v2
     - uses: webfactory/ssh-agent@v0.5.4
       with:
         ssh-private-key: ${{ inputs.ssh-key-fingerprint }}
