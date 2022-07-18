@@ -34,8 +34,7 @@ inputs:
     default: TOTP_SECRET
     description: "Used to generate TOTP token"
   codesigntool_url:
-    type: environment
-    default: CODESIGNTOOL_URL
+    required: true
     description: "Used to download the CodeSignTool zip"
 runs:
   using: "composite"
@@ -56,7 +55,7 @@ runs:
       run: |
         # Download CodeSignTool
         sudo -u root apt-get update && sudo -u root apt-get install -y oathtool
-        tool_url=${${{ inputs.codesigntool_url }}}
+        tool_url=${{ inputs.codesigntool_url }}
         curl -s $tool_url --output CodeSignTool.zip
         mkdir CodeSignTool
         unzip -d CodeSignTool CodeSignTool.zip
