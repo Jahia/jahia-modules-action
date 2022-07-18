@@ -51,7 +51,7 @@ runs:
       run: |
         # Download CodeSignTool
         sudo -u root apt-get update && sudo -u root apt-get install -y oathtool
-        tool_url=${ ${{ inputs.codesigntool_url }} }
+        tool_url=${${{ inputs.codesigntool_url }}}
         curl -s $tool_url --output CodeSignTool.zip
         mkdir CodeSignTool
         unzip -d CodeSignTool CodeSignTool.zip
