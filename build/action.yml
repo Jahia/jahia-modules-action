@@ -17,6 +17,10 @@ inputs:
     description: 'Nexus Password'
     required: false
     default: ''
+  debug_session_timeout:
+    description: 'In seconds, timeout in seconds before terminating the session'
+    required: false
+    default: '7200'
 
 runs:
   using: "composite"
@@ -92,3 +96,20 @@ runs:
         name: test-artifacts
         path: /tmp/artifacts/test-results/
         retention-days: 7
+
+    - name: Keep session opened if /tmp/debug file is present
+      shell: bash
+      if: always()
+      run: |
+        echo "::group::Keep session opened if /tmp/debug file is present"
+        WAIT_DURATION=0
+        while [[ -e /tmp/debug ]]; do
+          echo "Debug file present - $(( ++ WAIT_DURATION ))s - waiting for file removal..."
+          if [ $WAIT_DURATION -gt ${{ inputs.debug_session_timeout }} ]; then
+            echo "Reached timeout of: ${{ inputs.debug_session_timeout }}"
+            echo "Exiting the loop"
+            break
+          fi
+          sleep 1;
+        done
+        echo "::endgroup::"
