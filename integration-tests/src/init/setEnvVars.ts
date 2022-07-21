@@ -16,6 +16,10 @@ export async function setEnvironmentVariables(): Promise<any> {
   )
   core.exportVariable('NEXUS_USERNAME', core.getInput('nexus_username'))
   core.exportVariable('NEXUS_PASSWORD', core.getInput('nexus_password'))
+  core.exportVariable(
+    'DOCKER_COMPOSE_FILE',
+    core.getInput('docker_compose_file')
+  )
   core.exportVariable('DOCKER_USERNAME', core.getInput('docker_username'))
   core.exportVariable('TESTS_PATH', core.getInput('tests_path'))
   core.exportVariable('TESTS_PROFILE', core.getInput('tests_profile'))
