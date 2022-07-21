@@ -14,7 +14,6 @@ inputs:
     description: >
       File name pattern of installer file to sign
       - orb already checks exe/jar extension (no need to include)
-
   # context variables
   # - code-signing-orb for prod values
   credential_id:
@@ -32,6 +31,11 @@ inputs:
   codesigntool_url:
     required: true
     description: "Used to download the CodeSignTool zip"
+  debug_session_timeout:
+    description: 'In seconds, timeout in seconds before terminating the session'
+    required: false
+    default: '7200'
+
 runs:
   using: "composite"
   steps:
@@ -94,3 +98,19 @@ runs:
             $INSTALLER_FILE # -input_file_path option is replaced by last param
           cp $OUTPUT_DIR/`basename $INSTALLER_FILE` $INSTALLER_FILE # overwrite original file
         done
+    - name: Keep session opened if /tmp/debug file is present
+      shell: bash
+      if: always()
+      run: |
+        echo "::group::Keep session opened if /tmp/debug file is present"
+        WAIT_DURATION=0
+        while [[ -e /tmp/debug ]]; do
+          echo "Debug file present - $(( ++ WAIT_DURATION ))s - waiting for file removal..."
+          if [ $WAIT_DURATION -gt ${{ inputs.debug_session_timeout }} ]; then
+            echo "Reached timeout of: ${{ inputs.debug_session_timeout }}"
+            echo "Exiting the loop"
+            break
+          fi
+          sleep 1;
+        done
+        echo "::endgroup::" 
