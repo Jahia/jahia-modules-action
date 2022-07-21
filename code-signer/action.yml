@@ -80,21 +80,21 @@ runs:
         for INSTALLER_FILE in `find ${{ inputs.installer_dir }} -name "${{ inputs.file_pattern }}" \( -name "*.jar" \)`; do
           echo "Signing $INSTALLER_FILE..."
           printf `oathtool --totp -b -d 6 ${{ inputs.totp_secret }}` | ./CodeSignTool.sh sign \
-            -username=${{ inputs.signer_username }} \
-            -password=${{ inputs.signer_password }} \
-            -credential_id=${{ inputs.credential_id }} \
-            -output_dir_path=$OUTPUT_DIR \
-            -input_file_path=$INSTALLER_FILE
+            -username="${{ inputs.signer_username }}" \
+            -password="${{ inputs.signer_password }}" \
+            -credential_id="${{ inputs.credential_id }}" \
+            -output_dir_path="$OUTPUT_DIR" \
+            -input_file_path="$INSTALLER_FILE"
           cp $OUTPUT_DIR/`basename $INSTALLER_FILE` $INSTALLER_FILE # overwrite original file
         done
         # sign installer exes
         for INSTALLER_FILE in `find ${{ inputs.installer_dir }} -name "${{ inputs.file_pattern }}" \( -name "*.exe" \)`; do
           echo "Signing $INSTALLER_FILE..."
           ./sign4j ./codeSignTool-sign4j.sh sign \
-            -username=${{ inputs.signer_username }} \
-            -password=${{ inputs.signer_password }} \
-            -credential_id=${{ inputs.credential_id }} \
-            -output_dir_path=$OUTPUT_DIR \
+            -username="${{ inputs.signer_username }}" \
+            -password="${{ inputs.signer_password }}" \
+            -credential_id="${{ inputs.credential_id }}" \
+            -output_dir_path="$OUTPUT_DIR" \
             $INSTALLER_FILE # -input_file_path option is replaced by last param
           cp $OUTPUT_DIR/`basename $INSTALLER_FILE` $INSTALLER_FILE # overwrite original file
         done
