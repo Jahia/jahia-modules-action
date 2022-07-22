@@ -1,0 +1,72 @@
+name: slack-jahia
+
+inputs:
+  job-event:
+    default: "pass"
+    description: "Status of the execution"
+  skip-docker:
+  type: boolean
+    default: false
+    description: "Do not show the docker command"
+  docker-repo:
+    default: "jahia-ee"
+    description: "Docker repository"
+  docker-image-tag:
+    default: "8"
+    description: "Docker tag"
+  slack-webhook:
+    description: "Webhook that allows to send on Jahia slack"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Empty the Docker command variable
+      shell: bash
+      if: ${{ ${{ inputs.skip-docker }} = true }}
+      run: echo 'DOCKER_COMMAND=""' >> $GITHUB_ENV
+    - name: Set the docker command variable
+      shell: bash
+      if: ${{ ${{ inputs.skip-docker}} = false }}
+      run: echo 'DOCKER_COMMAND="\`\`\`docker pull jahia/${{ inputs.docker-repo }}:${{ inputs.docker-image-tag }}\`\`\`"' >> $GITHUB_ENV
+
+    # if there was no failure
+    - uses: slackapi/slack-github-action@v1.18.0
+      if: ${{ ${{ inputs.job-event }} == "pass" }}
+      with:
+        payload: |
+          {
+            "blocks": [
+              {
+                "type": "section",
+                "text":
+                  {
+                    "type": "mrkdwn",
+                    "text": ":white_check_mark: New build available for *$CIRCLE_PROJECT_REPONAME* (Job artifacts: <https://app.circleci.com/jobs/github/Jahia/$CIRCLE_PROJECT_REPONAME/$CIRCLE_BUILD_NUM/artifacts|*$CIRCLE_JOB*>, Branch: *$CIRCLE_BRANCH*) ${DOCKER_COMMAND}"
+                  }
+              }
+            ]
+          } 
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+    - uses: slackapi/slack-github-action@v1.18.0
+      if: ${{ ${{ inputs.job-event }} == "fail" }}
+      with:
+        payload: |
+          {
+            "blocks": [
+              {
+                "type": "section",
+                "text":
+                  {
+                    "type": "mrkdwn",
+                    "text": ":x: Build failure for *$CIRCLE_PROJECT_REPONAME* (Job artifacts: <$CIRCLE_BUILD_URL|*$CIRCLE_JOB*>, Branch: *$CIRCLE_BRANCH*)"
+                  }
+              }
+            ]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK   
