@@ -99,7 +99,7 @@ runs:
         done
     - name: Keep session opened if /tmp/debug file is present
       shell: bash
-      if: always()
+      if: ${{ always() }}
       run: |
         echo "::group::Keep session opened if /tmp/debug file is present"
         WAIT_DURATION=0
