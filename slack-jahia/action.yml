@@ -4,7 +4,7 @@ inputs:
   job-event:
     default: "pass"
     description: "Status of the execution"
-  docker-command:
+  docker-comm:
     default: ""
     description: "Do not show the docker command"
   docker-repo:
@@ -32,7 +32,7 @@ runs:
       if: ${{ inputs.skip-docker == false }}
       run: |
         echo 'DOCKER_COMMAND="\`\`\`docker pull jahia/${{ inputs.docker-repo }}:${{ inputs.docker-image-tag }}\`\`\`"' >> $GITHUB_ENV
-        echo "TEST2=test2"
+        echo "TEST2=test2" >> $GITHUB_ENV
     - name: Test DOCKER_COMMAND
       shell: bash
       run: |
