@@ -40,7 +40,7 @@ runs:
       with:
         payload: |
           {
-            "blocks": [s
+            "blocks": [
               {
                 "type": "section",
                 "text":
