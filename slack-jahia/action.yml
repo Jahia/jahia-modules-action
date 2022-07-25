@@ -35,7 +35,7 @@ runs:
 
     # if there was no failure
     - uses: slackapi/slack-github-action@v1.18.0
-      if: ${{ inputs.job-event == "pass" }}
+      if: ${{ inputs.job-event == 'pass' }}
       with:
         payload: |
           {
@@ -55,7 +55,7 @@ runs:
         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
     - uses: slackapi/slack-github-action@v1.18.0
-      if: ${{ inputs.job-event == "fail" }}
+      if: ${{ inputs.job-event == 'fail' }}
       with:
         payload: |
           {
@@ -65,7 +65,7 @@ runs:
                 "text":
                   {
                     "type": "mrkdwn",
-                    "text": ":x: Build failure for *${{ env.GITHUB_REPOSITORY }}* (Job artifacts: <${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}/actions/runs/${{ GITHUB_RUN_ID }}|*${{ env.GITHUB_JOB }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*)"
+                    "text": ":x: Build failure for *${{ env.GITHUB_REPOSITORY }}* (Job artifacts: <${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}/actions/runs/${{ env.GITHUB_RUN_ID }}|*${{ env.GITHUB_JOB }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*)"
                   }
               }
             ]
