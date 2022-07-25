@@ -5,7 +5,7 @@ inputs:
     default: "pass"
     description: "Status of the execution"
   skip-docker:
-  type: boolean
+    type: boolean
     default: false
     description: "Do not show the docker command"
   docker-repo:
@@ -27,7 +27,7 @@ runs:
       run: echo 'DOCKER_COMMAND=""' >> $GITHUB_ENV
     - name: Set the docker command variable
       shell: bash
-      if: ${{ ${{ inputs.skip-docker}} = false }}
+      if: ${{ ${{ inputs.skip-docker }} = false }}
       run: echo 'DOCKER_COMMAND="\`\`\`docker pull jahia/${{ inputs.docker-repo }}:${{ inputs.docker-image-tag }}\`\`\`"' >> $GITHUB_ENV
     - name: Get branch name
       id: branch-name
