@@ -4,9 +4,8 @@ inputs:
   job-event:
     default: "pass"
     description: "Status of the execution"
-  skip-docker:
-    type: boolean
-    default: false
+  docker-command:
+    default: ""
     description: "Do not show the docker command"
   docker-repo:
     default: "jahia-ee"
@@ -25,11 +24,23 @@ runs:
     - name: Empty the Docker command variable
       shell: bash
       if: ${{ inputs.skip-docker == true }}
-      run: echo 'DOCKER_COMMAND=""' >> $GITHUB_ENV
+      run: |
+        echo 'DOCKER_COMMAND=""' >> $GITHUB_ENV
+        echo "TEST=test" >> $GITHUB_ENV
     - name: Set the docker command variable
       shell: bash
       if: ${{ inputs.skip-docker == false }}
-      run: echo 'DOCKER_COMMAND="\`\`\`docker pull jahia/${{ inputs.docker-repo }}:${{ inputs.docker-image-tag }}\`\`\`"' >> $GITHUB_ENV
+      run: |
+        echo 'DOCKER_COMMAND="\`\`\`docker pull jahia/${{ inputs.docker-repo }}:${{ inputs.docker-image-tag }}\`\`\`"' >> $GITHUB_ENV
+        echo "TEST2=test2"
+    - name: Test DOCKER_COMMAND
+      run: |
+        echo $DOCKER_COMMAND
+        echo ${{ env.DOCKER_COMMAND }}
+        echo $TEST
+        echo ${{ env.TEST }}
+        echo $TEST2
+        echo ${{ env.TEST2 }}
     - name: Get branch name
       id: branch-name
       uses: tj-actions/branch-names@v5.4
@@ -46,13 +57,12 @@ runs:
                 "text":
                   {
                     "type": "mrkdwn",
-                    "text": ":white_check_mark: New build available for *${{ github.event.repository.name }}* (Job artifacts: <https://github.com/Jahia/${{ github.event.repository.name }}/actions/runs/${{ github.run_id }}#artifacts|*${{ github.job }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*) ${{ env.DOCKER_COMMAND }}"
+                    "text": ":white_check_mark: New build available for *${{ github.event.repository.name }}* (Job artifacts: <https://github.com/Jahia/${{ github.event.repository.name }}/actions/runs/${{ github.run_id }}#artifacts|*${{ github.job }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*) $DOCKER_COMMAND"
                   }
               }
             ]
           } 
       env:
-        DOCKER_COMMAND: ${{ env.DOCKER_COMMAND }}
         SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook }}
         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
