@@ -17,6 +17,7 @@ inputs:
   slack-webhook:
     description: "Webhook that allows to send on Jahia slack"
     required: true
+  
 
 runs:
   using: "composite"
@@ -51,6 +52,7 @@ runs:
             ]
           } 
       env:
+        DOCKER_COMMAND: ${{ env.DOCKER_COMMAND }}
         SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook }}
         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
