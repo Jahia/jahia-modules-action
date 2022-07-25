@@ -45,7 +45,7 @@ runs:
 
     - name: Build package
       shell: bash
-      run: mvn -B -s ${{ inputs.mvn_settings_filepath }} clean install
+      run: mvn -B -U -ntp -s ${{ inputs.mvn_settings_filepath }} clean install
 
     - name: Copy dependencies to provision artifacts
       shell: bash
