@@ -34,6 +34,7 @@ runs:
         echo 'DOCKER_COMMAND="\`\`\`docker pull jahia/${{ inputs.docker-repo }}:${{ inputs.docker-image-tag }}\`\`\`"' >> $GITHUB_ENV
         echo "TEST2=test2"
     - name: Test DOCKER_COMMAND
+    shell: bash
       run: |
         echo $DOCKER_COMMAND
         echo ${{ env.DOCKER_COMMAND }}
@@ -51,7 +52,7 @@ runs:
       with:
         payload: |
           {
-            "blocks": [
+            "blocks": [s
               {
                 "type": "section",
                 "text":
