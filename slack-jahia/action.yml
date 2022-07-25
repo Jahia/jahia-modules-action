@@ -29,7 +29,7 @@ runs:
     - name: Set the docker command variable
       shell: bash
       if: ${{ inputs.skip-docker == 'false' }}
-      run: echo 'DOCKER_COMMAND=\`\`\`docker pull jahia/${{ inputs.docker-repo }}:${{ inputs.docker-image-tag }}\`\`\`' >> $GITHUB_ENV
+      run: echo 'DOCKER_COMMAND=\\\\`\\\\`\\\\`docker pull jahia/${{ inputs.docker-repo }}:${{ inputs.docker-image-tag }}\\\\`\\\\`\\\\`' >> $GITHUB_ENV
     - name: Get branch name
       id: branch-name
       uses: tj-actions/branch-names@v5.4
