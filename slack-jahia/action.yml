@@ -29,6 +29,9 @@ runs:
       shell: bash
       if: ${{ ${{ inputs.skip-docker}} = false }}
       run: echo 'DOCKER_COMMAND="\`\`\`docker pull jahia/${{ inputs.docker-repo }}:${{ inputs.docker-image-tag }}\`\`\`"' >> $GITHUB_ENV
+    - name: Get branch name
+      id: branch-name
+      uses: tj-actions/branch-names@v5.4
 
     # if there was no failure
     - uses: slackapi/slack-github-action@v1.18.0
@@ -42,13 +45,13 @@ runs:
                 "text":
                   {
                     "type": "mrkdwn",
-                    "text": ":white_check_mark: New build available for *$CIRCLE_PROJECT_REPONAME* (Job artifacts: <https://app.circleci.com/jobs/github/Jahia/$CIRCLE_PROJECT_REPONAME/$CIRCLE_BUILD_NUM/artifacts|*$CIRCLE_JOB*>, Branch: *$CIRCLE_BRANCH*) ${DOCKER_COMMAND}"
+                    "text": ":white_check_mark: New build available for *${{ env.GITHUB_REPOSITORY }}* (Job artifacts: <https://github.com/Jahia/${{ env.GITHUB_REPOSITORY }}/actions/runs/${{ env.GITHUB_RUN_ID }}#artifacts|*${{ env.GITHUB_JOB }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*) ${DOCKER_COMMAND}"
                   }
               }
             ]
           } 
       env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook }}
         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
     - uses: slackapi/slack-github-action@v1.18.0
@@ -62,11 +65,11 @@ runs:
                 "text":
                   {
                     "type": "mrkdwn",
-                    "text": ":x: Build failure for *$CIRCLE_PROJECT_REPONAME* (Job artifacts: <$CIRCLE_BUILD_URL|*$CIRCLE_JOB*>, Branch: *$CIRCLE_BRANCH*)"
+                    "text": ":x: Build failure for *${{ env.GITHUB_REPOSITORY }}* (Job artifacts: <${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}/actions/runs/${{ GITHUB_RUN_ID }}|*${{ env.GITHUB_JOB }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*)"
                   }
               }
             ]
           }
       env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK   
+        SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
