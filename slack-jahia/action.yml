@@ -45,7 +45,7 @@ runs:
                 "text":
                   {
                     "type": "mrkdwn",
-                    "text": ":white_check_mark: New build available for *${{ env.GITHUB_REPOSITORY }}* (Job artifacts: <https://github.com/Jahia/${{ env.GITHUB_REPOSITORY }}/actions/runs/${{ env.GITHUB_RUN_ID }}#artifacts|*${{ env.GITHUB_JOB }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*) ${DOCKER_COMMAND}"
+                    "text": ":white_check_mark: New build available for *${{ github.event.repository.name }}* (Job artifacts: <https://github.com/Jahia/${{ github.event.repository.name }}/actions/runs/${{ env.GITHUB_RUN_ID }}#artifacts|*${{ env.GITHUB_JOB }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*) ${DOCKER_COMMAND}"
                   }
               }
             ]
@@ -65,7 +65,7 @@ runs:
                 "text":
                   {
                     "type": "mrkdwn",
-                    "text": ":x: Build failure for *${{ env.GITHUB_REPOSITORY }}* (Job artifacts: <${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}/actions/runs/${{ env.GITHUB_RUN_ID }}|*${{ env.GITHUB_JOB }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*)"
+                    "text": ":x: Build failure for *${{ github.event.repository.name }}* (Job artifacts: <${{ env.GITHUB_SERVER_URL }}/${{ github.event.repository.name }}/actions/runs/${{ env.GITHUB_RUN_ID }}|*${{ env.GITHUB_JOB }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*)"
                   }
               }
             ]
