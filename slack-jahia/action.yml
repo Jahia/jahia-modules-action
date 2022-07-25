@@ -23,11 +23,11 @@ runs:
   steps:
     - name: Empty the Docker command variable
       shell: bash
-      if: ${{ ${{ inputs.skip-docker }} = true }}
+      if: ${{ inputs.skip-docker == true }}
       run: echo 'DOCKER_COMMAND=""' >> $GITHUB_ENV
     - name: Set the docker command variable
       shell: bash
-      if: ${{ ${{ inputs.skip-docker }} = false }}
+      if: ${{ inputs.skip-docker == false }}
       run: echo 'DOCKER_COMMAND="\`\`\`docker pull jahia/${{ inputs.docker-repo }}:${{ inputs.docker-image-tag }}\`\`\`"' >> $GITHUB_ENV
     - name: Get branch name
       id: branch-name
@@ -35,7 +35,7 @@ runs:
 
     # if there was no failure
     - uses: slackapi/slack-github-action@v1.18.0
-      if: ${{ ${{ inputs.job-event }} == "pass" }}
+      if: ${{ inputs.job-event == "pass" }}
       with:
         payload: |
           {
@@ -55,7 +55,7 @@ runs:
         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
     - uses: slackapi/slack-github-action@v1.18.0
-      if: ${{ ${{ inputs.job-event }} == "fail" }}
+      if: ${{ inputs.job-event == "fail" }}
       with:
         payload: |
           {
