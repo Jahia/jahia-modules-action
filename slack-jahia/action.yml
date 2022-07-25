@@ -4,8 +4,9 @@ inputs:
   job-event:
     default: "pass"
     description: "Status of the execution"
-  docker-comm:
-    default: ""
+  skip-docker:
+    type: boolean
+    default: false
     description: "Do not show the docker command"
   docker-repo:
     default: "jahia-ee"
