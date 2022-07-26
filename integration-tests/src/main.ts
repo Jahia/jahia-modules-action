@@ -117,7 +117,7 @@ async function run(): Promise<void> {
       await core.group(
         `${timeSinceStart(startTime)} 🛠️ Download previous artifact`,
         async () => {
-          await downloadArtifact('build-artifacts')
+          await downloadArtifact(core.getInput('build_artifacts'))
         }
       )
     }

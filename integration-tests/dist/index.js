@@ -1429,7 +1429,7 @@ function run() {
             // Download the build artifact
             if (core.getInput('should_use_build_artifacts') === 'true') {
                 yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Download previous artifact`, () => __awaiter(this, void 0, void 0, function* () {
-                    yield (0, artifacts_1.downloadArtifact)('build-artifacts');
+                    yield (0, artifacts_1.downloadArtifact)(core.getInput('build_artifacts'));
                 }));
             }
             // Prepare the build artifacts to include them in the docker image
