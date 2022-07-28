@@ -26,6 +26,7 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - uses: actions/checkout@v2
     - name: Handle version parameter (file or version string)
       shell: bash
       run: |
