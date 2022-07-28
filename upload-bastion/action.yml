@@ -1,0 +1,50 @@
+name: Upload Bastion
+description: Upload a file or directory using rsync via Jahia bastion server
+
+inputs:
+  path:
+    description: A file, directory or wildcard pattern that describes what to upload
+    required: true
+  bastion-user: 
+    description: User to use to SSH into the bastion server
+    required: false  
+    default: 'jahia-ci'
+  destination-user:
+    description: User to log into the desctination server
+    required: true
+  destination-host:
+    description: Host to copy files to
+    required: true
+  destination-path:
+    description: Path to copy files to
+    required: true
+  ssh-key:
+    description: 'Private key necessary to send the document via rsync (jahia only)'
+    required: false
+    default: ''
+
+runs:
+  using: "composite"
+  steps:
+    - uses: webfactory/ssh-agent@v0.5.4
+      if: ${{ inputs.destination == 'jahia' }}
+      with:
+          ssh-private-key: ${{ inputs.ssh-key }}
+
+    - name: rsync files to Jahia
+      shell: bash
+      run: |
+        ls -lah
+        if ! sh -c "rsync -rvz -e 'ssh -A -o \"ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 ${{ inputs.bastion-user }}@circleci-bastion-prod.jahia.com\" -o StrictHostKeyChecking=off' ${{ inputs.path }} ${{ inputs.destination-user }}@${{ inputs.destination-host }}:{{ inputs.destination-path }}"
+        then
+          echo ::set-output name=status::'There was an issue syncing the content.'
+          exit 1
+        else
+          echo ::set-output name=status::'Content synced successfully.'
+        fi
+
+    - name: Send notice about file location
+      shell: bash
+      if: ${{ inputs.destination == 'jahia' }}
+      run: |
+        echo "::notice title=Artifacts location (require VPN)::Artifacts have been uploaded to: ${{ inputs.destination-host }}:{{ inputs.destination-path }}"
