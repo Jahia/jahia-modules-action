@@ -45,5 +45,5 @@ runs:
         echo "PARAM_DRYRUN=${{ inputs.dry-run }}" >> $GITHUB_ENV
     - name: Run script
       shell: bash
-      run: ./scripts/docker-tags.sh
+      run: ${{ github.workspace }}/jahia-modules-action/jahia-modules-action/docker-tags/scripts/docker-tags.sh
 
