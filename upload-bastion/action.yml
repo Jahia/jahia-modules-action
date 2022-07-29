@@ -30,10 +30,17 @@ runs:
       with:
           ssh-private-key: ${{ inputs.ssh-key }}
 
+    - name: Display content
+      shell: bash
+      run: |
+        echo "Current directory (ls -lah)"
+        ls -lah
+        echo "Current target (ls -lah ${{ inputs.path }} )"
+        ls -lah ${{ inputs.path }}
+
     - name: rsync files to Jahia
       shell: bash
       run: |
-        ls -lah
         if ! sh -c "rsync -rvz -e 'ssh -A -o \"ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 ${{ inputs.bastion-user }}@circleci-bastion-prod.jahia.com\" -o StrictHostKeyChecking=off' ${{ inputs.path }} ${{ inputs.destination-user }}@${{ inputs.destination-host }}:${{ inputs.destination-path }}"
         then
           echo ::set-output name=status::'There was an issue syncing the content.'
