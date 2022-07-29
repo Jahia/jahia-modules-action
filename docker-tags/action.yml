@@ -45,4 +45,4 @@ runs:
         echo "PARAM_DRYRUN=${{ inputs.dry-run }}" >> $GITHUB_ENV
     - name: Run script
       shell: bash
-      run: echo "${{ github.action_path }}"
+      run: bash ${{ github.action_path }}/scripts/docker-tags.sh
