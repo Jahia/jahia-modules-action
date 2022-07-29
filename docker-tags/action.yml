@@ -26,7 +26,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v2
     - name: Handle version parameter (file or version string)
       shell: bash
       run: |
@@ -46,5 +45,4 @@ runs:
         echo "PARAM_DRYRUN=${{ inputs.dry-run }}" >> $GITHUB_ENV
     - name: Run script
       shell: bash
-      run: bash ${{ github.workspace }}/../../_actions/jahia/jahia-modules-action/TECH-532/docker-tags/scripts/docker-tags.sh
-
+      run: echo "${{ github.action_path }}"
