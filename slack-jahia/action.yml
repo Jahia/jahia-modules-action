@@ -66,7 +66,8 @@ runs:
                 "text":
                   {
                     "type": "mrkdwn",
-                    "text": ":x: Build failure for *${{ github.event.repository.name }}* (Job artifacts: <${{ github.server_url }}/${{ github.event.repository.name }}/actions/runs/${{ github.run_id }}|*${{ github.job }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*)"
+                    "text": ":x: Build failure for *${{ github.event.repository.name }}* (Job artifacts: <${{ github.server_url }}/Jahia/${{ github.event.repository.name }}/actions/runs/${{ github.run_id }}|*${{ github.job }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*)"
+
                   }
               }
             ]
