@@ -1,0 +1,36 @@
+name: vulnerability-scan
+
+inputs:
+  module-path:
+    default: "./"
+    description: Path to the module
+  tests-path:
+    default: "tests/"
+    description: Path to the integration tests
+  auditci-level:
+    default: "high"
+    description: Security level to check against for the module codebase, will fail the step if higher
+  auditci-level-tests:
+    default: "critical"
+    description: Security level to check against for the tests codebase, will fail the step if higher
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Audit-ci
+      shell: bash
+      run: sudo npm install -g audit-ci
+    - name: Audit-ci module (javascript only)
+      shell: bash
+      run: |
+        if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
+          cd ${{ inputs.module_path }}
+          audit-ci --${{ inputs.auditci-level }}
+        fi    
+    - name: Audi-ci tests (javascript only)
+      shell: bash
+      run: |
+        if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
+          cd ${{ inputs.tests_path }}
+          audit-ci --${{ inputs.auditci-level-tests }}
+        fi
