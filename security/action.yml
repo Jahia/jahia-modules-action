@@ -32,5 +32,5 @@ runs:
       run: |
         if [[ -d ${{ inputs.tests-path }} && -e "${{ inputs.tests-path }}package.json" ]]; then
           cd ${{ inputs.tests_path }}
-          audit-ci --${{ inpu-s.auditci-level-tests }}
+          audit-ci --${{ inputs.auditci-level-tests }}
         fi
