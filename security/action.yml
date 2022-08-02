@@ -23,14 +23,14 @@ runs:
     - name: Audit-ci module (javascript only)
       shell: bash
       run: |
-        if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
-          cd ${{ inputs.module_path }}
+        if [[ -d ${{ inputs.module-path }} && -e "${{ inputs.module-path }}package.json" ]]; then
+          cd ${{ inputs.module-path }}
           audit-ci --${{ inputs.auditci-level }}
         fi    
     - name: Audi-ci tests (javascript only)
       shell: bash
       run: |
-        if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
+        if [[ -d ${{ inputs.tests-path }} && -e "${{ inputs.tests-path }}package.json" ]]; then
           cd ${{ inputs.tests_path }}
-          audit-ci --${{ inputs.auditci-level-tests }}
+          audit-ci --${{ inpu-s.auditci-level-tests }}
         fi
