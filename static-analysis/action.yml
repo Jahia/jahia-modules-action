@@ -30,6 +30,26 @@ inputs:
     description: 'Version of node to install on the host'
     required: false
     default: 'lts/*'
+  skip_lint_modules:
+    description: skip linter for modules when set to true
+    required: false
+    type: boolean
+    default: false
+  skip_lint_tests:
+    description: skip linter for tests when set to true
+    required: false
+    type: boolean
+    default: false
+  skip_vulns_modules:
+    description: skip Audit-ci for modules when set to true
+    required: false
+    type: boolean
+    default: false
+  skip_vulns_tests:
+    description: skip Audit-ci for tests when set to true
+    required: false
+    type: boolean
+    default: false
 
 runs:
   using: "composite"
@@ -56,6 +76,7 @@ runs:
 
     # Lint the codebase
     - name: Lint module (javascript only)
+      if: ${{ !inputs.skip_lint_modules }}
       shell: bash
       run: |
         if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
@@ -63,6 +84,7 @@ runs:
           yarn run lint --max-warnings ${{ inputs.max_warning }}
         fi
     - name: Lint tests (javascript only)
+      if: ${{ !inputs.skip_lint_tests }}
       shell: bash
       run: |
         if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
@@ -76,6 +98,7 @@ runs:
       run: |
         sudo npm install -g audit-ci
     - name: Audit-ci module (javascript only)
+      if: ${{ !inputs.skip_vulns_modules }}
       shell: bash
       run: |
         if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
@@ -83,6 +106,7 @@ runs:
           audit-ci --skip-dev --${{ inputs.auditci_level }}
         fi
     - name: Audit-ci tests (javascript only)
+      if: ${{ !inputs.skip_vulns_tests }}
       shell: bash
       run: |
         if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
