@@ -78,9 +78,14 @@ runs:
         path: |
           ~/.owasp/dependency-check-data
           ~/.sonar/cache
-        key: v2-sonar-owasp-dependencies-{{ checksum "is_pr" }}
+        key: v3-sonar-owasp-dependencies-{{ checksum "is_pr" }}
         restore-keys: |
-          v2-sonar-owasp-dependencies-{{ checksum "is_pr" }}
+          v3-sonar-owasp-dependencies-{{ checksum "is_pr" }}
+
+    - name: Extract branch name
+      shell: bash
+      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+      id: extract_branch
 
     - name: Sonar Release branch analysis
       shell: bash
@@ -93,19 +98,19 @@ runs:
               -Dsonar.pullrequest.key=${{ inputs.github_pr_id }} \
               -Dsonar.pullrequest.base=${{ inputs.primary_release_branch }} \
               -Dsonar.pullrequest.github.repository=${{ inputs.github_slug }}
-        elif [[ $GITHUB_REF == ${{ inputs.primary_release_branch }} ]]; then
+        elif [[ ${{ steps.extract_branch.outputs.branch }} == ${{ inputs.primary_release_branch }} ]]; then
           echo "Executing an analysis on the main branch"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:6.1.6:aggregate sonar:sonar \
-            -DfailOnError=false -DskipProvidedScope=true -DskipTestScope=false -DskipSystemScope=true -Dformats=HTML,JSON \
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:7.1.1:aggregate sonar:sonar \
+            -DfailBuildOnCVSS=7 -DskipProvidedScope=true -DskipTestScope=false -DskipSystemScope=true -Dformats=HTML,JSON \
             -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
             -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
-            -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data
+            -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data
         else
           echo "Executing an analysis on branch: $GITHUB_REF"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:6.1.6:aggregate sonar:sonar \
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:7.1.1:aggregate sonar:sonar \
               -Dsonar.branch.name=$GITHUB_REF \
-              -DfailOnError=false -DskipProvidedScope=true -DskipTestScope=false -DskipSystemScope=true -Dformats=HTML,JSON \
+              -DfailBuildOnCVSS=7 -DskipProvidedScope=true -DskipTestScope=false -DskipSystemScope=true -Dformats=HTML,JSON \
               -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
               -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
-              -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data
+              -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data
         fi
