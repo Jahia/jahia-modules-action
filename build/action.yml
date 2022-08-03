@@ -21,9 +21,13 @@ inputs:
     description: 'In seconds, timeout in seconds before terminating the session'
     required: false
     default: '7200'
+  github_artifact_retention:
+    description: 'Time during which artifact are kept in Github infrastructure'
+    required: false
+    default: '2'
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Set environment variables from parameters
       shell: bash
@@ -77,7 +81,7 @@ runs:
         path: |
           target/*
           ./*/target/*
-        retention-days: 7
+        retention-days: ${{ inputs.github_artifact_retention }}
 
     # Note: The two steps below are derived from graphql-dxm-provider setup
     # This might not be applicable to other modules for the same complexity
@@ -95,7 +99,7 @@ runs:
       with:
         name: test-artifacts
         path: /tmp/artifacts/test-results/
-        retention-days: 7
+        retention-days: ${{ inputs.github_artifact_retention }}
 
     - name: Keep session opened if /tmp/debug file is present
       shell: bash

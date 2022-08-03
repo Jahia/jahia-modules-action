@@ -1,4 +1,4 @@
-name: Generate Changelog 
+name: Generate Changelog
 description: Generate a changelog using auto
 
 inputs:
@@ -21,14 +21,18 @@ inputs:
     description: 'Version of node to install on the host'
     required: false
     default: 'lts/*'
+  github_artifact_retention:
+    description: 'Time during which artifact are kept in Github infrastructure'
+    required: false
+    default: '2'
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - uses: actions/setup-node@v2
       with:
         node-version: ${{ inputs.node_version }}
-  
+
     - name: Setting up github configuration
       shell: bash
       run: |
@@ -63,4 +67,4 @@ runs:
       with:
         name: CHANGELOG.md
         path: CHANGELOG.md
-        retention-days: 7
+        retention-days: ${{ inputs.github_artifact_retention }}
