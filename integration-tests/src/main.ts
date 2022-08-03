@@ -196,46 +196,8 @@ async function run(): Promise<void> {
       }
     )
 
-    // Upload the artifacts to GitHub infrastructure
-    if (core.getInput('github_artifact_enable') === 'true') {
-      await core.group(
-        `${timeSinceStart(
-          startTime
-        )} 🗄️ Uploading artifacts to GitHub infrastructure`,
-        async () => {
-          await uploadArtifact(
-            core.getInput('github_artifact_name'),
-            artifactsFolder,
-            Number(core.getInput('github_artifact_retention'))
-          )
-        }
-      )
-    }
-
-    // Upload artifacts to Jahia infrastructure
-    if (core.getInput('jahia_artifact_enable') === 'true') {
-      await core.group(
-        `${timeSinceStart(
-          startTime
-        )} 🗄️ Uploading tests artifacts to Jahia servers`,
-        async () => {
-          if (
-            process.env.GITHUB_REPOSITORY !== undefined &&
-            process.env.GITHUB_RUN_ID !== undefined &&
-            process.env.GITHUB_RUN_ATTEMPT !== undefined
-          ) {
-            await uploadArtifactJahia(
-              core.getInput('jahia_artifact_name'),
-              artifactsFolder,
-              Number(core.getInput('jahia_artifact_retention')),
-              process.env.GITHUB_REPOSITORY,
-              process.env.GITHUB_RUN_ID,
-              process.env.GITHUB_RUN_ATTEMPT
-            )
-          }
-        }
-      )
-    }
+    // Display a short "console" report directly in the run output
+    await showTestsSummary(testsFolder)
 
     // Publish results to testrail
     if (
@@ -282,6 +244,47 @@ async function run(): Promise<void> {
       )
     }
 
+    // Upload the artifacts to GitHub infrastructure
+    if (core.getInput('github_artifact_enable') === 'true') {
+      await core.group(
+        `${timeSinceStart(
+          startTime
+        )} 🗄️ Uploading artifacts to GitHub infrastructure`,
+        async () => {
+          await uploadArtifact(
+            core.getInput('github_artifact_name'),
+            artifactsFolder,
+            Number(core.getInput('github_artifact_retention'))
+          )
+        }
+      )
+    }
+
+    // Upload artifacts to Jahia infrastructure
+    if (core.getInput('jahia_artifact_enable') === 'true') {
+      await core.group(
+        `${timeSinceStart(
+          startTime
+        )} 🗄️ Uploading tests artifacts to Jahia servers`,
+        async () => {
+          if (
+            process.env.GITHUB_REPOSITORY !== undefined &&
+            process.env.GITHUB_RUN_ID !== undefined &&
+            process.env.GITHUB_RUN_ATTEMPT !== undefined
+          ) {
+            await uploadArtifactJahia(
+              core.getInput('jahia_artifact_name'),
+              artifactsFolder,
+              Number(core.getInput('jahia_artifact_retention')),
+              process.env.GITHUB_REPOSITORY,
+              process.env.GITHUB_RUN_ID,
+              process.env.GITHUB_RUN_ATTEMPT
+            )
+          }
+        }
+      )
+    }
+
     // Send notifications to slack
     if (
       core.getInput('should_skip_notifications') === 'false' ||
@@ -316,9 +319,6 @@ async function run(): Promise<void> {
     }
 
     core.info(`Completed job at: ${formatDate(new Date())}`)
-
-    // Display a short "console" report directly in the run output
-    await showTestsSummary(testsFolder)
 
     //Finally, analyze the results
     if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
