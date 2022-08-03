@@ -1460,14 +1460,21 @@ function run() {
             yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🐋 Execute Postrun script`, () => __awaiter(this, void 0, void 0, function* () {
                 yield (0, docker_1.executePostrunScript)(testsFolder, core.getInput('ci_postrun_script'));
             }));
-            // Display a short "console" report directly in the run output
-            yield (0, jahia_reporter_1.showTestsSummary)(testsFolder);
-            //Finally, analyze the results
-            if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
-                core.setFailed(`Run has FAILED, could not locate file ${path.join(artifactsFolder, 'results/test_success')}`);
+            // Upload the artifacts to GitHub infrastructure
+            if (core.getInput('github_artifact_enable') === 'true') {
+                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🗄️ Uploading artifacts to GitHub infrastructure`, () => __awaiter(this, void 0, void 0, function* () {
+                    yield (0, artifacts_1.uploadArtifact)(core.getInput('github_artifact_name'), artifactsFolder, Number(core.getInput('github_artifact_retention')));
+                }));
             }
-            else {
-                core.info(`Run is SUCCESSFUL, could locate file ${path.join(artifactsFolder, 'results/test_success')}`);
+            // Upload artifacts to Jahia infrastructure
+            if (core.getInput('jahia_artifact_enable') === 'true') {
+                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🗄️ Uploading tests artifacts to Jahia servers`, () => __awaiter(this, void 0, void 0, function* () {
+                    if (process.env.GITHUB_REPOSITORY !== undefined &&
+                        process.env.GITHUB_RUN_ID !== undefined &&
+                        process.env.GITHUB_RUN_ATTEMPT !== undefined) {
+                        yield (0, artifacts_1.uploadArtifactJahia)(core.getInput('jahia_artifact_name'), artifactsFolder, Number(core.getInput('jahia_artifact_retention')), process.env.GITHUB_REPOSITORY, process.env.GITHUB_RUN_ID, process.env.GITHUB_RUN_ATTEMPT);
+                    }
+                }));
             }
             // Publish results to testrail
             if (core.getInput('should_skip_testrail') === 'false' ||
@@ -1518,23 +1525,16 @@ function run() {
                     });
                 }));
             }
-            // Upload the artifacts to GitHub infrastructure
-            if (core.getInput('github_artifact_enable') === 'true') {
-                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🗄️ Uploading artifacts to GitHub infrastructure`, () => __awaiter(this, void 0, void 0, function* () {
-                    yield (0, artifacts_1.uploadArtifact)(core.getInput('github_artifact_name'), artifactsFolder, Number(core.getInput('github_artifact_retention')));
-                }));
-            }
-            // Upload artifacts to Jahia infrastructure
-            if (core.getInput('jahia_artifact_enable') === 'true') {
-                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🗄️ Uploading tests artifacts to Jahia servers`, () => __awaiter(this, void 0, void 0, function* () {
-                    if (process.env.GITHUB_REPOSITORY !== undefined &&
-                        process.env.GITHUB_RUN_ID !== undefined &&
-                        process.env.GITHUB_RUN_ATTEMPT !== undefined) {
-                        yield (0, artifacts_1.uploadArtifactJahia)(core.getInput('jahia_artifact_name'), artifactsFolder, Number(core.getInput('jahia_artifact_retention')), process.env.GITHUB_REPOSITORY, process.env.GITHUB_RUN_ID, process.env.GITHUB_RUN_ATTEMPT);
-                    }
-                }));
-            }
             core.info(`Completed job at: ${(0, utils_1.formatDate)(new Date())}`);
+            // Display a short "console" report directly in the run output
+            yield (0, jahia_reporter_1.showTestsSummary)(testsFolder);
+            //Finally, analyze the results
+            if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
+                core.setFailed(`Run has FAILED, could not locate file ${path.join(artifactsFolder, 'results/test_success')}`);
+            }
+            else {
+                core.info(`Run is SUCCESSFUL, could locate file ${path.join(artifactsFolder, 'results/test_success')}`);
+            }
         }
         catch (error) {
             if (error instanceof Error)
