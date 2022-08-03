@@ -4,32 +4,41 @@ description: Performs static code analysis (linters, security)
 inputs:
   primary_release_branch:
     description: 'Primary release branch'
-    required: false
     default: 'main'
   module_path:
     description: 'Path to the module'
-    required: false
     default: './'
   tests_path:
     description: 'Path to the module'
-    required: false
     default: './'
   max_warning:
     description: 'Maximum number of warning before failing the linting step'
-    required: false
     default: '1'
   auditci_level:
     description: 'Security level to check against for the module codebase, will fail the step if higher'
-    required: false
     default: 'moderate'
   auditci_level_tests:
     description: 'Security level to check against for the tests codebase, will fail the step if higher'
-    required: false
     default: 'critical'
   node_version:
     description: 'Version of node to install on the host'
-    required: false
     default: 'lts/*'
+  skip_lint_modules:
+    description: skip linter for modules when set to true
+    type: boolean
+    default: false
+  skip_lint_tests:
+    description: skip linter for tests when set to true
+    type: boolean
+    default: false
+  skip_vulns_modules:
+    description: skip Audit-ci for modules when set to true
+    type: boolean
+    default: false
+  skip_vulns_tests:
+    description: skip Audit-ci for tests when set to true
+    type: boolean
+    default: false
 
 runs:
   using: "composite"
@@ -56,6 +65,7 @@ runs:
 
     # Lint the codebase
     - name: Lint module (javascript only)
+      if: ${{ !inputs.skip_lint_modules }}
       shell: bash
       run: |
         if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
@@ -63,6 +73,7 @@ runs:
           yarn run lint --max-warnings ${{ inputs.max_warning }}
         fi
     - name: Lint tests (javascript only)
+      if: ${{ !inputs.skip_lint_tests }}
       shell: bash
       run: |
         if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
@@ -76,6 +87,7 @@ runs:
       run: |
         sudo npm install -g audit-ci
     - name: Audit-ci module (javascript only)
+      if: ${{ !inputs.skip_vulns_modules }}
       shell: bash
       run: |
         if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
@@ -83,6 +95,7 @@ runs:
           audit-ci --skip-dev --${{ inputs.auditci_level }}
         fi
     - name: Audit-ci tests (javascript only)
+      if: ${{ !inputs.skip_vulns_tests }}
       shell: bash
       run: |
         if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
