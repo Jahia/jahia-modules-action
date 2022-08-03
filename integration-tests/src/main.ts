@@ -199,23 +199,6 @@ async function run(): Promise<void> {
     // Display a short "console" report directly in the run output
     await showTestsSummary(testsFolder)
 
-    //Finally, analyze the results
-    if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
-      core.setFailed(
-        `Run has FAILED, could not locate file ${path.join(
-          artifactsFolder,
-          'results/test_success'
-        )}`
-      )
-    } else {
-      core.info(
-        `Run is SUCCESSFUL, could locate file ${path.join(
-          artifactsFolder,
-          'results/test_success'
-        )}`
-      )
-    }
-
     // Publish results to testrail
     if (
       core.getInput('should_skip_testrail') === 'false' ||
@@ -336,6 +319,23 @@ async function run(): Promise<void> {
     }
 
     core.info(`Completed job at: ${formatDate(new Date())}`)
+
+    //Finally, analyze the results
+    if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
+      core.setFailed(
+        `Run has FAILED, could not locate file ${path.join(
+          artifactsFolder,
+          'results/test_success'
+        )}`
+      )
+    } else {
+      core.info(
+        `Run is SUCCESSFUL, could locate file ${path.join(
+          artifactsFolder,
+          'results/test_success'
+        )}`
+      )
+    }
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }

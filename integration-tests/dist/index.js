@@ -1462,13 +1462,6 @@ function run() {
             }));
             // Display a short "console" report directly in the run output
             yield (0, jahia_reporter_1.showTestsSummary)(testsFolder);
-            //Finally, analyze the results
-            if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
-                core.setFailed(`Run has FAILED, could not locate file ${path.join(artifactsFolder, 'results/test_success')}`);
-            }
-            else {
-                core.info(`Run is SUCCESSFUL, could locate file ${path.join(artifactsFolder, 'results/test_success')}`);
-            }
             // Publish results to testrail
             if (core.getInput('should_skip_testrail') === 'false' ||
                 core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH) {
@@ -1535,6 +1528,13 @@ function run() {
                 }));
             }
             core.info(`Completed job at: ${(0, utils_1.formatDate)(new Date())}`);
+            //Finally, analyze the results
+            if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
+                core.setFailed(`Run has FAILED, could not locate file ${path.join(artifactsFolder, 'results/test_success')}`);
+            }
+            else {
+                core.info(`Run is SUCCESSFUL, could locate file ${path.join(artifactsFolder, 'results/test_success')}`);
+            }
         }
         catch (error) {
             if (error instanceof Error)
