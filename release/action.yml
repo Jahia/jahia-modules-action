@@ -1,4 +1,4 @@
-name: Release 
+name: Release
 description: Release a Jahia module
 
 inputs:
@@ -17,7 +17,7 @@ inputs:
     description: 'Nexus Password'
     required: true
   github_slug:
-    description: "GitHub SLUG of the module (for example: jahia/sandbox)"
+    description: 'GitHub SLUG of the module (for example: jahia/sandbox)'
     required: true
   release_id:
     description: GitHub release ID
@@ -36,9 +36,13 @@ inputs:
   github_api_token:
     description: GitHub API token
     required: true
+  github_artifact_retention:
+    description: 'Time during which artifact are kept in Github infrastructure'
+    required: false
+    default: '2'
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Set environment variables from parameters
       shell: bash
@@ -115,7 +119,7 @@ runs:
           release.properties
         key: v1-rollback-${{ inputs.release_id }}
 
-    - name:  Update github release for id ${{ inputs.release_id }}
+    - name: Update github release for id ${{ inputs.release_id }}
       shell: bash
       run: |
         echo "Update github release for id ${{ inputs.release_id }}"
@@ -147,4 +151,4 @@ runs:
         name: release-artifacts
         path: |
           /tmp/artifacts/
-        retention-days: 7
+        retention-days: ${{ inputs.github_artifact_retention }}

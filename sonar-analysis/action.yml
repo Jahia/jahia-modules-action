@@ -7,16 +7,16 @@ inputs:
     required: false
     default: main
   github_slug:
-    description: "GitHub SLUG of the module (for example: jahia/sandbox)"
+    description: 'GitHub SLUG of the module (for example: jahia/sandbox)'
     required: true
   sonar_url:
-    description: "URL to the SONAR server"
+    description: 'URL to the SONAR server'
     required: true
   sonar_token:
-    description: "Authentication token for the SONAR server"
+    description: 'Authentication token for the SONAR server'
     required: true
   github_pr_id:
-    description: "ID of the pull request (for example: 5)"
+    description: 'ID of the pull request (for example: 5)'
     required: false
     default: ''
   mvn_settings_filepath:
@@ -32,12 +32,12 @@ inputs:
     required: false
     default: ''
   build_artifacts:
-    description: "Name of the artifact target folder that was saved from build stage (using upload-artifact)"
+    description: 'Name of the artifact target folder that was saved from build stage (using upload-artifact)'
     required: false
     default: 'build-artifacts'
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Set environment variables from parameters
       shell: bash
@@ -75,7 +75,7 @@ runs:
     - name: Cache local Maven repository
       uses: actions/cache@v2
       with:
-        path: | 
+        path: |
           ~/.owasp/dependency-check-data
           ~/.sonar/cache
         key: v2-sonar-owasp-dependencies-{{ checksum "is_pr" }}
