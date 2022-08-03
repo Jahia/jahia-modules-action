@@ -87,6 +87,15 @@ runs:
       run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
       id: extract_branch
 
+    - name: Set common Sonar parameters
+      shell: bash
+      run: |
+        export SONAR_PARAMS = "-DfailBuildOnCVSS=7 -DskipProvidedScope=true -DskipTestScope=false -DskipSystemScope=true -Dformats=HTML,JSON \
+          -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
+          -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
+          -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data"
+        echo "SONAR_PARAMS=${SONAR_PARAMS}" >> $GITHUB_ENV
+
     - name: Sonar Release branch analysis
       shell: bash
       run: |
@@ -101,16 +110,28 @@ runs:
         elif [[ ${{ steps.extract_branch.outputs.branch }} == ${{ inputs.primary_release_branch }} ]]; then
           echo "Executing an analysis on the main branch"
           mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:7.1.1:aggregate sonar:sonar \
-            -DfailBuildOnCVSS=7 -DskipProvidedScope=true -DskipTestScope=false -DskipSystemScope=true -Dformats=HTML,JSON \
-            -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
-            -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
-            -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data
+            $SONAR_PARAMS
         else
           echo "Executing an analysis on branch: $GITHUB_REF"
           mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:7.1.1:aggregate sonar:sonar \
-              -Dsonar.branch.name=$GITHUB_REF \
-              -DfailBuildOnCVSS=7 -DskipProvidedScope=true -DskipTestScope=false -DskipSystemScope=true -Dformats=HTML,JSON \
-              -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
-              -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
-              -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data
+            -Dsonar.branch.name=$GITHUB_REF \
+            $SONAR_PARAMS
+        fi
+
+    - name: Sonar OWASP
+      shell: bash
+      if: ${{ always() }}
+      run: |
+        echo "Pull request number: ${{ inputs.github_pr_id }}"
+        if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
+          echo "Skipping OWASP for PR analysis"
+        elif [[ ${{ steps.extract_branch.outputs.branch }} == ${{ inputs.primary_release_branch }} ]]; then
+          echo "Executing an OWASP analysis on the main branch"
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:7.1.1:aggregate \
+            $SONAR_PARAMS
+        else
+          echo "Executing an OWASP analysis on branch: $GITHUB_REF"
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:7.1.1:aggregate \
+            -Dsonar.branch.name=$GITHUB_REF \
+            $SONAR_PARAMS
         fi
