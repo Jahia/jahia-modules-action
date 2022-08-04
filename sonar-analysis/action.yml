@@ -109,11 +109,11 @@ runs:
               -Dsonar.pullrequest.github.repository=${{ inputs.github_slug }}
         elif [[ ${{ steps.extract_branch.outputs.branch }} == ${{ inputs.primary_release_branch }} ]]; then
           echo "Executing an analysis on the main branch"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:7.1.1:aggregate sonar:sonar \
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} sonar:sonar \
             $SONAR_PARAMS
         else
           echo "Executing an analysis on branch: $GITHUB_REF"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:7.1.1:aggregate sonar:sonar \
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} sonar:sonar \
             -Dsonar.branch.name=$GITHUB_REF \
             $SONAR_PARAMS
         fi
