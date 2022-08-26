@@ -107,8 +107,13 @@ runs:
                   if [[ $(echo $KEYMAKER_CLI_OUTPUT | grep -w "Signature valid" | wc -l) != "1" ]]; then
                     sed -i -e "s%<\(.*\)Jahia-Signature>.*</%<\1Jahia-Signature>${KEYMAKER_CLI_OUTPUT}</%" pom.xml
                     sed -i -e "s%<\(.*\)jahia-module-signature>.*</%<\1jahia-module-signature>${KEYMAKER_CLI_OUTPUT}</%" pom.xml
-                    git add pom.xml && git commit -m "[ci skip] Update signature for ${project_name}"
-                    git push
+                    git add pom.xml
+                    if [ -z "$(git diff --cached --exit-code)" ]; then
+                      echo "No signatures were updated, thus nothing to commit"
+                    else
+                      git commit -m "[ci skip] Updated signature for ${project_name}"
+                      git push
+                    fi
                   else
                     echo "Signature is up-to-date."
                   fi
@@ -145,8 +150,13 @@ runs:
               echo "New signature: ${KEYMAKER_CLI_OUTPUT}"
               sed -i -e "s%<\(.*\)Jahia-Signature>.*</%<\1Jahia-Signature>${KEYMAKER_CLI_OUTPUT}</%" pom.xml
               sed -i -e "s%<\(.*\)jahia-module-signature>.*</%<\1jahia-module-signature>${KEYMAKER_CLI_OUTPUT}</%" pom.xml
-              git add pom.xml && git commit -m "[ci skip] Updated signature for ${project_name}"
-              git push
+              git add pom.xml
+              if [ -z "$(git diff --cached --exit-code)" ]; then
+                echo "No signatures were updated, thus nothing to commit"
+              else
+                git commit -m "[ci skip] Updated signature for ${project_name}"
+                git push
+              fi
             fi
           fi
         else
