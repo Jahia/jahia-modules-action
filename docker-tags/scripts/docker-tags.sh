@@ -136,3 +136,5 @@ Main() {
     GetVersions
     DockerTags    
 }
+
+Main
