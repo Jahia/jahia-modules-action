@@ -19,14 +19,6 @@ Setup() {
     API_DOMAIN="registry-1.docker.io"
 }
 
-DockerLogin() {
-    if [[ $PARAM_DRYRUN -eq 0 ]]; then
-        echo "$PARAM_PASSWORD" | docker login -u "$PARAM_USERNAME" --password-stdin
-    else
-        echo "$(date +'%d %B %Y - %k:%M') - This is a dry-run, skipping docker login"
-    fi
-}
-
 GetToken() {
     echo "$(date +'%d %B %Y - %k:%M') - GetToken: Fetching Token from container registry: ${AUTH_SERVICE}"
     TOKEN=$(curl -s -X GET -u "${PARAM_USERNAME}":"${PARAM_PASSWORD}" "https://${AUTH_DOMAIN}/token?service=${AUTH_SERVICE}&scope=${AUTH_SCOPE}&offline_token=${AUTH_OFFLINE_TOKEN}&client_id=${AUTH_CLIENT_ID}" | jq -r '.token')
@@ -131,7 +123,6 @@ DockerTags() {
 Main() {
     echo "$(date +'%d %B %Y - %k:%M') - Received tagging request for: ${PARAM_ORG}/${PARAM_REPO}:${PARAM_VERSION}"
     Setup
-    DockerLogin
     GetToken
     GetVersions
     DockerTags    
