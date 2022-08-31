@@ -30,9 +30,9 @@ runs:
       shell: bash
       run: |
         if [[ -e ${{ inputs.version }} ]]; then
-          echo 'PARAM_VERSION="$(cat ${{ inputs.version }})"' >> $GITHUB_ENV
+          echo 'PARAM_VERSION=$(cat ${{ inputs.version }})' >> $GITHUB_ENV
         else
-          echo 'PARAM_VERSION="${{ inputs.version }}"' >> $GITHUB_ENV
+          echo 'PARAM_VERSION=${{ inputs.version }}' >> $GITHUB_ENV
         fi
     - name: Verifying version in environment variable
       shell: bash
