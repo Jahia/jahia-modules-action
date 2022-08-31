@@ -32,11 +32,11 @@ runs:
         if [[ -e ${{ inputs.version }} ]]; then
           echo 'PARAM_VERSION="$(cat ${{ inputs.version }})"' >> $GITHUB_ENV
         else
-          echo 'export PARAM_VERSION="${{ inputs.version }}"' >> $GITHUB_ENV
+          echo 'PARAM_VERSION="${{ inputs.version }}"' >> $GITHUB_ENV
         fi
     - name: Verifying version in environment variable
       shell: bash
-      run: echo ${{ env.PARAM_VERSION }}
+      run: echo PARAM_VERSION=${{ env.PARAM_VERSION }}
     - name: Generate missing Docker tags
       shell: bash
       run: |
