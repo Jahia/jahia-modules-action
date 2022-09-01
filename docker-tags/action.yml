@@ -103,7 +103,6 @@ runs:
         VERSIONS=$(curl -s -H "Authorization: Bearer ${{ env.TOKEN }}" https://${{ env.API_DOMAIN }}/v2/"${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}"/tags/list | jq -r '.tags[]' | grep -E "^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+${{ env.PARAM_VERSION_CLASSIFIER }}$")
         echo "$(date +'%d %B %Y - %k:%M') - GetVersions: Fetch complete"
 
-
         if ! (echo "$VERSIONS" | grep "${{ env.PARAM_VERSION }}"); then
             echo "$PARAM_VERSION" not found yet, adding it
             VERSIONS=$(echo -e "${VERSIONS}\n${PARAM_VERSION}")
@@ -128,10 +127,19 @@ runs:
             exit 1
         fi
 
-        LATEST=$(echo "${{ env.VERSIONS }}" | tail -1)
-        MATCHING1=$(echo "${{ env.VERSIONS }}" | grep -E "^${{ env.PARAM_VERSION_MAJOR }}\." | tail -1)
-        MATCHING2=$(echo "${{ env.VERSIONS }}" | grep -E "^${{ env.PARAM_VERSION_MAJOR }}\.${{ env.PARAM_VERSION_MINOR}}\." | tail -1)
-        MATCHING3=$(echo "${{ env.VERSIONS }}" | grep -E "^${{ env.PARAM_VERSION_MAJOR }}\.${{ env.PARAM_VERSION_MINOR}}\.${{ env.PARAM_VERSION_HF}}\." | tail -1)
+        if ! (echo "${{ env.VERSIONS }}" | grep "${{ env.PARAM_VERSION }}"); then
+          echo "$PARAM_VERSION" not found yet, adding it
+          VERSIONS=$(echo -e "${{ env.VERSIONS }}\n${{ env.PARAM_VERSION }}")
+        else
+          VERSIONS=${{ env.VERSIONS }}
+        fi
+
+        VERSIONS=$(echo "$VERSIONS" | sort --version-sort)
+
+        LATEST=$(echo "$VERSIONS" | tail -1)
+        MATCHING1=$(echo "$VERSIONS" | grep -E "^${{ env.PARAM_VERSION_MAJOR }}\." | tail -1)
+        MATCHING2=$(echo "$VERSIONS" | grep -E "^${{ env.PARAM_VERSION_MAJOR }}\.${{ env.PARAM_VERSION_MINOR}}\." | tail -1)
+        MATCHING3=$(echo "$VERSIONS" | grep -E "^${{ env.PARAM_VERSION_MAJOR }}\.${{ env.PARAM_VERSION_MINOR}}\.${{ env.PARAM_VERSION_HF}}\." | tail -1)
 
         if [[ ${{ env.PARAM_DRYRUN }} -eq 0 ]]; then
             echo "$(date +'%d %B %Y - %k:%M') - Pulling docker image prior to tagging"
