@@ -21,7 +21,6 @@ Setup() {
 
 GetToken() {
     echo "$(date +'%d %B %Y - %k:%M') - GetToken: Fetching Token from container registry: ${AUTH_SERVICE}"
-    curl -s -X GET -u "${PARAM_USERNAME}":"${PARAM_PASSWORD}" "https://${AUTH_DOMAIN}/token?service=${AUTH_SERVICE}&scope=${AUTH_SCOPE}&offline_token=${AUTH_OFFLINE_TOKEN}&client_id=${AUTH_CLIENT_ID}
     TOKEN=$(curl -s -X GET -u "${PARAM_USERNAME}":"${PARAM_PASSWORD}" "https://${AUTH_DOMAIN}/token?service=${AUTH_SERVICE}&scope=${AUTH_SCOPE}&offline_token=${AUTH_OFFLINE_TOKEN}&client_id=${AUTH_CLIENT_ID}" | jq -r '.token')
     echo "$(date +'%d %B %Y - %k:%M') - GetToken: Fetch complete"
 }
