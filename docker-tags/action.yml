@@ -103,13 +103,13 @@ runs:
         VERSIONS=$(curl -s -H "Authorization: Bearer ${{ env.TOKEN }}" https://${{ env.API_DOMAIN }}/v2/"${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}"/tags/list | jq -r '.tags[]' | grep -E "^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+${{ env.PARAM_VERSION_CLASSIFIER }}$")
         echo "$(date +'%d %B %Y - %k:%M') - GetVersions: Fetch complete"
 
-        REGISTRY_VERSIONS=$(echo "${{ env.VERSIONS }}" | awk -vORS=, '{ print $1 }' | sed 's/,$/\n/')   
+        REGISTRY_VERSIONS=$(echo "$VERSIONS" | awk -vORS=, '{ print $1 }' | sed 's/,$/\n/')   
         echo "$(date +'%d %B %Y - %k:%M') - The following tags exists in ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}: ${REGISTRY_VERSIONS}"
 
-        if ! (echo "${{ env.VERSIONS }}" | grep "${{ env.PARAM_VERSION }}"); then   
+        if ! (echo "$VERSIONS" | grep "${{ env.PARAM_VERSION }}"); then   
             echo "$(date +'%d %B %Y - %k:%M') - Version ${{ env.PARAM_VERSION }} does not exist in the repository"
-            echo "$(date +'%d %B %Y - %k:%M') - The orb is meant at tagging existing images"
-            echo "$(date +'%d %B %Y - %k:%M') - The orb will TERMINATE"
+            echo "$(date +'%d %B %Y - %k:%M') - The action is meant at tagging existing images"
+            echo "$(date +'%d %B %Y - %k:%M') - The action will TERMINATE"
             exit 1
         fi
 
