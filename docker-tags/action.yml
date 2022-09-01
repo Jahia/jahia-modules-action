@@ -96,18 +96,13 @@ runs:
         echo "TOKEN=${TOKEN}" >> $GITHUB_ENV        
         echo "$(date +'%d %B %Y - %k:%M') - GetToken: Fetch complete"      
 
-    - name: Get Container versions
+    - name: Generate Docker tags
       shell: bash
       run: |
         echo "$(date +'%d %B %Y - %k:%M') - GetVersions: Fetching container versions from container registry: ${{ env.AUTH_SERVICE }}"
         VERSIONS=$(curl -s -H "Authorization: Bearer ${{ env.TOKEN }}" https://${{ env.API_DOMAIN }}/v2/"${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}"/tags/list | jq -r '.tags[]' | grep -E "^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+${{ env.PARAM_VERSION_CLASSIFIER }}$")
         echo "$(date +'%d %B %Y - %k:%M') - GetVersions: Fetch complete"
 
-        echo "VERSIONS=${VERSIONS}" >> $GITHUB_ENV
-
-    - name: Generate Docker tags
-      shell: bash
-      run: |
         REGISTRY_VERSIONS=$(echo "${{ env.VERSIONS }}" | awk -vORS=, '{ print $1 }' | sed 's/,$/\n/')   
         echo "$(date +'%d %B %Y - %k:%M') - The following tags exists in ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}: ${REGISTRY_VERSIONS}"
 
@@ -118,11 +113,9 @@ runs:
             exit 1
         fi
 
-        if ! (echo "${{ env.VERSIONS }}" | grep "${{ env.PARAM_VERSION }}"); then
+        if ! (echo "$VERSIONS" | grep "${{ env.PARAM_VERSION }}"); then
           echo "$PARAM_VERSION" not found yet, adding it
-          VERSIONS=$(echo -e "${{ env.VERSIONS }}\n${{ env.PARAM_VERSION }}")
-        else
-          VERSIONS=${{ env.VERSIONS }}
+          VERSIONS=$(echo -e "$VERSIONS\n${{ env.PARAM_VERSION }}")
         fi
 
         VERSIONS=$(echo "$VERSIONS" | sort --version-sort)
