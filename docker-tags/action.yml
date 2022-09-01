@@ -1,3 +1,4 @@
+# Action created from: https://github.com/Jahia/docker-tags-orb
 name: docker-tags
 
 inputs:
@@ -42,7 +43,6 @@ runs:
         else
           export PARAM_VERSION=${{ inputs.version }}
         fi
-        echo ${PARAM_VERSION}
         PARAM_VERSION_MAJOR=$(echo "${PARAM_VERSION}" | awk -F . '{print $1}' )
         PARAM_VERSION_MINOR=$(echo "${PARAM_VERSION}" | awk -F . '{print $2}' )
         PARAM_VERSION_HF=$(echo "${PARAM_VERSION}" | awk -F . '{print $3}' )
@@ -58,7 +58,15 @@ runs:
         echo "PARAM_VERSION_CLASSIFIER=${PARAM_VERSION_CLASSIFIER}" >> $GITHUB_ENV        
         echo "PARAM_ORG=${{ inputs.org }}" >> $GITHUB_ENV
         echo "PARAM_REPO=${{ inputs.repo }}" >> $GITHUB_ENV
-        echo "PARAM_DRYRUN=${{ inputs.dry-run }}" >> $GITHUB_ENV        
+        echo "PARAM_DRYRUN=${{ inputs.dry-run }}" >> $GITHUB_ENV
+
+        echo "AUTH_DOMAIN=auth.docker.io" >> $GITHUB_ENV
+        echo "AUTH_SERVICE=registry.docker.io" >> $GITHUB_ENV
+        echo "AUTH_SCOPE=repository:${PARAM_ORG}/${PARAM_REPO}:pull" >> $GITHUB_ENV
+        echo "AUTH_OFFLINE_TOKEN=1" >> $GITHUB_ENV
+        echo "AUTH_CLIENT_ID=shell" >> $GITHUB_ENV
+
+        echo "API_DOMAIN=registry-1.docker.io" >> $GITHUB_ENV
         echo "::endgroup::"
 
     - name: Verifying version in environment variable
@@ -73,6 +81,14 @@ runs:
         echo PARAM_ORG=${{ env.PARAM_ORG }}
         echo PARAM_REPO=${{ env.PARAM_REPO }}
         echo PARAM_DRYRUN=${{ env.PARAM_DRYRUN }}
+
+        echo AUTH_DOMAIN=${{ env.AUTH_DOMAIN }}
+        echo AUTH_SERVICE=${{ env.AUTH_SERVICE }}
+        echo AUTH_SCOPE=${{ env.AUTH_SCOPE }}
+        echo AUTH_OFFLINE_TOKEN=${{ env.AUTH_OFFLINE_TOKEN }}
+        echo AUTH_CLIENT_ID=${{ env.AUTH_CLIENT_ID }}
+        echo API_DOMAIN=${{ env.API_DOMAIN }}
+
         echo "::endgroup::"      
 
     - name: Run script
