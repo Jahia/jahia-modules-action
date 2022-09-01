@@ -23,6 +23,7 @@ inputs:
     description: "Dry Run: Does not push changes if true"
 
 
+
 runs:
   using: "composite"
   steps:
@@ -31,24 +32,43 @@ runs:
       with:
         username: ${{ inputs.docker_username }}
         password: ${{ inputs.docker_password }}
+
     - name: Handle version parameter (file or version string)
       shell: bash
       run: |
         echo "::group::Setup environment variables from inputs"
         if [[ -e ${{ inputs.version }} ]]; then
-          echo 'PARAM_VERSION=$(cat ${{ inputs.version }})' >> $GITHUB_ENV
+          export PARAM_VERSION=$(cat ${{ inputs.version }})
         else
-          echo 'PARAM_VERSION=${{ inputs.version }}' >> $GITHUB_ENV
+          export PARAM_VERSION=${{ inputs.version }}
         fi
+        PARAM_VERSION_MAJOR=$(echo "${PARAM_VERSION}" | awk -F . '{print $1}' )
+        PARAM_VERSION_MINOR=$(echo "${PARAM_VERSION}" | awk -F . '{print $2}' )
+        PARAM_VERSION_HF=$(echo "${PARAM_VERSION}" | awk -F . '{print $3}' )
+        PARAM_VERSION_CLASSIFIER=$(echo "${PARAM_VERSION}" | awk -F - '{print $2}' )     
+        if [ "$PARAM_VERSION_CLASSIFIER" != "" ]; then
+            PARAM_VERSION_CLASSIFIER='-'$PARAM_VERSION_CLASSIFIER
+        fi
+
+        echo 'PARAM_VERSION=${PARAM_VERSION}' >> $GITHUB_ENV        
+        echo 'PARAM_VERSION_MAJOR=${PARAM_VERSION_MAJOR}' >> $GITHUB_ENV        
+        echo 'PARAM_VERSION_MINOR=${PARAM_VERSION_MINOR}' >> $GITHUB_ENV        
+        echo 'PARAM_VERSION_HF=${PARAM_VERSION_HF}' >> $GITHUB_ENV        
+        echo 'PARAM_VERSION_CLASSIFIER=${PARAM_VERSION_CLASSIFIER}' >> $GITHUB_ENV        
         echo "PARAM_ORG=${{ inputs.org }}" >> $GITHUB_ENV
         echo "PARAM_REPO=${{ inputs.repo }}" >> $GITHUB_ENV
         echo "PARAM_DRYRUN=${{ inputs.dry-run }}" >> $GITHUB_ENV        
-        echo "::endgroup::"      
+        echo "::endgroup::"
+
     - name: Verifying version in environment variable
       shell: bash
       run: |
         echo "::group::Display environment variables"
         echo PARAM_VERSION=${{ env.PARAM_VERSION }}
+        echo PARAM_VERSION_MAJOR=${{ env.PARAM_VERSION_MAJOR }}
+        echo PARAM_VERSION_MINOR=${{ env.PARAM_VERSION_MINOR }}
+        echo PARAM_VERSION_HF=${{ env.PARAM_VERSION_HF }}
+        echo PARAM_VERSION_CLASSIFIER=${{ env.PARAM_VERSION_CLASSIFIER }}
         echo PARAM_ORG=${{ env.PARAM_ORG }}
         echo PARAM_REPO=${{ env.PARAM_REPO }}
         echo PARAM_DRYRUN=${{ env.PARAM_DRYRUN }}
