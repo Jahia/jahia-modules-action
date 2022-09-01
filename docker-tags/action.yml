@@ -71,6 +71,8 @@ runs:
       shell: bash
       run: |
         echo "::group::Display environment variables"
+        echo docker_username=${{ inputs.docker_username }}
+        
         echo PARAM_VERSION=${{ env.PARAM_VERSION }}
         echo PARAM_VERSION_MAJOR=${{ env.PARAM_VERSION_MAJOR }}
         echo PARAM_VERSION_MINOR=${{ env.PARAM_VERSION_MINOR }}
