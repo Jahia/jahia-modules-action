@@ -88,8 +88,23 @@ runs:
         echo AUTH_OFFLINE_TOKEN=${{ env.AUTH_OFFLINE_TOKEN }}
         echo AUTH_CLIENT_ID=${{ env.AUTH_CLIENT_ID }}
         echo API_DOMAIN=${{ env.API_DOMAIN }}
-
         echo "::endgroup::"      
+
+    - name: Setup Docker Hub token
+      shell: bash
+      run: |
+        echo "$(date +'%d %B %Y - %k:%M') - GetToken: Fetching Token from container registry: ${{ env.AUTH_SERVICE }}"
+        TOKEN=$(curl -s -X GET -u "${{ inputs.docker_username }}":"${{ inputs.docker_password }}" "https:/${{ env.AUTH_DOMAIN }}/token?service=${{ env.AUTH_SERVICE }}&scope=${{ env.AUTH_SCOPE }}&offline_token=${{ env.AUTH_OFFLINE_TOKEN }}&client_id=${{ env.AUTH_CLIENT_ID }}" | jq -r '.token')
+        echo "TOKEN=${TOKEN}" >> $GITHUB_ENV        
+        echo "$(date +'%d %B %Y - %k:%M') - GetToken: Fetch complete"      
+
+    - name: Get Container versions
+      shell: bash
+      run: |
+        echo "$(date +'%d %B %Y - %k:%M') - GetVersions: Fetching container versions from container registry: ${{ env.AUTH_SERVICE }}"
+        VERSIONS=$(curl -s -H "Authorization: Bearer ${{ env.TOKEN }}" https://${{ env.API_DOMAIN }}/v2/"${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}"/tags/list | jq -r '.tags[]' | grep -E "^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+${{ env.PARAM_VERSION_CLASSIFIER }}$")
+        echo $VERSIONS
+        echo "$(date +'%d %B %Y - %k:%M') - GetVersions: Fetch complete"
 
     - name: Run script
       shell: bash
