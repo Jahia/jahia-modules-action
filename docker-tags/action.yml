@@ -103,15 +103,6 @@ runs:
         VERSIONS=$(curl -s -H "Authorization: Bearer ${{ env.TOKEN }}" https://${{ env.API_DOMAIN }}/v2/"${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}"/tags/list | jq -r '.tags[]' | grep -E "^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+${{ env.PARAM_VERSION_CLASSIFIER }}$")
         echo "$(date +'%d %B %Y - %k:%M') - GetVersions: Fetch complete"
 
-        if ! (echo "$VERSIONS" | grep "${{ env.PARAM_VERSION }}"); then
-            echo "$PARAM_VERSION" not found yet, adding it
-            VERSIONS=$(echo -e "${VERSIONS}\n${PARAM_VERSION}")
-        fi
-
-        echo "$(date +'%d %B %Y - %k:%M') - GetVersions: List of versions: ${VERSIONS}"
-        VERSIONS=$(echo "$VERSIONS" | sort --version-sort)
-        echo "$(date +'%d %B %Y - %k:%M') - GetVersions: Sorted list of versions: ${VERSIONS}"
-
         echo "VERSIONS=${VERSIONS}" >> $GITHUB_ENV
 
     - name: Generate Docker tags
