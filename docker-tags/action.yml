@@ -43,13 +43,13 @@ runs:
           export PARAM_VERSION=${{ inputs.version }}
         fi
         echo ${PARAM_VERSION}
-        PARAM_VERSION_MAJOR=$(echo "${PARAM_VERSION}" | awk -F . '{print $1}' )
-        PARAM_VERSION_MINOR=$(echo "${PARAM_VERSION}" | awk -F . '{print $2}' )
-        PARAM_VERSION_HF=$(echo "${PARAM_VERSION}" | awk -F . '{print $3}' )
-        PARAM_VERSION_CLASSIFIER=$(echo "${PARAM_VERSION}" | awk -F - '{print $2}' )     
-        if [ "$PARAM_VERSION_CLASSIFIER" != "" ]; then
-            PARAM_VERSION_CLASSIFIER='-'$PARAM_VERSION_CLASSIFIER
-        fi
+        # PARAM_VERSION_MAJOR=$(echo "${PARAM_VERSION}" | awk -F . '{print $1}' )
+        # PARAM_VERSION_MINOR=$(echo "${PARAM_VERSION}" | awk -F . '{print $2}' )
+        # PARAM_VERSION_HF=$(echo "${PARAM_VERSION}" | awk -F . '{print $3}' )
+        # PARAM_VERSION_CLASSIFIER=$(echo "${PARAM_VERSION}" | awk -F - '{print $2}' )     
+        # if [ "$PARAM_VERSION_CLASSIFIER" != "" ]; then
+        #     PARAM_VERSION_CLASSIFIER='-'$PARAM_VERSION_CLASSIFIER
+        # fi
 
         echo 'PARAM_VERSION=${PARAM_VERSION}' >> $GITHUB_ENV        
         echo 'PARAM_VERSION_MAJOR=${PARAM_VERSION_MAJOR}' >> $GITHUB_ENV        
