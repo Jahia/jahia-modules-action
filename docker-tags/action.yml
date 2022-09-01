@@ -62,7 +62,7 @@ runs:
 
         echo "AUTH_DOMAIN=auth.docker.io" >> $GITHUB_ENV
         echo "AUTH_SERVICE=registry.docker.io" >> $GITHUB_ENV
-        echo "AUTH_SCOPE=repository:${PARAM_ORG}/${PARAM_REPO}:pull" >> $GITHUB_ENV
+        echo "AUTH_SCOPE=repository:${{ inputs.org }}/${{ inputs.repo }}:pull" >> $GITHUB_ENV
         echo "AUTH_OFFLINE_TOKEN=1" >> $GITHUB_ENV
         echo "AUTH_CLIENT_ID=shell" >> $GITHUB_ENV
 
