@@ -125,14 +125,14 @@ runs:
         MATCHING2=$(echo "$VERSIONS" | grep -E "^${{ env.PARAM_VERSION_MAJOR }}\.${{ env.PARAM_VERSION_MINOR}}\." | tail -1)
         MATCHING3=$(echo "$VERSIONS" | grep -E "^${{ env.PARAM_VERSION_MAJOR }}\.${{ env.PARAM_VERSION_MINOR}}\.${{ env.PARAM_VERSION_HF}}\." | tail -1)
 
-        if [[ "${{ env.PARAM_DRYRUN }}" == "true" ]]; then
+        if [[ "${{ env.PARAM_DRYRUN }}" == "false" ]]; then
             echo "$(date +'%d %B %Y - %k:%M') - Pulling docker image prior to tagging"
             docker pull "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION }}"
         fi
 
         if [ "$LATEST" == "${{ env.PARAM_VERSION }}" ]; then
             echo "$(date +'%d %B %Y - %k:%M') - Tag: latest${{ env.PARAM_VERSION_CLASSIFIER}} should be an alias of ${LATEST}, tag update is required"
-            if [[ "${{ env.PARAM_DRYRUN }}" == "true" ]]; then
+            if [[ "${{ env.PARAM_DRYRUN }}" == "false" ]]; then
                 echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker tag ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:latest${{ env.PARAM_VERSION_CLASSIFIER}}"
                 docker tag "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION }}" "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":latest"${{ env.PARAM_VERSION_CLASSIFIER}}"
                 echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker push ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:latest${{ env.PARAM_VERSION_CLASSIFIER}}"        
@@ -147,7 +147,7 @@ runs:
 
         if [ "$MATCHING1" == "${{ env.PARAM_VERSION }}" ]; then
             echo "$(date +'%d %B %Y - %k:%M') - Tag: ${{ env.PARAM_VERSION_MAJOR }}${{ env.PARAM_VERSION_CLASSIFIER}} should be an alias of ${MATCHING1}, tag update is required"
-            if [[ "${{ env.PARAM_DRYRUN }}" == "true" ]]; then
+            if [[ "${{ env.PARAM_DRYRUN }}" == "false" ]]; then
                 echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker tag ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}${{ env.PARAM_VERSION_CLASSIFIER}}"
                 docker tag "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION }}" "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION_MAJOR }}""${{ env.PARAM_VERSION_CLASSIFIER}}"
                 echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker push ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}${{ env.PARAM_VERSION_CLASSIFIER}}"        
@@ -162,7 +162,7 @@ runs:
 
         if [ "$MATCHING2" == "${{ env.PARAM_VERSION }}" ]; then
             echo "$(date +'%d %B %Y - %k:%M') - Tag: ${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}${{ env.PARAM_VERSION_CLASSIFIER}} should be  an alias of ${MATCHING2}, tag update is required"
-            if [[ "${{ env.PARAM_DRYRUN }}" == "true" ]]; then
+            if [[ "${{ env.PARAM_DRYRUN }}" == "false" ]]; then
                 echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker tag ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}${{ env.PARAM_VERSION_CLASSIFIER}}"
                 docker tag "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION }}" "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION_MAJOR }}"."${{ env.PARAM_VERSION_MINOR}}""${{ env.PARAM_VERSION_CLASSIFIER}}"
                 echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker push ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}${{ env.PARAM_VERSION_CLASSIFIER}}"        
@@ -177,7 +177,7 @@ runs:
 
         if [ "$MATCHING3" == "${{ env.PARAM_VERSION }}" ]; then
             echo "$(date +'%d %B %Y - %k:%M') - Tag: ${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}.${{ env.PARAM_VERSION_HF}}${{ env.PARAM_VERSION_CLASSIFIER}} should be  an alias of ${MATCHING3}, tag update is required"
-            if [[ "${{ env.PARAM_DRYRUN }}" == "true" ]]; then
+            if [[ "${{ env.PARAM_DRYRUN }}" == "false" ]]; then
                 echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker tag ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}.${{ env.PARAM_VERSION_HF}}${{ env.PARAM_VERSION_CLASSIFIER}}"
                 docker tag "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION }}" "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION_MAJOR }}"."${{ env.PARAM_VERSION_MINOR}}"."${{ env.PARAM_VERSION_HF}}""${{ env.PARAM_VERSION_CLASSIFIER}}"
                 echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker push ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}.${{ env.PARAM_VERSION_HF}}${{ env.PARAM_VERSION_CLASSIFIER}}"        
