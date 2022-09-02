@@ -92,17 +92,20 @@ runs:
 
     - name: Setup Docker Hub token
       shell: bash
+      env:
+        DOCKER_PASSWORD: ${{ inputs.docker_password }}
+        DOCKER_USERNAME: ${{ inputs.docker_username }}
       run: |
         echo "$(date +'%d %B %Y - %k:%M') - GetToken: Fetching Token from container registry: ${{ env.AUTH_SERVICE }}"
         TEST=$'nrnek3ek@&$KFMefkm'
         echo "${TEST}"
         echo "${TEST@Q}"
-        HEADER=$(echo -n ${{ inputs.docker_username }}:${{ inputs.docker_password }} | base64)
+        echo "USERNAME=${DOCKER_USERNAME}
+        HEADER=$(echo -n $DOCKER_USERNAME:$DOCKER_PASSWORD | base64)
         echo $HEADER
-        
 
         # TOKEN=$(curl -s -X GET -u "${{ inputs.docker_username }}":"${{ inputs.docker_password }}" "https://${{ env.AUTH_DOMAIN }}/token?service=${{ env.AUTH_SERVICE }}&scope=${{ env.AUTH_SCOPE }}&offline_token=${{ env.AUTH_OFFLINE_TOKEN }}&client_id=${{ env.AUTH_CLIENT_ID }}" | jq -r '.token')
-        TOKEN=$(curl -s -X GET -H "Authorization: Basic `echo -n ${{ inputs.docker_username }}:${{ inputs.docker_password }} | base64`" "https://${{ env.AUTH_DOMAIN }}/token?service=${{ env.AUTH_SERVICE }}&scope=${{ env.AUTH_SCOPE }}&offline_token=${{ env.AUTH_OFFLINE_TOKEN }}&client_id=${{ env.AUTH_CLIENT_ID }}" | jq -r '.token')
+        TOKEN=$(curl -s -X GET -H "Authorization: Basic ${HEADER}" "https://${{ env.AUTH_DOMAIN }}/token?service=${{ env.AUTH_SERVICE }}&scope=${{ env.AUTH_SCOPE }}&offline_token=${{ env.AUTH_OFFLINE_TOKEN }}&client_id=${{ env.AUTH_CLIENT_ID }}" | jq -r '.token')
         echo "TOKEN=${TOKEN}" >> $GITHUB_ENV 
         echo "Token portion: ${TOKEN:0:10}"        
         echo "$(date +'%d %B %Y - %k:%M') - GetToken: Fetch complete"      
