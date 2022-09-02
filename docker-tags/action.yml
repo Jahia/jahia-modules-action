@@ -100,7 +100,7 @@ runs:
         TEST=$'nrnek3ek@&$KFMefkm'
         echo "${TEST}"
         echo "${TEST@Q}"
-        echo "USERNAME=${DOCKER_USERNAME}
+        echo "USERNAME=${DOCKER_USERNAME}"
         HEADER=$(echo -n $DOCKER_USERNAME:$DOCKER_PASSWORD | base64)
         echo $HEADER
 
