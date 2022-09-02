@@ -97,6 +97,9 @@ runs:
         TEST=$'nrnek3ek@&$KFMefkm'
         echo "${TEST}"
         echo "${TEST@Q}"
+        HEADER=$(echo -n ${{ inputs.docker_username }}:${{ inputs.docker_password }} | base64)
+        echo HEADER
+        
 
         # TOKEN=$(curl -s -X GET -u "${{ inputs.docker_username }}":"${{ inputs.docker_password }}" "https://${{ env.AUTH_DOMAIN }}/token?service=${{ env.AUTH_SERVICE }}&scope=${{ env.AUTH_SCOPE }}&offline_token=${{ env.AUTH_OFFLINE_TOKEN }}&client_id=${{ env.AUTH_CLIENT_ID }}" | jq -r '.token')
         TOKEN=$(curl -s -X GET -H "Authorization: Basic `echo -n ${{ inputs.docker_username }}:${{ inputs.docker_password }} | base64`" "https://${{ env.AUTH_DOMAIN }}/token?service=${{ env.AUTH_SERVICE }}&scope=${{ env.AUTH_SCOPE }}&offline_token=${{ env.AUTH_OFFLINE_TOKEN }}&client_id=${{ env.AUTH_CLIENT_ID }}" | jq -r '.token')
