@@ -106,6 +106,8 @@ runs:
     - name: Generate Docker tags
       shell: bash
       run: |
+        echo "$(date +'%d %B %Y - %k:%M') - Starting the tagging script"
+        
         # Only tagging images following format 1.2.3.4 or 1.2.3.4-SNAPSHOT
         # Other versions (such as 1.2.3.4-SNAPSHOT-branch) are silently ignored
         VERSION_FILTER=$(echo ${{ env.PARAM_VERSION }} | grep -E "^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+${{ env.PARAM_VERSION_CLASSIFIER }}$" | wc -c | xargs)
