@@ -112,7 +112,7 @@ runs:
         
         # Only tagging images following format 1.2.3.4 or 1.2.3.4-SNAPSHOT
         # Other versions (such as 1.2.3.4-SNAPSHOT-branch) are silently ignored
-        if [[ "${{ env.PARAM_VERSION }}" != "" ]]; then
+        if [[ "${{ env.PARAM_VERSION_CLASSIFIER_SUFFIX }}" != "" ]]; then
           echo "$(date +'%d %B %Y - %k:%M') - Version ${{ env.PARAM_VERSION }} appears to be built from a branch, its suffix is: ${{ env.PARAM_VERSION_CLASSIFIER_SUFFIX }}"
           echo "$(date +'%d %B %Y - %k:%M') - The action is only meant at tagging release or snapshot versions (1.2.3.4 or 1.2.3.4-SNAPSHOT)"
           echo "$(date +'%d %B %Y - %k:%M') - The action will SILENTLY EXIT"
