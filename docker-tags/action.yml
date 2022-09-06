@@ -44,8 +44,9 @@ runs:
         PARAM_VERSION_MAJOR=$(echo "${PARAM_VERSION}" | awk -F . '{print $1}' )
         PARAM_VERSION_MINOR=$(echo "${PARAM_VERSION}" | awk -F . '{print $2}' )
         PARAM_VERSION_HF=$(echo "${PARAM_VERSION}" | awk -F . '{print $3}' )
-        PARAM_VERSION_CLASSIFIER=$(echo "${PARAM_VERSION}" | awk -F - '{print $2}' )     
+        PARAM_VERSION_CLASSIFIER=$(echo "${PARAM_VERSION}" | awk -F - '{print $2}' )
         if [ "$PARAM_VERSION_CLASSIFIER" != "" ]; then
+            PARAM_VERSION_CLASSIFIER_SUFFIX=$(echo "${PARAM_VERSION}" | awk -F - '{print $3}' )
             PARAM_VERSION_CLASSIFIER='-'$PARAM_VERSION_CLASSIFIER
         fi
 
@@ -54,6 +55,7 @@ runs:
         echo "PARAM_VERSION_MINOR=${PARAM_VERSION_MINOR}" >> $GITHUB_ENV        
         echo "PARAM_VERSION_HF=${PARAM_VERSION_HF}" >> $GITHUB_ENV        
         echo "PARAM_VERSION_CLASSIFIER=${PARAM_VERSION_CLASSIFIER}" >> $GITHUB_ENV        
+        echo "PARAM_VERSION_CLASSIFIER_SUFFIX=${PARAM_VERSION_CLASSIFIER_SUFFIX}" >> $GITHUB_ENV        
         echo "PARAM_ORG=${{ inputs.org }}" >> $GITHUB_ENV
         echo "PARAM_REPO=${{ inputs.repo }}" >> $GITHUB_ENV
         echo "PARAM_DRYRUN=${{ inputs.dry-run }}" >> $GITHUB_ENV
@@ -110,9 +112,8 @@ runs:
         
         # Only tagging images following format 1.2.3.4 or 1.2.3.4-SNAPSHOT
         # Other versions (such as 1.2.3.4-SNAPSHOT-branch) are silently ignored
-        VERSION_FILTER=$(echo ${{ env.PARAM_VERSION }} | grep -E "^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+${{ env.PARAM_VERSION_CLASSIFIER }}$" | wc -c | xargs)
-        if [ "${{ env.PARAM_VERSION }}" == *"SNAPSHOT"* ] && [ "$VERSION_FILTER" == "0" ]; then
-          echo "$(date +'%d %B %Y - %k:%M') - Version ${{ env.PARAM_VERSION }} appears to be built from a branch"
+        if [[ "${{ env.PARAM_VERSION_CLASSIFIER_SUFFIX }}" != "" ]]; then
+          echo "$(date +'%d %B %Y - %k:%M') - Version ${{ env.PARAM_VERSION }} appears to be built from a branch, its suffix is: ${{ env.PARAM_VERSION_CLASSIFIER_SUFFIX }}"
           echo "$(date +'%d %B %Y - %k:%M') - The action is only meant at tagging release or snapshot versions (1.2.3.4 or 1.2.3.4-SNAPSHOT)"
           echo "$(date +'%d %B %Y - %k:%M') - The action will SILENTLY EXIT"
           exit 0
