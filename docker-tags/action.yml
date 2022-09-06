@@ -111,7 +111,7 @@ runs:
         # Only tagging images following format 1.2.3.4 or 1.2.3.4-SNAPSHOT
         # Other versions (such as 1.2.3.4-SNAPSHOT-branch) are silently ignored
         VERSION_FILTER=$(echo ${{ env.PARAM_VERSION }} | grep -E "^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+${{ env.PARAM_VERSION_CLASSIFIER }}$" | wc -c | xargs)
-        if [[ "${{ env.PARAM_VERSION }}" == *"SNAPSHOT"* && "$VERSION_FILTER" == "0" ]]; then
+        if [ "${{ env.PARAM_VERSION }}" == *"SNAPSHOT"* ] && [ "$VERSION_FILTER" == "0" ]; then
           echo "$(date +'%d %B %Y - %k:%M') - Version ${{ env.PARAM_VERSION }} appears to be built from a branch"
           echo "$(date +'%d %B %Y - %k:%M') - The action is only meant at tagging release or snapshot versions (1.2.3.4 or 1.2.3.4-SNAPSHOT)"
           echo "$(date +'%d %B %Y - %k:%M') - The action will SILENTLY EXIT"
