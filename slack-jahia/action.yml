@@ -33,6 +33,8 @@ runs:
     - name: Get branch name
       id: branch-name
       uses: tj-actions/branch-names@v5.4
+    - name: Get repository name
+      run: echo "REPO_NAME=$(basename ${{ github.repository }})" >> $GITHUB_ENV
 
     # if there was no failure
     - uses: slackapi/slack-github-action@v1.18.0
@@ -46,7 +48,7 @@ runs:
                 "text":
                   {
                     "type": "mrkdwn",
-                    "text": ":white_check_mark: New build available for *${{ github.event.repository.name }}* (Job artifacts: <https://github.com/Jahia/${{ github.event.repository.name }}/actions/runs/${{ github.run_id }}#artifacts|*${{ github.job }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*) ${{ env.DOCKER_COMMAND }}"
+                    "text": ":white_check_mark: New build available for *${{ env.REPO_NAME }}* (Job artifacts: <https://github.com/Jahia/${{ env.REPO_NAME }}/actions/runs/${{ github.run_id }}#artifacts|*${{ github.job }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*) ${{ env.DOCKER_COMMAND }}"
                   }
               }
             ]
@@ -66,7 +68,7 @@ runs:
                 "text":
                   {
                     "type": "mrkdwn",
-                    "text": ":x: Build failure for *${{ github.event.repository.name }}* (Job artifacts: <${{ github.server_url }}/Jahia/${{ github.event.repository.name }}/actions/runs/${{ github.run_id }}|*${{ github.job }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*)"
+                    "text": ":x: Build failure for *${{ env.REPO_NAME }}* (Job artifacts: <${{ github.server_url }}/Jahia/${{ env.REPO_NAME }}/actions/runs/${{ github.run_id }}|*${{ github.job }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*)"
 
                   }
               }
