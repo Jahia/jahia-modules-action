@@ -3,12 +3,17 @@ import * as core from '@actions/core'
 import simpleGit from 'simple-git'
 
 import {runShellCommands} from '../utils/system'
+import path from "path";
+import fs from "fs";
 
 export async function buildDockerTestImage(
+  testsFolder: string,
+  ciBuildScript: string,
   testsPath: string,
   testsContainerBranch: string,
   testsImage: string
 ): Promise<any> {
+  const buildFile = path.join(testsFolder, ciBuildScript)
   const git = simpleGit({
     baseDir: `${testsPath}`
   })
@@ -19,10 +24,12 @@ export async function buildDockerTestImage(
     await git.checkout(testsContainerBranch)
   }
 
-  const runCommands: Array<string> = [
-    `docker build -t ${testsImage} ${testsPath}.`,
-    `docker save -o ${testsPath}/tests_image.tar ${testsImage}`
-  ]
+  if (!fs.existsSync(buildFile)) {
+    const runCommands: Array<string> = [
+      `docker build -t ${testsImage} ${testsPath}.`,
+      `docker save -o ${testsPath}/tests_image.tar ${testsImage}`
+    ]
 
-  await runShellCommands(runCommands)
+    await runShellCommands(runCommands)
+  }
 }

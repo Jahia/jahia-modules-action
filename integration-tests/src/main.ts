@@ -138,6 +138,8 @@ async function run(): Promise<void> {
         `${timeSinceStart(startTime)} 🐋 Build test docker container`,
         async () => {
           await buildDockerTestImage(
+            testsFolder,
+            core.getInput('ci_build_script'),
             core.getInput('tests_path'),
             core.getInput('tests_container_branch'),
             core.getInput('tests_image')
