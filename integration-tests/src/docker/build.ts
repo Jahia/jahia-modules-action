@@ -9,13 +9,12 @@ import fs from "fs";
 export async function buildDockerTestImage(
   testsFolder: string,
   ciBuildScript: string,
-  testsPath: string,
   testsContainerBranch: string,
   testsImage: string
 ): Promise<any> {
   const buildFile = path.join(testsFolder, ciBuildScript)
   const git = simpleGit({
-    baseDir: `${testsPath}`
+    baseDir: `${testsFolder}`
   })
   const currentBranch = git.branch(['-v', '-a'])
   core.info(JSON.stringify(currentBranch))
@@ -26,8 +25,8 @@ export async function buildDockerTestImage(
 
   if (!fs.existsSync(buildFile)) {
     const runCommands: Array<string> = [
-      `docker build -t ${testsImage} ${testsPath}.`,
-      `docker save -o ${testsPath}/tests_image.tar ${testsImage}`
+      `cd ${testsFolder}; docker build -t ${testsImage} .`,
+      `docker save -o ${testsFolder}/tests_image.tar ${testsImage}`
     ]
 
     await runShellCommands(runCommands)

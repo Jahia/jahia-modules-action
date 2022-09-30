@@ -140,7 +140,6 @@ async function run(): Promise<void> {
           await buildDockerTestImage(
             testsFolder,
             core.getInput('ci_build_script'),
-            core.getInput('tests_path'),
             core.getInput('tests_container_branch'),
             core.getInput('tests_image')
           )

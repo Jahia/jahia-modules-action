@@ -453,11 +453,11 @@ const simple_git_1 = __importDefault(__nccwpck_require__(9103));
 const system_1 = __nccwpck_require__(7885);
 const path_1 = __importDefault(__nccwpck_require__(5622));
 const fs_1 = __importDefault(__nccwpck_require__(5747));
-function buildDockerTestImage(testsFolder, ciBuildScript, testsPath, testsContainerBranch, testsImage) {
+function buildDockerTestImage(testsFolder, ciBuildScript, testsContainerBranch, testsImage) {
     return __awaiter(this, void 0, void 0, function* () {
         const buildFile = path_1.default.join(testsFolder, ciBuildScript);
         const git = (0, simple_git_1.default)({
-            baseDir: `${testsPath}`
+            baseDir: `${testsFolder}`
         });
         const currentBranch = git.branch(['-v', '-a']);
         core.info(JSON.stringify(currentBranch));
@@ -467,8 +467,8 @@ function buildDockerTestImage(testsFolder, ciBuildScript, testsPath, testsContai
         }
         if (!fs_1.default.existsSync(buildFile)) {
             const runCommands = [
-                `docker build -t ${testsImage} ${testsPath}.`,
-                `docker save -o ${testsPath}/tests_image.tar ${testsImage}`
+                `cd ${testsFolder}; docker build -t ${testsImage} .`,
+                `docker save -o ${testsFolder}/tests_image.tar ${testsImage}`
             ];
             yield (0, system_1.runShellCommands)(runCommands);
         }
@@ -1446,7 +1446,7 @@ function run() {
             // Build the test image
             if (core.getInput('should_build_testsimage') === 'true') {
                 yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🐋 Build test docker container`, () => __awaiter(this, void 0, void 0, function* () {
-                    yield (0, docker_1.buildDockerTestImage)(testsFolder, core.getInput('ci_build_script'), core.getInput('tests_path'), core.getInput('tests_container_branch'), core.getInput('tests_image'));
+                    yield (0, docker_1.buildDockerTestImage)(testsFolder, core.getInput('ci_build_script'), core.getInput('tests_container_branch'), core.getInput('tests_image'));
                 }));
             }
             // Pull the latest version of Jahia and jCustomer and print docker images cache to console
