@@ -33,7 +33,7 @@ export async function buildDockerTestImage(
   } else {
     core.info(`Starting environment using build script: ${buildScript}`)
     await runShellCommands(
-        [`./${buildScript}`]
+        [`cd ${testsFolder}; ./${ciBuildScript}`]
     )
   }
 }
