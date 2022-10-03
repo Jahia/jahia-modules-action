@@ -26,14 +26,18 @@ export async function buildDockerTestImage(
   if (!fs.existsSync(buildScript)) {
     core.info(`Starting environment using docker build`)
     const runCommands: Array<string> = [
-      `cd ${testsFolder}; docker build -t ${testsImage} .`,
-      `docker save -o ${testsFolder}/tests_image.tar ${testsImage}`
+      `docker build -t ${testsImage} .`,
+      `docker save -o tests_image.tar ${testsImage}`
     ]
-    await runShellCommands(runCommands)
+    await runShellCommands(runCommands,
+        'artifacts/build.log',
+        {cwd: testsFolder, ignoreReturnCode: true})
   } else {
     core.info(`Starting environment using build script: ${buildScript}`)
     await runShellCommands(
-        [`bash ${buildScript}`]
+        [`bash ${ciBuildScript}`],
+        'artifacts/build.log',
+        {cwd: testsFolder, ignoreReturnCode: true}
     )
   }
 }
