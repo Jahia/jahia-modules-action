@@ -3,14 +3,18 @@ import * as core from '@actions/core'
 import simpleGit from 'simple-git'
 
 import {runShellCommands} from '../utils/system'
+import path from "path";
+import fs from "fs";
 
 export async function buildDockerTestImage(
-  testsPath: string,
+  testsFolder: string,
+  ciBuildScript: string,
   testsContainerBranch: string,
   testsImage: string
 ): Promise<any> {
+  const buildScript = path.join(testsFolder, ciBuildScript)
   const git = simpleGit({
-    baseDir: `${testsPath}`
+    baseDir: `${testsFolder}`
   })
   const currentBranch = git.branch(['-v', '-a'])
   core.info(JSON.stringify(currentBranch))
@@ -19,10 +23,21 @@ export async function buildDockerTestImage(
     await git.checkout(testsContainerBranch)
   }
 
-  const runCommands: Array<string> = [
-    `docker build -t ${testsImage} ${testsPath}.`,
-    `docker save -o ${testsPath}/tests_image.tar ${testsImage}`
-  ]
-
-  await runShellCommands(runCommands)
+  if (!fs.existsSync(buildScript)) {
+    core.info(`Building test image using docker`)
+    const runCommands: Array<string> = [
+      `docker build -t ${testsImage} .`,
+      `docker save -o tests_image.tar ${testsImage}`
+    ]
+    await runShellCommands(runCommands,
+        'artifacts/build.log',
+        {cwd: testsFolder, ignoreReturnCode: true})
+  } else {
+    core.info(`Building test image using script: ${buildScript}`)
+    await runShellCommands(
+        [`bash ${ciBuildScript}`],
+        'artifacts/build.log',
+        {cwd: testsFolder, ignoreReturnCode: true}
+    )
+  }
 }

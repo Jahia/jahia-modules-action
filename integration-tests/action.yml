@@ -183,6 +183,10 @@ inputs:
     description: 'Startup script to use in-lieu of docker-compose up'
     required: false
     default: 'ci.startup.sh'
+  ci_build_script:
+    description: 'Build script to use in-lieu of docker build'
+    required: false
+    default: 'ci.build.sh'
   ci_postrun_script:
     description: 'Script to run prior to saving the artifacts'
     required: false
