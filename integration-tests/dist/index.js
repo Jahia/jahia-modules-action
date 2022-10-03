@@ -475,7 +475,7 @@ function buildDockerTestImage(testsFolder, ciBuildScript, testsContainerBranch, 
         }
         else {
             core.info(`Starting environment using build script: ${buildScript}`);
-            yield (0, system_1.runShellCommands)([`cd ${testsFolder}; ./${ciBuildScript}`]);
+            yield (0, system_1.runShellCommands)([`bash ${buildScript}`]);
         }
     });
 }
