@@ -12,7 +12,7 @@ export async function buildDockerTestImage(
   testsContainerBranch: string,
   testsImage: string
 ): Promise<any> {
-  const buildFile = path.join(testsFolder, ciBuildScript)
+  const buildScript = path.join(testsFolder, ciBuildScript)
   const git = simpleGit({
     baseDir: `${testsFolder}`
   })
@@ -23,12 +23,17 @@ export async function buildDockerTestImage(
     await git.checkout(testsContainerBranch)
   }
 
-  if (!fs.existsSync(buildFile)) {
+  if (!fs.existsSync(buildScript)) {
+    core.info(`Starting environment using docker build`)
     const runCommands: Array<string> = [
       `cd ${testsFolder}; docker build -t ${testsImage} .`,
       `docker save -o ${testsFolder}/tests_image.tar ${testsImage}`
     ]
-
     await runShellCommands(runCommands)
+  } else {
+    core.info(`Starting environment using build script: ${buildScript}`)
+    await runShellCommands(
+        [`./${buildScript}`]
+    )
   }
 }

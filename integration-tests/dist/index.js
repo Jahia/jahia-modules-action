@@ -455,7 +455,7 @@ const path_1 = __importDefault(__nccwpck_require__(5622));
 const fs_1 = __importDefault(__nccwpck_require__(5747));
 function buildDockerTestImage(testsFolder, ciBuildScript, testsContainerBranch, testsImage) {
     return __awaiter(this, void 0, void 0, function* () {
-        const buildFile = path_1.default.join(testsFolder, ciBuildScript);
+        const buildScript = path_1.default.join(testsFolder, ciBuildScript);
         const git = (0, simple_git_1.default)({
             baseDir: `${testsFolder}`
         });
@@ -465,12 +465,17 @@ function buildDockerTestImage(testsFolder, ciBuildScript, testsContainerBranch, 
             core.info(`Switching repository to branch: ${testsContainerBranch}`);
             yield git.checkout(testsContainerBranch);
         }
-        if (!fs_1.default.existsSync(buildFile)) {
+        if (!fs_1.default.existsSync(buildScript)) {
+            core.info(`Starting environment using docker build`);
             const runCommands = [
                 `cd ${testsFolder}; docker build -t ${testsImage} .`,
                 `docker save -o ${testsFolder}/tests_image.tar ${testsImage}`
             ];
             yield (0, system_1.runShellCommands)(runCommands);
+        }
+        else {
+            core.info(`Starting environment using build script: ${buildScript}`);
+            yield (0, system_1.runShellCommands)([`./${buildScript}`]);
         }
     });
 }
