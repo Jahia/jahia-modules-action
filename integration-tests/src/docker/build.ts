@@ -24,7 +24,7 @@ export async function buildDockerTestImage(
   }
 
   if (!fs.existsSync(buildScript)) {
-    core.info(`Starting environment using docker build`)
+    core.info(`Building test image using docker`)
     const runCommands: Array<string> = [
       `docker build -t ${testsImage} .`,
       `docker save -o tests_image.tar ${testsImage}`
@@ -33,7 +33,7 @@ export async function buildDockerTestImage(
         'artifacts/build.log',
         {cwd: testsFolder, ignoreReturnCode: true})
   } else {
-    core.info(`Starting environment using build script: ${buildScript}`)
+    core.info(`Building test image using script: ${buildScript}`)
     await runShellCommands(
         [`bash ${ciBuildScript}`],
         'artifacts/build.log',

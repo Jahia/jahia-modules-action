@@ -466,7 +466,7 @@ function buildDockerTestImage(testsFolder, ciBuildScript, testsContainerBranch, 
             yield git.checkout(testsContainerBranch);
         }
         if (!fs_1.default.existsSync(buildScript)) {
-            core.info(`Starting environment using docker build`);
+            core.info(`Building test image using docker`);
             const runCommands = [
                 `docker build -t ${testsImage} .`,
                 `docker save -o tests_image.tar ${testsImage}`
@@ -474,7 +474,7 @@ function buildDockerTestImage(testsFolder, ciBuildScript, testsContainerBranch, 
             yield (0, system_1.runShellCommands)(runCommands, 'artifacts/build.log', { cwd: testsFolder, ignoreReturnCode: true });
         }
         else {
-            core.info(`Starting environment using build script: ${buildScript}`);
+            core.info(`Building test image using script: ${buildScript}`);
             yield (0, system_1.runShellCommands)([`bash ${ciBuildScript}`], 'artifacts/build.log', { cwd: testsFolder, ignoreReturnCode: true });
         }
     });
