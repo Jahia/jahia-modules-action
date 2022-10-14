@@ -1691,6 +1691,7 @@ function runShellCommands(commands, logfile = null, options = {}) {
             }
             if (options.printCmd === undefined || options.printCmd === true) {
                 core.info(`Executing: ${cmd} with options: ${JSON.stringify(options)}`);
+                core.info(`Logging mode: ${JSON.stringify(silent)}`);
             }
             else {
                 core.info(`Executing a ##OBFUSCATED## command with options: ${JSON.stringify(options)}`);
@@ -1703,6 +1704,7 @@ function runShellCommands(commands, logfile = null, options = {}) {
             options.listeners = {
                 stdout: (data) => {
                     stdOut += data.toString();
+                    core.info(`Logging via stdout ${logLines} / ${maxLogLines}`);
                     if (options.loggingMode === 'partial' && logLines < maxLogLines) {
                         core.info(data.toString());
                         logLines++;
