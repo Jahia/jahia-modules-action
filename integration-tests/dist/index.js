@@ -1696,7 +1696,6 @@ function runShellCommands(commands, logfile = null, options = {}) {
             else {
                 core.info(`Executing a ##OBFUSCATED## command with options: ${JSON.stringify(options)}`);
             }
-            core.info(`Command options - Silent: ${JSON.stringify(options)}`);
             let stdOut = '';
             let stdErr = '';
             // If logging partial, only display the first [maxLogLines] lines
@@ -1705,7 +1704,6 @@ function runShellCommands(commands, logfile = null, options = {}) {
             options.listeners = {
                 stdout: (data) => {
                     stdOut += data.toString();
-                    core.info(`Logging via stdout ${logLines} / ${maxLogLines}`);
                     if (options.loggingMode === 'partial' && logLines < maxLogLines) {
                         core.info(data.toString());
                         logLines++;

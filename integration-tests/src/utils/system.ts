@@ -28,7 +28,6 @@ export async function runShellCommands(
       )
     }
 
-    core.info(`Command options - Silent: ${JSON.stringify(options)}`)
     let stdOut = ''
     let stdErr = ''
 
@@ -39,7 +38,6 @@ export async function runShellCommands(
     options.listeners = {
       stdout: (data: Buffer) => {
         stdOut += data.toString()
-        core.info(`Logging via stdout ${logLines} / ${maxLogLines}`)
         if (options.loggingMode === 'partial' && logLines < maxLogLines) {
           core.info(data.toString())
           logLines++
