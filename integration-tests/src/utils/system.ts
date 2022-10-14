@@ -20,7 +20,6 @@ export async function runShellCommands(
     }
     if (options.printCmd === undefined || options.printCmd === true) {
       core.info(`Executing: ${cmd} with options: ${JSON.stringify(options)}`)
-      core.info(`Logging mode: ${JSON.stringify(silent)}`)
     } else {
       core.info(
         `Executing a ##OBFUSCATED## command with options: ${JSON.stringify(
@@ -28,6 +27,8 @@ export async function runShellCommands(
         )}`
       )
     }
+
+    core.info(`Command options - Silent: ${JSON.stringify(options)}`)
     let stdOut = ''
     let stdErr = ''
 
