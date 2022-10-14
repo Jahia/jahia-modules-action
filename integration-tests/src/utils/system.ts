@@ -5,6 +5,7 @@ import * as path from 'path'
 
 interface CustomOptions {
   printCmd?: boolean
+  loggingMode?: string
 }
 
 export async function runShellCommands(
@@ -14,7 +15,7 @@ export async function runShellCommands(
 ): Promise<any> {
   for (const cmd of commands) {
     let silent = false
-    if (options.silent !== undefined || options.silent === true) {
+    if (options.silent !== undefined || options.silent === true || options.loggingMode === 'silent' || options.loggingMode === 'partial') {
       silent = true
     }
     if (options.printCmd === undefined || options.printCmd === true) {
@@ -29,12 +30,27 @@ export async function runShellCommands(
     let stdOut = ''
     let stdErr = ''
 
+    // If logging partial, only display the first [maxLogLines] lines
+    let logLines = 0;
+    let maxLogLines = 10
+
     options.listeners = {
       stdout: (data: Buffer) => {
         stdOut += data.toString()
+        if (options.loggingMode === 'partial' && logLines < maxLogLines) {
+          core.info(data.toString())
+          logLines++
+        } else if (options.loggingMode === 'partial') {
+          // Using process.stdout since info appends new line
+          process.stdout.write('.')
+          logLines++
+        }
       },
       stderr: (data: Buffer) => {
         stdErr += data.toString()
+        if (options.loggingMode === 'partial') {
+          core.info(`ERR: ${data.toString()}`)
+        }
       }
     }
     await exec.exec(cmd, [], {

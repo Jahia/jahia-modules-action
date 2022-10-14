@@ -7,7 +7,8 @@ import {runShellCommands} from '../utils/system'
 export async function startDockerEnvironment(
   testsFolder: string,
   ciStartupScript: string,
-  dockerComposeFile: string
+  dockerComposeFile: string,
+  loggingMode: string
 ): Promise<void> {
   const startupFile = path.join(testsFolder, ciStartupScript)
   const composeFile = path.join(testsFolder, dockerComposeFile)

@@ -227,6 +227,10 @@ inputs:
     description: 'SSH Private Key used to upload artifacts to Jahia servers'
     required: false
     default: ''
+  logging_mode:
+    description: 'Set the desired logging behavior (full, silent, partial)'
+    required: false
+    default: 'full'
 runs:
   using: 'node16'
   main: 'dist/index.js'
