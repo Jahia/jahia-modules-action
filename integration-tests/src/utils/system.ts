@@ -31,27 +31,16 @@ export async function runShellCommands(
     let stdOut = ''
     let stdErr = ''
 
-    // If logging partial, only display the first [maxLogLines] lines
-    let logLines = 0;
-    let maxLogLines = 10
+    if (options.loggingMode === 'partial') {
+      core.info(`Command output has been silenced, a portion of the logs will be displayed once completed`)
+    }
 
     options.listeners = {
       stdout: (data: Buffer) => {
         stdOut += data.toString()
-        if (options.loggingMode === 'partial' && logLines < maxLogLines) {
-          core.info(data.toString())
-          logLines++
-        } else if (options.loggingMode === 'partial') {
-          // Using process.stdout since info appends new line
-          process.stdout.write('.')
-          logLines++
-        }
       },
       stderr: (data: Buffer) => {
         stdErr += data.toString()
-        if (options.loggingMode === 'partial') {
-          core.info(`ERR: ${data.toString()}`)
-        }
       }
     }
     await exec.exec(cmd, [], {
@@ -72,6 +61,16 @@ export async function runShellCommands(
         process.env.TESTS_PATH,
         logfile
       )
+
+      if (options.loggingMode === 'partial') {
+        const logs = stdOut.split('\n')
+        if (logs.length > 100) {
+          logs.slice(0, 10).forEach((line) => core.info(line))
+          core.info(`...... Partial output displayed, see: ${filepath} for full output`)
+          logs.slice(-10).forEach((line) => core.info(line))
+        }
+      }      
+      
       const logFileStream = fs.createWriteStream(filepath, {flags: 'a+'})
       logFileStream.write(`Executing: ${cmd}`)
       logFileStream.write('===== STDOUT =====')
