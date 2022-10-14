@@ -740,12 +740,13 @@ function startDockerEnvironment(testsFolder, ciStartupScript, dockerComposeFile,
             core.info(`Starting environment using startup script: ${startupFile}`);
             yield (0, system_1.runShellCommands)([`bash ${startupFile}`], 'artifacts/startup.log', {
                 cwd: testsFolder,
-                ignoreReturnCode: true
+                ignoreReturnCode: true,
+                loggingMode
             });
         }
         else if (fs.existsSync(composeFile)) {
             core.info(`Starting environment using compose file: ${composeFile}`);
-            yield (0, system_1.runShellCommands)([`docker-compose -f ${composeFile} up --abort-on-container-exit`], 'artifacts/startup.log', { cwd: testsFolder, ignoreReturnCode: true });
+            yield (0, system_1.runShellCommands)([`docker-compose -f ${composeFile} up --abort-on-container-exit`], 'artifacts/startup.log', { cwd: testsFolder, ignoreReturnCode: true, loggingMode });
         }
         else {
             core.setFailed(`Unable to find environment startup instructions. Could not find startup script (${startupFile}) NOR compose file ${composeFile}`);
