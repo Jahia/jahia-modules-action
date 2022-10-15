@@ -32,7 +32,7 @@ export async function runShellCommands(
     let stdErr = ''
 
     if (options.loggingMode === 'partial') {
-      core.notice(`Command output has been silenced, a portion of the logs will be displayed once completed`)
+      core.notice(`Command output has been silenced, a portion of the logs will be displayed once job is complete`)
     }
 
     options.listeners = {
@@ -64,10 +64,10 @@ export async function runShellCommands(
 
       if (options.loggingMode === 'partial') {
         const logs = stdOut.split('\n')
-        if (logs.length > 200) {
-          logs.slice(0, 100).forEach((line) => core.info(line))
+        if (logs.length > 500) {
+          logs.slice(0, 250).forEach((line) => core.info(line))
           core.notice(`...... Partial output displayed, see: ${filepath} for full output ......`)
-          logs.slice(-100).forEach((line) => core.info(line))
+          logs.slice(-250).forEach((line) => core.info(line))
         }
       }      
       
