@@ -7,7 +7,8 @@ import {runShellCommands} from '../utils/system'
 export async function startDockerEnvironment(
   testsFolder: string,
   ciStartupScript: string,
-  dockerComposeFile: string
+  dockerComposeFile: string,
+  loggingMode: string
 ): Promise<void> {
   const startupFile = path.join(testsFolder, ciStartupScript)
   const composeFile = path.join(testsFolder, dockerComposeFile)
@@ -20,14 +21,15 @@ export async function startDockerEnvironment(
     core.info(`Starting environment using startup script: ${startupFile}`)
     await runShellCommands([`bash ${startupFile}`], 'artifacts/startup.log', {
       cwd: testsFolder,
-      ignoreReturnCode: true
+      ignoreReturnCode: true,
+      loggingMode
     })
   } else if (fs.existsSync(composeFile)) {
     core.info(`Starting environment using compose file: ${composeFile}`)
     await runShellCommands(
       [`docker-compose -f ${composeFile} up --abort-on-container-exit`],
       'artifacts/startup.log',
-      {cwd: testsFolder, ignoreReturnCode: true}
+      {cwd: testsFolder, ignoreReturnCode: true, loggingMode}
     )
   } else {
     core.setFailed(

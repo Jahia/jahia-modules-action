@@ -167,7 +167,8 @@ async function run(): Promise<void> {
         await startDockerEnvironment(
           testsFolder,
           core.getInput('ci_startup_script'),
-          core.getInput('docker_compose_file')
+          core.getInput('docker_compose_file'),
+          core.getInput('logging_mode')
         )
       }
     )
