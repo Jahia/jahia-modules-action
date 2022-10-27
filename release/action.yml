@@ -75,7 +75,7 @@ runs:
       shell: bash
       run: |
         git fetch --all
-        git pull --allow-unrelated-histories origin ${{ inputs.primary_release_branch }} --quiet
+        git pull origin ${{ inputs.primary_release_branch }} --quiet
 
     - name: Delete github tag ${{ inputs.release_version }}
       shell: bash
