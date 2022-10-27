@@ -156,6 +156,20 @@ runs:
         cd ~
         find . -name "*.jar" -type f  -maxdepth 3 -mindepth 3 -exec cp {} /tmp/artifacts/ \;
 
+    - name: Release Artifacts
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: release-artifacts
+        path: |
+          /tmp/artifacts/
+        retention-days: ${{ inputs.github_artifact_retention }}
+
+    - name: Go to back to primary branch
+      shell: bash
+      run: |
+        git checkout ${{ inputs.primary_release_branch }} --quiet
+
     - name: Download release properties
       uses: robinraju/release-downloader@v1.5
       with:
@@ -168,13 +182,4 @@ runs:
         path: |
           pom.xml.releaseBackup
           release.properties
-        key: v1-rollback-${{ inputs.release_id }}
-
-    - name: Release Artifacts
-      if: always()
-      uses: actions/upload-artifact@v2
-      with:
-        name: release-artifacts
-        path: |
-          /tmp/artifacts/
-        retention-days: ${{ inputs.github_artifact_retention }}
+        key: v1-rollback-${{ inputs.release_version }}

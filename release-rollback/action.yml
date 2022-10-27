@@ -30,7 +30,7 @@ runs:
         path: |
           pom.xml.releaseBackup
           release.properties
-        key: v1-rollback-${{ inputs.release_id }}
+        key: v1-rollback-${{ inputs.release_version }}
 
     - name: Configure git
       shell: bash
