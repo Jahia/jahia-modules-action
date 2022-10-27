@@ -170,6 +170,15 @@ runs:
       run: |
         git checkout ${{ inputs.primary_release_branch }} --quiet
 
+    - name: Added some debug details
+      shell: bash
+      run: |
+        git branch
+        echo "---"
+        git status
+        echo "---"
+        git show --summary
+
     - name: Download release properties
       uses: robinraju/release-downloader@v1.5
       with:
