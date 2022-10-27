@@ -65,6 +65,12 @@ runs:
         restore-keys: |
           v1-maven-dependencies-${{ hashFiles('**/maven_cache_seed') }}
 
+    - name: Configure git
+      shell: bash
+      run: |
+        git config user.email ${{ inputs.git_user_email }}
+        git config user.name ${{ inputs.git_user_name }}
+
     - name: Getting latest changes from the remote branch
       shell: bash
       run: |
