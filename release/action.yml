@@ -109,15 +109,21 @@ runs:
           NEXT_REVISION=`expr $REVISION + 1`
           NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$MINOR_VERSION.$NEXT_REVISION"-SNAPSHOT
         fi
-        mvn -B -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=$TAG_VERSION release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin]"
+        mvn -B -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=$TAG_VERSION release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin]" --no-transfer-progress
 
-    - name: Cache local Maven repository
-      uses: actions/cache@v2
+    - name: Upload release properties to release
+      uses: svenstaro/upload-release-action@2.3.0
       with:
-        path: |
-          pom.xml.releaseBackup
-          release.properties
-        key: v1-rollback-${{ inputs.release_id }}
+        repo_token: ${{ inputs.github_api_token }}
+        file: release.properties
+        tag: ${{ inputs.release_version }}
+
+    - name: Upload POM backup to release
+      uses: svenstaro/upload-release-action@2.3.0
+      with:
+        repo_token: ${{ inputs.github_api_token }}
+        file: pom.xml.releaseBackup
+        tag: ${{ inputs.release_version }}
 
     - name: Update github release for id ${{ inputs.release_id }}
       shell: bash
@@ -135,7 +141,7 @@ runs:
 
     - name: Perform release
       shell: bash
-      run: mvn -B -s ${{ inputs.mvn_settings_filepath }} release:perform -Prelease-to-staging-repository
+      run: mvn -B -s ${{ inputs.mvn_settings_filepath }} release:perform -Prelease-to-staging-repository --no-transfer-progress
 
     - name: Copy artifacts
       shell: bash

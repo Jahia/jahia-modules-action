@@ -24,21 +24,19 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Cache local Maven repository
-      uses: actions/cache@v2
-      with:
-        path: |
-          pom.xml.releaseBackup
-          release.properties
-        key: v1-rollback-${{ inputs.release_id }}
-
     - name: Configure git
       shell: bash
       run: |
         git config user.email ${{ inputs.git_user_email }}
         git config user.name ${{ inputs.git_user_name }}
 
-    - name: Perform release
+    - name: Download release properties
+      uses: robinraju/release-downloader@v1.5
+      with:
+        tag: ${{ inputs.release_version }}
+        fileName: "*"
+
+    - name: Rollback release
       shell: bash
       run: |
         if [ -f pom.xml.releaseBackup ] && [ -f release.properties ]; then
