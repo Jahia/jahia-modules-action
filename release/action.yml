@@ -135,7 +135,7 @@ runs:
         bastion-user: jahia-ci
         destination-user: jahia
         destination-host: rqa1.int.jahia.com
-        destination-path: /data/shared/releases/releases/{{ inputs.github_slug }}/${{ inputs.release_version }}
+        destination-path: /data/shared/releases/releases/${{ inputs.github_slug }}/${{ inputs.release_version }}
 
     - name: Update github release for id ${{ inputs.release_id }}
       shell: bash
