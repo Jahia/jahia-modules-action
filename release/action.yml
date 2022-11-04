@@ -130,7 +130,7 @@ runs:
         path: /tmp/release-properties/*
         bastion-user: jahia-ci
         destination-user: jahia
-        destination-host: rqa4.int.jahia.com
+        destination-host: rqa1.int.jahia.com
         destination-path: /data/shared/releases/releases/{{ inputs.github_slug }}/${{ inputs.release_version }}
 
     - name: Update github release for id ${{ inputs.release_id }}
