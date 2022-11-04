@@ -119,9 +119,9 @@ runs:
           NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$MINOR_VERSION.$NEXT_REVISION"-SNAPSHOT
         fi
         mvn -B -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=$TAG_VERSION release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin]" --no-transfer-progress
-        mkdir /tmp/release-properties/
-        cp release.properties /tmp/release-properties/
-        cp pom.xml.releaseBackup /tmp/release-properties/
+        mkdir /tmp/release-properties/${{ inputs.github_slug }}/${{ inputs.release_version }}
+        cp release.properties /tmp/release-properties/${{ inputs.github_slug }}/${{ inputs.release_version }}
+        cp pom.xml.releaseBackup /tmp/release-properties/${{ inputs.github_slug }}/${{ inputs.release_version }}
 
     - name: Install rsync
       shell: bash
@@ -131,11 +131,11 @@ runs:
       uses: jahia/jahia-modules-action/upload-bastion@v2
       with:
         ssh-key: ${{ inputs.ssh-private-key }}
-        path: /tmp/release-properties/*
+        path: /tmp/release-properties/
         bastion-user: jahia-ci
         destination-user: jahia
         destination-host: rqa1.int.jahia.com
-        destination-path: /data/shared/releases/releases/${{ inputs.github_slug }}/${{ inputs.release_version }}
+        destination-path: /data/shared/releases/releases/
 
     - name: Update github release for id ${{ inputs.release_id }}
       shell: bash
