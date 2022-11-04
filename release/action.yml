@@ -40,11 +40,8 @@ inputs:
     description: 'Time during which artifact are kept in Github infrastructure'
     required: false
     default: '2'
-  gh-ssh-private-key:
-    description: 'Jahia-ci SSH key for Github'
-    required: true
   ssh-private-key:
-    description: 'Jahia-ci SSH key for Bastion'
+    description: 'Jahia-ci SSH key'
     required: true
 
 runs:
@@ -76,10 +73,6 @@ runs:
       run: |
         git config user.email ${{ inputs.git_user_email }}
         git config user.name ${{ inputs.git_user_name }}
-
-    - uses: webfactory/ssh-agent@v0.5.4
-      with:
-        ssh-private-key: ${{ inputs.gh-ssh-private-key }}
 
     - name: Getting latest changes from the remote branch
       shell: bash
