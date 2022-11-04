@@ -40,6 +40,9 @@ inputs:
     description: 'Time during which artifact are kept in Github infrastructure'
     required: false
     default: '2'
+  ssh-private-key:
+    description: 'Jahia-ci SSH key'
+    required: true
 
 runs:
   using: 'composite'
@@ -116,20 +119,19 @@ runs:
           NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$MINOR_VERSION.$NEXT_REVISION"-SNAPSHOT
         fi
         mvn -B -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=$TAG_VERSION release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin]" --no-transfer-progress
+        mkdir /tmp/release-properties/
+        cp release.properties /tmp/release-properties/
+        cp pom.xml.releaseBackup /tmp/release-properties/
 
-    - name: Upload release properties to release
-      uses: svenstaro/upload-release-action@2.3.0
+    - name: Upload the Maven release properties to RQA4
+      uses: jahia/jahia-modules-action/upload-bastion@v2
       with:
-        repo_token: ${{ inputs.github_api_token }}
-        file: release.properties
-        tag: ${{ inputs.release_version }}
-
-    - name: Upload POM backup to release
-      uses: svenstaro/upload-release-action@2.3.0
-      with:
-        repo_token: ${{ inputs.github_api_token }}
-        file: pom.xml.releaseBackup
-        tag: ${{ inputs.release_version }}
+        ssh-key: ${{ inputs.ssh-private-key }}
+        path: /tmp/release-properties/*
+        bastion-user: jahia-ci
+        destination-user: jahia
+        destination-host: rqa4.int.jahia.com
+        destination-path: /data/shared/releases/releases/{{ inputs.github_slug }}/${{ inputs.release_version }}
 
     - name: Update github release for id ${{ inputs.release_id }}
       shell: bash
@@ -164,31 +166,3 @@ runs:
         path: |
           /tmp/artifacts/
         retention-days: ${{ inputs.github_artifact_retention }}
-
-    - name: Go to back to primary branch
-      shell: bash
-      run: |
-        git checkout ${{ inputs.primary_release_branch }} --quiet
-
-    - name: Added some debug details
-      shell: bash
-      run: |
-        git branch
-        echo "---"
-        git status
-        echo "---"
-        git show --summary
-
-    - name: Download release properties
-      uses: robinraju/release-downloader@v1.5
-      with:
-        tag: ${{ inputs.release_version }}
-        fileName: "*"
-
-    - name: Cache Maven release properties
-      uses: actions/cache@v2
-      with:
-        path: |
-          pom.xml.releaseBackup
-          release.properties
-        key: v1-rollback-${{ inputs.release_version }}

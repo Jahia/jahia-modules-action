@@ -20,17 +20,22 @@ inputs:
     description: Git user email
     default: 'jahia-ci@jahia.com'
     required: false
+  ssh-private-key:
+    description: 'Jahia-ci SSH key'
+    required: true
 
 runs:
   using: "composite"
   steps:
-    - name: Get Maven release properties cache
-      uses: actions/cache@v2
+    - name: Download the Maven release properties
+      uses: jahia/jahia-modules-action/download-bastion@v2
       with:
-        path: |
-          pom.xml.releaseBackup
-          release.properties
-        key: v1-rollback-${{ inputs.release_version }}
+        ssh-key: ${{ inputs.ssh-private-key }}
+        path: .
+        bastion-user: jahia-ci
+        source-user: jahia-ci
+        source-host: rqa1.int.jahia.com
+        source-path: /data/shared/releases/releases/{{ inputs.github_slug }}/${{ inputs.release_version }}
 
     - name: Configure git
       shell: bash
