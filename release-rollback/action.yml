@@ -27,6 +27,10 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Install rsync
+      shell: bash
+      run: sudo -u root apt-get update && sudo -u root apt-get install rsync
+
     - name: Download the Maven release properties
       uses: jahia/jahia-modules-action/download-bastion@v2
       with:

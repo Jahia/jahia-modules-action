@@ -123,6 +123,10 @@ runs:
         cp release.properties /tmp/release-properties/
         cp pom.xml.releaseBackup /tmp/release-properties/
 
+    - name: Install rsync
+      shell: bash
+      run: sudo -u root apt-get update && sudo -u root apt-get install rsync
+
     - name: Upload the Maven release properties to RQA4
       uses: jahia/jahia-modules-action/upload-bastion@v2
       with:
