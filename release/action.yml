@@ -119,7 +119,7 @@ runs:
           NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$MINOR_VERSION.$NEXT_REVISION"-SNAPSHOT
         fi
         mvn -B -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=$TAG_VERSION release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin]" --no-transfer-progress
-        mkdir /tmp/release-properties/${{ inputs.github_slug }}/${{ inputs.release_version }}
+        mkdir -p /tmp/release-properties/${{ inputs.github_slug }}/${{ inputs.release_version }}
         cp release.properties /tmp/release-properties/${{ inputs.github_slug }}/${{ inputs.release_version }}
         cp pom.xml.releaseBackup /tmp/release-properties/${{ inputs.github_slug }}/${{ inputs.release_version }}
 
