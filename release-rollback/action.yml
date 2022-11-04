@@ -6,6 +6,9 @@ inputs:
     description: Filepath to the settings.xml file
     default: '.github/maven.settings.xml'
     required: false
+  github_slug:
+    description: 'GitHub SLUG of the module (for example: jahia/sandbox)'
+    required: true
   release_id:
     description: GitHub release ID
     required: true
