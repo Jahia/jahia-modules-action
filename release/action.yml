@@ -43,6 +43,9 @@ inputs:
   ssh-private-key:
     description: 'Jahia-ci SSH key'
     required: true
+  ssh-gh-private-key:
+    description: 'Jahia-ci GitHub SSH key'
+    required: true
 
 runs:
   using: 'composite'
@@ -100,6 +103,10 @@ runs:
         git status
         echo "---"
         git show --summary
+
+    - uses: webfactory/ssh-agent@v0.5.4
+      with:
+        ssh-private-key: ${{ inputs.ssh-gh-private-key }}
 
     - name: Release prepare version for ${{ inputs.release_version }}
       shell: bash
