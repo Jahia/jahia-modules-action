@@ -104,10 +104,6 @@ runs:
         echo "---"
         git show --summary
 
-    - uses: webfactory/ssh-agent@v0.5.4
-      with:
-        ssh-private-key: ${{ inputs.ssh-gh-private-key }}
-
     - name: Release prepare version for ${{ inputs.release_version }}
       shell: bash
       run: |
@@ -156,11 +152,13 @@ runs:
         --data-binary @CHANGELOG.md \
         "https://uploads.github.com/repos/${{ inputs.github_slug }}/releases/${{ inputs.release_id }}/assets?name=$(basename CHANGELOG.md)"
 
+    - uses: webfactory/ssh-agent@v0.5.4
+      with:
+        ssh-private-key: ${{ inputs.ssh-gh-private-key }}
+
     - name: Perform release
       shell: bash
-      run: |
-        ssh -Tv git@github.com
-        mvn -B -s ${{ inputs.mvn_settings_filepath }} release:perform -Prelease-to-staging-repository --no-transfer-progress
+      run: mvn -B -s ${{ inputs.mvn_settings_filepath }} release:perform -Prelease-to-staging-repository --no-transfer-progress
 
     - name: Copy artifacts
       shell: bash
