@@ -42,7 +42,7 @@ runs:
         bastion-user: jahia-ci
         source-user: jahia-ci
         source-host: rqa1.int.jahia.com
-        source-path: /data/shared/releases/releases/${{ inputs.github_slug }}/${{ inputs.release_version }}
+        source-path: /data/shared/releases/releases/${{ inputs.github_slug }}/${{ inputs.release_version }}/
 
     - name: Configure git
       shell: bash
