@@ -1,0 +1,126 @@
+name: Check Java dependencies
+description: Add a comment on the PR with updates and licenses compliance for Java dependencies
+
+inputs:
+  gist_license_allowlist:
+    description: 'List of allowed licenses'
+    required: true
+  github_token:
+    description: 'Github token'
+    required: true
+  show_checklist:
+    description: 'Show the dependency checklist'
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get base POM
+      shell: bash
+      run: |
+        curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${{ inputs.github_token }}" https://api.github.com/repos/${{ github.repository }}/contents/pom.xml | jq -r ".content" | base64 -di >> base-pom.xml
+
+    - name: Save/Restore base dependencies from cache
+      uses: actions/cache@v3
+      with:
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/base-pom.xml') }}
+        path: |
+          ~/.m2
+
+    - name: Get dependencies from base POM
+      shell: bash
+      run: |
+        mvn -f base-pom.xml dependency:list -Dsort=true -DforceStdout -DexcludeTransitive=true -DoutputFile=base-deps.txt --no-transfer-progress
+
+    - name: Save/Restore dependencies from cache
+      uses: actions/cache@v3
+      with:
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        path: |
+          ~/.m2
+
+    - name: Get dependencies from local POM
+      shell: bash
+      run: |
+        mvn -f pom.xml dependency:list -Dsort=true -DforceStdout -DexcludeTransitive=true -DoutputFile=deps.txt --no-transfer-progress
+
+    - name: Get POM differences and push a comment
+      shell: bash
+      env:
+        REGEX_UPDATED_LINE: 'Updated\?<\s+([-\.a-z0-9]+):([-\.a-z0-9]+):[a-z]+:([0-9\.]+):[a-z]+\?---\?>\s+([-\.a-z0-9]+):([-\.a-z0-9]+):[a-z]+:([0-9\.]+):[a-z]+'
+        REGEX_ADDED_LINE: 'Added\?>\s+([-\.a-z0-9]+):([-\.a-z0-9]+):[a-z]+:([0-9\.]+):[a-z]+'
+        REGEX_DELETED_LINE: 'Removed\?<\s+([-\.a-z0-9]+):([-\.a-z0-9]+):[a-z]+:([0-9\.]+):[a-z]+'
+        REPLACEMENT_FOR_UPDATED_LINE: '\?| \[\1\/\2\]\(https:\/\/mvnrepository.com\/artifact\/\1\/\2\) | \3 | \6 | \[Snyk vulnerability DB\]\(https:\/\/security.snyk.io\/package\/maven\/\4:\5\/\6\) and \[Sonatype OSS Index\]\(https:\/\/ossindex.sonatype.org\/component\/pkg:maven\/\4\/\5@\6\) |'
+        REPLACEMENT_FOR_ADDED_LINE: '\?| \[\1\/\2\]\(https:\/\/mvnrepository.com\/artifact\/\1\/\2\) (Added) | | \3 | \[Snyk vulnerability DB\]\(https:\/\/security.snyk.io\/package\/maven\/\1:\2\/\3\) and \[Sonatype OSS Index\]\(https:\/\/ossindex.sonatype.org\/component\/pkg:maven\/\1\/\2@\3\) |'
+        REPLACEMENT_FOR_DELETED_LINE: '\?| \[\1\/\2\]\(https:\/\/mvnrepository.com\/artifact\/\1\/\2\) (Removed) | \3 | | \[Snyk vulnerability DB\]\(https:\/\/security.snyk.io\/package\/maven\/\1:\2\/\3\) and \[Sonatype OSS Index\]\(https:\/\/ossindex.sonatype.org\/component\/pkg:maven\/\1\/\2@\3\) |'
+      run: |
+        cmp --quiet base-deps.txt deps.txt || status=$?
+        echo "DIFF_STATUS=${status}" >> $GITHUB_ENV
+        if [ $status -eq 1 ]; then
+          diff base-deps.txt deps.txt >> pom.diff || true
+          sed -i -r 's/^[0-9]+a[0-9]+$/Added/' pom.diff
+          sed -i -r 's/^[0-9,]+c[0-9,]+$/Updated/' pom.diff
+          sed -i -r 's/^[0-9]+d[0-9]+$/Removed/' pom.diff
+          tr '\n' '\?' < pom.diff > onelinepom.diff
+          sed -i -r 's/${{ env.REGEX_UPDATED_LINE }}/${{ env.REPLACEMENT_FOR_UPDATED_LINE }}/g' onelinepom.diff
+          sed -i -r 's/${{ env.REGEX_ADDED_LINE }}/${{ env.REPLACEMENT_FOR_ADDED_LINE }}/g' onelinepom.diff
+          sed -i -r 's/${{ env.REGEX_DELETED_LINE }}/${{ env.REPLACEMENT_FOR_DELETED_LINE }}/g' onelinepom.diff
+          echo "## Maven dependencies updates" >> tmp.diff
+          if [ ${{ inputs.show_checklist }} == "true" ]; then
+            echo "- [ ] Did you check the impact on the platform?" >> tmp.diff
+            echo "- [ ] Did you check if these libraries are still supported?" >> tmp.diff
+            echo "- [ ] Did you check if there are security vulnerabilities?" >> tmp.diff
+            echo "- [ ] Did you check if the licenses are compatible with our products?" >> tmp.diff
+            echo " " >> tmp.diff
+          fi
+          echo -e "| Dependency | Old Version | New Version | Details |\n| ----------- | ----------- | ----------- | ----------- |" >> tmp.diff
+          tr '\?' '\n' < onelinepom.diff >> tmp.diff
+          sed '/^$/d' tmp.diff > .github/workflows/pom.diff
+        else
+          echo "No differences found in the dependencies"
+        fi
+
+    - uses: NejcZdovc/comment-pr@v1.1.1
+      if: ${{ env.DIFF_STATUS == 1 }}
+      with:
+        identifier: ${{ github.workflow }}-updates
+        file: "pom.diff"
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+
+    - name: Get Gist
+      id: get
+      if: always()
+      uses: andymckay/get-gist-action@0.1
+      with:
+        gistURL: ${{ inputs.gist_license_allowlist }}
+
+    - name: Prepare licenses allowlist
+      shell: bash
+      id: run
+      run: |
+        echo "ALLOWLIST=$(cat ${{ steps.get.outputs.file }})" >> $GITHUB_ENV
+
+    - name: Check licenses
+      shell: bash
+      run: |
+        mvn license:add-third-party -DlinkOnly=true -DincludeTransitiveDependencies=false --no-transfer-progress
+        grep -Eiv "^List|.*Jahia|${ALLOWLIST}" target/generated-sources/license/THIRD-PARTY.txt > bad-licenses.txt || true
+        if [[ $(wc -l <bad-licenses.txt) -gt 0  ]]; then
+          echo "LICENSE_DIFF_STATUS=1" >> $GITHUB_ENV
+          echo "## Maven licenses analysis" >> .github/workflows/bad-licenses.md
+          echo "### Incompatible licenses" >> .github/workflows/bad-licenses.md
+          echo "Execute \`mvn license:add-third-party -DlinkOnly=true -DincludeTransitiveDependencies=false\` to get more details (see http://www.mojohaus.org/license-maven-plugin/index.html)" >> .github/workflows/bad-licenses.md
+          cat bad-licenses.txt >> .github/workflows/bad-licenses.md
+        else
+          echo "LICENSE_DIFF_STATUS=0" >> $GITHUB_ENV
+          echo "No incompatible licenses found"
+        fi
+
+    - uses: NejcZdovc/comment-pr@v1.1.1
+      if: ${{ env.LICENSE_DIFF_STATUS == 1 }}
+      with:
+        identifier: ${{ github.workflow }}-licenses
+        file: "bad-licenses.md"
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}

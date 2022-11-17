@@ -1,0 +1,62 @@
+name: Check Javascript dependencies
+description: Add a comment on the PR with updates and licenses compliance for Javascript dependencies
+
+inputs:
+  gist_license_allowlist:
+    description: 'List of allowed licenses'
+    required: true
+  github_token:
+    description: 'Github token'
+    required: true
+  show_dev_dependencies:
+    description: 'Show the changes for devDependencies'
+    default: "true"
+  show_checklist:
+    description: 'Show the dependency checklist'
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Highlight npm dependencies updates
+      uses: rknj/dependencies-updates-action@v1.2.0
+      with:
+        token: ${{ inputs.github_token }}
+        show_dev_dependencies: ${{ inputs.show_dev_dependencies }}
+        show_checklist: ${{ inputs.show_checklist }}
+
+    - name: Get Gist
+      id: get
+      if: always()
+      uses: andymckay/get-gist-action@0.1
+      with:
+        gistURL: ${{ inputs.gist_license_allowlist }}
+
+    - name: Prepare licenses allowlist
+      id: run
+      shell: bash
+      run: |
+        echo "ALLOWLIST=$(cat ${{ steps.get.outputs.file }})" >> $GITHUB_ENV
+
+    - name: Check licenses
+      shell: bash
+      run: |
+        npx -q license-checker --summary --production --direct --exclude "${{ env.ALLOWLIST }}" > bad-js-licenses.txt || true
+        if [[ $(wc -w <bad-js-licenses.txt) -gt 0  ]]; then
+          cat bad-js-licenses.txt
+          echo "LICENSE_JS_DIFF_STATUS=1" >> $GITHUB_ENV
+          echo "## NPM licenses analysis" >> .github/workflows/bad-js-licenses.md
+          echo "### Incompatible licenses" >> .github/workflows/bad-js-licenses.md
+          echo "Execute \`npx -q license-checker --summary --production --direct --exclude \"${{ env.ALLOWLIST }}\"\` to get more details (see https://www.npmjs.com/package/license-checker)" >> .github/workflows/bad-js-licenses.md
+          cat bad-js-licenses.txt >> .github/workflows/bad-js-licenses.md
+        else
+          echo "LICENSE_DIFF_STATUS=0" >> $GITHUB_ENV
+        fi
+
+    - uses: NejcZdovc/comment-pr@v1.1.1
+      if: ${{ env.LICENSE_JS_DIFF_STATUS == 1 }}
+      with:
+        identifier: ${{ github.workflow }}-js-licenses
+        file: "bad-js-licenses.md"
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}

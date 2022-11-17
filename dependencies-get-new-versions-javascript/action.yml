@@ -1,0 +1,39 @@
+name: Get new versions for Javascript dependencies
+description: Get new versions available for Javascript dependencies
+
+inputs:
+  default_issue_assignee:
+    description: 'Default user to be assigned to new issues'
+    required: true
+  github_token:
+    description: 'Github token'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Look for outdated librairies
+      if: always()
+      shell: bash
+      run: |
+        npm outdated --json --long > npm-report.json || true
+        cat npm-report.json | jq 'to_entries | .[] | select(.value.type == "dependencies") | "| \(.key) | \(.value.current) | \(.value.wanted) | \(.value.latest) | \(.value.location) | \(.value.homepage) |"' | tr -d "\"" > npm-report.md
+        echo 'MARKDOWN_NEW_VERSIONS_JS<<EOF' >> $GITHUB_ENV
+        cat npm-report.md >> $GITHUB_ENV
+        echo 'EOF' >> $GITHUB_ENV
+
+    - name: Create an issue with the NPM report
+      if: always()
+      uses: dacbd/create-issue-action@v1.2.0
+      with:
+        token: ${{ inputs.github_token }}
+        title: NPM dependency report (new versions available)
+        body: |
+          Report from [${{ github.workflow }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+          Outdated libraries
+          -------------------
+          | Package | Current | Wanted | Latest | Location | Page |
+          | ------- | ------- | ------- | ------- | ------- | ------- |
+          ${{ env.MARKDOWN_NEW_VERSIONS_JS }}
+        assignees: ${{ inputs.default_issue_assignee }}

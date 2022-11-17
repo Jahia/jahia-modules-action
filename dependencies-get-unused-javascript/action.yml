@@ -1,0 +1,43 @@
+name: Get unused Javascript dependencies
+description: Create an issue with unused and duplicated Javascript dependencies
+
+inputs:
+  default_issue_assignee:
+    description: 'Default user to be assigned to new issues'
+    required: true
+  github_token:
+    description: 'Github token'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Look for unused librairies
+      if: always()
+      shell: bash
+      run: |
+        npx -q depcheck > npm-report.md || true
+        sed -i -r 's/^(Unused dependencies|Unused devDependencies)/\n### \1/' npm-report.md
+        echo 'MARKDOWN_UNUSED_JS<<EOF' >> $GITHUB_ENV
+        cat npm-report.md >> $GITHUB_ENV
+        echo 'EOF' >> $GITHUB_ENV
+
+    - name: Create an issue with the NPM report
+      if: always()
+      uses: dacbd/create-issue-action@v1.2.0
+      with:
+        token: ${{ inputs.github_token }}
+        title: NPM dependency report (unused dependencies)
+        body: |
+          Report from [${{ github.workflow }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+          Dependency Analysis
+          -------------------
+          ${{ env.MARKDOWN_UNUSED_JS }}
+        assignees: ${{ inputs.default_issue_assignee }}
+
+    - name: Look for duplicates (logs only)
+      if: always()
+      shell: bash
+      run: |
+        npm find-dupes --legacy-peer-deps --omit "dev" --fund "false" --global-style "true"
