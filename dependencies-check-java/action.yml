@@ -107,11 +107,12 @@ runs:
         mvn license:add-third-party -DlinkOnly=true -Dlicense.excludeTransitiveDependencies=true -Dlicense.excludedScopes=test,provided -Dlicense.excludedTypes=war,pom -Dlicense.excludedGroups="^org\.jahia\..*" --no-transfer-progress
         grep -Eiv "^List|^The project has no dependencies|.*Jahia|${ALLOWLIST}" target/generated-sources/license/THIRD-PARTY.txt > bad-licenses.txt || true
         wc -l <bad-licenses.txt
+        wc -w <bad-licenses.txt
         if [[ $(wc -l <bad-licenses.txt) -gt 0 && $(wc -w <bad-licenses.txt) -gt 0 ]]; then
           echo "LICENSE_DIFF_STATUS=1" >> $GITHUB_ENV
           echo "## Maven licenses analysis" >> .github/workflows/bad-licenses.md
           echo "### Incompatible licenses" >> .github/workflows/bad-licenses.md
-          echo "Execute \`mvn license:add-third-party -Dlicense.excludeTransitiveDependencies=true -Dlicense.excludedScopes=test,provided -Dlicense.excludedTypes=war,pom -Dlicense.excludedGroups="org\.jahia\..* --no-transfer-progress\` to get more details (see http://www.mojohaus.org/license-maven-plugin/index.html)" >> .github/workflows/bad-licenses.md
+          echo "Execute \`mvn license:add-third-party -Dlicense.excludeTransitiveDependencies=true -Dlicense.excludedScopes=test,provided -Dlicense.excludedTypes=war,pom -Dlicense.excludedGroups=\"^org\.jahia\..*\" --no-transfer-progress\` to get more details (see http://www.mojohaus.org/license-maven-plugin/index.html)" >> .github/workflows/bad-licenses.md
           cat bad-licenses.txt >> .github/workflows/bad-licenses.md
         else
           echo "LICENSE_DIFF_STATUS=0" >> $GITHUB_ENV
