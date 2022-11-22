@@ -2,9 +2,10 @@ name: Check Javascript dependencies
 description: Add a comment on the PR with updates and licenses compliance for Javascript dependencies
 
 inputs:
-  gist_license_allowlist:
+  license_allowlist:
     description: 'List of allowed licenses'
     required: true
+    default: "license-allowlist-java.txt"
   github_token:
     description: 'Github token'
     required: true
@@ -25,18 +26,11 @@ runs:
         show_dev_dependencies: ${{ inputs.show_dev_dependencies }}
         show_checklist: ${{ inputs.show_checklist }}
 
-    - name: Get Gist
-      id: get
-      if: always()
-      uses: andymckay/get-gist-action@0.1
-      with:
-        gistURL: ${{ inputs.gist_license_allowlist }}
-
     - name: Prepare licenses allowlist
       id: run
       shell: bash
       run: |
-        echo "ALLOWLIST=$(cat ${{ steps.get.outputs.file }})" >> $GITHUB_ENV
+        echo "ALLOWLIST=$(cat ${{ inputs.license_allowlist }})" >> $GITHUB_ENV
 
     - name: Check licenses
       shell: bash
