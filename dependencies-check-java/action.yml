@@ -104,7 +104,7 @@ runs:
     - name: Check licenses
       shell: bash
       run: |
-        mvn license:add-third-party -DlinkOnly=true Dlicense.excludeTransitiveDependencies=true -Dlicense.excludedScopes=test,provided -Dlicense.excludedTypes=war,pom -Dlicense.excludedGroups="^org\.jahia\..*" --no-transfer-progress
+        mvn license:add-third-party -DlinkOnly=true -Dlicense.excludeTransitiveDependencies=true -Dlicense.excludedScopes=test,provided -Dlicense.excludedTypes=war,pom -Dlicense.excludedGroups="^org\.jahia\..*" --no-transfer-progress
         grep -Eiv "^List|^The project has no dependencies|.*Jahia|${ALLOWLIST}" target/generated-sources/license/THIRD-PARTY.txt > bad-licenses.txt || true
         if [[ $(wc -l <bad-licenses.txt) -gt 0  ]]; then
           echo "LICENSE_DIFF_STATUS=1" >> $GITHUB_ENV

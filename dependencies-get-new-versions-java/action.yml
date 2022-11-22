@@ -23,7 +23,7 @@ runs:
       if: always()
       shell: bash
       run: |
-        mvn versions:dependency-updates-report -DprocessDependencyManagementTransitive=false --no-transfer-progress
+        mvn versions:dependency-updates-report -DonlyUpgradable=true -DprocessDependencyManagementTransitive=false --no-transfer-progress
 
     - name: Convert HTML to Markdown
       id: html2markdown-new-versions
