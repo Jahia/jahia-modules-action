@@ -17,9 +17,8 @@ runs:
       shell: bash
       run: |
         echo "TODAY=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
-        yarn outdated --json | jq 'to_entries | .[] | select(.key == "data") | select(.value | type=="object") | .value.body | .[] | tostring' > yarn-report.txt
+        yarn outdated --json | jq 'to_entries | .[] | select(.key == "data") | select(.value | type=="object") | .value.body | .[] | tostring' > yarn-report.txt || true
         sed -i -r 's/"\[\\"(.*)\\",\\"(.*)\\",\\"(.*)\\",\\"(.*)\\",\\"(.*)\\",\\"(.*)\\"\]"/| \1 | \2 | \3 | \4 | \6 |/' yarn-report.txt
-        | jq 'to_entries | .[] | select(.value.type == "dependencies") | "| \(.key) | \(.value.current) | \(.value.wanted) | \(.value.latest) | \(.value.location) | \(.value.homepage) |"' | tr -d "\"" > npm-report.md
         echo 'MARKDOWN_NEW_VERSIONS_JS<<EOF' >> $GITHUB_ENV
         cat npm-report.md >> $GITHUB_ENV
         echo 'EOF' >> $GITHUB_ENV
