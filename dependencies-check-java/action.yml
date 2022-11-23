@@ -5,7 +5,7 @@ inputs:
   license_allowlist:
     description: 'File containing a list of allowed licenses'
     required: true
-    default: "license-allowlist-java.txt"
+    default: '${{ github.action_path }}/license-allowlist-java.txt'
   github_token:
     description: 'Github token'
     required: true
