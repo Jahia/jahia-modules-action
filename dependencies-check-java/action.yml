@@ -4,8 +4,6 @@ description: Add a comment on the PR with updates and licenses compliance for Ja
 inputs:
   license_allowlist:
     description: 'File containing a list of allowed licenses'
-    required: true
-    default: '${{ github.action_path }}/license-allowlist-java.txt'
   github_token:
     description: 'Github token'
     required: true
@@ -93,7 +91,11 @@ runs:
       shell: bash
       id: run
       run: |
-        echo "ALLOWLIST=$(cat ${{ inputs.license_allowlist }})" >> $GITHUB_ENV
+        if [[ -z "${{ inputs.license_allowlist }}" ]]; then
+          echo "ALLOWLIST=$(cat ${{ github.action_path }}/license-allowlist-java.txt)" >> $GITHUB_ENV
+        else
+          echo "ALLOWLIST=$(cat ${{ inputs.license_allowlist }})" >> $GITHUB_ENV
+        fi
 
     - name: Check licenses
       shell: bash
