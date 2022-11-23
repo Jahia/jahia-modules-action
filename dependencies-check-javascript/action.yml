@@ -29,7 +29,7 @@ runs:
       shell: bash
       run: |
         if [[ -z "${{ inputs.license_allowlist }}" ]]; then
-          echo "ALLOWLIST=$(cat ${{ github.action_path }}/license-allowlist-java.txt)" >> $GITHUB_ENV
+          echo "ALLOWLIST=$(cat ${{ github.action_path }}/license-allowlist-javascript.txt)" >> $GITHUB_ENV
         else
           echo "ALLOWLIST=$(cat ${{ inputs.license_allowlist }})" >> $GITHUB_ENV
         fi
