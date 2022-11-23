@@ -16,6 +16,7 @@ runs:
       if: always()
       shell: bash
       run: |
+        echo "TODAY=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
         npm outdated --json --long > npm-report.json || true
         cat npm-report.json | jq 'to_entries | .[] | select(.value.type == "dependencies") | "| \(.key) | \(.value.current) | \(.value.wanted) | \(.value.latest) | \(.value.location) | \(.value.homepage) |"' | tr -d "\"" > npm-report.md
         echo 'MARKDOWN_NEW_VERSIONS_JS<<EOF' >> $GITHUB_ENV
@@ -27,7 +28,7 @@ runs:
       uses: dacbd/create-issue-action@v1.2.0
       with:
         token: ${{ inputs.github_token }}
-        title: NPM dependency report (new versions available)
+        title: NPM dependency report (new versions available) - ${{ env.TODAY }}
         body: |
           Report from [${{ github.workflow }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
 

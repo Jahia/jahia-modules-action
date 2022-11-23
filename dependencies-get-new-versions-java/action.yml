@@ -36,6 +36,7 @@ runs:
       if: always()
       shell: bash
       run: |
+        echo "TODAY=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
         grep -Eiv "^.*Dependency Updates Report|.*Last Published|.*Built by Maven|.*©|.*\* \* \*" ${{ steps.html2markdown-new-versions.outputs.markdown-file }} > maven-report-updated.md || true
         echo 'MARKDOWN_NEW_VERSIONS<<EOF' >> $GITHUB_ENV
         cat maven-report-updated.md >> $GITHUB_ENV
@@ -46,7 +47,7 @@ runs:
       uses: dacbd/create-issue-action@v1.2.0
       with:
         token: ${{ inputs.github_token }}
-        title: Maven dependency report (new versions available)
+        title: Maven dependency report (new versions available) - ${{ env.TODAY }}
         body: |
           Report from [${{ github.workflow }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
           ${{ env.MARKDOWN_NEW_VERSIONS }}

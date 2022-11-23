@@ -16,6 +16,7 @@ runs:
       if: always()
       shell: bash
       run: |
+        echo "TODAY=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
         npx -q depcheck > npm-report.md || true
         sed -i -r 's/^(Unused dependencies|Unused devDependencies)/\n### \1/' npm-report.md
         echo 'MARKDOWN_UNUSED_JS<<EOF' >> $GITHUB_ENV
@@ -27,7 +28,7 @@ runs:
       uses: dacbd/create-issue-action@v1.2.0
       with:
         token: ${{ inputs.github_token }}
-        title: NPM dependency report (unused dependencies)
+        title: NPM dependency report (unused dependencies) - ${{ env.TODAY }}
         body: |
           Report from [${{ github.workflow }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
