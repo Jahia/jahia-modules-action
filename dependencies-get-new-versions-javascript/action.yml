@@ -18,7 +18,8 @@ runs:
       run: |
         echo "TODAY=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
         yarn install
-        yarn outdated --json | jq 'to_entries | .[] | select(.key == "data") | select(.value | type=="object") | .value.body | .[] | tostring' > yarn-report.md || true
+        yarn outdated --json | jq 'to_entries | .[] | select(.key == "data") | select(.value | type=="object") | .value.body | .[] | tostring' > yarn-report.json || true
+        grep -Eiv ".*devDependencies.*|.*resolutionDependencies.*" yarn-report.json > yarn-report.md
         sed -i -r 's/"\[\\"(.*)\\",\\"(.*)\\",\\"(.*)\\",\\"(.*)\\",\\"(.*)\\",\\"(.*)\\"\]"/| \1 | \2 | \3 | \4 | \6 |/' yarn-report.md
         echo 'MARKDOWN_NEW_VERSIONS_JS<<EOF' >> $GITHUB_ENV
         cat yarn-report.md >> $GITHUB_ENV
