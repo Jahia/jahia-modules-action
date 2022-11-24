@@ -24,33 +24,9 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Cache local Maven repository
-      uses: actions/cache@v2
-      with:
-        path: |
-          pom.xml.releaseBackup
-          release.properties
-        key: v1-rollback-${{ inputs.release_id }}
-
-    - name: Configure git
+    - name: Deprecated action
       shell: bash
-      run: |
-        git config user.email ${{ inputs.git_user_email }}
-        git config user.name ${{ inputs.git_user_name }}
-
-    - name: Perform release
+      run: echo "This action should no be used anymore, please remove any usage of it."
+    - name: Create annotation
       shell: bash
-      run: |
-        if [ -f pom.xml.releaseBackup ] && [ -f release.properties ]; then
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} release:rollback
-        else
-          echo "Error: rollback artifacts don't exist"
-          exit 1
-        fi
-
-    - name: Delete github tag ${{ inputs.release_version }}
-      shell: bash
-      run: |
-        git tag --delete ${{ inputs.release_version }}
-        git push origin :refs/tags/${{ inputs.release_version }}
-
+      run: echo "::notice file=on-rollback.yml,title=Rollback action::This action should no be used anymore, please remove any usage of it"
