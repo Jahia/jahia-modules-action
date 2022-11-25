@@ -1,0 +1,54 @@
+name: Get new versions for Java dependencies
+description: Get new versions available for Java dependencies
+
+inputs:
+  default_issue_assignee:
+    description: 'Default user to be assigned to new issues'
+    required: true
+  github_token:
+    description: 'Github token'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Save/Restore dependencies from cache
+      uses: actions/cache@v3
+      with:
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        path: |
+          ~/.m2
+
+    - name: Look for new versions of librairies
+      if: always()
+      shell: bash
+      run: |
+        mvn versions:dependency-updates-report -DonlyUpgradable=true -DprocessDependencyManagementTransitive=false --no-transfer-progress
+
+    - name: Convert HTML to Markdown
+      id: html2markdown-new-versions
+      if: always()
+      uses: rknj/html2markdown@v1.0.0
+      with:
+        html-file: "target/site/dependency-updates-report.html"
+
+    - name: Clean up markdown
+      if: always()
+      shell: bash
+      run: |
+        echo "TODAY=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+        grep -Eiv "^.*Dependency Updates Report|.*This report summarizes|.*Overview|.*# of dependencies|.*Last Published|.*Built by Maven|.*©|.*\* \* \*" ${{ steps.html2markdown-new-versions.outputs.markdown-file }} > maven-report-updated.md || true
+        echo 'MARKDOWN_NEW_VERSIONS<<EOF' >> $GITHUB_ENV
+        cat maven-report-updated.md >> $GITHUB_ENV
+        echo 'EOF' >> $GITHUB_ENV
+
+    - name: Create an issue with the Maven report
+      if: always()
+      uses: dacbd/create-issue-action@v1.2.0
+      with:
+        token: ${{ inputs.github_token }}
+        title: Maven dependency report (new versions available) - ${{ env.TODAY }}
+        body: |
+          Report from [${{ github.workflow }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          ${{ env.MARKDOWN_NEW_VERSIONS }}
+        assignees: ${{ inputs.default_issue_assignee }}

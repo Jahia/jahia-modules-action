@@ -1,0 +1,42 @@
+name: Get new versions for Javascript dependencies
+description: Get new versions available for Javascript dependencies
+
+inputs:
+  default_issue_assignee:
+    description: 'Default user to be assigned to new issues'
+    required: true
+  github_token:
+    description: 'Github token'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Look for outdated librairies
+      if: always()
+      shell: bash
+      run: |
+        echo "TODAY=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+        yarn install
+        yarn outdated --json | jq 'to_entries | .[] | select(.key == "data") | select(.value | type=="object") | .value.body | .[] | tostring' > yarn-report.json || true
+        grep -Eiv ".*devDependencies.*|.*resolutionDependencies.*" yarn-report.json > yarn-report.md
+        sed -i -r 's/"\[\\"(.*)\\",\\"(.*)\\",\\"(.*)\\",\\"(.*)\\",\\"(.*)\\",\\"(.*)\\"\]"/| \1 | \2 | \3 | \4 | \6 |/' yarn-report.md
+        echo 'MARKDOWN_NEW_VERSIONS_JS<<EOF' >> $GITHUB_ENV
+        cat yarn-report.md >> $GITHUB_ENV
+        echo 'EOF' >> $GITHUB_ENV
+
+    - name: Create an issue with the NPM report
+      if: always()
+      uses: dacbd/create-issue-action@v1.2.0
+      with:
+        token: ${{ inputs.github_token }}
+        title: NPM dependency report (new versions available) - ${{ env.TODAY }}
+        body: |
+          Report from [${{ github.workflow }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+          Outdated libraries
+          -------------------
+          | Package | Current | Wanted | Latest | Page |
+          | ------- | ------- | ------- | ------- | ------- |
+          ${{ env.MARKDOWN_NEW_VERSIONS_JS }}
+        assignees: ${{ inputs.default_issue_assignee }}
