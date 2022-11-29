@@ -38,7 +38,7 @@ runs:
     # This step save the maven cache between runs
     # More details can be found here: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
     - name: Cache local Maven repository
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ~/.m2/repository
@@ -75,7 +75,7 @@ runs:
 
     - name: Archive build artifacts
       if: always()
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: build-artifacts
         path: |
@@ -95,7 +95,7 @@ runs:
 
     - name: Archive code coverage results
       if: always()
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: test-artifacts
         path: /tmp/artifacts/test-results/

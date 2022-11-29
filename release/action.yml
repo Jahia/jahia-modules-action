@@ -58,7 +58,7 @@ runs:
         find . -name 'pom.xml' | sort | xargs cat > ./maven_cache_seed
 
     - name: Cache local Maven repository
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.m2/repository
         key: v1-maven-dependencies-${{ hashFiles('**/maven_cache_seed') }}
@@ -112,7 +112,7 @@ runs:
         mvn -B -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=$TAG_VERSION release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin]"
 
     - name: Cache local Maven repository
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           pom.xml.releaseBackup
@@ -146,7 +146,7 @@ runs:
 
     - name: Release Artifacts
       if: always()
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: release-artifacts
         path: |

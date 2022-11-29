@@ -63,7 +63,7 @@ runs:
 
     - name: Persist the changelog generated for the release
       if: always()
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: CHANGELOG.md
         path: CHANGELOG.md

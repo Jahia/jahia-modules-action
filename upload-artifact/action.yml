@@ -1,4 +1,4 @@
-name: Upload 
+name: Upload
 description: Upload artifacts to either our own servers or GitHub
 
 inputs:
@@ -24,7 +24,7 @@ runs:
   steps:
     - name: Uploading artifact to GitHub
       if: ${{ inputs.destination == 'github' }}
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
