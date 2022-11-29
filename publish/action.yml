@@ -34,4 +34,10 @@ runs:
 
     - name: Build package
       shell: bash
-      run: mvn -B -s ${{ inputs.mvn_settings_filepath }} clean deploy
+      run: mvn -B -s ${{ inputs.mvn_settings_filepath }} clean deploy | tee mvnLogs.txt
+
+    - name: Direct link location of the Artifact
+      shell: bash
+      run: |
+        EXTRACTED_NEXUS_ARTIFACT_URL=`grep -e "Uploaded.*\.jar" mvnLogs.txt | grep -v sources | sed -e 's/.*\(https.*.jar\).*/\1/g'` 
+        echo "::notice title=Snapshot module location::Artifact has been uploaded to: $EXTRACTED_NEXUS_ARTIFACT_URL"
