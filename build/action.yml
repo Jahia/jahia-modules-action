@@ -83,24 +83,6 @@ runs:
           ./*/target/*
         retention-days: ${{ inputs.github_artifact_retention }}
 
-    # Note: The two steps below are derived from graphql-dxm-provider setup
-    # This might not be applicable to other modules for the same complexity
-    - name: Copy test report (if present)
-      shell: bash
-      run: |
-        mkdir /tmp/artifacts/test-results/
-        if [[ -d "{{ inputs.module_id }}/target/surefire-reports/" ]]; then
-          cp {{ inputs.module_id }}/target/surefire-reports/*.xml /tmp/artifacts/test-results/ || :
-        fi
-
-    - name: Archive code coverage results
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: test-artifacts
-        path: /tmp/artifacts/test-results/
-        retention-days: ${{ inputs.github_artifact_retention }}
-
     - name: Keep session opened if /tmp/debug file is present
       shell: bash
       if: always()
