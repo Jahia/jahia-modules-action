@@ -67,7 +67,7 @@ runs:
 
     # Lint the codebase
     - name: Lint module (javascript only)
-      if: ${{ !inputs.skip_lint_modules }}
+      if: ${{ inputs.skip_lint_modules == 'false' }}
       shell: bash
       run: |
         echo "Lint module (javascript only)"      
@@ -76,7 +76,7 @@ runs:
           yarn run lint --max-warnings ${{ inputs.max_warning }}
         fi
     - name: Lint tests (javascript only)
-      if: ${{ !inputs.skip_lint_tests }}
+      if: ${{ inputs.skip_lint_tests == 'false' }}
       shell: bash
       run: |
         echo "Lint tests (javascript only)"
@@ -101,7 +101,7 @@ runs:
           audit-ci --skip-dev --${{ inputs.auditci_level }}
         fi
     - name: Audit-ci tests (javascript only)
-      if: ${{ !inputs.skip_vulns_tests }}
+      if: ${{ inputs.skip_vulns_tests == 'false' }}
       shell: bash
       run: |
         echo "Scan javascript vulnerabilities in the tests with audit-ci"
