@@ -92,7 +92,7 @@ runs:
         echo "Install audit-ci"
         sudo npm install -g audit-ci
     - name: Audit-ci module (javascript only)
-      if: ${{ !inputs.skip_vulns_modules }}
+      # if: ${{ !inputs.skip_vulns_modules }}
       shell: bash
       run: |
         echo "Scan javascript vulnerabilities in the module with audit-ci"
