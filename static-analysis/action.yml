@@ -10,7 +10,7 @@ inputs:
     default: './'
   tests_path:
     description: 'Path to the module'
-    default: './'
+    default: 'tests/'
   max_warning:
     description: 'Maximum number of warning before failing the linting step'
     default: '1'
