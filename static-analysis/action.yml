@@ -39,6 +39,14 @@ inputs:
     description: skip Audit-ci for tests when set to true
     type: boolean
     default: false
+  skip_depcheck_modules:
+    description: skip depcheck for modules when set to true
+    type: boolean
+    default: false
+  skip_depcheck_tests:
+    description: skip depcheck for tests when set to true
+    type: boolean
+    default: false
 
 runs:
   using: "composite"
@@ -109,3 +117,17 @@ runs:
           cd ${{ inputs.tests_path }}
           audit-ci --${{ inputs.auditci_level_tests }}
         fi
+
+    # Depcheck the codebase
+    - name: Depcheck module (javascript only)
+      if: ${{ inputs.skip_depcheck_modules == 'false' }}
+      uses: tj-actions/depcheck@v9
+      with:
+        ignores: 'eslint'
+        dir: ${{ inputs.module_path }}
+    - name: Depcheck tests (javascript only)
+      if: ${{ inputs.skip_depcheck_tests == 'false' }}
+      uses: tj-actions/depcheck@v9
+      with:
+        ignores: 'eslint'
+        dir: ${{ inputs.tests_path }}
