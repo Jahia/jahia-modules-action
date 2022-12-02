@@ -10,7 +10,7 @@ inputs:
     default: './'
   tests_path:
     description: 'Path to the module'
-    default: './'
+    default: 'tests/'
   max_warning:
     description: 'Maximum number of warning before failing the linting step'
     default: '1'
@@ -51,31 +51,37 @@ runs:
     - name: Run yarn if package.json exists in module folder
       shell: bash
       run: |
+        echo "::group::Run yarn if package.json exists in module folder: ${{ inputs.module_path }}"
         if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
           cd ${{ inputs.module_path }}
           yarn
         fi
-    - name: Run yarn if package.json exists in module folder
+        echo "::endgroup::"
+    - name: Run yarn if package.json exists in tests folder
       shell: bash
       run: |
+        echo "::group::Run yarn if package.json exists in tests folder: ${{ inputs.tests_path }}"
         if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
           cd ${{ inputs.tests_path }}
           yarn
         fi
+        echo "::endgroup::"
 
     # Lint the codebase
     - name: Lint module (javascript only)
-      if: ${{ !inputs.skip_lint_modules }}
+      if: ${{ inputs.skip_lint_modules == 'false' }}
       shell: bash
       run: |
+        echo "Lint module (javascript only)"      
         if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
           cd ${{ inputs.module_path }}
           yarn run lint --max-warnings ${{ inputs.max_warning }}
         fi
     - name: Lint tests (javascript only)
-      if: ${{ !inputs.skip_lint_tests }}
+      if: ${{ inputs.skip_lint_tests == 'false' }}
       shell: bash
       run: |
+        echo "Lint tests (javascript only)"
         if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
           cd ${{ inputs.tests_path }}
           yarn run lint --max-warnings ${{ inputs.max_warning }}
@@ -85,20 +91,27 @@ runs:
     - name: Install audit-ci
       shell: bash
       run: |
+        echo "::group::Install audit-ci"     
+        echo "Install audit-ci"
         sudo npm install -g audit-ci
+        echo "::endgroup::"
     - name: Audit-ci module (javascript only)
-      if: ${{ !inputs.skip_vulns_modules }}
+      if: ${{ inputs.skip_vulns_modules == 'false' }}
       shell: bash
       run: |
+        echo "Scan javascript vulnerabilities in the module with audit-ci"
         if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
           cd ${{ inputs.module_path }}
           audit-ci --skip-dev --${{ inputs.auditci_level }}
         fi
     - name: Audit-ci tests (javascript only)
-      if: ${{ !inputs.skip_vulns_tests }}
+      if: ${{ inputs.skip_vulns_tests == 'false' }}
       shell: bash
       run: |
+        echo "Scan javascript vulnerabilities in the tests with audit-ci"
         if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
           cd ${{ inputs.tests_path }}
           audit-ci --${{ inputs.auditci_level_tests }}
         fi
+        echo "::endgroup::"
+
