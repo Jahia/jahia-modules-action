@@ -39,14 +39,6 @@ inputs:
     description: skip Audit-ci for tests when set to true
     type: boolean
     default: false
-  skip_depcheck_modules:
-    description: skip depcheck for modules when set to true
-    type: boolean
-    default: false
-  skip_depcheck_tests:
-    description: skip depcheck for tests when set to true
-    type: boolean
-    default: false
 
 runs:
   using: "composite"
@@ -80,22 +72,20 @@ runs:
       if: ${{ inputs.skip_lint_modules == 'false' }}
       shell: bash
       run: |
-        echo "::group::Lint module (javascript only)"      
+        echo "Lint module (javascript only)"      
         if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
           cd ${{ inputs.module_path }}
           yarn run lint --max-warnings ${{ inputs.max_warning }}
         fi
-        echo "::endgroup::"
     - name: Lint tests (javascript only)
       if: ${{ inputs.skip_lint_tests == 'false' }}
       shell: bash
       run: |
-        echo "::group::Lint tests (javascript only)"
+        echo "Lint tests (javascript only)"
         if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
           cd ${{ inputs.tests_path }}
           yarn run lint --max-warnings ${{ inputs.max_warning }}
         fi
-        echo "::endgroup::"
 
     # Runs the security checks
     - name: Install audit-ci
@@ -109,33 +99,19 @@ runs:
       if: ${{ inputs.skip_vulns_modules == 'false' }}
       shell: bash
       run: |
-        echo "::group::Scan javascript vulnerabilities in the module with audit-ci"
+        echo "Scan javascript vulnerabilities in the module with audit-ci"
         if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
           cd ${{ inputs.module_path }}
           audit-ci --skip-dev --${{ inputs.auditci_level }}
         fi
-        echo "::endgroup::"
     - name: Audit-ci tests (javascript only)
       if: ${{ inputs.skip_vulns_tests == 'false' }}
       shell: bash
       run: |
-        echo "::group::Scan javascript vulnerabilities in the tests with audit-ci"
+        echo "Scan javascript vulnerabilities in the tests with audit-ci"
         if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
           cd ${{ inputs.tests_path }}
           audit-ci --${{ inputs.auditci_level_tests }}
         fi
         echo "::endgroup::"
 
-    # Depcheck the codebase
-    - name: Depcheck module (javascript only)
-      if: ${{ inputs.skip_depcheck_modules == 'false' }}
-      uses: tj-actions/depcheck@v9
-      with:
-        ignores: 'eslint'
-        dir: ${{ inputs.module_path }}
-    - name: Depcheck tests (javascript only)
-      if: ${{ inputs.skip_depcheck_tests == 'false' }}
-      uses: tj-actions/depcheck@v9
-      with:
-        ignores: 'eslint'
-        dir: ${{ inputs.tests_path }}
