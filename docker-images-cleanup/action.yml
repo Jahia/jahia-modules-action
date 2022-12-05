@@ -33,21 +33,22 @@ runs:
         TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${{ inputs.docker_username }}'", "password": "'${{ inputs.docker_delete_token }}'"}' https://hub.docker.com/v2/users/login/ | jq -r .token)
         echo "Identifying and deleting images which are older than 1 months in ${{ inputs.docker_org }}/${{ inputs.docker_repository }}"
         echo
-        echo "Looping through ${{ inputs.docker_repository }} repository"
+        COUNT=$(curl -s -H "Authorization: JWT ${TOKEN}" https://hub.docker.com/v2/namespaces/${{ inputs.docker_org }}/repositories/${{ inputs.docker_repository }}/images/?status=inactive&currently_tagged=false | jq '.count')
+        echo "Number of inactive images: ${COUNT}"
         echo
-        COUNT=$(curl -s -H "Authorization: JWT ${TOKEN}" https://hub.docker.com/v2/namespaces/${{ inputs.docker_org }}/repositories/${{ inputs.docker_repository }}/images/?status=inactive | jq '.count')
-        echo "COUNT: ${COUNT}"
         PAGES=$(( ${COUNT}/100 ))
-        echo "PAGES: ${PAGES}"
-        for (( p=1; p<=${PAGES}; p++ )); do
-          PAGE="https://hub.docker.com/v2/namespaces/${{ inputs.docker_org }}/repositories/${{ inputs.docker_repository }}/images/?page=${p}&status=inactive&page_size=100"
-          echo "PAGE: ${PAGE}"
-          IMAGES=$(curl -s -H "Authorization: JWT ${TOKEN}" ${PAGE} | jq '.results|.[]|.digest')
+        URL="https://hub.docker.com/v2/namespaces/${{ inputs.docker_org }}/repositories/${{ inputs.docker_repository }}/images/?status=inactive&currently_tagged=false&page_size=100"
+        NEXT=""
+        p=1
+        while [[ ${p} -eq 1 || "${NEXT}" != "null" && "${NEXT}" != "" && ${p} -le ${PAGES} ]]; do
+          echo "Current iteration: ${p} / ${PAGES}"
+          IMAGES=$(curl -s -H "Authorization: JWT ${TOKEN}" ${URL} | jq '.results|.[]|.digest')
           for d in ${IMAGES}
           do
             echo
-            echo "Current digest: ${d}"
-            echo
+            echo "Current image being deleted: ${d}"
             curl -s -H "Authorization: JWT ${TOKEN}" -H "Content-Type: application/json" -X POST -d '{"dry_run": ${{ inputs.dry_run }}, "manifests": [{"repository": "'${{ inputs.docker_repository }}'", "digest": '${d}'}]}' https://hub.docker.com/v2/namespaces/${{ inputs.docker_org }}/delete-images
           done
+          NEXT=$(curl -s -H "Authorization: JWT ${TOKEN}" ${URL} | jq '.next')
+          p=$(( p+1 ))
         done
