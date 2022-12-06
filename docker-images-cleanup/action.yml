@@ -52,4 +52,5 @@ runs:
           sed -i '$ s/.$//' manifests.txt
           echo '{"dry_run": ${{ inputs.dry_run }}, "manifests": ['$(cat manifests.txt)]'}' | curl -H "Authorization: JWT ${TOKEN}" -H "Content-Type: application/json" -X POST -d @- https://hub.docker.com/v2/namespaces/jahia/delete-images
           p=$(( p+1 ))
+          : > tmp.txt
         done
