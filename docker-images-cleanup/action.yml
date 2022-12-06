@@ -36,19 +36,20 @@ runs:
         COUNT=$(curl -s -H "Authorization: JWT ${TOKEN}" https://hub.docker.com/v2/namespaces/${{ inputs.docker_org }}/repositories/${{ inputs.docker_repository }}/images/?status=inactive&currently_tagged=false | jq '.count')
         echo "Number of inactive images: ${COUNT}"
         echo
-        PAGES=$(( ${COUNT}/100 ))
-        URL="https://hub.docker.com/v2/namespaces/${{ inputs.docker_org }}/repositories/${{ inputs.docker_repository }}/images/?status=inactive&currently_tagged=false&page_size=100"
-        NEXT=""
+        PAGES=$(( ${COUNT}/25 ))
         p=1
-        while [[ ${p} -eq 1 || "${NEXT}" != "null" && "${NEXT}" != "" && ${p} -le ${PAGES} ]]; do
+        while [[ ${p} -le ${PAGES} ]]; do
           echo "Current iteration: ${p} / ${PAGES}"
+          URL="https://hub.docker.com/v2/namespaces/${{ inputs.docker_org }}/repositories/${{ inputs.docker_repository }}/images/?status=inactive&currently_tagged=false&page_size=25&page=${p}"
           IMAGES=$(curl -s -H "Authorization: JWT ${TOKEN}" ${URL} | jq '.results|.[]|.digest')
           for d in ${IMAGES}
           do
             echo
-            echo "Current image being deleted: ${d}"
-            curl -s -H "Authorization: JWT ${TOKEN}" -H "Content-Type: application/json" -X POST -d '{"dry_run": ${{ inputs.dry_run }}, "manifests": [{"repository": "'${{ inputs.docker_repository }}'", "digest": '${d}'}]}' https://hub.docker.com/v2/namespaces/${{ inputs.docker_org }}/delete-images
+            echo "Current image being stored: ${d}"
+            echo '{"repository": "'${{ inputs.docker_repository }}'", "digest": '${d}'},' >> tmp.txt
           done
-          NEXT=$(curl -s -H "Authorization: JWT ${TOKEN}" ${URL} | jq '.next')
+          echo -n $(tr -d "\n\r" < tmp.txt) > manifests.txt
+          sed -i '$ s/.$//' manifests.txt
+          echo '{"dry_run": ${{ inputs.dry_run }}, "manifests": ['$(cat manifests.txt)]'}' | curl -H "Authorization: JWT ${TOKEN}" -H "Content-Type: application/json" -X POST -d @- https://hub.docker.com/v2/namespaces/jahia/delete-images
           p=$(( p+1 ))
         done
