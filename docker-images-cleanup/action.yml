@@ -37,10 +37,10 @@ runs:
         echo "Number of inactive images: ${COUNT}"
         echo
         PAGES=$(( ${COUNT}/25 ))
+        URL="https://hub.docker.com/v2/namespaces/${{ inputs.docker_org }}/repositories/${{ inputs.docker_repository }}/images/?status=inactive&currently_tagged=false&page_size=25"
         p=1
         while [[ ${p} -le ${PAGES} ]]; do
           echo "Current iteration: ${p} / ${PAGES}"
-          URL="https://hub.docker.com/v2/namespaces/${{ inputs.docker_org }}/repositories/${{ inputs.docker_repository }}/images/?status=inactive&currently_tagged=false&page_size=25&page=${p}"
           IMAGES=$(curl -s -H "Authorization: JWT ${TOKEN}" ${URL} | jq '.results|.[]|.digest')
           for d in ${IMAGES}
           do
