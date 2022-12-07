@@ -1,5 +1,5 @@
-name: Remove inactive Docker images
-description: Remove Docker images inactive since at least 1 month
+name: Remove inactive Docker images and tags
+description: Remove Docker images and tags inactive since at least 1 month
 
 inputs:
   docker_org:
