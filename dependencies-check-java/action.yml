@@ -10,6 +10,9 @@ inputs:
   show_checklist:
     description: 'Show the dependency checklist'
     default: "true"
+  root_folder:
+    description: 'Change the root folder'
+    default: "./"
 
 runs:
   using: "composite"
@@ -17,7 +20,7 @@ runs:
     - name: Get base POM
       shell: bash
       run: |
-        curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${{ inputs.github_token }}" https://api.github.com/repos/${{ github.repository }}/contents/pom.xml | jq -r ".content" | base64 -di >> base-pom.xml
+        curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${{ inputs.github_token }}" https://api.github.com/repos/${{ github.repository }}/contents/${{ inputs.root_folder }}pom.xml | jq -r ".content" | base64 -di >> ${{ inputs.root_folder }}base-pom.xml
 
     - name: Save/Restore base dependencies from cache
       uses: actions/cache@v3
@@ -29,7 +32,7 @@ runs:
     - name: Get dependencies from base POM
       shell: bash
       run: |
-        mvn -f base-pom.xml dependency:list -Dsort=true -DforceStdout -DexcludeTransitive=true -DoutputFile=base-deps.txt --no-transfer-progress
+        mvn -f ${{ inputs.root_folder }}base-pom.xml dependency:list -Dsort=true -DforceStdout -DexcludeTransitive=true -DoutputFile=base-deps.txt --no-transfer-progress
 
     - name: Save/Restore dependencies from cache
       uses: actions/cache@v3
@@ -41,7 +44,7 @@ runs:
     - name: Get dependencies from local POM
       shell: bash
       run: |
-        mvn -f pom.xml dependency:list -Dsort=true -DforceStdout -DexcludeTransitive=true -DoutputFile=deps.txt --no-transfer-progress
+        mvn -f ${{ inputs.root_folder }}pom.xml dependency:list -Dsort=true -DforceStdout -DexcludeTransitive=true -DoutputFile=deps.txt --no-transfer-progress
 
     - name: Get POM differences and push a comment
       shell: bash
@@ -53,10 +56,10 @@ runs:
         REPLACEMENT_FOR_ADDED_LINE: '\?| \[\1\/\2\]\(https:\/\/mvnrepository.com\/artifact\/\1\/\2\) (Added) | | \3 | \[Snyk vulnerability DB\]\(https:\/\/security.snyk.io\/package\/maven\/\1:\2\/\3\) and \[Sonatype OSS Index\]\(https:\/\/ossindex.sonatype.org\/component\/pkg:maven\/\1\/\2@\3\) |'
         REPLACEMENT_FOR_DELETED_LINE: '\?| \[\1\/\2\]\(https:\/\/mvnrepository.com\/artifact\/\1\/\2\) (Removed) | \3 | | \[Snyk vulnerability DB\]\(https:\/\/security.snyk.io\/package\/maven\/\1:\2\/\3\) and \[Sonatype OSS Index\]\(https:\/\/ossindex.sonatype.org\/component\/pkg:maven\/\1\/\2@\3\) |'
       run: |
-        cmp --quiet base-deps.txt deps.txt || status=$?
+        cmp --quiet ${{ inputs.root_folder }}base-deps.txt ${{ inputs.root_folder }}deps.txt || status=$?
         echo "DIFF_STATUS=${status}" >> $GITHUB_ENV
         if [ $status -eq 1 ]; then
-          diff base-deps.txt deps.txt >> pom.diff || true
+          diff ${{ inputs.root_folder }}base-deps.txt ${{ inputs.root_folder }}deps.txt >> pom.diff || true
           sed -i -r 's/^[0-9]+a[0-9]+$/Added/' pom.diff
           sed -i -r 's/^[0-9,]+c[0-9,]+$/Updated/' pom.diff
           sed -i -r 's/^[0-9]+d[0-9]+$/Removed/' pom.diff
