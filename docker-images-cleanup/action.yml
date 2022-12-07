@@ -22,11 +22,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Login to Docker Hub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ inputs.docker_username }}
-        password: ${{ inputs.docker_delete_token }}
     - name: Remove inactive images with DockerHub API
       shell: bash
       run: |
@@ -50,7 +45,7 @@ runs:
           done
           echo -n $(tr -d "\n\r" < tmp.txt) > manifests.txt
           sed -i '$ s/.$//' manifests.txt
-          echo '{"dry_run": ${{ inputs.dry_run }}, "manifests": ['$(cat manifests.txt)]'}' | curl -H "Authorization: JWT ${TOKEN}" -H "Content-Type: application/json" -X POST -d @- https://hub.docker.com/v2/namespaces/jahia/delete-images
+          echo '{"dry_run": ${{ inputs.dry_run }}, "manifests": ['$(cat manifests.txt)']}' | curl -H "Authorization: JWT ${TOKEN}" -H "Content-Type: application/json" -X POST -d @- https://hub.docker.com/v2/namespaces/jahia/delete-images
           p=$(( p+1 ))
           : > tmp.txt
         done
