@@ -10,7 +10,7 @@ inputs:
     required: true
   root_folder:
     description: 'Change the root folder'
-    default: "./"
+    default: "."
 
 runs:
   using: "composite"
@@ -33,7 +33,7 @@ runs:
       if: always()
       uses: rknj/html2markdown@v1.0.0
       with:
-        html-file: "${{ inputs.root_folder }}target/site/dependency-updates-report.html"
+        html-file: "${{ inputs.root_folder }}/target/site/dependency-updates-report.html"
 
     - name: Clean up markdown
       if: always()
