@@ -26,7 +26,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: webfactory/ssh-agent@v0.5.4
+    - uses: webfactory/ssh-agent@v6
       with:
           ssh-private-key: ${{ inputs.ssh-key }}
 
@@ -43,10 +43,10 @@ runs:
       run: |
         if ! sh -c "rsync -rvz -e 'ssh -A -o \"ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 ${{ inputs.bastion-user }}@circleci-bastion-prod.jahia.com\" -o StrictHostKeyChecking=off' ${{ inputs.path }} ${{ inputs.destination-user }}@${{ inputs.destination-host }}:${{ inputs.destination-path }}"
         then
-          echo ::set-output name=status::'There was an issue syncing the content.'
+          echo "status='There was an issue syncing the content.'"" >> $GITHUB_OUTPUT
           exit 1
         else
-          echo ::set-output name=status::'Content synced successfully.'
+          echo "status='Content synced successfully.'"" >> $GITHUB_OUTPUT
         fi
 
     - name: Send notice about file location
