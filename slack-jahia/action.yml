@@ -32,13 +32,13 @@ runs:
       run: echo 'DOCKER_COMMAND=```docker pull jahia/${{ inputs.docker-repo }}:${{ inputs.docker-image-tag }}```' >> $GITHUB_ENV
     - name: Get branch name
       id: branch-name
-      uses: tj-actions/branch-names@v5.4
+      uses: tj-actions/branch-names@v6
     - name: Get repository name
       shell: bash
       run: echo "REPO_NAME=$(basename ${{ github.repository }})" >> $GITHUB_ENV
 
     # if there was no failure
-    - uses: slackapi/slack-github-action@v1.18.0
+    - uses: slackapi/slack-github-action@v1.23.0
       if: ${{ inputs.job-event == 'pass' }}
       with:
         payload: |
@@ -58,7 +58,7 @@ runs:
         SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook }}
         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
-    - uses: slackapi/slack-github-action@v1.18.0
+    - uses: slackapi/slack-github-action@v1.23.0
       if: ${{ inputs.job-event == 'fail' }}
       with:
         payload: |
