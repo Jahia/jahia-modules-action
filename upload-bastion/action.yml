@@ -43,10 +43,10 @@ runs:
       run: |
         if ! sh -c "rsync -rvz -e 'ssh -A -o \"ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 ${{ inputs.bastion-user }}@circleci-bastion-prod.jahia.com\" -o StrictHostKeyChecking=off' ${{ inputs.path }} ${{ inputs.destination-user }}@${{ inputs.destination-host }}:${{ inputs.destination-path }}"
         then
-          echo "status='There was an issue syncing the content.'"" >> $GITHUB_OUTPUT
+          echo "status='There was an issue syncing the content.'" >> $GITHUB_OUTPUT
           exit 1
         else
-          echo "status='Content synced successfully.'"" >> $GITHUB_OUTPUT
+          echo "status='Content synced successfully.'" >> $GITHUB_OUTPUT
         fi
 
     - name: Send notice about file location
