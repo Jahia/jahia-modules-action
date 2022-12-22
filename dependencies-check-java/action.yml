@@ -20,10 +20,18 @@ runs:
     - name: Get base POM
       shell: bash
       run: |
-        curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${{ inputs.github_token }}" https://api.github.com/repos/${{ github.repository }}/contents/${{ inputs.root_folder }}/pom.xml | jq -r ".content" | base64 -di >> ${{ inputs.root_folder }}/base-pom.xml
+        curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${{ inputs.github_token }}" https://api.github.com/repos/${{ github.repository }}/contents/${{ inputs.root_folder }}/pom.xml | jq -r ".content" > base64_file
+        if [[ grep -q "null" base64_file ]]; then
+          echo "BASE_POM_NOT_FOUND=1" >> $GITHUB_ENV
+          echo "Base POM not found"
+        else
+          echo "BASE_POM_NOT_FOUND=0" >> $GITHUB_ENV
+          cat base64_file | base64 -di > ${{ inputs.root_folder }}/base-pom.xml
+        fi
 
     - name: Save/Restore base dependencies from cache
       uses: actions/cache@v3
+      if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       with:
         key: ${{ runner.os }}-maven-${{ hashFiles('**/base-pom.xml') }}
         path: |
@@ -31,11 +39,13 @@ runs:
 
     - name: Get dependencies from base POM
       shell: bash
+      if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       run: |
         mvn -f ${{ inputs.root_folder }}/base-pom.xml dependency:list -Dsort=true -DforceStdout -DexcludeTransitive=true -DoutputFile=base-deps.txt --no-transfer-progress
 
     - name: Save/Restore dependencies from cache
       uses: actions/cache@v3
+      if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       with:
         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
         path: |
@@ -43,11 +53,13 @@ runs:
 
     - name: Get dependencies from local POM
       shell: bash
+      if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       run: |
         mvn -f ${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DexcludeTransitive=true -DoutputFile=deps.txt --no-transfer-progress
 
     - name: Get POM differences and push a comment
       shell: bash
+      if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       env:
         REGEX_UPDATED_LINE: 'Updated\?<\s+([-\.a-z0-9]+):([-\.a-z0-9]+):[a-z]+:([0-9\.]+):[a-z]+\?---\?>\s+([-\.a-z0-9]+):([-\.a-z0-9]+):[a-z]+:([0-9\.]+):[a-z]+'
         REGEX_ADDED_LINE: 'Added\?>\s+([-\.a-z0-9]+):([-\.a-z0-9]+):[a-z]+:([0-9\.]+):[a-z]+'
