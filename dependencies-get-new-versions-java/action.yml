@@ -31,7 +31,7 @@ runs:
     - name: Convert HTML to Markdown
       id: html2markdown-new-versions
       if: always()
-      uses: rknj/html2markdown@v1.0.0
+      uses: rknj/html2markdown@v1.1.0
       with:
         html-file: "${{ inputs.root_folder }}/target/site/dependency-updates-report.html"
 
