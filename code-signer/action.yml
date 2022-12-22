@@ -39,7 +39,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: webfactory/ssh-agent@v6
+    - uses: webfactory/ssh-agent@v0.7.0
       with:
         ssh-private-key: ${{ inputs.ssh-private-key }}
     - name: Setting up github configuration
