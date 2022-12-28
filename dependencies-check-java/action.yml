@@ -95,7 +95,8 @@ runs:
           echo "No differences found in the dependencies"
         fi
 
-    - uses: NejcZdovc/comment-pr@v1.1.1
+    - name: Add/Update comment
+      uses: NejcZdovc/comment-pr@v1.1.1
       if: ${{ env.DIFF_STATUS == 1 }}
       with:
         identifier: ${{ github.workflow }}-updates
@@ -103,6 +104,14 @@ runs:
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
 
+    - name: Delete comment
+      uses: jungwinter/comment@v1
+      if: ${{ env.DIFF_STATUS == 0 }}
+      with:
+        type: delete
+        comment_id: ${{ github.workflow }}-updates
+        token: ${{ inputs.github_token }}
+          
     - name: Prepare licenses allowlist
       shell: bash
       id: run
