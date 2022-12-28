@@ -95,7 +95,7 @@ runs:
           echo "No differences found in the dependencies"
         fi
 
-    - name: Add/Update comment
+    - name: Add/Update lib comment
       uses: NejcZdovc/comment-pr@v1.1.1
       if: ${{ env.DIFF_STATUS == 1 }}
       with:
@@ -104,7 +104,7 @@ runs:
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
 
-    - name: Delete comment
+    - name: Delete lib comment
       uses: jungwinter/comment@v1
       if: ${{ env.DIFF_STATUS == 0 }}
       with:
@@ -138,10 +138,19 @@ runs:
           echo "No incompatible licenses found"
         fi
 
-    - uses: NejcZdovc/comment-pr@v1.1.1
+    - name: Add/Delete licenses comment
+      uses: NejcZdovc/comment-pr@v1.1.1
       if: ${{ env.LICENSE_DIFF_STATUS == 1 }}
       with:
         identifier: ${{ github.workflow }}-licenses
         file: "bad-licenses.md"
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
+
+    - name: Delete licenses comment
+      uses: jungwinter/comment@v1
+      if: ${{ env.LICENSE_DIFF_STATUS == 0 }}
+      with:
+        type: delete
+        comment_id: ${{ github.workflow }}-licenses
+        token: ${{ inputs.github_token }}
