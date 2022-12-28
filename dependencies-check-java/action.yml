@@ -41,7 +41,7 @@ runs:
       shell: bash
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       run: |
-        mvn -f ${{ inputs.root_folder }}/base-pom.xml dependency:list -Dsort=true -DforceStdout -DexcludeTransitive=true -DoutputFile=base-deps.txt --no-transfer-progress
+        mvn -f ${{ inputs.root_folder }}/base-pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DoutputFile=base-deps.txt --no-transfer-progress
 
     - name: Save/Restore dependencies from cache
       uses: actions/cache@v3
@@ -55,7 +55,7 @@ runs:
       shell: bash
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       run: |
-        mvn -f ${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DexcludeTransitive=true -DoutputFile=deps.txt --no-transfer-progress
+        mvn -f ${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DoutputFile=deps.txt --no-transfer-progress
 
     - name: Get POM differences and push a comment
       shell: bash
@@ -121,7 +121,7 @@ runs:
           echo "LICENSE_DIFF_STATUS=1" >> $GITHUB_ENV
           echo "## Maven licenses analysis" >> .github/workflows/bad-licenses.md
           echo "### Incompatible licenses" >> .github/workflows/bad-licenses.md
-          echo "Execute \`mvn license:add-third-party -Dlicense.excludeTransitiveDependencies=true -Dlicense.excludedScopes=test,provided -Dlicense.excludedTypes=war,pom -Dlicense.excludedGroups=\"^org\.jahia\..*\" --no-transfer-progress\` to get more details (see http://www.mojohaus.org/license-maven-plugin/index.html)" >> .github/workflows/bad-licenses.md
+          echo "Execute \`mvn license:add-third-party -Dlicense.includedScopes=runtime -Dlicense.excludedScopes=test,provided -Dlicense.excludedTypes=war,pom -Dlicense.excludedGroups=\"^org\.jahia\..*\" --no-transfer-progress\` to get more details (see http://www.mojohaus.org/license-maven-plugin/index.html)" >> .github/workflows/bad-licenses.md
           cat bad-licenses.txt >> .github/workflows/bad-licenses.md
         else
           echo "LICENSE_DIFF_STATUS=0" >> $GITHUB_ENV
