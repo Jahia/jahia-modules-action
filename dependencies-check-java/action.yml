@@ -103,14 +103,6 @@ runs:
         file: "pom.diff"
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
-
-    - name: Delete lib comment
-      uses: jungwinter/comment@v1
-      if: ${{ env.DIFF_STATUS == 0 }}
-      with:
-        type: delete
-        comment_id: ${{ github.workflow }}-updates
-        token: ${{ inputs.github_token }}
           
     - name: Prepare licenses allowlist
       shell: bash
@@ -146,11 +138,3 @@ runs:
         file: "bad-licenses.md"
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
-
-    - name: Delete licenses comment
-      uses: jungwinter/comment@v1
-      if: ${{ env.LICENSE_DIFF_STATUS == 0 }}
-      with:
-        type: delete
-        comment_id: ${{ github.workflow }}-licenses
-        token: ${{ inputs.github_token }}
