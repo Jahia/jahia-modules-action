@@ -18,7 +18,7 @@ runs:
   using: "composite"
   steps:
     - name: Highlight npm dependencies updates
-      uses: rknj/dependencies-updates-action@v1.2.0
+      uses: rknj/dependencies-updates-action@v1.3.0
       with:
         token: ${{ inputs.github_token }}
         show_dev_dependencies: ${{ inputs.show_dev_dependencies }}

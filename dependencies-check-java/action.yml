@@ -20,10 +20,19 @@ runs:
     - name: Get base POM
       shell: bash
       run: |
-        curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${{ inputs.github_token }}" https://api.github.com/repos/${{ github.repository }}/contents/${{ inputs.root_folder }}/pom.xml | jq -r ".content" | base64 -di >> ${{ inputs.root_folder }}/base-pom.xml
+        curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${{ inputs.github_token }}" https://api.github.com/repos/${{ github.repository }}/contents/${{ inputs.root_folder }}/pom.xml | jq -r ".content" > base64_file
+        grep "null" base64_file || status=$?
+        if [ $status -eq 0 ]; then
+          echo "BASE_POM_NOT_FOUND=1" >> $GITHUB_ENV
+          echo "Base POM not found"
+        else
+          echo "BASE_POM_NOT_FOUND=0" >> $GITHUB_ENV
+          cat base64_file | base64 -di > ${{ inputs.root_folder }}/base-pom.xml
+        fi
 
     - name: Save/Restore base dependencies from cache
       uses: actions/cache@v3
+      if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       with:
         key: ${{ runner.os }}-maven-${{ hashFiles('**/base-pom.xml') }}
         path: |
@@ -31,11 +40,13 @@ runs:
 
     - name: Get dependencies from base POM
       shell: bash
+      if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       run: |
-        mvn -f ${{ inputs.root_folder }}/base-pom.xml dependency:list -Dsort=true -DforceStdout -DexcludeTransitive=true -DoutputFile=base-deps.txt --no-transfer-progress
+        mvn -f ${{ inputs.root_folder }}/base-pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DoutputFile=base-deps.txt --no-transfer-progress
 
     - name: Save/Restore dependencies from cache
       uses: actions/cache@v3
+      if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       with:
         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
         path: |
@@ -43,11 +54,13 @@ runs:
 
     - name: Get dependencies from local POM
       shell: bash
+      if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       run: |
-        mvn -f ${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DexcludeTransitive=true -DoutputFile=deps.txt --no-transfer-progress
+        mvn -f ${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DoutputFile=deps.txt --no-transfer-progress
 
     - name: Get POM differences and push a comment
       shell: bash
+      if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       env:
         REGEX_UPDATED_LINE: 'Updated\?<\s+([-\.a-z0-9]+):([-\.a-z0-9]+):[a-z]+:([0-9\.]+):[a-z]+\?---\?>\s+([-\.a-z0-9]+):([-\.a-z0-9]+):[a-z]+:([0-9\.]+):[a-z]+'
         REGEX_ADDED_LINE: 'Added\?>\s+([-\.a-z0-9]+):([-\.a-z0-9]+):[a-z]+:([0-9\.]+):[a-z]+'
@@ -82,14 +95,15 @@ runs:
           echo "No differences found in the dependencies"
         fi
 
-    - uses: NejcZdovc/comment-pr@v1.1.1
+    - name: Add/Update lib comment
+      uses: NejcZdovc/comment-pr@v1.1.1
       if: ${{ env.DIFF_STATUS == 1 }}
       with:
         identifier: ${{ github.workflow }}-updates
         file: "pom.diff"
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
-
+          
     - name: Prepare licenses allowlist
       shell: bash
       id: run
@@ -103,20 +117,21 @@ runs:
     - name: Check licenses
       shell: bash
       run: |
-        mvn license:add-third-party -DlinkOnly=true -Dlicense.excludeTransitiveDependencies=true -Dlicense.excludedScopes=test,provided -Dlicense.excludedTypes=war,pom -Dlicense.excludedGroups="^org\.jahia\..*" --no-transfer-progress
+        mvn license:add-third-party -DlinkOnly=true -Dlicense.includedScopes=runtime -Dlicense.excludedScopes=test,provided -Dlicense.excludedTypes=war,pom -Dlicense.excludedGroups="^org\.jahia\..*" -Dlicense.useMissingFile=true --no-transfer-progress
         grep -Eiv "^List|^The project has no dependencies|.*Jahia|${ALLOWLIST}" ${{ inputs.root_folder }}/target/generated-sources/license/THIRD-PARTY.txt > bad-licenses.txt || true
         if [[ $(wc -l <bad-licenses.txt) -gt 0 && $(wc -w <bad-licenses.txt) -gt 0 ]]; then
           echo "LICENSE_DIFF_STATUS=1" >> $GITHUB_ENV
           echo "## Maven licenses analysis" >> .github/workflows/bad-licenses.md
           echo "### Incompatible licenses" >> .github/workflows/bad-licenses.md
-          echo "Execute \`mvn license:add-third-party -Dlicense.excludeTransitiveDependencies=true -Dlicense.excludedScopes=test,provided -Dlicense.excludedTypes=war,pom -Dlicense.excludedGroups=\"^org\.jahia\..*\" --no-transfer-progress\` to get more details (see http://www.mojohaus.org/license-maven-plugin/index.html)" >> .github/workflows/bad-licenses.md
+          echo "Execute \`mvn license:add-third-party -Dlicense.includedScopes=runtime -Dlicense.excludedScopes=test,provided -Dlicense.excludedTypes=war,pom -Dlicense.excludedGroups=\"^org\.jahia\..*\" --no-transfer-progress\` to get more details (see http://www.mojohaus.org/license-maven-plugin/index.html)" >> .github/workflows/bad-licenses.md
           cat bad-licenses.txt >> .github/workflows/bad-licenses.md
         else
           echo "LICENSE_DIFF_STATUS=0" >> $GITHUB_ENV
           echo "No incompatible licenses found"
         fi
 
-    - uses: NejcZdovc/comment-pr@v1.1.1
+    - name: Add/Update licenses comment
+      uses: NejcZdovc/comment-pr@v1.1.1
       if: ${{ env.LICENSE_DIFF_STATUS == 1 }}
       with:
         identifier: ${{ github.workflow }}-licenses
