@@ -130,7 +130,7 @@ runs:
           echo "No incompatible licenses found"
         fi
 
-    - name: Add/Delete licenses comment
+    - name: Add/Update licenses comment
       uses: NejcZdovc/comment-pr@v1.1.1
       if: ${{ env.LICENSE_DIFF_STATUS == 1 }}
       with:
