@@ -13,6 +13,9 @@ inputs:
   show_checklist:
     description: 'Show the dependency checklist'
     default: "true"
+  root_folder:
+    description: 'Change the root folder'
+    default: "."
 
 runs:
   using: "composite"
@@ -37,7 +40,7 @@ runs:
     - name: Check licenses
       shell: bash
       run: |
-        npx -q license-checker --summary --production --direct --exclude "${{ env.ALLOWLIST }}" > bad-js-licenses.txt || true
+        npx -q license-checker --summary --production --direct --exclude "${{ env.ALLOWLIST }}" --start "${{ inputs.root_folder }}/" > bad-js-licenses.txt || true
         if [[ $(wc -w <bad-js-licenses.txt) -gt 0  ]]; then
           cat bad-js-licenses.txt
           echo "LICENSE_JS_DIFF_STATUS=1" >> $GITHUB_ENV
