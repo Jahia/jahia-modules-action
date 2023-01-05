@@ -26,7 +26,7 @@ runs:
       if: always()
       shell: bash
       run: |
-        mvn dependency:analyze-report -DignoreNonCompile=true --no-transfer-progress
+        mvn -f ${{ inputs.root_folder }}/pom.xml dependency:analyze-report -DignoreNonCompile=true --no-transfer-progress
 
     - name: Convert HTML to Markdown
       id: html2markdown
@@ -60,4 +60,4 @@ runs:
       if: always()
       shell: bash
       run: |
-        mvn dependency:analyze-duplicate --no-transfer-progress
+        mvn -f ${{ inputs.root_folder }}/pom.xml dependency:analyze-duplicate --no-transfer-progress
