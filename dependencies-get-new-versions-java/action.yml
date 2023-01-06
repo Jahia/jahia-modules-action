@@ -11,6 +11,8 @@ inputs:
   root_folder:
     description: 'Change the root folder'
     default: "."
+  maven_versions_rules_xml:
+    description: 'File containing the rules that control how to compare version numbers'
 
 runs:
   using: "composite"
@@ -22,11 +24,21 @@ runs:
         path: |
           ~/.m2
 
+    - name: Prepare versions rules
+      id: run
+      shell: bash
+      run: |
+        if [[ -z "${{ inputs.maven_versions_rules_xml }}" ]]; then
+          echo "MAVEN_RULES=$(cat ${{ github.action_path }}/versions-maven-rules.xml)" >> $GITHUB_ENV
+        else
+          echo "MAVEN_RULES=$(cat ${{ inputs.maven_versions_rules_xml }})" >> $GITHUB_ENV
+        fi
+
     - name: Look for new versions of librairies
       if: always()
       shell: bash
       run: |
-        mvn -f ${{ inputs.root_folder }}/pom.xml versions:dependency-updates-report -DonlyUpgradable=true -DprocessDependencyManagementTransitive=false --no-transfer-progress
+        mvn -f ${{ inputs.root_folder }}/pom.xml versions:dependency-updates-report -Dmaven.version.rules=file://${MAVEN_RULES} -DonlyUpgradable=true -DprocessDependencyManagementTransitive=false --no-transfer-progress
 
     - name: Convert HTML to Markdown
       id: html2markdown-new-versions
