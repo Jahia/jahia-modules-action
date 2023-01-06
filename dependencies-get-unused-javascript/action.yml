@@ -18,7 +18,7 @@ runs:
       run: |
         echo "TODAY=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
         npx -q depcheck > npm-report.md || true
-        sed -i -r 's/^(Unused dependencies|Unused devDependencies)/\n### \1/' npm-report.md
+        sed -i -r 's/^(Unused dependencies|Unused devDependencies|Missing dependencies)/\n### \1/' npm-report.md
         echo 'MARKDOWN_UNUSED_JS<<EOF' >> $GITHUB_ENV
         cat npm-report.md >> $GITHUB_ENV
         echo 'EOF' >> $GITHUB_ENV
