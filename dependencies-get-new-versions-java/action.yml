@@ -29,9 +29,9 @@ runs:
       shell: bash
       run: |
         if [[ -z "${{ inputs.maven_versions_rules_xml }}" ]]; then
-          echo "MAVEN_RULES=$(cat ${{ github.action_path }}/versions-maven-rules.xml)" >> $GITHUB_ENV
+          echo "MAVEN_RULES=${{ github.action_path }}/versions-maven-rules.xml" >> $GITHUB_ENV
         else
-          echo "MAVEN_RULES=$(cat ${{ inputs.maven_versions_rules_xml }})" >> $GITHUB_ENV
+          echo "MAVEN_RULES=${{ inputs.maven_versions_rules_xml }}" >> $GITHUB_ENV
         fi
 
     - name: Look for new versions of librairies
