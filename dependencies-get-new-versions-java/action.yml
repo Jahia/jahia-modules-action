@@ -50,8 +50,9 @@ runs:
       uses: dacbd/create-issue-action@v1.2.0
       with:
         token: ${{ inputs.github_token }}
-        title: Maven dependency report (new versions available) - Folder ${{ inputs.root_folder }} - ${{ env.TODAY }}
+        title: Maven dependency report (new versions available) - ${{ env.TODAY }}
         body: |
           Report from [${{ github.workflow }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          Analysed folder: ${{ inputs.root_folder }}
           ${{ env.MARKDOWN_NEW_VERSIONS }}
         assignees: ${{ inputs.default_issue_assignee }}
