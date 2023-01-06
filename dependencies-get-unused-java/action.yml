@@ -41,6 +41,9 @@ runs:
       run: |
         echo "TODAY=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
         grep -Eiv "^.*Dependencies Report|.*Last Published|.*Built by Maven|.*©|.*\* \* \*" ${{ steps.html2markdown.outputs.markdown-file }} > maven-report-updated.md || true
+        sed -i -r 's/### Used and declared dependencies/### Used and declared dependencies\n\<details\>\<summary\>Show the list\<\/summary>\n\<p\>/g' maven-report-updated.md
+        sed -i -r 's/### Used but undeclared dependencies/\<\/p\>\n\<\/details\>\n\n### Used but undeclared dependencies\n\<details\>\<summary\>Show the list\<\/summary\>\n\<p\>/g' maven-report-updated.md
+        sed -i -r 's/### Unused but declared dependencies/\<\/p\>\n\<\/details\>\n\n### Unused but declared dependencies/g' maven-report-updated.md
         echo 'MARKDOWN_UNUSED<<EOF' >> $GITHUB_ENV
         cat maven-report-updated.md >> $GITHUB_ENV
         echo 'EOF' >> $GITHUB_ENV
