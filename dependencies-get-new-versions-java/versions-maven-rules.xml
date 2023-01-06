@@ -39,20 +39,33 @@
             </ignoreVersions>
         </rule>
         <!-- Version 9 of lucene will require a lot of effort to upgrade -->
-        <rule groupId="org.apache.lucene" artifactId="lucene-core" comparisonMethod="maven">
-            <ignoreVersions>
-                <ignoreVersion type="regex">^9.*$</ignoreVersion>
-            </ignoreVersions>
-        </rule>
-        <rule groupId="org.apache.lucene" artifactId="lucene-highlighter" comparisonMethod="maven">
+        <rule groupId="org.apache.lucene" comparisonMethod="maven">
             <ignoreVersions>
                 <ignoreVersion type="regex">^9.*$</ignoreVersion>
             </ignoreVersions>
         </rule>
         <!-- Version 9 of solr will require a lot of effort to upgrade -->
-        <rule groupId="org.apache.solr" artifactId="solr-core" comparisonMethod="maven">
+        <rule groupId="org.apache.solr" comparisonMethod="maven">
             <ignoreVersions>
                 <ignoreVersion type="regex">^9.*$</ignoreVersion>
+            </ignoreVersions>
+        </rule>
+        <!-- Version 6 of spring will require a lot of effort to upgrade -->
+        <rule groupId="org.springframework" comparisonMethod="maven">
+            <ignoreVersions>
+                <ignoreVersion type="regex">^6.*$</ignoreVersion>
+            </ignoreVersions>
+        </rule>
+        <!-- Version 4.4 of karaf will require a lot of effort to upgrade -->
+        <rule groupId="org.apache.karaf" comparisonMethod="maven">
+            <ignoreVersions>
+                <ignoreVersion type="regex">^4.4.*$</ignoreVersion>
+            </ignoreVersions>
+        </rule>
+        <!-- Version 8 of jbpm will require a lot of effort to upgrade -->
+        <rule groupId="org.jbpm" comparisonMethod="maven">
+            <ignoreVersions>
+                <ignoreVersion type="regex">^8.*$</ignoreVersion>
             </ignoreVersions>
         </rule>
     </rules>
