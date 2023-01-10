@@ -30,6 +30,10 @@ For example, the build action can be called using this code:
 
 In the above example, we're referring to the `v2` branch, but `v2` could be replaced by any branch or tag. You could very well directly call a development branch to validate the proper operation of your action. `uses: jahia/jahia-modules-action/build@My-Dev-Branch`.
 
+## Documentation
+
+For the dependencies checks, here's a blog post explaining how they've been built: https://medium.com/jahia-techblog/why-and-how-to-automate-dependency-checks-73649d42cf87
+
 ## Releasing the Action
 
 Since a large portion of our repositories are using the action, we're using a particular branch as an alias to the latest changes (`v1`, `v2`). Releasing consists in updating this branch with the changes you want to make available.
