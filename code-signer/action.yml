@@ -80,7 +80,7 @@ runs:
           echo "Signing $INSTALLER_FILE..."
           printf `oathtool --totp -b -d 6 ${{ inputs.totp_secret }}` | ./CodeSignTool.sh sign \
             -username="${{ inputs.signer_username }}" \
-            -password="${{ inputs.signer_password }}" \
+            -password='${{ inputs.signer_password }}' \
             -credential_id="${{ inputs.credential_id }}" \
             -output_dir_path="$OUTPUT_DIR" \
             -input_file_path="$INSTALLER_FILE"
@@ -91,7 +91,7 @@ runs:
           echo "Signing $INSTALLER_FILE..."
           ./sign4j ./codeSignTool-sign4j.sh sign \
             -username="${{ inputs.signer_username }}" \
-            -password="${{ inputs.signer_password }}" \
+            -password='${{ inputs.signer_password }}' \
             -credential_id="${{ inputs.credential_id }}" \
             -output_dir_path="$OUTPUT_DIR" \
             $INSTALLER_FILE # -input_file_path option is replaced by last param
