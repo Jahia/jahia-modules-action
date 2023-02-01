@@ -221,9 +221,9 @@ async function run(): Promise<void> {
 
     // Create incident in PagerDuty
     if (
-      process.env.CURRENT_BRANCH === 'master' ||
-      process.env.CURRENT_BRANCH === 'main' ||
-      core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
+      core.getInput('should_skip_pagerduty') === 'false' &&
+      process.env.CURRENT_BRANCH !== undefined &&
+      ['master', 'main', core.getInput('primary_release_branch')].includes(process.env.CURRENT_BRANCH)
     ) {
       await core.group(
         `${timeSinceStart(

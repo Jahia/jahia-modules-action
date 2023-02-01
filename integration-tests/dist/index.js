@@ -1486,9 +1486,9 @@ function run() {
                 }));
             }
             // Create incident in PagerDuty
-            if (process.env.CURRENT_BRANCH === 'master' ||
-                process.env.CURRENT_BRANCH === 'main' ||
-                core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH) {
+            if (core.getInput('should_skip_pagerduty') === 'false' &&
+                process.env.CURRENT_BRANCH !== undefined &&
+                ['master', 'main', core.getInput('primary_release_branch')].includes(process.env.CURRENT_BRANCH)) {
                 yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Creating incident in Pagerduty (if applicable)`, () => __awaiter(this, void 0, void 0, function* () {
                     yield (0, jahia_reporter_1.createPagerdutyIncident)(testsFolder, {
                         service: core.getInput('incident_service') || core.getInput('module_id'),
