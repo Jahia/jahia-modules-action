@@ -95,6 +95,10 @@ inputs:
     description: 'Should slack notifications be skipped ?'
     required: false
     default: 'true'
+  should_skip_pagerduty:
+    description: 'Should pagerduty notifications be skipped ?'
+    required: false
+    default: 'false'    
   slack_channel_id_notifications:
     description: 'Channel id to be used for failure notifications'
     required: false
