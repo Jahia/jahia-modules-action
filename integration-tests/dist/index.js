@@ -1256,15 +1256,74 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.publishToTestrail = void 0;
+exports.publishToTestrail = exports.prepareTestrailMetadata = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const fs = __importStar(__nccwpck_require__(5747));
 const path = __importStar(__nccwpck_require__(5622));
 const system_1 = __nccwpck_require__(7885);
+function prepareTestrailMetadata(testsPath, testrailPlatformdata) {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11;
+    return __awaiter(this, void 0, void 0, function* () {
+        const platformDataFile = path.join(testsPath, 'artifacts/results/', testrailPlatformdata);
+        let testrailMetadata = {};
+        testrailMetadata['url'] = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+        if (fs.statSync(platformDataFile).isFile()) {
+            const rawFile = fs.readFileSync(platformDataFile, 'utf8');
+            const platformData = JSON.parse(rawFile.toString());
+            core.notice(`Parsed platform file: ${platformDataFile}`);
+            if (platformData.platform !== undefined) {
+                core.notice(`Its content is: ${JSON.stringify(platformData.platform)}`);
+                // In this section, we're statically defining the link between the
+                // response from Jahia GraphQL API and the metadata file to be used
+                // with testrail (this has to be defined somewhere)
+                if (((_b = (_a = platformData.platform.jahia) === null || _a === void 0 ? void 0 : _a.version) === null || _b === void 0 ? void 0 : _b.release) !== undefined) {
+                    testrailMetadata['version'] = (_d = (_c = platformData.platform.jahia) === null || _c === void 0 ? void 0 : _c.version) === null || _d === void 0 ? void 0 : _d.release;
+                    if (((_f = (_e = platformData.platform.jahia) === null || _e === void 0 ? void 0 : _e.version) === null || _f === void 0 ? void 0 : _f.build) !== undefined) {
+                        testrailMetadata['version'] += ` - Build: ${(_h = (_g = platformData.platform.jahia) === null || _g === void 0 ? void 0 : _g.version) === null || _h === void 0 ? void 0 : _h.build}`;
+                    }
+                }
+                if (((_k = (_j = platformData.platform.jahia) === null || _j === void 0 ? void 0 : _j.database) === null || _k === void 0 ? void 0 : _k.name) !== undefined) {
+                    testrailMetadata['custom_database'] = (_m = (_l = platformData.platform.jahia) === null || _l === void 0 ? void 0 : _l.database) === null || _m === void 0 ? void 0 : _m.name;
+                    if (((_p = (_o = platformData.platform.jahia) === null || _o === void 0 ? void 0 : _o.database) === null || _p === void 0 ? void 0 : _p.version) !== undefined) {
+                        testrailMetadata['custom_database'] += ` - Version: ${(_r = (_q = platformData.platform.jahia) === null || _q === void 0 ? void 0 : _q.database) === null || _r === void 0 ? void 0 : _r.build}`;
+                    }
+                }
+                if (((_t = (_s = platformData.platform.jahia) === null || _s === void 0 ? void 0 : _s.java) === null || _t === void 0 ? void 0 : _t.runtimeName) !== undefined) {
+                    testrailMetadata['custom_java'] = (_v = (_u = platformData.platform.jahia) === null || _u === void 0 ? void 0 : _u.java) === null || _v === void 0 ? void 0 : _v.runtimeName;
+                    if (((_x = (_w = platformData.platform.jahia) === null || _w === void 0 ? void 0 : _w.java) === null || _x === void 0 ? void 0 : _x.runtimeVersion) !== undefined) {
+                        testrailMetadata['custom_java'] += ` - Version: ${(_z = (_y = platformData.platform.jahia) === null || _y === void 0 ? void 0 : _y.java) === null || _z === void 0 ? void 0 : _z.runtimeVersion}`;
+                    }
+                }
+                if (((_1 = (_0 = platformData.platform.jahia) === null || _0 === void 0 ? void 0 : _0.os) === null || _1 === void 0 ? void 0 : _1.name) !== undefined) {
+                    testrailMetadata['custom_os'] = (_3 = (_2 = platformData.platform.jahia) === null || _2 === void 0 ? void 0 : _2.os) === null || _3 === void 0 ? void 0 : _3.name;
+                    if (((_5 = (_4 = platformData.platform.jahia) === null || _4 === void 0 ? void 0 : _4.os) === null || _5 === void 0 ? void 0 : _5.architecture) !== undefined) {
+                        testrailMetadata['custom_os'] += ` (${(_7 = (_6 = platformData.platform.jahia) === null || _6 === void 0 ? void 0 : _6.os) === null || _7 === void 0 ? void 0 : _7.architecture})`;
+                    }
+                    if (((_9 = (_8 = platformData.platform.jahia) === null || _8 === void 0 ? void 0 : _8.os) === null || _9 === void 0 ? void 0 : _9.version) !== undefined) {
+                        testrailMetadata['custom_os'] += ` - Version: ${(_11 = (_10 = platformData.platform.jahia) === null || _10 === void 0 ? void 0 : _10.os) === null || _11 === void 0 ? void 0 : _11.version}`;
+                    }
+                }
+            }
+            else {
+                core.notice(`Unable to find a platform object inside the file`);
+            }
+        }
+        else {
+            core.notice(`Unable to parse platform data file: ${platformDataFile}`);
+        }
+        // Always write a testrail metadata file, even if there is no data
+        const metadataFile = path.join(testsPath, 'artifacts/results/testrail-metadata.jon');
+        core.notice(`Preparing to write: ${JSON.stringify(testrailMetadata)}`);
+        core.notice(`To file: ${metadataFile}`);
+        fs.writeFileSync(metadataFile, JSON.stringify(testrailMetadata));
+    });
+}
+exports.prepareTestrailMetadata = prepareTestrailMetadata;
 function publishToTestrail(testsPath, options) {
     return __awaiter(this, void 0, void 0, function* () {
         const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         const testrailLinkFile = path.join(testsPath, 'artifacts/results/testrail_link');
+        const metadataFile = path.join(testsPath, 'artifacts/results/testrail-metadata.jon');
         let command = 'jahia-reporter testrail';
         command += ` --testrailUsername="${options.testrailUsername}"`;
         command += ` --testrailPassword="${options.testrailPassword}"`;
@@ -1273,6 +1332,7 @@ function publishToTestrail(testsPath, options) {
         command += ` --projectName="${options.testrailProject}"`;
         command += ` --milestone="${options.testrailMilestone}"`;
         command += ` --defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
+        command += ` --testrailCustomResultFields=${metadataFile}"`;
         command += ` --linkRunFile="${testrailLinkFile}"`;
         yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
         if (fs.statSync(testrailLinkFile).isFile()) {
@@ -1477,6 +1537,7 @@ function run() {
             if (core.getInput('should_skip_testrail') === 'false' ||
                 core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH) {
                 yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Publishing results to Testrail`, () => __awaiter(this, void 0, void 0, function* () {
+                    yield (0, jahia_reporter_1.prepareTestrailMetadata)(testsFolder, core.getInput('testrail_platformdata'));
                     yield (0, jahia_reporter_1.publishToTestrail)(testsFolder, {
                         testrailUsername: core.getInput('testrail_username'),
                         testrailPassword: core.getInput('testrail_password'),

@@ -29,7 +29,8 @@ import {
   createPagerdutyIncident,
   sendSlackNotification,
   sendResultsToZencrepes,
-  showTestsSummary
+  showTestsSummary,
+  prepareTestrailMetadata
 } from './jahia-reporter'
 
 async function run(): Promise<void> {
@@ -209,6 +210,8 @@ async function run(): Promise<void> {
       await core.group(
         `${timeSinceStart(startTime)} 🛠️ Publishing results to Testrail`,
         async () => {
+          await prepareTestrailMetadata(testsFolder, core.getInput('testrail_platformdata'))
+
           await publishToTestrail(testsFolder, {
             testrailUsername: core.getInput('testrail_username'),
             testrailPassword: core.getInput('testrail_password'),

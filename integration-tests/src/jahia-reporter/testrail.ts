@@ -11,6 +11,76 @@ interface JahiaReporterTestrail {
   testrailMilestone: string
 }
 
+interface TestrailMetadata {
+  [key: string]: any;
+}
+
+export async function prepareTestrailMetadata(
+  testsPath: string,
+  testrailPlatformdata: string,
+) {
+  const platformDataFile = path.join(testsPath, 'artifacts/results/', testrailPlatformdata)
+  let testrailMetadata: TestrailMetadata = {}
+  testrailMetadata['url'] = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+
+  if (fs.statSync(platformDataFile).isFile()) {
+    const rawFile = fs.readFileSync(platformDataFile, 'utf8')
+    const platformData = JSON.parse(rawFile.toString())
+
+    core.notice(`Parsed platform file: ${platformDataFile}`)
+    if (platformData.platform !== undefined) {
+      core.notice(`Its content is: ${JSON.stringify(platformData.platform)}`)
+
+      // In this section, we're statically defining the link between the
+      // response from Jahia GraphQL API and the metadata file to be used
+      // with testrail (this has to be defined somewhere)
+      if (platformData.platform.jahia?.version?.release !== undefined) {
+        testrailMetadata['version'] = platformData.platform.jahia?.version?.release
+        if (platformData.platform.jahia?.version?.build !== undefined) {
+          testrailMetadata['version'] += ` - Build: ${platformData.platform.jahia?.version?.build}`
+        }        
+      }
+
+      if (platformData.platform.jahia?.database?.name !== undefined) {
+        testrailMetadata['custom_database'] = platformData.platform.jahia?.database?.name
+        if (platformData.platform.jahia?.database?.version !== undefined) {
+          testrailMetadata['custom_database'] += ` - Version: ${platformData.platform.jahia?.database?.build}`
+        }
+      }
+
+      if (platformData.platform.jahia?.java?.runtimeName !== undefined) {
+        testrailMetadata['custom_java'] = platformData.platform.jahia?.java?.runtimeName
+        if (platformData.platform.jahia?.java?.runtimeVersion !== undefined) {
+          testrailMetadata['custom_java'] += ` - Version: ${platformData.platform.jahia?.java?.runtimeVersion}`
+        }
+      }
+
+      if (platformData.platform.jahia?.os?.name !== undefined) {
+        testrailMetadata['custom_os'] = platformData.platform.jahia?.os?.name
+        if (platformData.platform.jahia?.os?.architecture !== undefined) {
+          testrailMetadata['custom_os'] += ` (${platformData.platform.jahia?.os?.architecture})`
+        }        
+        if (platformData.platform.jahia?.os?.version !== undefined) {
+          testrailMetadata['custom_os'] += ` - Version: ${platformData.platform.jahia?.os?.version}`
+        }
+      }
+    } else {
+      core.notice(`Unable to find a platform object inside the file`)
+    }
+  } else {
+    core.notice(`Unable to parse platform data file: ${platformDataFile}`)
+  }
+
+  // Always write a testrail metadata file, even if there is no data
+  const metadataFile = path.join(testsPath, 'artifacts/results/testrail-metadata.jon')
+  core.notice(`Preparing to write: ${JSON.stringify(testrailMetadata)}`)
+  core.notice(`To file: ${metadataFile}`)
+  fs.writeFileSync(
+    metadataFile,
+    JSON.stringify(testrailMetadata)
+  )
+}
+
 export async function publishToTestrail(
   testsPath: string,
   options: JahiaReporterTestrail
@@ -20,6 +90,7 @@ export async function publishToTestrail(
     testsPath,
     'artifacts/results/testrail_link'
   )
+  const metadataFile = path.join(testsPath, 'artifacts/results/testrail-metadata.jon')
 
   let command = 'jahia-reporter testrail'
   command += ` --testrailUsername="${options.testrailUsername}"`
@@ -29,6 +100,7 @@ export async function publishToTestrail(
   command += ` --projectName="${options.testrailProject}"`
   command += ` --milestone="${options.testrailMilestone}"`
   command += ` --defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`
+  command += ` --testrailCustomResultFields=${metadataFile}"`
   command += ` --linkRunFile="${testrailLinkFile}"`
 
   await runShellCommands([command], null, {printCmd: false})
