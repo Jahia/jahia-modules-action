@@ -1312,7 +1312,7 @@ function prepareTestrailMetadata(testsPath, testrailPlatformdata) {
             core.notice(`Unable to parse platform data file: ${platformDataFile}`);
         }
         // Always write a testrail metadata file, even if there is no data
-        const metadataFile = path.join(testsPath, 'artifacts/results/testrail-metadata.jon');
+        const metadataFile = path.join(testsPath, 'artifacts/results/testrail-metadata.json');
         core.notice(`Preparing to write: ${JSON.stringify(testrailMetadata)}`);
         core.notice(`To file: ${metadataFile}`);
         fs.writeFileSync(metadataFile, JSON.stringify(testrailMetadata));
@@ -1323,7 +1323,7 @@ function publishToTestrail(testsPath, options) {
     return __awaiter(this, void 0, void 0, function* () {
         const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         const testrailLinkFile = path.join(testsPath, 'artifacts/results/testrail_link');
-        const metadataFile = path.join(testsPath, 'artifacts/results/testrail-metadata.jon');
+        const metadataFile = path.join(testsPath, 'artifacts/results/testrail-metadata.json');
         let command = 'jahia-reporter testrail';
         command += ` --testrailUsername="${options.testrailUsername}"`;
         command += ` --testrailPassword="${options.testrailPassword}"`;
@@ -1332,7 +1332,7 @@ function publishToTestrail(testsPath, options) {
         command += ` --projectName="${options.testrailProject}"`;
         command += ` --milestone="${options.testrailMilestone}"`;
         command += ` --defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
-        command += ` --testrailCustomResultFields=${metadataFile}"`;
+        command += ` --testrailCustomResultFields="${metadataFile}"`;
         command += ` --linkRunFile="${testrailLinkFile}"`;
         yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
         if (fs.statSync(testrailLinkFile).isFile()) {

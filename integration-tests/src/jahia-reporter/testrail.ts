@@ -72,7 +72,7 @@ export async function prepareTestrailMetadata(
   }
 
   // Always write a testrail metadata file, even if there is no data
-  const metadataFile = path.join(testsPath, 'artifacts/results/testrail-metadata.jon')
+  const metadataFile = path.join(testsPath, 'artifacts/results/testrail-metadata.json')
   core.notice(`Preparing to write: ${JSON.stringify(testrailMetadata)}`)
   core.notice(`To file: ${metadataFile}`)
   fs.writeFileSync(
@@ -90,7 +90,7 @@ export async function publishToTestrail(
     testsPath,
     'artifacts/results/testrail_link'
   )
-  const metadataFile = path.join(testsPath, 'artifacts/results/testrail-metadata.jon')
+  const metadataFile = path.join(testsPath, 'artifacts/results/testrail-metadata.json')
 
   let command = 'jahia-reporter testrail'
   command += ` --testrailUsername="${options.testrailUsername}"`
@@ -100,7 +100,7 @@ export async function publishToTestrail(
   command += ` --projectName="${options.testrailProject}"`
   command += ` --milestone="${options.testrailMilestone}"`
   command += ` --defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`
-  command += ` --testrailCustomResultFields=${metadataFile}"`
+  command += ` --testrailCustomResultFields="${metadataFile}"`
   command += ` --linkRunFile="${testrailLinkFile}"`
 
   await runShellCommands([command], null, {printCmd: false})
