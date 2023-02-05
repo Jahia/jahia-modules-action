@@ -44,24 +44,24 @@ export async function prepareTestrailMetadata(
       if (platformData.platform.jahia?.database?.name !== undefined) {
         testrailMetadata['custom_database'] = platformData.platform.jahia?.database?.name
         if (platformData.platform.jahia?.database?.version !== undefined) {
-          testrailMetadata['custom_database'] += ` - Version: ${platformData.platform.jahia?.database?.build}`
+          testrailMetadata['custom_database'] += ` - Version: ${platformData.platform.jahia?.database?.version}`
         }
       }
 
-      if (platformData.platform.jahia?.java?.runtimeName !== undefined) {
-        testrailMetadata['custom_java'] = platformData.platform.jahia?.java?.runtimeName
-        if (platformData.platform.jahia?.java?.runtimeVersion !== undefined) {
-          testrailMetadata['custom_java'] += ` - Version: ${platformData.platform.jahia?.java?.runtimeVersion}`
+      if (platformData.platform.jahia?.system?.java?.runtimeName !== undefined) {
+        testrailMetadata['custom_java'] = platformData.platform.jahia?.system?.java?.runtimeName
+        if (platformData.platform.jahia?.system?.java?.runtimeVersion !== undefined) {
+          testrailMetadata['custom_java'] += ` - Version: ${platformData.platform.jahia?.system?.java?.runtimeVersion}`
         }
       }
 
-      if (platformData.platform.jahia?.os?.name !== undefined) {
-        testrailMetadata['custom_os'] = platformData.platform.jahia?.os?.name
-        if (platformData.platform.jahia?.os?.architecture !== undefined) {
-          testrailMetadata['custom_os'] += ` (${platformData.platform.jahia?.os?.architecture})`
+      if (platformData.platform.jahia?.system?.os?.name !== undefined) {
+        testrailMetadata['custom_os'] = platformData.platform.jahia?.system?.os?.name
+        if (platformData.platform.jahia?.system?.os?.architecture !== undefined) {
+          testrailMetadata['custom_os'] += ` (${platformData.platform.jahia?.system?.os?.architecture})`
         }        
-        if (platformData.platform.jahia?.os?.version !== undefined) {
-          testrailMetadata['custom_os'] += ` - Version: ${platformData.platform.jahia?.os?.version}`
+        if (platformData.platform.jahia?.system?.os?.version !== undefined) {
+          testrailMetadata['custom_os'] += ` - Version: ${platformData.platform.jahia?.system?.os?.version}`
         }
       }
     } else {

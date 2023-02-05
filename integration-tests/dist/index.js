@@ -1262,7 +1262,7 @@ const fs = __importStar(__nccwpck_require__(5747));
 const path = __importStar(__nccwpck_require__(5622));
 const system_1 = __nccwpck_require__(7885);
 function prepareTestrailMetadata(testsPath, testrailPlatformdata) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21;
     return __awaiter(this, void 0, void 0, function* () {
         const platformDataFile = path.join(testsPath, 'artifacts/results/', testrailPlatformdata);
         let testrailMetadata = {};
@@ -1285,22 +1285,22 @@ function prepareTestrailMetadata(testsPath, testrailPlatformdata) {
                 if (((_k = (_j = platformData.platform.jahia) === null || _j === void 0 ? void 0 : _j.database) === null || _k === void 0 ? void 0 : _k.name) !== undefined) {
                     testrailMetadata['custom_database'] = (_m = (_l = platformData.platform.jahia) === null || _l === void 0 ? void 0 : _l.database) === null || _m === void 0 ? void 0 : _m.name;
                     if (((_p = (_o = platformData.platform.jahia) === null || _o === void 0 ? void 0 : _o.database) === null || _p === void 0 ? void 0 : _p.version) !== undefined) {
-                        testrailMetadata['custom_database'] += ` - Version: ${(_r = (_q = platformData.platform.jahia) === null || _q === void 0 ? void 0 : _q.database) === null || _r === void 0 ? void 0 : _r.build}`;
+                        testrailMetadata['custom_database'] += ` - Version: ${(_r = (_q = platformData.platform.jahia) === null || _q === void 0 ? void 0 : _q.database) === null || _r === void 0 ? void 0 : _r.version}`;
                     }
                 }
-                if (((_t = (_s = platformData.platform.jahia) === null || _s === void 0 ? void 0 : _s.java) === null || _t === void 0 ? void 0 : _t.runtimeName) !== undefined) {
-                    testrailMetadata['custom_java'] = (_v = (_u = platformData.platform.jahia) === null || _u === void 0 ? void 0 : _u.java) === null || _v === void 0 ? void 0 : _v.runtimeName;
-                    if (((_x = (_w = platformData.platform.jahia) === null || _w === void 0 ? void 0 : _w.java) === null || _x === void 0 ? void 0 : _x.runtimeVersion) !== undefined) {
-                        testrailMetadata['custom_java'] += ` - Version: ${(_z = (_y = platformData.platform.jahia) === null || _y === void 0 ? void 0 : _y.java) === null || _z === void 0 ? void 0 : _z.runtimeVersion}`;
+                if (((_u = (_t = (_s = platformData.platform.jahia) === null || _s === void 0 ? void 0 : _s.system) === null || _t === void 0 ? void 0 : _t.java) === null || _u === void 0 ? void 0 : _u.runtimeName) !== undefined) {
+                    testrailMetadata['custom_java'] = (_x = (_w = (_v = platformData.platform.jahia) === null || _v === void 0 ? void 0 : _v.system) === null || _w === void 0 ? void 0 : _w.java) === null || _x === void 0 ? void 0 : _x.runtimeName;
+                    if (((_0 = (_z = (_y = platformData.platform.jahia) === null || _y === void 0 ? void 0 : _y.system) === null || _z === void 0 ? void 0 : _z.java) === null || _0 === void 0 ? void 0 : _0.runtimeVersion) !== undefined) {
+                        testrailMetadata['custom_java'] += ` - Version: ${(_3 = (_2 = (_1 = platformData.platform.jahia) === null || _1 === void 0 ? void 0 : _1.system) === null || _2 === void 0 ? void 0 : _2.java) === null || _3 === void 0 ? void 0 : _3.runtimeVersion}`;
                     }
                 }
-                if (((_1 = (_0 = platformData.platform.jahia) === null || _0 === void 0 ? void 0 : _0.os) === null || _1 === void 0 ? void 0 : _1.name) !== undefined) {
-                    testrailMetadata['custom_os'] = (_3 = (_2 = platformData.platform.jahia) === null || _2 === void 0 ? void 0 : _2.os) === null || _3 === void 0 ? void 0 : _3.name;
-                    if (((_5 = (_4 = platformData.platform.jahia) === null || _4 === void 0 ? void 0 : _4.os) === null || _5 === void 0 ? void 0 : _5.architecture) !== undefined) {
-                        testrailMetadata['custom_os'] += ` (${(_7 = (_6 = platformData.platform.jahia) === null || _6 === void 0 ? void 0 : _6.os) === null || _7 === void 0 ? void 0 : _7.architecture})`;
+                if (((_6 = (_5 = (_4 = platformData.platform.jahia) === null || _4 === void 0 ? void 0 : _4.system) === null || _5 === void 0 ? void 0 : _5.os) === null || _6 === void 0 ? void 0 : _6.name) !== undefined) {
+                    testrailMetadata['custom_os'] = (_9 = (_8 = (_7 = platformData.platform.jahia) === null || _7 === void 0 ? void 0 : _7.system) === null || _8 === void 0 ? void 0 : _8.os) === null || _9 === void 0 ? void 0 : _9.name;
+                    if (((_12 = (_11 = (_10 = platformData.platform.jahia) === null || _10 === void 0 ? void 0 : _10.system) === null || _11 === void 0 ? void 0 : _11.os) === null || _12 === void 0 ? void 0 : _12.architecture) !== undefined) {
+                        testrailMetadata['custom_os'] += ` (${(_15 = (_14 = (_13 = platformData.platform.jahia) === null || _13 === void 0 ? void 0 : _13.system) === null || _14 === void 0 ? void 0 : _14.os) === null || _15 === void 0 ? void 0 : _15.architecture})`;
                     }
-                    if (((_9 = (_8 = platformData.platform.jahia) === null || _8 === void 0 ? void 0 : _8.os) === null || _9 === void 0 ? void 0 : _9.version) !== undefined) {
-                        testrailMetadata['custom_os'] += ` - Version: ${(_11 = (_10 = platformData.platform.jahia) === null || _10 === void 0 ? void 0 : _10.os) === null || _11 === void 0 ? void 0 : _11.version}`;
+                    if (((_18 = (_17 = (_16 = platformData.platform.jahia) === null || _16 === void 0 ? void 0 : _16.system) === null || _17 === void 0 ? void 0 : _17.os) === null || _18 === void 0 ? void 0 : _18.version) !== undefined) {
+                        testrailMetadata['custom_os'] += ` - Version: ${(_21 = (_20 = (_19 = platformData.platform.jahia) === null || _19 === void 0 ? void 0 : _19.system) === null || _20 === void 0 ? void 0 : _20.os) === null || _21 === void 0 ? void 0 : _21.version}`;
                     }
                 }
             }
