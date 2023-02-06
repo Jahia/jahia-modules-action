@@ -1266,7 +1266,7 @@ function prepareTestrailMetadata(testsPath, testrailPlatformdata) {
     return __awaiter(this, void 0, void 0, function* () {
         const platformDataFile = path.join(testsPath, 'artifacts/results/', testrailPlatformdata);
         let testrailMetadata = {};
-        testrailMetadata['url'] = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+        testrailMetadata['custom_url'] = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
         if (fs.statSync(platformDataFile).isFile()) {
             const rawFile = fs.readFileSync(platformDataFile, 'utf8');
             const platformData = JSON.parse(rawFile.toString());
@@ -1277,9 +1277,9 @@ function prepareTestrailMetadata(testsPath, testrailPlatformdata) {
                 // response from Jahia GraphQL API and the metadata file to be used
                 // with testrail (this has to be defined somewhere)
                 if (((_b = (_a = platformData.platform.jahia) === null || _a === void 0 ? void 0 : _a.version) === null || _b === void 0 ? void 0 : _b.release) !== undefined) {
-                    testrailMetadata['version'] = (_d = (_c = platformData.platform.jahia) === null || _c === void 0 ? void 0 : _c.version) === null || _d === void 0 ? void 0 : _d.release;
+                    testrailMetadata['custom_version'] = (_d = (_c = platformData.platform.jahia) === null || _c === void 0 ? void 0 : _c.version) === null || _d === void 0 ? void 0 : _d.release;
                     if (((_f = (_e = platformData.platform.jahia) === null || _e === void 0 ? void 0 : _e.version) === null || _f === void 0 ? void 0 : _f.build) !== undefined) {
-                        testrailMetadata['version'] += ` - Build: ${(_h = (_g = platformData.platform.jahia) === null || _g === void 0 ? void 0 : _g.version) === null || _h === void 0 ? void 0 : _h.build}`;
+                        testrailMetadata['custom_version'] += ` - Build: ${(_h = (_g = platformData.platform.jahia) === null || _g === void 0 ? void 0 : _g.version) === null || _h === void 0 ? void 0 : _h.build}`;
                     }
                 }
                 if (((_k = (_j = platformData.platform.jahia) === null || _j === void 0 ? void 0 : _j.database) === null || _k === void 0 ? void 0 : _k.name) !== undefined) {

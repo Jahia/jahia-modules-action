@@ -21,7 +21,7 @@ export async function prepareTestrailMetadata(
 ) {
   const platformDataFile = path.join(testsPath, 'artifacts/results/', testrailPlatformdata)
   let testrailMetadata: TestrailMetadata = {}
-  testrailMetadata['url'] = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+  testrailMetadata['custom_url'] = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
 
   if (fs.statSync(platformDataFile).isFile()) {
     const rawFile = fs.readFileSync(platformDataFile, 'utf8')
@@ -35,9 +35,9 @@ export async function prepareTestrailMetadata(
       // response from Jahia GraphQL API and the metadata file to be used
       // with testrail (this has to be defined somewhere)
       if (platformData.platform.jahia?.version?.release !== undefined) {
-        testrailMetadata['version'] = platformData.platform.jahia?.version?.release
+        testrailMetadata['custom_version'] = platformData.platform.jahia?.version?.release
         if (platformData.platform.jahia?.version?.build !== undefined) {
-          testrailMetadata['version'] += ` - Build: ${platformData.platform.jahia?.version?.build}`
+          testrailMetadata['custom_version'] += ` - Build: ${platformData.platform.jahia?.version?.build}`
         }        
       }
 
