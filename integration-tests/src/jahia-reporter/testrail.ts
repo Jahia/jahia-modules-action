@@ -35,9 +35,9 @@ export async function prepareTestrailMetadata(
       // response from Jahia GraphQL API and the metadata file to be used
       // with testrail (this has to be defined somewhere)
       if (platformData.platform.jahia?.version?.release !== undefined) {
-        testrailMetadata['custom_version'] = platformData.platform.jahia?.version?.release
+        testrailMetadata['version'] = platformData.platform.jahia?.version?.release
         if (platformData.platform.jahia?.version?.build !== undefined) {
-          testrailMetadata['custom_version'] += ` - Build: ${platformData.platform.jahia?.version?.build}`
+          testrailMetadata['version'] += ` - Build: ${platformData.platform.jahia?.version?.build}`
         }        
       }
 
