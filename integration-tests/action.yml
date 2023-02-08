@@ -183,6 +183,10 @@ inputs:
     description: 'Testrail Password'
     required: false
     default: ''
+  testrail_platformdata:
+    description: 'Name of the file containing platform data to be sent to testrail as tests metadata'
+    required: false
+    default: 'installed-jahia-modules.json'    
   ci_startup_script:
     description: 'Startup script to use in-lieu of docker-compose up'
     required: false
