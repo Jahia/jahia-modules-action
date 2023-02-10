@@ -69,10 +69,8 @@ runs:
       shell: bash
       if: steps.check_test_module.outputs.files_exists == 'true'
       run: |
-        # Save current project folder
         ROOT_PATH=$(pwd)
         cd ${{ inputs.tests_module_path }}
-        echo "Building test module"
         mvn -B -U -ntp -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} clean install
 
     - name: Prepare artifacts
