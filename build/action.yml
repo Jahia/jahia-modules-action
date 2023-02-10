@@ -25,6 +25,10 @@ inputs:
     description: 'Time during which artifact are kept in Github infrastructure'
     required: false
     default: '2'
+  tests_module_path:
+    description: 'Path to a folder in the repository containing a tests module to be built'
+    required: false
+    default: 'tests/jahia-module/'    
 
 runs:
   using: 'composite'
@@ -54,6 +58,20 @@ runs:
     - name: Copy dependencies to provision artifacts
       shell: bash
       run: mvn -B -s ${{ inputs.mvn_settings_filepath }} dependency:copy-dependencies -DexcludeTransitive=true -DincludeScope=provided -DincludeGroupIds=org.jahia.modules -DincludeTypes=jar
+
+    - name: Check if test module is present
+      id: check_test_module
+      uses: andstor/file-existence-action@v2
+      with:
+        files: "${{ inputs.tests_module_path }}pom.xml"
+
+    - name: Build tests package
+      shell: bash
+      if: steps.check_test_module.outputs.files_exists == 'true'
+      run: |
+        cd ${{ inputs.tests_module_path }}
+        echo "Building test module"
+        mvn -B -U -ntp -s ${{ inputs.mvn_settings_filepath }} clean install
 
     - name: Prepare artifacts
       shell: bash
