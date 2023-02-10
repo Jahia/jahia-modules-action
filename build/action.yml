@@ -73,6 +73,7 @@ runs:
         cd ${{ inputs.tests_module_path }}
         mvn -B -U -ntp -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} clean install
 
+
     - name: Prepare artifacts
       shell: bash
       run: |
@@ -92,10 +93,10 @@ runs:
         fi
         if [ "${{ steps.check_test_module.outputs.files_exists }}" == "true" ]; then
           cd ${{ inputs.tests_module_path }}
-          find . -type f -path '*/target/*-SNAPSHOT*.jar' -exec cp '{}' /tmp/artifacts/ ';' || :
+          find . -type f -path '${{ inputs.tests_module_path }}/target/*-SNAPSHOT*.jar' -exec cp '{}' target/ ';' || :
         fi
-        echo "Displaying the content of /tmp/artifacts"
-        ls -lah /tmp/artifacts
+        echo "Displaying the content of target/"
+        ls -lah target/
 
     - name: Archive build artifacts
       if: always()
