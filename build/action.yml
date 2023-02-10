@@ -71,6 +71,7 @@ runs:
       run: |
         cd ${{ inputs.tests_module_path }}
         echo "Building test module"
+        ls -lah ${{ github.workspace }}/
         mvn -B -U -ntp -s ${{ github.workspace }}/${{ inputs.mvn_settings_filepath }} clean install
 
     - name: Prepare artifacts
