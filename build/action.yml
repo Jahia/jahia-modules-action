@@ -25,6 +25,10 @@ inputs:
     description: 'Time during which artifact are kept in Github infrastructure'
     required: false
     default: '2'
+  tests_module_path:
+    description: 'Path to a folder in the repository containing a tests module to be built'
+    required: false
+    default: 'tests/jahia-module/'    
 
 runs:
   using: 'composite'
@@ -55,23 +59,19 @@ runs:
       shell: bash
       run: mvn -B -s ${{ inputs.mvn_settings_filepath }} dependency:copy-dependencies -DexcludeTransitive=true -DincludeScope=provided -DincludeGroupIds=org.jahia.modules -DincludeTypes=jar
 
-    - name: Prepare artifacts
+    - name: Check if test module is present
+      id: check_test_module
+      uses: andstor/file-existence-action@v2
+      with:
+        files: "${{ inputs.tests_module_path }}pom.xml"
+
+    - name: Build tests package
       shell: bash
+      if: steps.check_test_module.outputs.files_exists == 'true'
       run: |
-        mkdir /tmp/artifacts/
-        find . -type f -path '*/target/*-SNAPSHOT*.jar' -exec cp '{}' /tmp/artifacts/ ';' || :
-        if [ -f target/*source-release.zip ]; then
-          echo "A source file is present, copying it to the artifacts folder"
-          cp target/*source-release.zip /tmp/artifacts/ || :
-        fi
-        if [ -d ${{ inputs.module_id }}/ ]; then
-          echo "Copying jar from: ${{ inputs.module_id }}/"
-          cp ${{ inputs.module_id }}/target/*.jar /tmp/artifacts/ || :
-          if [ ! -d target/ ]; then
-            mkdir target/
-          fi
-          cp ${{ inputs.module_id }}/target/*.jar target/ || :
-        fi
+        ROOT_PATH=$(pwd)
+        cd ${{ inputs.tests_module_path }}
+        mvn -B -U -ntp -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} clean install
 
     - name: Archive build artifacts
       if: always()
@@ -80,7 +80,8 @@ runs:
         name: build-artifacts
         path: |
           target/*
-          ./*/target/*
+          **/target/*.jar
+          **/*source-release.zip
         retention-days: ${{ inputs.github_artifact_retention }}
 
     - name: Keep session opened if /tmp/debug file is present
