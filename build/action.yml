@@ -92,7 +92,8 @@ runs:
           cp ${{ inputs.module_id }}/target/*.jar target/ || :
         fi
         if [ "${{ steps.check_test_module.outputs.files_exists }}" == "true" ]; then
-          find . -type f -path '${{ inputs.tests_module_path }}/target/*-SNAPSHOT*.jar' -exec cp '{}' target/ ';' || :
+          echo "Copying test artifacts"
+          find . -type f -path '${{ inputs.tests_module_path }}target/*-SNAPSHOT*.jar' -exec cp '{}' target/ ';' || :
         fi
         echo "Displaying the content of target/"
         ls -lah target/
