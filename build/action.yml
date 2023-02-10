@@ -71,7 +71,7 @@ runs:
       run: |
         cd ${{ inputs.tests_module_path }}
         echo "Building test module"
-        mvn -B -U -ntp -s ${{ inputs.mvn_settings_filepath }} clean install
+        mvn -B -U -ntp -s ${{ github.workspace }}${{ inputs.mvn_settings_filepath }} clean install
 
     - name: Prepare artifacts
       shell: bash
@@ -90,6 +90,12 @@ runs:
           fi
           cp ${{ inputs.module_id }}/target/*.jar target/ || :
         fi
+        if [ "${{ steps.check_test_module.outputs.files_exists }}" == "true" ]; then
+          cd ${{ inputs.tests_module_path }}
+          find . -type f -path '*/target/*-SNAPSHOT*.jar' -exec cp '{}' /tmp/artifacts/ ';' || :
+        fi
+        echo "Displaying the content of /tmp/artifacts"
+        ls -lah /tmp/artifacts
 
     - name: Archive build artifacts
       if: always()
