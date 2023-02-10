@@ -12,6 +12,10 @@ inputs:
   nexus_password:
     description: 'Nexus Password'
     required: true
+  tests_module_path:
+    description: 'Path to a folder in the repository containing a tests module to be built'
+    required: false
+    default: 'tests/jahia-module/'  
 
 runs:
   using: "composite"
