@@ -36,6 +36,20 @@ runs:
       shell: bash
       run: mvn -B -s ${{ inputs.mvn_settings_filepath }} clean deploy | tee mvnLogs.txt
 
+    - name: Check if test module is present
+      id: check_test_module
+      uses: andstor/file-existence-action@v2
+      with:
+        files: "${{ inputs.tests_module_path }}pom.xml"
+
+    - name: Publish tests package (if present)
+      shell: bash
+      if: steps.check_test_module.outputs.files_exists == 'true'
+      run: |
+        ROOT_PATH=$(pwd)
+        cd ${{ inputs.tests_module_path }}
+        mvn -B -U -ntp -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} clean deploy
+
     - name: Direct link location of the Artifact
       shell: bash
       run: |
