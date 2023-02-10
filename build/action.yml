@@ -73,7 +73,8 @@ runs:
         cd ${{ inputs.tests_module_path }}
         mvn -B -U -ntp -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} clean install
 
-
+    # This whole section might actually be redundant with the paths defined 
+    # in the upload-artifact action
     - name: Prepare artifacts
       shell: bash
       run: |
@@ -91,13 +92,6 @@ runs:
           fi
           cp ${{ inputs.module_id }}/target/*.jar target/ || :
         fi
-        if [ "${{ steps.check_test_module.outputs.files_exists }}" == "true" ]; then
-          echo "Copying test artifacts"
-          find . -type f -path '${{ inputs.tests_module_path }}target/*-SNAPSHOT*.jar' -exec cp '{}' target/ ';' || :
-          find . -type f -path '${{ inputs.tests_module_path }}*/target/*-SNAPSHOT*.jar' -exec cp '{}' target/ ';' || :
-        fi
-        echo "Displaying the content of target/"
-        ls -lah target/
 
     - name: Archive build artifacts
       if: always()
@@ -106,7 +100,8 @@ runs:
         name: build-artifacts
         path: |
           target/*
-          ./*/target/*
+          **/target/*.jar
+          **/*source-release.zip
         retention-days: ${{ inputs.github_artifact_retention }}
 
     - name: Keep session opened if /tmp/debug file is present
