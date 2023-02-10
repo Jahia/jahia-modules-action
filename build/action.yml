@@ -73,26 +73,6 @@ runs:
         cd ${{ inputs.tests_module_path }}
         mvn -B -U -ntp -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} clean install
 
-    # This whole section might actually be redundant with the paths defined 
-    # in the upload-artifact action
-    - name: Prepare artifacts
-      shell: bash
-      run: |
-        mkdir /tmp/artifacts/
-        find . -type f -path '*/target/*-SNAPSHOT*.jar' -exec cp '{}' /tmp/artifacts/ ';' || :
-        if [ -f target/*source-release.zip ]; then
-          echo "A source file is present, copying it to the artifacts folder"
-          cp target/*source-release.zip /tmp/artifacts/ || :
-        fi
-        if [ -d ${{ inputs.module_id }}/ ]; then
-          echo "Copying jar from: ${{ inputs.module_id }}/"
-          cp ${{ inputs.module_id }}/target/*.jar /tmp/artifacts/ || :
-          if [ ! -d target/ ]; then
-            mkdir target/
-          fi
-          cp ${{ inputs.module_id }}/target/*.jar target/ || :
-        fi
-
     - name: Archive build artifacts
       if: always()
       uses: actions/upload-artifact@v3
