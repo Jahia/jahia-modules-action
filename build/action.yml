@@ -93,10 +93,10 @@ runs:
         fi
         if [ "${{ steps.check_test_module.outputs.files_exists }}" == "true" ]; then
           cd ${{ inputs.tests_module_path }}
-          find . -type f -path '${{ inputs.tests_module_path }}/target/*-SNAPSHOT*.jar' -exec cp '{}' target/ ';' || :
+          find . -type f -path '${{ inputs.tests_module_path }}/target/*-SNAPSHOT*.jar' -exec cp '{}' /tmp/artifacts/ ';' || :
         fi
         echo "Displaying the content of target/"
-        ls -lah target/
+        ls -lah /tmp/artifacts/
 
     - name: Archive build artifacts
       if: always()
@@ -106,6 +106,7 @@ runs:
         path: |
           target/*
           ./*/target/*
+          /tmp/artifacts/
         retention-days: ${{ inputs.github_artifact_retention }}
 
     - name: Keep session opened if /tmp/debug file is present
