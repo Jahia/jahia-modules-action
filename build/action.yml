@@ -81,6 +81,7 @@ runs:
         path: |
           target/*
           ./*/target/*
+          **/*source-release.zip
           !${{ inputs.tests_module_path }}*
         retention-days: ${{ inputs.github_artifact_retention }}
 
@@ -90,7 +91,7 @@ runs:
       with:
         name: build-artifacts
         path: |
-          ${{ inputs.tests_module_path }}*.jar
+          ${{ inputs.tests_module_path }}**/target/*.jar
         retention-days: ${{ inputs.github_artifact_retention }}
 
     - name: Keep session opened if /tmp/debug file is present
