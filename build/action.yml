@@ -80,8 +80,18 @@ runs:
         name: build-artifacts
         path: |
           target/*
-          **/target/*.jar
+          ./*/target/*
           **/*source-release.zip
+          !${{ inputs.tests_module_path }}*
+        retention-days: ${{ inputs.github_artifact_retention }}
+
+    - name: Archive test artifacts
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifacts
+        path: |
+          ${{ inputs.tests_module_path }}**/target/*.jar
         retention-days: ${{ inputs.github_artifact_retention }}
 
     - name: Keep session opened if /tmp/debug file is present
