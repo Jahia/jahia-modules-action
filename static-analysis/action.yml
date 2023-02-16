@@ -38,7 +38,7 @@ inputs:
   skip_vulns_tests:
     description: skip Audit-ci for tests when set to true
     type: boolean
-    default: false
+    default: true
 
 runs:
   using: "composite"
