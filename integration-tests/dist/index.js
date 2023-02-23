@@ -508,6 +508,7 @@ __exportStar(__nccwpck_require__(9269), exports);
 __exportStar(__nccwpck_require__(642), exports);
 __exportStar(__nccwpck_require__(3105), exports);
 __exportStar(__nccwpck_require__(9530), exports);
+__exportStar(__nccwpck_require__(5607), exports);
 __exportStar(__nccwpck_require__(263), exports);
 __exportStar(__nccwpck_require__(8329), exports);
 
@@ -754,6 +755,74 @@ function startDockerEnvironment(testsFolder, ciStartupScript, dockerComposeFile,
     });
 }
 exports.startDockerEnvironment = startDockerEnvironment;
+
+
+/***/ }),
+
+/***/ 5607:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.stopDockerEnvironment = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const system_1 = __nccwpck_require__(7885);
+function stopDockerEnvironment(testsFolder, loggingMode) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.info(`Listing all containers that are still running`);
+        yield (0, system_1.runShellCommands)([`docker ps`], 'artifacts/stop.log', {
+            cwd: testsFolder,
+            ignoreReturnCode: true,
+            loggingMode
+        });
+        core.info(`Stopping all running containers`);
+        yield (0, system_1.runShellCommands)([`docker stop $(docker ps -a -q)`], 'artifacts/stop.log', {
+            cwd: testsFolder,
+            ignoreReturnCode: true,
+            loggingMode
+        });
+        core.info(`Prunning all images and containers`);
+        yield (0, system_1.runShellCommands)([`docker system prune -a -f`], 'artifacts/stop.log', {
+            cwd: testsFolder,
+            ignoreReturnCode: true,
+            loggingMode
+        });
+    });
+}
+exports.stopDockerEnvironment = stopDockerEnvironment;
 
 
 /***/ }),
@@ -1530,6 +1599,10 @@ function run() {
             // Execute post-run script
             yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🐋 Execute Postrun script`, () => __awaiter(this, void 0, void 0, function* () {
                 yield (0, docker_1.executePostrunScript)(testsFolder, core.getInput('ci_postrun_script'));
+            }));
+            // Shut down the containers and clean system
+            yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🐋 Stopping the Docker environment`, () => __awaiter(this, void 0, void 0, function* () {
+                yield (0, docker_1.stopDockerEnvironment)(testsFolder, core.getInput('logging_mode'));
             }));
             // Display a short "console" report directly in the run output
             yield (0, jahia_reporter_1.showTestsSummary)(testsFolder);

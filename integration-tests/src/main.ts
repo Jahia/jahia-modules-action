@@ -16,7 +16,8 @@ import {
   executePostrunScript,
   login,
   pullDockerImages,
-  startDockerEnvironment
+  startDockerEnvironment,
+  stopDockerEnvironment
 } from './docker'
 import {
   setEnvironmentVariables,
@@ -195,6 +196,17 @@ async function run(): Promise<void> {
         await executePostrunScript(
           testsFolder,
           core.getInput('ci_postrun_script')
+        )
+      }
+    )
+
+    // Shut down the containers and clean system
+    await core.group(
+      `${timeSinceStart(startTime)} 🐋 Stopping the Docker environment`,
+      async () => {
+        await stopDockerEnvironment(
+          testsFolder,
+          core.getInput('logging_mode')
         )
       }
     )
