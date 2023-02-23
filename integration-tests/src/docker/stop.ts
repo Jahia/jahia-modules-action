@@ -14,7 +14,7 @@ export async function stopDockerEnvironment(
   })
 
   core.info(`Stopping all running containers`)
-  await runShellCommands([`docker stop $(docker ps -a -q)`], 'artifacts/stop.log', {
+  await runShellCommands([`docker ps -aq | xargs docker stop | xargs docker rm`], 'artifacts/stop.log', {
     cwd: testsFolder,
     ignoreReturnCode: true,
     loggingMode

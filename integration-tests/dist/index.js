@@ -809,7 +809,7 @@ function stopDockerEnvironment(testsFolder, loggingMode) {
             loggingMode
         });
         core.info(`Stopping all running containers`);
-        yield (0, system_1.runShellCommands)([`docker stop $(docker ps -a -q)`], 'artifacts/stop.log', {
+        yield (0, system_1.runShellCommands)([`docker ps -aq | xargs docker stop | xargs docker rm`], 'artifacts/stop.log', {
             cwd: testsFolder,
             ignoreReturnCode: true,
             loggingMode
