@@ -820,6 +820,12 @@ function stopDockerEnvironment(testsFolder, loggingMode) {
             ignoreReturnCode: true,
             loggingMode
         });
+        core.info(`Listing all containers running (if any)`);
+        yield (0, system_1.runShellCommands)([`docker ps`], 'artifacts/stop.log', {
+            cwd: testsFolder,
+            ignoreReturnCode: true,
+            loggingMode
+        });
     });
 }
 exports.stopDockerEnvironment = stopDockerEnvironment;

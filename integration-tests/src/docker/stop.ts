@@ -27,4 +27,11 @@ export async function stopDockerEnvironment(
     loggingMode
   })  
 
+  core.info(`Listing all containers running (if any)`)
+  await runShellCommands([`docker ps`], 'artifacts/stop.log', {
+    cwd: testsFolder,
+    ignoreReturnCode: true,
+    loggingMode
+  })
+
 }
