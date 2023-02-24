@@ -1,4 +1,5 @@
 import * as core from '@actions/core'
+import * as exec from '@actions/exec'
 
 import {runShellCommands} from '../utils/system'
 
@@ -14,11 +15,34 @@ export async function stopDockerEnvironment(
   })
 
   core.info(`Stopping all running containers`)
-  await runShellCommands([`docker ps -aq | xargs docker stop | xargs docker rm`], 'artifacts/stop.log', {
-    cwd: testsFolder,
-    ignoreReturnCode: true,
-    loggingMode
-  })
+  await exec
+    .getExecOutput('docker', ['ps', '-aq'], {
+      ignoreReturnCode: true,
+      silent: true,
+    })
+    .then(async res => {
+      const containers = res.stdout.split(/\r?\n/)
+      for (const container of containers.filter(c => c.length > 5)) {
+        core.info(`Stopping container: ${container}`)
+        await exec
+        .getExecOutput('docker', ['stop', container], {
+          ignoreReturnCode: true,
+          silent: true,
+        })
+        .then(res => {
+          if (res.stderr.length > 0 && res.exitCode != 0) {
+            core.info(`Unable to stop container: ${container}`)            
+          }
+          core.info(`Container ${container} stopped`)
+        })
+      }
+      console.log(res)
+    })  
+  // await runShellCommands([`docker ps -aq | xargs docker stop | xargs docker rm`], 'artifacts/stop.log', {
+  //   cwd: testsFolder,
+  //   ignoreReturnCode: true,
+  //   loggingMode
+  // })
 
   core.info(`Prunning all images and containers`)
   await runShellCommands([`docker system prune -a -f`], 'artifacts/stop.log', {

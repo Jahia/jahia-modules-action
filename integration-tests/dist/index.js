@@ -799,6 +799,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.stopDockerEnvironment = void 0;
 const core = __importStar(__nccwpck_require__(2186));
+const exec = __importStar(__nccwpck_require__(1514));
 const system_1 = __nccwpck_require__(7885);
 function stopDockerEnvironment(testsFolder, loggingMode) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -809,11 +810,34 @@ function stopDockerEnvironment(testsFolder, loggingMode) {
             loggingMode
         });
         core.info(`Stopping all running containers`);
-        yield (0, system_1.runShellCommands)([`docker ps -aq | xargs docker stop | xargs docker rm`], 'artifacts/stop.log', {
-            cwd: testsFolder,
+        yield exec
+            .getExecOutput('docker', ['ps', '-aq'], {
             ignoreReturnCode: true,
-            loggingMode
-        });
+            silent: true,
+        })
+            .then((res) => __awaiter(this, void 0, void 0, function* () {
+            const containers = res.stdout.split(/\r?\n/);
+            for (const container of containers.filter(c => c.length > 5)) {
+                core.info(`Stopping container: ${container}`);
+                yield exec
+                    .getExecOutput('docker', ['stop', container], {
+                    ignoreReturnCode: true,
+                    silent: true,
+                })
+                    .then(res => {
+                    if (res.stderr.length > 0 && res.exitCode != 0) {
+                        core.info(`Unable to stop container: ${container}`);
+                    }
+                    core.info(`Container ${container} stopped`);
+                });
+            }
+            console.log(res);
+        }));
+        // await runShellCommands([`docker ps -aq | xargs docker stop | xargs docker rm`], 'artifacts/stop.log', {
+        //   cwd: testsFolder,
+        //   ignoreReturnCode: true,
+        //   loggingMode
+        // })
         core.info(`Prunning all images and containers`);
         yield (0, system_1.runShellCommands)([`docker system prune -a -f`], 'artifacts/stop.log', {
             cwd: testsFolder,
