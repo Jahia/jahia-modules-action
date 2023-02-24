@@ -21,6 +21,7 @@ export async function stopDockerEnvironment(
       silent: true,
     })
     .then(async res => {
+      core.info(`Output of ps -aq ${JSON.stringify(res)}`)
       const containers = res.stdout.split(/\r?\n/)
       for (const container of containers.filter(c => c.length > 5)) {
         core.info(`Stopping container: ${container}`)
@@ -36,13 +37,7 @@ export async function stopDockerEnvironment(
           core.info(`Container ${container} stopped`)
         })
       }
-      console.log(res)
     })  
-  // await runShellCommands([`docker ps -aq | xargs docker stop | xargs docker rm`], 'artifacts/stop.log', {
-  //   cwd: testsFolder,
-  //   ignoreReturnCode: true,
-  //   loggingMode
-  // })
 
   core.info(`Prunning all images and containers`)
   await runShellCommands([`docker system prune -a -f`], 'artifacts/stop.log', {
