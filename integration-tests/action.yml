@@ -380,6 +380,15 @@ runs:
           echo "::endgroup::"
         fi
 
+    - name: Clean docker containers
+      shell: bash
+      if: always()
+      run: |
+        docker ps -aq
+        docker stop $(docker ps -a -q)
+        docker rm $(docker ps -a -q)
+        docker system prune -a -f
+
     # Once all is executed, results are submitted to external platforms
     # Testrail report and Slack (failure only) notifications are sent during scheduled executions or merged into the main branch 
     - name: Publish results to testrail
