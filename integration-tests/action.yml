@@ -384,10 +384,13 @@ runs:
       shell: bash
       if: always()
       run: |
+        echo "Running containers before the cleanup"
         docker ps -aq
         docker stop $(docker ps -a -q)
         docker rm $(docker ps -a -q)
         docker system prune -a -f
+        echo "Running containers after the cleanup"        
+        docker ps -aq        
 
     # Once all is executed, results are submitted to external platforms
     # Testrail report and Slack (failure only) notifications are sent during scheduled executions or merged into the main branch 
