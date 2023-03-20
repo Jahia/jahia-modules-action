@@ -94,7 +94,7 @@ runs:
           ${{ inputs.tests_module_path }}**/target/*.jar
         retention-days: ${{ inputs.github_artifact_retention }}
 
-    - name: Archive SBOm artifacts
+    - name: Archive SBOM artifacts
       if: always()
       uses: actions/upload-artifact@v3
       with:
