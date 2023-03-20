@@ -100,8 +100,8 @@ runs:
       with:
         name: sbom-artifacts
         path: |
-          java-bom*
-          classes/javascript/apps/bom/*
+          target/java-bom*
+          target/classes/javascript/apps/bom/*
         retention-days: ${{ inputs.github_artifact_retention }}
 
     - name: Keep session opened if /tmp/debug file is present
