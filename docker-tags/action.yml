@@ -153,13 +153,10 @@ runs:
         if [ "$LATEST" == "${{ env.PARAM_VERSION }}" ]; then
             echo "$(date +'%d %B %Y - %k:%M') - Tag: latest${{ env.PARAM_VERSION_CLASSIFIER}} should be an alias of ${LATEST}, tag update is required"
             if [[ "${{ env.PARAM_DRYRUN }}" == "false" ]]; then
-                echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker tag ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:latest${{ env.PARAM_VERSION_CLASSIFIER}}"
-                docker tag "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION }}" "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":latest"${{ env.PARAM_VERSION_CLASSIFIER}}"
-                echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker push ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:latest${{ env.PARAM_VERSION_CLASSIFIER}}"        
-                docker push "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":latest"${{ env.PARAM_VERSION_CLASSIFIER}}"
+                echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:latest${{ env.PARAM_VERSION_CLASSIFIER}} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}"
+                docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:latest${{ env.PARAM_VERSION_CLASSIFIER}} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}
             else
-                echo "$(date +'%d %B %Y - %k:%M') - DRY-RUN (command not executed): docker tag ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:latest${{ env.PARAM_VERSION_CLASSIFIER}}"
-                echo "$(date +'%d %B %Y - %k:%M') - DRY-RUN (command not executed): docker push ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:latest${{ env.PARAM_VERSION_CLASSIFIER}}"
+                echo "$(date +'%d %B %Y - %k:%M') - DRY-RUN (command not executed): docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:latest${{ env.PARAM_VERSION_CLASSIFIER}}" ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}
             fi
         else
             echo "$(date +'%d %B %Y - %k:%M') - Tag: latest is an alias of ${LATEST}, unchanged"
@@ -168,14 +165,11 @@ runs:
         if [ "$MATCHING1" == "${{ env.PARAM_VERSION }}" ]; then
             echo "$(date +'%d %B %Y - %k:%M') - Tag: ${{ env.PARAM_VERSION_MAJOR }}${{ env.PARAM_VERSION_CLASSIFIER}} should be an alias of ${MATCHING1}, tag update is required"
             if [[ "${{ env.PARAM_DRYRUN }}" == "false" ]]; then
-                echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker tag ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}${{ env.PARAM_VERSION_CLASSIFIER}}"
-                docker tag "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION }}" "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION_MAJOR }}""${{ env.PARAM_VERSION_CLASSIFIER}}"
-                echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker push ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}${{ env.PARAM_VERSION_CLASSIFIER}}"        
-                docker push "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION_MAJOR }}""${{ env.PARAM_VERSION_CLASSIFIER}}"
+                echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}${{ env.PARAM_VERSION_CLASSIFIER}} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}"
+                docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}${{ env.PARAM_VERSION_CLASSIFIER}} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}
             else
-                echo "$(date +'%d %B %Y - %k:%M') - DRY-RUN (command not executed): docker tag ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}${{ env.PARAM_VERSION_CLASSIFIER}}"
-                echo "$(date +'%d %B %Y - %k:%M') - DRY-RUN (command not executed): docker push ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}${{ env.PARAM_VERSION_CLASSIFIER}}"
-            fi      
+                echo "$(date +'%d %B %Y - %k:%M') - DRY-RUN (command not executed): docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}${{ env.PARAM_VERSION_CLASSIFIER}} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}"
+            fi
         else
             echo "$(date +'%d %B %Y - %k:%M') - Tag: ${{ env.PARAM_VERSION_MAJOR }}${{ env.PARAM_VERSION_CLASSIFIER}} is an alias of ${MATCHING1}, unchanged"
         fi
@@ -183,14 +177,11 @@ runs:
         if [ "$MATCHING2" == "${{ env.PARAM_VERSION }}" ]; then
             echo "$(date +'%d %B %Y - %k:%M') - Tag: ${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}${{ env.PARAM_VERSION_CLASSIFIER}} should be  an alias of ${MATCHING2}, tag update is required"
             if [[ "${{ env.PARAM_DRYRUN }}" == "false" ]]; then
-                echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker tag ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}${{ env.PARAM_VERSION_CLASSIFIER}}"
-                docker tag "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION }}" "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION_MAJOR }}"."${{ env.PARAM_VERSION_MINOR}}""${{ env.PARAM_VERSION_CLASSIFIER}}"
-                echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker push ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}${{ env.PARAM_VERSION_CLASSIFIER}}"        
-                docker push "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION_MAJOR }}"."${{ env.PARAM_VERSION_MINOR}}""${{ env.PARAM_VERSION_CLASSIFIER}}"
+                echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}${{ env.PARAM_VERSION_CLASSIFIER}} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}"
+                docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}${{ env.PARAM_VERSION_CLASSIFIER}} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}            
             else
-                echo "$(date +'%d %B %Y - %k:%M') - DRY-RUN (command not executed): docker tag ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}${{ env.PARAM_VERSION_CLASSIFIER}}"
-                echo "$(date +'%d %B %Y - %k:%M') - DRY-RUN (command not executed): docker push ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}${{ env.PARAM_VERSION_CLASSIFIER}}"
-            fi          
+                echo "$(date +'%d %B %Y - %k:%M') - DRY-RUN (command not executed): docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}${{ env.PARAM_VERSION_CLASSIFIER}} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}"
+            fi
         else
             echo "$(date +'%d %B %Y - %k:%M') - Tag: ${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}${{ env.PARAM_VERSION_CLASSIFIER}} is an alias of ${MATCHING2}, unchanged"
         fi
@@ -198,14 +189,11 @@ runs:
         if [ "$MATCHING3" == "${{ env.PARAM_VERSION }}" ]; then
             echo "$(date +'%d %B %Y - %k:%M') - Tag: ${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}.${{ env.PARAM_VERSION_HF}}${{ env.PARAM_VERSION_CLASSIFIER}} should be  an alias of ${MATCHING3}, tag update is required"
             if [[ "${{ env.PARAM_DRYRUN }}" == "false" ]]; then
-                echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker tag ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}.${{ env.PARAM_VERSION_HF}}${{ env.PARAM_VERSION_CLASSIFIER}}"
-                docker tag "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION }}" "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION_MAJOR }}"."${{ env.PARAM_VERSION_MINOR}}"."${{ env.PARAM_VERSION_HF}}""${{ env.PARAM_VERSION_CLASSIFIER}}"
-                echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker push ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}.${{ env.PARAM_VERSION_HF}}${{ env.PARAM_VERSION_CLASSIFIER}}"        
-                docker push "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION_MAJOR }}"."${{ env.PARAM_VERSION_MINOR}}"."${{ env.PARAM_VERSION_HF}}""${{ env.PARAM_VERSION_CLASSIFIER}}"
+                echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}.${{ env.PARAM_VERSION_HF}}${{ env.PARAM_VERSION_CLASSIFIER}} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}"
+                docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}.${{ env.PARAM_VERSION_HF}}${{ env.PARAM_VERSION_CLASSIFIER}} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}
             else
-                echo "$(date +'%d %B %Y - %k:%M') - DRY-RUN (command not executed): docker tag ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}.${{ env.PARAM_VERSION_HF}}${{ env.PARAM_VERSION_CLASSIFIER}}"
-                echo "$(date +'%d %B %Y - %k:%M') - DRY-RUN (command not executed): docker push ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}.${{ env.PARAM_VERSION_HF}}${{ env.PARAM_VERSION_CLASSIFIER}}"
-            fi           
+                echo "$(date +'%d %B %Y - %k:%M') - DRY-RUN (command not executed): docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}.${{ env.PARAM_VERSION_HF}}${{ env.PARAM_VERSION_CLASSIFIER}} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}"
+            fi
         else
             echo "$(date +'%d %B %Y - %k:%M') - Tag: ${{ env.PARAM_VERSION_MAJOR }}.${{ env.PARAM_VERSION_MINOR}}.${{ env.PARAM_VERSION_HF}}${{ env.PARAM_VERSION_CLASSIFIER}} is an alias of ${MATCHING3}, unchanged"
         fi
