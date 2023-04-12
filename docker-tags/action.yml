@@ -156,7 +156,7 @@ runs:
                 echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:latest${{ env.PARAM_VERSION_CLASSIFIER}} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}"
                 docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:latest${{ env.PARAM_VERSION_CLASSIFIER}} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}
             else
-                echo "$(date +'%d %B %Y - %k:%M') - DRY-RUN (command not executed): docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:latest${{ env.PARAM_VERSION_CLASSIFIER}}" ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}
+                echo "$(date +'%d %B %Y - %k:%M') - DRY-RUN (command not executed): docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:latest${{ env.PARAM_VERSION_CLASSIFIER}} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}"
             fi
         else
             echo "$(date +'%d %B %Y - %k:%M') - Tag: latest is an alias of ${LATEST}, unchanged"
