@@ -1424,6 +1424,7 @@ function publishToTestrail(testsPath, options) {
         command += ` --sourcePath="${reportsPath}"`;
         command += ' --sourceType="xml"';
         command += ` --projectName="${options.testrailProject}"`;
+        command += ` --parentSection="${options.testrailParentSection}"`;
         command += ` --milestone="${options.testrailMilestone}"`;
         command += ` --defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
         command += ` --testrailCustomResultFields="${metadataFile}"`;
@@ -1632,6 +1633,7 @@ function run() {
             // Display a short "console" report directly in the run output
             yield (0, jahia_reporter_1.showTestsSummary)(testsFolder);
             // Publish results to testrail
+            // Publish to testrail - into separate project
             if (core.getInput('should_skip_testrail') === 'false' ||
                 core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH) {
                 yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Publishing results to Testrail`, () => __awaiter(this, void 0, void 0, function* () {
@@ -1639,7 +1641,22 @@ function run() {
                     yield (0, jahia_reporter_1.publishToTestrail)(testsFolder, {
                         testrailUsername: core.getInput('testrail_username'),
                         testrailPassword: core.getInput('testrail_password'),
+                        testrailParentSection: '',
                         testrailProject: core.getInput('testrail_project'),
+                        testrailMilestone: core.getInput('testrail_milestone')
+                    });
+                }));
+            }
+            // Publish to testrail into Jahia-CI project
+            if (core.getInput('should_skip_testrail') === 'false' ||
+                core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH) {
+                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Publishing results to Testrail JahiaCI`, () => __awaiter(this, void 0, void 0, function* () {
+                    yield (0, jahia_reporter_1.prepareTestrailMetadata)(testsFolder, core.getInput('testrail_platformdata'));
+                    yield (0, jahia_reporter_1.publishToTestrail)(testsFolder, {
+                        testrailUsername: core.getInput('testrail_username'),
+                        testrailPassword: core.getInput('testrail_password'),
+                        testrailParentSection: core.getInput('testrail_project'),
+                        testrailProject: core.getInput('JahiaCI'),
                         testrailMilestone: core.getInput('testrail_milestone')
                     });
                 }));

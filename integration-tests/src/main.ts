@@ -215,6 +215,7 @@ async function run(): Promise<void> {
     await showTestsSummary(testsFolder)
 
     // Publish results to testrail
+    // Publish to testrail - into separate project
     if (
       core.getInput('should_skip_testrail') === 'false' ||
       core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
@@ -227,7 +228,29 @@ async function run(): Promise<void> {
           await publishToTestrail(testsFolder, {
             testrailUsername: core.getInput('testrail_username'),
             testrailPassword: core.getInput('testrail_password'),
+            testrailParentSection: '',
             testrailProject: core.getInput('testrail_project'),
+            testrailMilestone: core.getInput('testrail_milestone')
+          })
+        }
+      )
+    }
+
+    // Publish to testrail into Jahia-CI project
+    if (
+      core.getInput('should_skip_testrail') === 'false' ||
+      core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
+    ) {
+      await core.group(
+        `${timeSinceStart(startTime)} 🛠️ Publishing results to Testrail JahiaCI`,
+        async () => {
+          await prepareTestrailMetadata(testsFolder, core.getInput('testrail_platformdata'))
+
+          await publishToTestrail(testsFolder, {
+            testrailUsername: core.getInput('testrail_username'),
+            testrailPassword: core.getInput('testrail_password'),
+            testrailParentSection: core.getInput('testrail_project'),
+            testrailProject: core.getInput('JahiaCI'),
             testrailMilestone: core.getInput('testrail_milestone')
           })
         }
