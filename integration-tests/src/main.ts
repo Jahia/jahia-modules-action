@@ -250,7 +250,7 @@ async function run(): Promise<void> {
             testrailUsername: core.getInput('testrail_username'),
             testrailPassword: core.getInput('testrail_password'),
             testrailParentSection: core.getInput('testrail_project'),
-            testrailProject: core.getInput('JahiaCI'),
+            testrailProject: 'JahiaCI',
             testrailMilestone: core.getInput('testrail_milestone')
           })
         }
