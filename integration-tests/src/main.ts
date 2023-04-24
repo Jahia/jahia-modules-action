@@ -221,7 +221,7 @@ async function run(): Promise<void> {
       core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
     ) {
       await core.group(
-        `${timeSinceStart(startTime)} 🛠️ Publishing results to Testrail`,
+        `${timeSinceStart(startTime)} 🛠️ Publishing results to Testrail project: ${core.getInput('testrail_project')}`,
         async () => {
           await prepareTestrailMetadata(testsFolder, core.getInput('testrail_platformdata'))
 
@@ -239,10 +239,11 @@ async function run(): Promise<void> {
     // Publish to testrail into Jahia-CI project
     if (
       core.getInput('should_skip_testrail') === 'false' ||
-      core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
+      core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH ||
+      core.getInput('should_skip_jahiaCIreporting') !== 'true'
     ) {
       await core.group(
-        `${timeSinceStart(startTime)} 🛠️ Publishing results to Testrail JahiaCI`,
+        `${timeSinceStart(startTime)} 🛠️ Publishing results to Testrail project: ${core.getInput('testrail_project')}`,
         async () => {
           await prepareTestrailMetadata(testsFolder, core.getInput('testrail_platformdata'))
 
