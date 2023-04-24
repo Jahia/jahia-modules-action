@@ -35,10 +35,23 @@ inputs:
     description: 'Name of the artifact target folder that was saved from build stage (using upload-artifact)'
     required: false
     default: 'build-artifacts'
+  java_distribution:
+    description: 'Name of the Java distribution to load and use'
+    required: false
+    default: 'temurin'    
+  java_version:
+    description: 'Version of Java to load and use for the analysis'
+    required: false
+    default: '11'
 
 runs:
   using: 'composite'
   steps:
+    - uses: actions/setup-java@v3
+      with:
+        distribution: ${{ inputs.java_distribution }}
+        java-version: ${{ inputs.java_version }}
+
     - name: Set environment variables from parameters
       shell: bash
       run: |
