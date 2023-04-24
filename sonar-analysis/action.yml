@@ -87,6 +87,12 @@ runs:
       run: echo "branch=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_OUTPUT
       id: extract_branch
 
+    - name: Display branch name
+      shell: bash
+      run: |
+        echo "BRANCH: ${{ steps.extract_branch.outputs.branch }}"
+        echo "GITHUB_REF: ${GITHUB_REF}"
+
     - name: Set common Sonar parameters
       shell: bash
       run: |
