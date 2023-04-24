@@ -28,9 +28,9 @@ export async function prepareTestrailMetadata(
     const rawFile = fs.readFileSync(platformDataFile, 'utf8')
     const platformData = JSON.parse(rawFile.toString())
 
-    core.notice(`Parsed platform file: ${platformDataFile}`)
+    core.info(`Parsed platform file: ${platformDataFile}`)
     if (platformData.platform !== undefined) {
-      core.notice(`Its content is: ${JSON.stringify(platformData.platform)}`)
+      core.info(`Its content is: ${JSON.stringify(platformData.platform)}`)
 
       // In this section, we're statically defining the link between the
       // response from Jahia GraphQL API and the metadata file to be used
@@ -66,16 +66,16 @@ export async function prepareTestrailMetadata(
         }
       }
     } else {
-      core.notice(`Unable to find a platform object inside the file`)
+      core.info(`Unable to find a platform object inside the file`)
     }
   } else {
-    core.notice(`Unable to parse platform data file: ${platformDataFile}`)
+    core.info(`Unable to parse platform data file: ${platformDataFile}`)
   }
 
   // Always write a testrail metadata file, even if there is no data
   const metadataFile = path.join(testsPath, 'artifacts/results/testrail-metadata.json')
-  core.notice(`Preparing to write: ${JSON.stringify(testrailMetadata)}`)
-  core.notice(`To file: ${metadataFile}`)
+  core.info(`Preparing to write: ${JSON.stringify(testrailMetadata)}`)
+  core.info(`To file: ${metadataFile}`)
   fs.writeFileSync(
     metadataFile,
     JSON.stringify(testrailMetadata)
@@ -109,6 +109,6 @@ export async function publishToTestrail(
 
   if (fs.statSync(testrailLinkFile).isFile()) {
     const rawFile = fs.readFileSync(testrailLinkFile, 'utf8')
-    core.notice(`Testrail run available at: ${rawFile.toString()}`)
+    core.info(`Testrail run available at: ${rawFile.toString()}`)
   }
 }
