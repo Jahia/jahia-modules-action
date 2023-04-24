@@ -243,7 +243,7 @@ async function run(): Promise<void> {
       core.getInput('should_skip_jahiaCIreporting') !== 'true'
     ) {
       await core.group(
-        `${timeSinceStart(startTime)} 🛠️ Publishing results to Testrail project: ${core.getInput('testrail_project')}`,
+        `${timeSinceStart(startTime)} 🛠️ Publishing results to Testrail project: Jahia-CI}`,
         async () => {
           await prepareTestrailMetadata(testsFolder, core.getInput('testrail_platformdata'))
 
