@@ -115,8 +115,26 @@ runs:
           -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data"
         echo "SONAR_PARAMS=${SONAR_PARAMS}" >> $GITHUB_ENV
 
+    - name: Sonar OWASP
+      shell: bash
+      run: |
+        echo "Pull request number: ${{ inputs.github_pr_id }}"
+        if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
+          echo "Skipping OWASP for PR analysis"
+        elif [[ ${{ steps.extract_branch.outputs.branch }} == ${{ inputs.primary_release_branch }} ]]; then
+          echo "Executing an OWASP analysis on the main branch"
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:8.2.1:aggregate \
+            $SONAR_PARAMS
+        else
+          echo "Executing an OWASP analysis on branch: $GITHUB_REF"
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:8.2.1:aggregate \
+            -Dsonar.branch.name=$GITHUB_REF \
+            $SONAR_PARAMS
+        fi
+
     - name: Sonar Release branch analysis
       shell: bash
+      if: ${{ always() }}
       run: |
         echo "Pull request number: ${{ inputs.github_pr_id }}"
         if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
@@ -134,23 +152,5 @@ runs:
           echo "Executing an analysis on branch: ${{ inputs.primary_release_branch }}"
           mvn -B -s ${{ inputs.mvn_settings_filepath }} sonar:sonar \
             -Dsonar.branch.name=${{ inputs.primary_release_branch }} \
-            $SONAR_PARAMS
-        fi
-
-    - name: Sonar OWASP
-      shell: bash
-      if: ${{ always() }}
-      run: |
-        echo "Pull request number: ${{ inputs.github_pr_id }}"
-        if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
-          echo "Skipping OWASP for PR analysis"
-        elif [[ ${{ steps.extract_branch.outputs.branch }} == ${{ inputs.primary_release_branch }} ]]; then
-          echo "Executing an OWASP analysis on the main branch"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:7.1.1:aggregate \
-            $SONAR_PARAMS
-        else
-          echo "Executing an OWASP analysis on branch: $GITHUB_REF"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:7.1.1:aggregate \
-            -Dsonar.branch.name=$GITHUB_REF \
             $SONAR_PARAMS
         fi
