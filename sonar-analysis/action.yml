@@ -131,9 +131,9 @@ runs:
           mvn -B -s ${{ inputs.mvn_settings_filepath }} sonar:sonar \
             $SONAR_PARAMS
         else
-          echo "Executing an analysis on branch: $GITHUB_REF"
+          echo "Executing an analysis on branch: ${{ inputs.primary_release_branch }}"
           mvn -B -s ${{ inputs.mvn_settings_filepath }} sonar:sonar \
-            -Dsonar.branch.name=$GITHUB_REF \
+            -Dsonar.branch.name=${{ inputs.primary_release_branch }} \
             $SONAR_PARAMS
         fi
 
