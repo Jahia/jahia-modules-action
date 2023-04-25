@@ -109,10 +109,11 @@ runs:
     - name: Set common Sonar parameters
       shell: bash
       run: |
-        export SONAR_PARAMS="-DfailBuildOnCVSS=7 -DskipProvidedScope=true -DskipTestScope=false -DskipSystemScope=true -Dformats=HTML,JSON \
+        export SONAR_PARAMS="-DfailBuildOnCVSS=7 -DskipProvidedScope=true -DskipTestScope=true -DskipSystemScope=true -Dformats=HTML,JSON \
           -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
           -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
-          -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data"
+          -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DnodeAuditSkipDevDependencies=true \
+          -DdataDirectory=~/.owasp/dependency-check-data"
         echo "SONAR_PARAMS=${SONAR_PARAMS}" >> $GITHUB_ENV
 
     - name: Sonar OWASP
