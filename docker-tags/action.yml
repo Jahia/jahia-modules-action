@@ -140,7 +140,6 @@ runs:
 
         VERSIONS=$(echo "$VERSIONS" | sort --version-sort)
 
-        LATEST=$(echo "$VERSIONS" | tail -1)
         MATCHING1=$(echo "$VERSIONS" | grep -E "^${{ env.PARAM_VERSION_MAJOR }}\." | tail -1)
         MATCHING2=$(echo "$VERSIONS" | grep -E "^${{ env.PARAM_VERSION_MAJOR }}\.${{ env.PARAM_VERSION_MINOR}}\." | tail -1)
         MATCHING3=$(echo "$VERSIONS" | grep -E "^${{ env.PARAM_VERSION_MAJOR }}\.${{ env.PARAM_VERSION_MINOR}}\.${{ env.PARAM_VERSION_HF}}\." | tail -1)
@@ -148,18 +147,6 @@ runs:
         if [[ "${{ env.PARAM_DRYRUN }}" == "false" ]]; then
             echo "$(date +'%d %B %Y - %k:%M') - Pulling docker image prior to tagging"
             docker pull "${{ env.PARAM_ORG }}"/"${{ env.PARAM_REPO }}":"${{ env.PARAM_VERSION }}"
-        fi
-
-        if [ "$LATEST" == "${{ env.PARAM_VERSION }}" ]; then
-            echo "$(date +'%d %B %Y - %k:%M') - Tag: latest${{ env.PARAM_VERSION_CLASSIFIER}} should be an alias of ${LATEST}, tag update is required"
-            if [[ "${{ env.PARAM_DRYRUN }}" == "false" ]]; then
-                echo "$(date +'%d %B %Y - %k:%M') - RUNNING: docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:latest${{ env.PARAM_VERSION_CLASSIFIER}} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}"
-                docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:latest${{ env.PARAM_VERSION_CLASSIFIER}} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}
-            else
-                echo "$(date +'%d %B %Y - %k:%M') - DRY-RUN (command not executed): docker buildx imagetools create -t ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:latest${{ env.PARAM_VERSION_CLASSIFIER}} ${{ env.PARAM_ORG }}/${{ env.PARAM_REPO }}:${{ env.PARAM_VERSION }}"
-            fi
-        else
-            echo "$(date +'%d %B %Y - %k:%M') - Tag: latest is an alias of ${LATEST}, unchanged"
         fi
 
         if [ "$MATCHING1" == "${{ env.PARAM_VERSION }}" ]; then
