@@ -35,10 +35,23 @@ inputs:
     description: 'Name of the artifact target folder that was saved from build stage (using upload-artifact)'
     required: false
     default: 'build-artifacts'
+  java_distribution:
+    description: 'Name of the Java distribution to load and use'
+    required: false
+    default: 'temurin'    
+  java_version:
+    description: 'Version of Java to load and use for the analysis'
+    required: false
+    default: '11'
 
 runs:
   using: 'composite'
   steps:
+    - uses: actions/setup-java@v3
+      with:
+        distribution: ${{ inputs.java_distribution }}
+        java-version: ${{ inputs.java_version }}
+
     - name: Set environment variables from parameters
       shell: bash
       run: |
@@ -87,17 +100,37 @@ runs:
       run: echo "branch=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_OUTPUT
       id: extract_branch
 
+    - name: Display branch name
+      shell: bash
+      run: |
+        echo "BRANCH: ${{ steps.extract_branch.outputs.branch }}"
+        echo "GITHUB_REF: ${GITHUB_REF}"
+
     - name: Set common Sonar parameters
       shell: bash
       run: |
-        export SONAR_PARAMS="-DfailBuildOnCVSS=7 -DskipProvidedScope=true -DskipTestScope=false -DskipSystemScope=true -Dformats=HTML,JSON \
+        export SONAR_PARAMS="-DfailBuildOnCVSS=7 -DskipProvidedScope=true -DskipTestScope=true -DskipSystemScope=true -Dformats=HTML,JSON \
           -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
           -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
-          -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data"
+          -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DnodeAuditSkipDevDependencies=true \
+          -DdataDirectory=~/.owasp/dependency-check-data"
         echo "SONAR_PARAMS=${SONAR_PARAMS}" >> $GITHUB_ENV
+
+    - name: Sonar OWASP
+      shell: bash
+      run: |
+        echo "Pull request number: ${{ inputs.github_pr_id }}"
+        if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
+          echo "Skipping OWASP for PR analysis"
+        else
+          echo "Executing an OWASP analysis on branch: ${{ inputs.primary_release_branch }}"
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:8.2.1:aggregate \
+            $SONAR_PARAMS
+        fi
 
     - name: Sonar Release branch analysis
       shell: bash
+      if: ${{ always() }}
       run: |
         echo "Pull request number: ${{ inputs.github_pr_id }}"
         if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
@@ -112,26 +145,8 @@ runs:
           mvn -B -s ${{ inputs.mvn_settings_filepath }} sonar:sonar \
             $SONAR_PARAMS
         else
-          echo "Executing an analysis on branch: $GITHUB_REF"
+          echo "Executing an analysis on branch: ${{ inputs.primary_release_branch }}"
           mvn -B -s ${{ inputs.mvn_settings_filepath }} sonar:sonar \
-            -Dsonar.branch.name=$GITHUB_REF \
-            $SONAR_PARAMS
-        fi
-
-    - name: Sonar OWASP
-      shell: bash
-      if: ${{ always() }}
-      run: |
-        echo "Pull request number: ${{ inputs.github_pr_id }}"
-        if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
-          echo "Skipping OWASP for PR analysis"
-        elif [[ ${{ steps.extract_branch.outputs.branch }} == ${{ inputs.primary_release_branch }} ]]; then
-          echo "Executing an OWASP analysis on the main branch"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:7.1.1:aggregate \
-            $SONAR_PARAMS
-        else
-          echo "Executing an OWASP analysis on branch: $GITHUB_REF"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:7.1.1:aggregate \
-            -Dsonar.branch.name=$GITHUB_REF \
+            -Dsonar.branch.name=${{ inputs.primary_release_branch }} \
             $SONAR_PARAMS
         fi
