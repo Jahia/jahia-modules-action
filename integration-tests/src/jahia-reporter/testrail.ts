@@ -7,6 +7,7 @@ import {runShellCommands} from '../utils/system'
 interface JahiaReporterTestrail {
   testrailUsername: string
   testrailPassword: string
+  testrailParentSection: string
   testrailProject: string
   testrailMilestone: string
 }
@@ -98,6 +99,7 @@ export async function publishToTestrail(
   command += ` --sourcePath="${reportsPath}"`
   command += ' --sourceType="xml"'
   command += ` --projectName="${options.testrailProject}"`
+  command += ` --parentSection="${options.testrailParentSection}"`
   command += ` --milestone="${options.testrailMilestone}"`
   command += ` --defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`
   command += ` --testrailCustomResultFields="${metadataFile}"`
