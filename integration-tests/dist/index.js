@@ -1371,30 +1371,25 @@ function prepareTestrailMetadata(testsPath, testrailPlatformdata) {
                 // response from Jahia GraphQL API and the metadata file to be used
                 // with testrail (this has to be defined somewhere)
                 if (((_b = (_a = platformData.platform.jahia) === null || _a === void 0 ? void 0 : _a.version) === null || _b === void 0 ? void 0 : _b.release) !== undefined) {
-                    testrailMetadata['version'] =
-                        (_d = (_c = platformData.platform.jahia) === null || _c === void 0 ? void 0 : _c.version) === null || _d === void 0 ? void 0 : _d.release;
+                    testrailMetadata['version'] = (_d = (_c = platformData.platform.jahia) === null || _c === void 0 ? void 0 : _c.version) === null || _d === void 0 ? void 0 : _d.release;
                     if (((_f = (_e = platformData.platform.jahia) === null || _e === void 0 ? void 0 : _e.version) === null || _f === void 0 ? void 0 : _f.build) !== undefined) {
                         testrailMetadata['version'] += ` - Build: ${(_h = (_g = platformData.platform.jahia) === null || _g === void 0 ? void 0 : _g.version) === null || _h === void 0 ? void 0 : _h.build}`;
                     }
                 }
                 if (((_k = (_j = platformData.platform.jahia) === null || _j === void 0 ? void 0 : _j.database) === null || _k === void 0 ? void 0 : _k.name) !== undefined) {
-                    testrailMetadata['custom_database'] =
-                        (_m = (_l = platformData.platform.jahia) === null || _l === void 0 ? void 0 : _l.database) === null || _m === void 0 ? void 0 : _m.name;
+                    testrailMetadata['custom_database'] = (_m = (_l = platformData.platform.jahia) === null || _l === void 0 ? void 0 : _l.database) === null || _m === void 0 ? void 0 : _m.name;
                     if (((_p = (_o = platformData.platform.jahia) === null || _o === void 0 ? void 0 : _o.database) === null || _p === void 0 ? void 0 : _p.version) !== undefined) {
                         testrailMetadata['custom_database'] += ` - Version: ${(_r = (_q = platformData.platform.jahia) === null || _q === void 0 ? void 0 : _q.database) === null || _r === void 0 ? void 0 : _r.version}`;
                     }
                 }
                 if (((_u = (_t = (_s = platformData.platform.jahia) === null || _s === void 0 ? void 0 : _s.system) === null || _t === void 0 ? void 0 : _t.java) === null || _u === void 0 ? void 0 : _u.runtimeName) !== undefined) {
-                    testrailMetadata['custom_java'] =
-                        (_x = (_w = (_v = platformData.platform.jahia) === null || _v === void 0 ? void 0 : _v.system) === null || _w === void 0 ? void 0 : _w.java) === null || _x === void 0 ? void 0 : _x.runtimeName;
-                    if (((_0 = (_z = (_y = platformData.platform.jahia) === null || _y === void 0 ? void 0 : _y.system) === null || _z === void 0 ? void 0 : _z.java) === null || _0 === void 0 ? void 0 : _0.runtimeVersion) !==
-                        undefined) {
+                    testrailMetadata['custom_java'] = (_x = (_w = (_v = platformData.platform.jahia) === null || _v === void 0 ? void 0 : _v.system) === null || _w === void 0 ? void 0 : _w.java) === null || _x === void 0 ? void 0 : _x.runtimeName;
+                    if (((_0 = (_z = (_y = platformData.platform.jahia) === null || _y === void 0 ? void 0 : _y.system) === null || _z === void 0 ? void 0 : _z.java) === null || _0 === void 0 ? void 0 : _0.runtimeVersion) !== undefined) {
                         testrailMetadata['custom_java'] += ` - Version: ${(_3 = (_2 = (_1 = platformData.platform.jahia) === null || _1 === void 0 ? void 0 : _1.system) === null || _2 === void 0 ? void 0 : _2.java) === null || _3 === void 0 ? void 0 : _3.runtimeVersion}`;
                     }
                 }
                 if (((_6 = (_5 = (_4 = platformData.platform.jahia) === null || _4 === void 0 ? void 0 : _4.system) === null || _5 === void 0 ? void 0 : _5.os) === null || _6 === void 0 ? void 0 : _6.name) !== undefined) {
-                    testrailMetadata['custom_os'] =
-                        (_9 = (_8 = (_7 = platformData.platform.jahia) === null || _7 === void 0 ? void 0 : _7.system) === null || _8 === void 0 ? void 0 : _8.os) === null || _9 === void 0 ? void 0 : _9.name;
+                    testrailMetadata['custom_os'] = (_9 = (_8 = (_7 = platformData.platform.jahia) === null || _7 === void 0 ? void 0 : _7.system) === null || _8 === void 0 ? void 0 : _8.os) === null || _9 === void 0 ? void 0 : _9.name;
                     if (((_12 = (_11 = (_10 = platformData.platform.jahia) === null || _10 === void 0 ? void 0 : _10.system) === null || _11 === void 0 ? void 0 : _11.os) === null || _12 === void 0 ? void 0 : _12.architecture) !== undefined) {
                         testrailMetadata['custom_os'] += ` (${(_15 = (_14 = (_13 = platformData.platform.jahia) === null || _13 === void 0 ? void 0 : _13.system) === null || _14 === void 0 ? void 0 : _14.os) === null || _15 === void 0 ? void 0 : _15.architecture})`;
                     }
@@ -1429,6 +1424,7 @@ function publishToTestrail(testsPath, options) {
         command += ` --sourcePath="${reportsPath}"`;
         command += ' --sourceType="xml"';
         command += ` --projectName="${options.testrailProject}"`;
+        command += ` --parentSection="${options.testrailParentSection}"`;
         command += ` --milestone="${options.testrailMilestone}"`;
         command += ` --defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
         command += ` --testrailCustomResultFields="${metadataFile}"`;
@@ -1436,7 +1432,7 @@ function publishToTestrail(testsPath, options) {
         yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
         if (fs.statSync(testrailLinkFile).isFile()) {
             const rawFile = fs.readFileSync(testrailLinkFile, 'utf8');
-            core.notice(`Testrail run available at: ${rawFile.toString()}`);
+            core.info(`Testrail run available at: ${rawFile.toString()}`);
         }
     });
 }
@@ -1637,14 +1633,31 @@ function run() {
             // Display a short "console" report directly in the run output
             yield (0, jahia_reporter_1.showTestsSummary)(testsFolder);
             // Publish results to testrail
+            // Publish to testrail - into separate project
             if (core.getInput('should_skip_testrail') === 'false' ||
                 core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH) {
-                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Publishing results to Testrail`, () => __awaiter(this, void 0, void 0, function* () {
+                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Publishing results to Testrail project: ${core.getInput('testrail_project')}`, () => __awaiter(this, void 0, void 0, function* () {
                     yield (0, jahia_reporter_1.prepareTestrailMetadata)(testsFolder, core.getInput('testrail_platformdata'));
                     yield (0, jahia_reporter_1.publishToTestrail)(testsFolder, {
                         testrailUsername: core.getInput('testrail_username'),
                         testrailPassword: core.getInput('testrail_password'),
+                        testrailParentSection: '',
                         testrailProject: core.getInput('testrail_project'),
+                        testrailMilestone: core.getInput('testrail_milestone')
+                    });
+                }));
+            }
+            // Publish to testrail into Jahia-CI project
+            if (core.getInput('should_skip_testrail') === 'false' ||
+                core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH ||
+                core.getInput('should_skip_jahiaCIreporting') !== 'true') {
+                yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Publishing results to Testrail project: Jahia-CI}`, () => __awaiter(this, void 0, void 0, function* () {
+                    yield (0, jahia_reporter_1.prepareTestrailMetadata)(testsFolder, core.getInput('testrail_platformdata'));
+                    yield (0, jahia_reporter_1.publishToTestrail)(testsFolder, {
+                        testrailUsername: core.getInput('testrail_username'),
+                        testrailPassword: core.getInput('testrail_password'),
+                        testrailParentSection: core.getInput('testrail_project'),
+                        testrailProject: 'JahiaCI',
                         testrailMilestone: core.getInput('testrail_milestone')
                     });
                 }));
