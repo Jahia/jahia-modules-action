@@ -113,6 +113,7 @@ runs:
           -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
           -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
           -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DnodeAuditSkipDevDependencies=true \
+          -DsuppressionFiles=https://raw.githubusercontent.com/Jahia/jahia/master/.github/owasp-suppressions.xml,https://raw.githubusercontent.com/jeremylong/DependencyCheck/master/core/src/main/resources/dependencycheck-base-suppression.xml \
           -DdataDirectory=~/.owasp/dependency-check-data"
         echo "SONAR_PARAMS=${SONAR_PARAMS}" >> $GITHUB_ENV
 
