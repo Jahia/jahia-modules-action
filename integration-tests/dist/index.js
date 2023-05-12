@@ -1361,7 +1361,7 @@ function prepareTestrailMetadata(testsPath, testrailPlatformdata) {
         const platformDataFile = path.join(testsPath, 'artifacts/results/', testrailPlatformdata);
         let testrailMetadata = {};
         testrailMetadata['custom_url'] = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
-        if (fs.statSync(platformDataFile).isFile()) {
+        if (fs.statSync(platformDataFile) && fs.statSync(platformDataFile).isFile()) {
             const rawFile = fs.readFileSync(platformDataFile, 'utf8');
             const platformData = JSON.parse(rawFile.toString());
             core.info(`Parsed platform file: ${platformDataFile}`);
