@@ -24,7 +24,7 @@ export async function prepareTestrailMetadata(
   let testrailMetadata: TestrailMetadata = {}
   testrailMetadata['custom_url'] = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
 
-  if (fs.statSync(platformDataFile) && fs.statSync(platformDataFile).isFile()) {
+  if (fs.existsSync(platformDataFile) && fs.statSync(platformDataFile).isFile()) {
     const rawFile = fs.readFileSync(platformDataFile, 'utf8')
     const platformData = JSON.parse(rawFile.toString())
 
