@@ -161,8 +161,8 @@ runs:
       with:
         payload: |
           {
-            "module": ${{ inputs.github_slug }},
-            "version": ${{ inputs.release_version }}
+            "module": "${{ inputs.github_slug }}",
+            "version": "${{ inputs.release_version }}"
           }
       env:
         SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook-qa }}
