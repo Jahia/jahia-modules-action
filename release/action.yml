@@ -40,6 +40,9 @@ inputs:
     description: 'Time during which artifact are kept in Github infrastructure'
     required: false
     default: '2'
+  slack-webhook-qa:
+    description: 'Secret webhook to send a notif on a QA channel'
+    required: false
 
 runs:
   using: 'composite'
@@ -162,4 +165,4 @@ runs:
             "version": ${{ inputs.release_version }}
           }
       env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL_RC_FOR_QA }}
+        SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook-qa }}
