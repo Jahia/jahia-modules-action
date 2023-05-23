@@ -152,3 +152,14 @@ runs:
         path: |
           /tmp/artifacts/
         retention-days: ${{ inputs.github_artifact_retention }}
+
+    - name: Post to a Slack channel
+      uses: slackapi/slack-github-action@v1.23.0
+      with:
+        payload: |
+          {
+            "module": ${{ inputs.github_slug }},
+            "version": ${{ inputs.release_version }}
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL_RC_FOR_QA }}
