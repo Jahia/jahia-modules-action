@@ -157,6 +157,7 @@ runs:
         retention-days: ${{ inputs.github_artifact_retention }}
 
     - name: Post to a Slack channel
+      if: ${{ inputs.slack-webhook-qa }}
       uses: slackapi/slack-github-action@v1.23.0
       with:
         payload: |
