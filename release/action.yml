@@ -40,6 +40,9 @@ inputs:
     description: 'Time during which artifact are kept in Github infrastructure'
     required: false
     default: '2'
+  slack-webhook-qa:
+    description: 'Secret webhook to send a notif on a QA channel'
+    required: false
 
 runs:
   using: 'composite'
@@ -152,3 +155,15 @@ runs:
         path: |
           /tmp/artifacts/
         retention-days: ${{ inputs.github_artifact_retention }}
+
+    - name: Post to a Slack channel
+      if: ${{ inputs.slack-webhook-qa }}
+      uses: slackapi/slack-github-action@v1.23.0
+      with:
+        payload: |
+          {
+            "module": "${{ inputs.github_slug }}",
+            "version": "${{ inputs.release_version }}"
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook-qa }}
