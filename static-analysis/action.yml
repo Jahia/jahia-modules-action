@@ -52,7 +52,7 @@ runs:
       shell: bash
       run: |
         echo "::group::Run yarn if package.json exists in module folder: ${{ inputs.module_path }}"
-        if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
+        if [[ -d "${{ inputs.module_path }}" && -e "${{ inputs.module_path }}package.json" ]]; then
           cd ${{ inputs.module_path }}
           yarn
         fi
@@ -61,7 +61,7 @@ runs:
       shell: bash
       run: |
         echo "::group::Run yarn if package.json exists in tests folder: ${{ inputs.tests_path }}"
-        if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
+        if [[ -d "${{ inputs.tests_path }}" && -e "${{ inputs.tests_path }}package.json" ]]; then
           cd ${{ inputs.tests_path }}
           yarn
         fi
@@ -73,7 +73,7 @@ runs:
       shell: bash
       run: |
         echo "Lint module (javascript only)"      
-        if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
+        if [[ -d "${{ inputs.module_path }}" && -e "${{ inputs.module_path }}package.json" ]]; then
           cd ${{ inputs.module_path }}
           yarn run lint --max-warnings ${{ inputs.max_warning }}
         fi
@@ -82,7 +82,7 @@ runs:
       shell: bash
       run: |
         echo "Lint tests (javascript only)"
-        if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
+        if [[ -d "${{ inputs.tests_path }}" && -e "${{ inputs.tests_path }}package.json" ]]; then
           cd ${{ inputs.tests_path }}
           yarn run lint --max-warnings ${{ inputs.max_warning }}
         fi
@@ -100,7 +100,7 @@ runs:
       shell: bash
       run: |
         echo "Scan javascript vulnerabilities in the module with audit-ci"
-        if [[ -d ${{ inputs.module_path }} && -e "${{ inputs.module_path }}package.json" ]]; then
+        if [[ -d "${{ inputs.module_path }}" && -e "${{ inputs.module_path }}package.json" ]]; then
           cd ${{ inputs.module_path }}
           audit-ci --skip-dev --${{ inputs.auditci_level }}
         fi
@@ -109,7 +109,7 @@ runs:
       shell: bash
       run: |
         echo "Scan javascript vulnerabilities in the tests with audit-ci"
-        if [[ -d ${{ inputs.tests_path }} && -e "${{ inputs.tests_path }}package.json" ]]; then
+        if [[ -d "${{ inputs.tests_path }}" && -e "${{ inputs.tests_path }}package.json" ]]; then
           cd ${{ inputs.tests_path }}
           audit-ci --${{ inputs.auditci_level_tests }}
         fi
