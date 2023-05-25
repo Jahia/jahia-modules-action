@@ -11,7 +11,7 @@ inputs:
   dependencytrack_projectname:
     description: 'Name of the project in Dependency Track'
     required: false
-    default: ${{ github.repository }}
+    default: ${{ github.event.repository.name }}
   dependencytrack_projectversion:
     description: 'Version of the project in Dependency Track'
     required: false
