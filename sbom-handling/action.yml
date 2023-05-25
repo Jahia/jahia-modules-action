@@ -1,0 +1,79 @@
+name: SBOM Handling
+description: Create software bill of materials and pass it to OWASP Dependency Track
+
+inputs:
+  dependencytrack_url:
+    description: 'URL to the OWASP Dependency Track server'
+    required: true
+  dependencytrack_apikey:
+    description: 'Authentication token for the OWASP Dependency Track server'
+    required: true
+  dependencytrack_projectname:
+    description: 'Name of the project in Dependency Track'
+    required: false
+    default: ${{ github.repository }}
+  dependencytrack_projectversion:
+    description: 'Version of the project in Dependency Track'
+    required: false
+    default: ${{ github.ref_name }}
+  sbom_artifacts:
+    description: 'Name of the artifact target folder that was saved from build stage (using upload-artifact)'
+    required: false
+    default: 'sbom-artifacts'    
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set environment variables from parameters
+      shell: bash
+      run: |
+        echo "DEPENDENCYTRACK_URL=${{ inputs.dependencytrack_url }}" >> $GITHUB_ENV
+        echo "DEPENDENCYTRACK_APIKEY=${{ inputs.dependencytrack_apikey }}" >> $GITHUB_ENV
+        
+    - name: Download sbom artifacts
+      uses: actions/download-artifact@v3
+      if: ${{ inputs.sbom_artifacts != '' }}
+      with:
+        name: ${{ inputs.sbom_artifacts }}
+
+    - name: Setup jq
+      uses: vegardit/gha-setup-jq@v1
+
+    - name: Merge sbom
+      shell: bash
+      run: |
+          find . \( -name "*.cdx.json" -o -name "*bom.json" \) -exec cyclonedx merge --output-file sbom-all.cdx.json --input-files "{}" +
+          jq '. |
+          {
+            "bomFormat": .bomFormat,
+            "specVersion": .specVersion,
+            "serialNumber": .serialNumber,
+            "version": .version,
+            "metadata": {
+              "tools": [
+                (.metadata.tools | unique[])
+              ]
+            },
+            "components": [
+              (.components | unique[])
+            ]
+          }' "sbom-all.cdx.json" > sbom-all.cdx.json.tmp && mv sbom-all.cdx.json.tmp sbom-all.cdx.json
+          cyclonedx validate --input-version v1_4 --input-file sbom-all.cdx.json
+          
+    - name: Upload merged sbom
+      uses: actions/upload-artifact@v3
+      with:
+        name: merged-sbom
+        path: |
+          sbom-all.cdx.json
+        retention-days: 2
+          
+    - name: Upload sbom to Dependency Track
+      uses: DependencyTrack/gh-upload-sbom@v1.0.0
+      with:
+          bomfilename: sbom-all.cdx.json
+          serverhostname: ${{ inputs.dependencytrack_url }}
+          apikey: ${{ inputs.dependencytrack_apikey }}
+          autocreate: true
+          projectname: ${{ inputs.dependencytrack_projectname }}
+          projectversion: ${{ inputs.dependencytrack_projectversion }}
