@@ -156,6 +156,16 @@ runs:
           /tmp/artifacts/
         retention-days: ${{ inputs.github_artifact_retention }}
 
+    - name: Archive SBOM artifacts
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: sbom-artifacts
+        path: |
+          **/target/java-bom*
+          **/target/classes/javascript/**/bom/*
+        retention-days: ${{ inputs.github_artifact_retention }}
+
     - name: Post to a Slack channel
       if: ${{ inputs.slack-webhook-qa }}
       uses: slackapi/slack-github-action@v1.23.0
