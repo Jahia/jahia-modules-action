@@ -71,6 +71,7 @@ runs:
       with:
           bomfilename: sbom-all.cdx.json
           serverhostname: ${{ inputs.dependencytrack_url }}
+          port: ''
           apikey: ${{ inputs.dependencytrack_apikey }}
           autocreate: true
           projectname: ${{ inputs.dependencytrack_projectname }}
