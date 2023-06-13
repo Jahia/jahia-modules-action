@@ -2,8 +2,8 @@ name: SBOM Handling
 description: Create software bill of materials and pass it to OWASP Dependency Track
 
 inputs:
-  dependencytrack_url:
-    description: 'URL to the OWASP Dependency Track server'
+  dependencytrack_hostname:
+    description: 'Server hostname of the OWASP Dependency Track server'
     required: true
   dependencytrack_apikey:
     description: 'Authentication token for the OWASP Dependency Track server'
@@ -27,7 +27,7 @@ runs:
     - name: Set environment variables from parameters
       shell: bash
       run: |
-        echo "DEPENDENCYTRACK_URL=${{ inputs.dependencytrack_url }}" >> $GITHUB_ENV
+        echo "DEPENDENCYTRACK_HOSTNAME=${{ inputs.dependencytrack_hostname }}" >> $GITHUB_ENV
         echo "DEPENDENCYTRACK_APIKEY=${{ inputs.dependencytrack_apikey }}" >> $GITHUB_ENV
         
     - name: Download sbom artifacts
@@ -70,7 +70,7 @@ runs:
       uses: DependencyTrack/gh-upload-sbom@v2.0.0
       with:
           bomfilename: sbom-all.cdx.json
-          serverhostname: ${{ inputs.dependencytrack_url }}
+          serverhostname: ${{ inputs.dependencytrack_hostname }}
           port: ''
           apikey: ${{ inputs.dependencytrack_apikey }}
           autocreate: true
@@ -80,4 +80,4 @@ runs:
     - name: Show direct link to Dependency Track
       shell: bash
       run: |
-        echo "::notice title=Dependency Track location::SBOM has been uploaded to: ${{ inputs.dependencytrack_url }} Project name: ${{ inputs.dependencytrack_projectname }}"
+        echo "::notice title=Dependency Track location::SBOM has been uploaded to: ${{ inputs.dependencytrack_hostname }} Project name: ${{ inputs.dependencytrack_projectname }}"
