@@ -94,16 +94,6 @@ runs:
           ${{ inputs.tests_module_path }}**/target/*.jar
         retention-days: ${{ inputs.github_artifact_retention }}
 
-    - name: Archive SBOM artifacts
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: sbom-artifacts
-        path: |
-          **/target/java-bom*
-          **/target/classes/javascript/**/bom/*
-        retention-days: ${{ inputs.github_artifact_retention }}
-
     - name: Keep session opened if /tmp/debug file is present
       shell: bash
       if: always()
