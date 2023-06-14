@@ -72,7 +72,7 @@ runs:
         echo "::notice title=Dependency Track location::SBOM has been uploaded to: ${{ inputs.dependencytrack_apikey }}https://${{ inputs.dependencytrack_hostname }} Project name: ${{ inputs.dependencytrack_projectname }} version: ${{ inputs.dependencytrack_projectversion }}"
           
     - name: Upload sbom to Dependency Track
-      uses: DependencyTrack/gh-upload-sbom@v2.0.0
+      uses: DependencyTrack/gh-upload-sbom@v1.0.0
       with:
           bomfilename: sbom-all.cdx.json
           serverhostname: ${{ inputs.dependencytrack_hostname }}
