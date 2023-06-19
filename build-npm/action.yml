@@ -1,10 +1,19 @@
 name: Build NPM
 descripion: Build a npm-module
 
+inputs:
+  github_artifact_retention:
+    description: 'Time during which artifact are kept in Github infrastructure'
+    default: '2'
+  tests_module_path:
+    description: 'Path to a folder in the repository containing a tests module to be built'
+    required: false
+    default: 'tests/jahia-module/'   
+
 runs:
   using: 'composite'
   steps:
-  
+
     - name: Prepare the module
       shell: bash
       run: yarn
