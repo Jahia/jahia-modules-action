@@ -1,0 +1,59 @@
+name: publish NPM
+
+inputs:
+  nexus_username:
+    description: 'Nexus Username'
+    required: true
+  nexus_password:
+    description: 'Nexus password'
+    required: true
+  module_name:
+    description: 'Module name'
+    required: true
+  module_path:
+    description: 'Path to module'
+    default: './'
+  module_version:
+    description: 'Module version'
+    required: true
+  repository_url:
+    description: 'Your npm-repository url'
+    required: true
+  repository_id:
+  required: true
+
+runs:
+  using: "composite"
+  steps:
+
+    - name: Set environment variables from parameters
+      shell: bash
+      run: |
+        echo "NEXUS_USErNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
+        echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
+
+    # This step save the maven cache between runs
+    # More details can be found here: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
+    - name: Cache local Maven repository
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+
+    - name: Prepare the module
+      shell: bash
+      run: yarn
+
+    - name: Build the module
+      shell: bash
+      run: yarn build
+
+    - name: Package the module
+      shell: bash
+      run: yarn pack
+
+    - name: Publish to maven
+      shell: bash
+      run: mvn deploy:deploy-file -Dfile=${{ inputs.module_path }}${{ inputs.module_name }}.tgz -DgroupId=org.jahia -DartifactId=${{ inputs.module_name}} -Dversion=${{ inputs.module_version}} -Dpackaging=tgz -Durl=${{ repository_url }} -DrepositoryId=${{ repository_id }} 

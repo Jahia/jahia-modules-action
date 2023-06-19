@@ -1,0 +1,47 @@
+name: Build NPM
+descripion: Build a npm-module
+
+runs:
+  using: 'composite'
+  steps:
+  
+    - name: Prepare the module
+      shell: bash
+      run: yarn
+
+    - name: Build the module
+      shell: bash
+      run: yarn build
+
+    - name: Package the module
+      shell: bash
+      run: yarn pack
+
+    - name: Archive build artifacts
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifacts
+        path: |
+          target/*
+          ./*/target/*
+          **/*source-release.zip
+          !${{ inputs.tests_module_path }}*
+        retention-days: ${{ inputs.github_artifact_retention }}
+
+    - name: Keep session opened if /tmp/debug file is present
+      shell: bash
+      if: always()
+      run: |
+        echo "::group::Keep session opened if /tmp/debug file is present"
+        WAIT_DURATION=0
+        while [[ -e /tmp/debug ]]; do
+          echo "Debug file present - $(( ++ WAIT_DURATION ))s - waiting for file removal..."
+          if [ $WAIT_DURATION -gt ${{ inputs.debug_session_timeout }} ]; then
+            echo "Reached timeout of: ${{ inputs.debug_session_timeout }}"
+            echo "Exiting the loop"
+            break
+          fi
+          sleep 1;
+        done
+        echo "::endgroup::"
