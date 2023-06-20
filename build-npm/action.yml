@@ -20,7 +20,7 @@ runs:
 
     - name: Get package.json infos
       shell: bash
-      run: echo "MODULE_NAME = $(jq 'name' package.json)" >> $GITHUB_ENV
+      run: echo "MODULE_NAME = $(jq '.name' package.json)" >> $GITHUB_ENV
 
     - name: Prepare the module
       shell: bash
