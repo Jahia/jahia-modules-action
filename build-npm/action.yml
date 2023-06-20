@@ -20,7 +20,9 @@ runs:
 
     - name: Get package.json infos
       shell: bash
-      run: echo "MODULE_NAME=$(jq '.name' package.json | cut -d\" -f2 )" >> $GITHUB_ENV
+      run: |
+        echo "MODULE_NAME=$(jq '.name' package.json | cut -d\" -f2 )" >> $GITHUB_ENV
+        echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2 )" >> $GITHUB_ENV
 
     - name: Prepare the module
       shell: bash
@@ -40,7 +42,7 @@ runs:
       with:
         name: build-artifacts
         path: |
-          ./${{ env.MODULE_NAME }}.tgz
+          ./${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
         retention-days: ${{ inputs.github_artifact_retention }}
 
     - name: Keep session opened if /tmp/debug file is present
