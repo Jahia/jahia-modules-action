@@ -49,4 +49,4 @@ runs:
 
     - name: Publish to maven
       shell: bash
-      run: mvn deploy:deploy-file -Dfile=${{ inputs.module_path }}${{ env.MODULE_NAME }}.tgz -DgroupId=org.jahia -DartifactId=${{ env.MODULE_NAME }} -Dversion=${{ env.MODULE_VERSION }} -Dpackaging=tgz -Durl=${{ env.REPOSITORY_URL }} -DrepositoryId=${{ env.REPOSITORY_ID }} 
+      run: mvn deploy:deploy-file -Dfile=${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz -DgroupId=org.jahia -DartifactId=${{ env.MODULE_NAME }} -Dversion=${{ env.MODULE_VERSION }} -Dpackaging=tgz -Durl=${{ env.REPOSITORY_URL }} -DrepositoryId=${{ env.REPOSITORY_ID }} 
