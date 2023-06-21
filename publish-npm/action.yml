@@ -7,20 +7,9 @@ inputs:
   nexus_password:
     description: 'Nexus password'
     required: true
-  module_name:
-    description: 'Module name'
-    required: true
   module_path:
     description: 'Path to module'
     default: './'
-  module_version:
-    description: 'Module version'
-    required: true
-  repository_url:
-    description: 'Your npm-repository url'
-    required: true
-  repository_id:
-  required: true
 
 runs:
   using: "composite"
@@ -29,8 +18,12 @@ runs:
     - name: Set environment variables from parameters
       shell: bash
       run: |
-        echo "NEXUS_USErNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
+        echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
         echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
+        echo "MODULE_NAME=$(jq '.name' package.json | cut -d\" -f2)" >> $GITHUB_ENV
+        echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
+        echo "REPOSITORY_ID=$(jq '.jahia.distributionManagement.snapshotRepository.id | cut -d\" -f2)" >> $GITHUB_ENV
+        echo "REPOSITORY_URL=$(jq '.jahia.distributionManagement.snapshotRepository.url | cut -d\" -f2)" >> $GITHUB_ENV
 
     # This step save the maven cache between runs
     # More details can be found here: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
@@ -56,4 +49,4 @@ runs:
 
     - name: Publish to maven
       shell: bash
-      run: mvn deploy:deploy-file -Dfile=${{ inputs.module_path }}${{ inputs.module_name }}.tgz -DgroupId=org.jahia -DartifactId=${{ inputs.module_name}} -Dversion=${{ inputs.module_version}} -Dpackaging=tgz -Durl=${{ repository_url }} -DrepositoryId=${{ repository_id }} 
+      run: mvn deploy:deploy-file -Dfile=${{ inputs.module_path }}${{ env.MODULE_NAME }}.tgz -DgroupId=org.jahia -DartifactId=${{ env.MODULE_NAME }} -Dversion=${{ env.MODULE_VERSION }} -Dpackaging=tgz -Durl=${{ env.REPOSITORY_URL }} -DrepositoryId=${{ env.REPOSITORY_ID }} 
