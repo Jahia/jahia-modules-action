@@ -22,8 +22,8 @@ runs:
         echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
         echo "MODULE_NAME=$(jq '.name' package.json | cut -d\" -f2)" >> $GITHUB_ENV
         echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
-        echo "REPOSITORY_ID=$(jq '.jahia.distributionManagement.snapshotRepository.id | cut -d\" -f2)" >> $GITHUB_ENV
-        echo "REPOSITORY_URL=$(jq '.jahia.distributionManagement.snapshotRepository.url | cut -d\" -f2)" >> $GITHUB_ENV
+        echo "REPOSITORY_ID=$(jq '.jahia.distributionManagement.snapshotRepository.id' package.json | cut -d\" -f2)" >> $GITHUB_ENV
+        echo "REPOSITORY_URL=$(jq '.jahia.distributionManagement.snapshotRepository.url' package.json | cut -d\" -f2)" >> $GITHUB_ENV
 
     # This step save the maven cache between runs
     # More details can be found here: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
