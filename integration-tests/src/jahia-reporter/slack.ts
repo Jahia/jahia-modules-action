@@ -1,4 +1,7 @@
+import * as core from '@actions/core'
+
 import * as path from 'path'
+import fs from 'fs'
 
 import {runShellCommands} from '../utils/system'
 
@@ -12,6 +15,11 @@ export async function sendSlackNotification(
   testsPath: string,
   options: JahiaReporterSlack
 ): Promise<any> {
+  if (!fs.existsSync(testsPath)) {
+    core.info(`${testsPath} does not exists, cannot produce slack warning`)
+    return
+  }
+
   const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
   const moduleFilepath = path.join(
     testsPath,

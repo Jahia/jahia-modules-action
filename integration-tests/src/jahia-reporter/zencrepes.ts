@@ -1,4 +1,7 @@
+import * as core from '@actions/core'
+
 import * as path from 'path'
+import fs from 'fs'
 
 import {runShellCommands} from '../utils/system'
 
@@ -11,6 +14,11 @@ export async function sendResultsToZencrepes(
   testsPath: string,
   options: JahiaReporterZencrepes
 ): Promise<any> {
+  if (!fs.existsSync(testsPath)) {
+    core.info(`${testsPath} does not exists, skipping zencrepes report`)
+    return
+  }
+
   const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
   const moduleFilepath = path.join(
     testsPath,

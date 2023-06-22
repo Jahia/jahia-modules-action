@@ -1,4 +1,7 @@
+import * as core from '@actions/core'
+
 import * as path from 'path'
+import fs from 'fs'
 
 import {runShellCommands} from '../utils/system'
 
@@ -16,6 +19,12 @@ export async function createPagerdutyIncident(
   testsPath: string,
   options: JahiaReporterPagerduty
 ): Promise<any> {
+  if (!fs.existsSync(testsPath)) {
+    core.info(
+      `${testsPath} does not exists, cannot produce pager duty incident `
+    )
+    return
+  }
   const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
 
   let command = 'jahia-reporter pagerduty:incident'

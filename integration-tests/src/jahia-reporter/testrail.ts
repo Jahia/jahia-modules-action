@@ -13,18 +13,32 @@ interface JahiaReporterTestrail {
 }
 
 interface TestrailMetadata {
-  [key: string]: any;
+  [key: string]: any
 }
 
 export async function prepareTestrailMetadata(
   testsPath: string,
-  testrailPlatformdata: string,
+  testrailPlatformdata: string
 ) {
-  const platformDataFile = path.join(testsPath, 'artifacts/results/', testrailPlatformdata)
-  let testrailMetadata: TestrailMetadata = {}
-  testrailMetadata['custom_url'] = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+  if (!fs.existsSync(testsPath)) {
+    core.info(`${testsPath} does not exists, skipping testrail report`)
+    return
+  }
 
-  if (fs.existsSync(platformDataFile) && fs.statSync(platformDataFile).isFile()) {
+  const platformDataFile = path.join(
+    testsPath,
+    'artifacts/results/',
+    testrailPlatformdata
+  )
+  let testrailMetadata: TestrailMetadata = {}
+  testrailMetadata[
+    'custom_url'
+  ] = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+
+  if (
+    fs.existsSync(platformDataFile) &&
+    fs.statSync(platformDataFile).isFile()
+  ) {
     const rawFile = fs.readFileSync(platformDataFile, 'utf8')
     const platformData = JSON.parse(rawFile.toString())
 
@@ -36,33 +50,54 @@ export async function prepareTestrailMetadata(
       // response from Jahia GraphQL API and the metadata file to be used
       // with testrail (this has to be defined somewhere)
       if (platformData.platform.jahia?.version?.release !== undefined) {
-        testrailMetadata['version'] = platformData.platform.jahia?.version?.release
+        testrailMetadata['version'] =
+          platformData.platform.jahia?.version?.release
         if (platformData.platform.jahia?.version?.build !== undefined) {
-          testrailMetadata['version'] += ` - Build: ${platformData.platform.jahia?.version?.build}`
-        }        
-      }
-
-      if (platformData.platform.jahia?.database?.name !== undefined) {
-        testrailMetadata['custom_database'] = platformData.platform.jahia?.database?.name
-        if (platformData.platform.jahia?.database?.version !== undefined) {
-          testrailMetadata['custom_database'] += ` - Version: ${platformData.platform.jahia?.database?.version}`
+          testrailMetadata[
+            'version'
+          ] += ` - Build: ${platformData.platform.jahia?.version?.build}`
         }
       }
 
-      if (platformData.platform.jahia?.system?.java?.runtimeName !== undefined) {
-        testrailMetadata['custom_java'] = platformData.platform.jahia?.system?.java?.runtimeName
-        if (platformData.platform.jahia?.system?.java?.runtimeVersion !== undefined) {
-          testrailMetadata['custom_java'] += ` - Version: ${platformData.platform.jahia?.system?.java?.runtimeVersion}`
+      if (platformData.platform.jahia?.database?.name !== undefined) {
+        testrailMetadata['custom_database'] =
+          platformData.platform.jahia?.database?.name
+        if (platformData.platform.jahia?.database?.version !== undefined) {
+          testrailMetadata[
+            'custom_database'
+          ] += ` - Version: ${platformData.platform.jahia?.database?.version}`
+        }
+      }
+
+      if (
+        platformData.platform.jahia?.system?.java?.runtimeName !== undefined
+      ) {
+        testrailMetadata['custom_java'] =
+          platformData.platform.jahia?.system?.java?.runtimeName
+        if (
+          platformData.platform.jahia?.system?.java?.runtimeVersion !==
+          undefined
+        ) {
+          testrailMetadata[
+            'custom_java'
+          ] += ` - Version: ${platformData.platform.jahia?.system?.java?.runtimeVersion}`
         }
       }
 
       if (platformData.platform.jahia?.system?.os?.name !== undefined) {
-        testrailMetadata['custom_os'] = platformData.platform.jahia?.system?.os?.name
-        if (platformData.platform.jahia?.system?.os?.architecture !== undefined) {
-          testrailMetadata['custom_os'] += ` (${platformData.platform.jahia?.system?.os?.architecture})`
-        }        
+        testrailMetadata['custom_os'] =
+          platformData.platform.jahia?.system?.os?.name
+        if (
+          platformData.platform.jahia?.system?.os?.architecture !== undefined
+        ) {
+          testrailMetadata[
+            'custom_os'
+          ] += ` (${platformData.platform.jahia?.system?.os?.architecture})`
+        }
         if (platformData.platform.jahia?.system?.os?.version !== undefined) {
-          testrailMetadata['custom_os'] += ` - Version: ${platformData.platform.jahia?.system?.os?.version}`
+          testrailMetadata[
+            'custom_os'
+          ] += ` - Version: ${platformData.platform.jahia?.system?.os?.version}`
         }
       }
     } else {
@@ -73,13 +108,13 @@ export async function prepareTestrailMetadata(
   }
 
   // Always write a testrail metadata file, even if there is no data
-  const metadataFile = path.join(testsPath, 'artifacts/results/testrail-metadata.json')
+  const metadataFile = path.join(
+    testsPath,
+    'artifacts/results/testrail-metadata.json'
+  )
   core.info(`Preparing to write: ${JSON.stringify(testrailMetadata)}`)
   core.info(`To file: ${metadataFile}`)
-  fs.writeFileSync(
-    metadataFile,
-    JSON.stringify(testrailMetadata)
-  )
+  fs.writeFileSync(metadataFile, JSON.stringify(testrailMetadata))
 }
 
 export async function publishToTestrail(
@@ -91,7 +126,10 @@ export async function publishToTestrail(
     testsPath,
     'artifacts/results/testrail_link'
   )
-  const metadataFile = path.join(testsPath, 'artifacts/results/testrail-metadata.json')
+  const metadataFile = path.join(
+    testsPath,
+    'artifacts/results/testrail-metadata.json'
+  )
 
   let command = 'jahia-reporter testrail'
   command += ` --testrailUsername="${options.testrailUsername}"`
