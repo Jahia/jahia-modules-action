@@ -204,10 +204,7 @@ async function run(): Promise<void> {
     await core.group(
       `${timeSinceStart(startTime)} 🐋 Stopping the Docker environment`,
       async () => {
-        await stopDockerEnvironment(
-          testsFolder,
-          core.getInput('logging_mode')
-        )
+        await stopDockerEnvironment(testsFolder, core.getInput('logging_mode'))
       }
     )
 
@@ -221,9 +218,16 @@ async function run(): Promise<void> {
       core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
     ) {
       await core.group(
-        `${timeSinceStart(startTime)} 🛠️ Publishing results to Testrail project: ${core.getInput('testrail_project')}`,
+        `${timeSinceStart(
+          startTime
+        )} 🛠️ Publishing results to Testrail project: ${core.getInput(
+          'testrail_project'
+        )}`,
         async () => {
-          await prepareTestrailMetadata(testsFolder, core.getInput('testrail_platformdata'))
+          await prepareTestrailMetadata(
+            testsFolder,
+            core.getInput('testrail_platformdata')
+          )
 
           await publishToTestrail(testsFolder, {
             testrailUsername: core.getInput('testrail_username'),
@@ -243,9 +247,14 @@ async function run(): Promise<void> {
       core.getInput('should_skip_jahiaCIreporting') !== 'true'
     ) {
       await core.group(
-        `${timeSinceStart(startTime)} 🛠️ Publishing results to Testrail project: Jahia-CI}`,
+        `${timeSinceStart(
+          startTime
+        )} 🛠️ Publishing results to Testrail project: Jahia-CI}`,
         async () => {
-          await prepareTestrailMetadata(testsFolder, core.getInput('testrail_platformdata'))
+          await prepareTestrailMetadata(
+            testsFolder,
+            core.getInput('testrail_platformdata')
+          )
 
           await publishToTestrail(testsFolder, {
             testrailUsername: core.getInput('testrail_username'),
@@ -262,7 +271,9 @@ async function run(): Promise<void> {
     if (
       core.getInput('should_skip_pagerduty') === 'false' &&
       process.env.CURRENT_BRANCH !== undefined &&
-      ['master', 'main', core.getInput('primary_release_branch')].includes(process.env.CURRENT_BRANCH)
+      ['master', 'main', core.getInput('primary_release_branch')].includes(
+        process.env.CURRENT_BRANCH
+      )
     ) {
       await core.group(
         `${timeSinceStart(
@@ -279,7 +290,8 @@ async function run(): Promise<void> {
               'incident_google_spreadsheet_id'
             ),
             googleClientEmail: core.getInput('incident_google_client_email'),
-            googleApiKey: core.getInput('incident_google_api_key_base64')
+            googleApiKey: core.getInput('incident_google_api_key_base64'),
+            incidentMessage: core.getInput('incident_message_no_test')
           })
         }
       )

@@ -12,24 +12,22 @@ interface JahiaReporterPagerduty {
   pdReporterId: string
   googleSpreadsheetId: string
   googleClientEmail: string
-  googleApiKey: string
+  googleApiKey: string,
+  incidentMessage: string
 }
 
 export async function createPagerdutyIncident(
   testsPath: string,
   options: JahiaReporterPagerduty
 ): Promise<any> {
-  if (!fs.existsSync(testsPath)) {
-    core.info(
-      `${testsPath} does not exists, cannot produce pager duty incident `
-    )
-    return
-  }
-  const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
-
   let command = 'jahia-reporter pagerduty:incident'
-  command += ` --sourcePath="${reportsPath}"`
-  command += ' --sourceType="xml"'
+  if (fs.existsSync(testsPath)) {
+    const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
+    command += ` --sourcePath="${reportsPath}"`
+    command += ' --sourceType="xml"'
+  } else {
+    command += `--incidentMessage=${options.incidentMessage}`
+  }
   command += ` --pdApiKey="${options.pdApiKey}"`
   command += ` --pdReporterEmail="${options.pdReporterEmail}"`
   command += ` --pdReporterId="${options.pdReporterId}"`

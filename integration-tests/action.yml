@@ -163,6 +163,10 @@ inputs:
     description: 'Google base64 encoded private key to allow access to Google API'
     required: false
     default: ''
+  incident_message_no_test:
+    description: 'Incident message in case no test were found to generate report'
+    required: false
+    default: 'Run fail but no test result were generated.'
   incident_service:
     description: 'Service subject to the incident. If empty, will default to the value of module_id'
     required: false

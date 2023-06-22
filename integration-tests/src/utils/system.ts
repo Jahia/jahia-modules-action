@@ -15,7 +15,12 @@ export async function runShellCommands(
 ): Promise<any> {
   for (const cmd of commands) {
     let silent = false
-    if (options.silent !== undefined || options.silent === true || options.loggingMode === 'silent' || options.loggingMode === 'partial') {
+    if (
+      options.silent !== undefined ||
+      options.silent === true ||
+      options.loggingMode === 'silent' ||
+      options.loggingMode === 'partial'
+    ) {
       silent = true
     }
     if (options.printCmd === undefined || options.printCmd === true) {
@@ -32,7 +37,9 @@ export async function runShellCommands(
     let stdErr = ''
 
     if (options.loggingMode === 'partial') {
-      core.notice(`Command output has been silenced, a portion of the logs will be displayed once job is complete`)
+      core.notice(
+        `Command output has been silenced, a portion of the logs will be displayed once job is complete`
+      )
     }
 
     options.listeners = {
@@ -65,12 +72,14 @@ export async function runShellCommands(
       if (options.loggingMode === 'partial') {
         const logs = stdOut.split('\n')
         if (logs.length > 500) {
-          logs.slice(0, 250).forEach((line) => core.info(line))
-          core.notice(`...... Partial output displayed, see: ${filepath} for full output ......`)
-          logs.slice(-250).forEach((line) => core.info(line))
+          logs.slice(0, 250).forEach(line => core.info(line))
+          core.notice(
+            `...... Partial output displayed, see: ${filepath} for full output ......`
+          )
+          logs.slice(-250).forEach(line => core.info(line))
         }
-      }      
-      
+      }
+
       const logFileStream = fs.createWriteStream(filepath, {flags: 'a+'})
       logFileStream.write(`Executing: ${cmd}`)
       logFileStream.write('===== STDOUT =====')
