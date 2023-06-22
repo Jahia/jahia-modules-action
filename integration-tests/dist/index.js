@@ -1181,9 +1181,9 @@ const fs_1 = __importDefault(__nccwpck_require__(5747));
 const system_1 = __nccwpck_require__(7885);
 function createPagerdutyIncident(testsPath, options) {
     return __awaiter(this, void 0, void 0, function* () {
+        const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         let command = 'jahia-reporter pagerduty:incident';
-        if (fs_1.default.existsSync(testsPath)) {
-            const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
+        if (fs_1.default.existsSync(reportsPath)) {
             command += ` --sourcePath="${reportsPath}"`;
             command += ' --sourceType="xml"';
         }
@@ -1256,11 +1256,11 @@ const fs_1 = __importDefault(__nccwpck_require__(5747));
 const system_1 = __nccwpck_require__(7885);
 function sendSlackNotification(testsPath, options) {
     return __awaiter(this, void 0, void 0, function* () {
-        if (!fs_1.default.existsSync(testsPath)) {
+        const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
+        if (!fs_1.default.existsSync(reportsPath)) {
             core.info(`${testsPath} does not exists, cannot produce slack warning`);
             return;
         }
-        const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         const moduleFilepath = path.join(testsPath, 'artifacts/results/installed-jahia-modules.json');
         let command = 'jahia-reporter slack';
         command += ` --sourcePath="${reportsPath}"`;
@@ -1328,11 +1328,11 @@ const fs_1 = __importDefault(__nccwpck_require__(5747));
 const system_1 = __nccwpck_require__(7885);
 function showTestsSummary(testsPath) {
     return __awaiter(this, void 0, void 0, function* () {
-        if (!fs_1.default.existsSync(testsPath)) {
+        const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
+        if (!fs_1.default.existsSync(reportsPath)) {
             core.info(`${testsPath} does not exists, skipping jahia-reporter summary`);
             return;
         }
-        const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         let command = 'jahia-reporter summary';
         command += ` --sourcePath="${reportsPath}"`;
         command += ' --sourceType="xml"';
@@ -1391,7 +1391,8 @@ const system_1 = __nccwpck_require__(7885);
 function prepareTestrailMetadata(testsPath, testrailPlatformdata) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21;
     return __awaiter(this, void 0, void 0, function* () {
-        if (!fs.existsSync(testsPath)) {
+        const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
+        if (!fs.existsSync(reportsPath)) {
             core.info(`${testsPath} does not exists, skipping testrail report`);
             return;
         }
@@ -1532,11 +1533,11 @@ const fs_1 = __importDefault(__nccwpck_require__(5747));
 const system_1 = __nccwpck_require__(7885);
 function sendResultsToZencrepes(testsPath, options) {
     return __awaiter(this, void 0, void 0, function* () {
-        if (!fs_1.default.existsSync(testsPath)) {
+        const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
+        if (!fs_1.default.existsSync(reportsPath)) {
             core.info(`${testsPath} does not exists, skipping zencrepes report`);
             return;
         }
-        const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         const moduleFilepath = path.join(testsPath, 'artifacts/results/installed-jahia-modules.json');
         let command = 'jahia-reporter zencrepes';
         command += ` --sourcePath="${reportsPath}"`;

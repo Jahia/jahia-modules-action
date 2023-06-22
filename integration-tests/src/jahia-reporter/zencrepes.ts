@@ -14,12 +14,12 @@ export async function sendResultsToZencrepes(
   testsPath: string,
   options: JahiaReporterZencrepes
 ): Promise<any> {
-  if (!fs.existsSync(testsPath)) {
+  const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
+  if (!fs.existsSync(reportsPath)) {
     core.info(`${testsPath} does not exists, skipping zencrepes report`)
     return
   }
 
-  const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
   const moduleFilepath = path.join(
     testsPath,
     'artifacts/results/installed-jahia-modules.json'

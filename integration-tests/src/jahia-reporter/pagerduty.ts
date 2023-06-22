@@ -20,9 +20,9 @@ export async function createPagerdutyIncident(
   testsPath: string,
   options: JahiaReporterPagerduty
 ): Promise<any> {
+  const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
   let command = 'jahia-reporter pagerduty:incident'
-  if (fs.existsSync(testsPath)) {
-    const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
+  if (fs.existsSync(reportsPath)) {
     command += ` --sourcePath="${reportsPath}"`
     command += ' --sourceType="xml"'
   } else {

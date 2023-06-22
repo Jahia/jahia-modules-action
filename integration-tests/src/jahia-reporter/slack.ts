@@ -15,12 +15,12 @@ export async function sendSlackNotification(
   testsPath: string,
   options: JahiaReporterSlack
 ): Promise<any> {
-  if (!fs.existsSync(testsPath)) {
+  const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
+  if (!fs.existsSync(reportsPath)) {
     core.info(`${testsPath} does not exists, cannot produce slack warning`)
     return
   }
 
-  const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
   const moduleFilepath = path.join(
     testsPath,
     'artifacts/results/installed-jahia-modules.json'

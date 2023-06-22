@@ -20,7 +20,8 @@ export async function prepareTestrailMetadata(
   testsPath: string,
   testrailPlatformdata: string
 ) {
-  if (!fs.existsSync(testsPath)) {
+  const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
+  if (!fs.existsSync(reportsPath)) {
     core.info(`${testsPath} does not exists, skipping testrail report`)
     return
   }
@@ -122,6 +123,10 @@ export async function publishToTestrail(
   options: JahiaReporterTestrail
 ): Promise<any> {
   const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
+  if (!fs.existsSync(reportsPath)) {
+    core.info(`${testsPath} does not exists, skipping testrail report`)
+    return
+  }
   const testrailLinkFile = path.join(
     testsPath,
     'artifacts/results/testrail_link'
