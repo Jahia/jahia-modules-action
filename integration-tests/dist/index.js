@@ -471,11 +471,17 @@ function buildDockerTestImage(testsFolder, ciBuildScript, testsContainerBranch, 
                 `docker build -t ${testsImage} .`,
                 `docker save -o tests_image.tar ${testsImage}`
             ];
-            yield (0, system_1.runShellCommands)(runCommands, 'artifacts/build.log', { cwd: testsFolder, ignoreReturnCode: true });
+            yield (0, system_1.runShellCommands)(runCommands, 'artifacts/build.log', {
+                cwd: testsFolder,
+                ignoreReturnCode: true
+            });
         }
         else {
             core.info(`Building test image using script: ${buildScript}`);
-            yield (0, system_1.runShellCommands)([`bash ${ciBuildScript}`], 'artifacts/build.log', { cwd: testsFolder, ignoreReturnCode: true });
+            yield (0, system_1.runShellCommands)([`bash ${ciBuildScript}`], 'artifacts/build.log', {
+                cwd: testsFolder,
+                ignoreReturnCode: true
+            });
         }
     });
 }
@@ -813,7 +819,7 @@ function stopDockerEnvironment(testsFolder, loggingMode) {
         yield exec
             .getExecOutput('docker', ['ps', '-aq'], {
             ignoreReturnCode: true,
-            silent: true,
+            silent: true
         })
             .then((res) => __awaiter(this, void 0, void 0, function* () {
             core.info(`Output of ps -aq ${JSON.stringify(res)}`);
@@ -823,7 +829,7 @@ function stopDockerEnvironment(testsFolder, loggingMode) {
                 yield exec
                     .getExecOutput('docker', ['stop', container], {
                     ignoreReturnCode: true,
-                    silent: true,
+                    silent: true
                 })
                     .then(res => {
                     if (res.stderr.length > 0 && res.exitCode != 0) {
@@ -1165,16 +1171,25 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.createPagerdutyIncident = void 0;
 const path = __importStar(__nccwpck_require__(5622));
+const fs_1 = __importDefault(__nccwpck_require__(5747));
 const system_1 = __nccwpck_require__(7885);
 function createPagerdutyIncident(testsPath, options) {
     return __awaiter(this, void 0, void 0, function* () {
-        const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         let command = 'jahia-reporter pagerduty:incident';
-        command += ` --sourcePath="${reportsPath}"`;
-        command += ' --sourceType="xml"';
+        if (fs_1.default.existsSync(testsPath)) {
+            const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
+            command += ` --sourcePath="${reportsPath}"`;
+            command += ' --sourceType="xml"';
+        }
+        else {
+            command += `--incidentMessage=${options.incidentMessage}`;
+        }
         command += ` --pdApiKey="${options.pdApiKey}"`;
         command += ` --pdReporterEmail="${options.pdReporterEmail}"`;
         command += ` --pdReporterId="${options.pdReporterId}"`;
@@ -1230,12 +1245,21 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.sendSlackNotification = void 0;
+const core = __importStar(__nccwpck_require__(2186));
 const path = __importStar(__nccwpck_require__(5622));
+const fs_1 = __importDefault(__nccwpck_require__(5747));
 const system_1 = __nccwpck_require__(7885);
 function sendSlackNotification(testsPath, options) {
     return __awaiter(this, void 0, void 0, function* () {
+        if (!fs_1.default.existsSync(testsPath)) {
+            core.info(`${testsPath} does not exists, cannot produce slack warning`);
+            return;
+        }
         const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         const moduleFilepath = path.join(testsPath, 'artifacts/results/installed-jahia-modules.json');
         let command = 'jahia-reporter slack';
@@ -1293,12 +1317,21 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.showTestsSummary = void 0;
+const core = __importStar(__nccwpck_require__(2186));
 const path = __importStar(__nccwpck_require__(5622));
+const fs_1 = __importDefault(__nccwpck_require__(5747));
 const system_1 = __nccwpck_require__(7885);
 function showTestsSummary(testsPath) {
     return __awaiter(this, void 0, void 0, function* () {
+        if (!fs_1.default.existsSync(testsPath)) {
+            core.info(`${testsPath} does not exists, skipping jahia-reporter summary`);
+            return;
+        }
         const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         let command = 'jahia-reporter summary';
         command += ` --sourcePath="${reportsPath}"`;
@@ -1358,10 +1391,15 @@ const system_1 = __nccwpck_require__(7885);
 function prepareTestrailMetadata(testsPath, testrailPlatformdata) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21;
     return __awaiter(this, void 0, void 0, function* () {
+        if (!fs.existsSync(testsPath)) {
+            core.info(`${testsPath} does not exists, skipping testrail report`);
+            return;
+        }
         const platformDataFile = path.join(testsPath, 'artifacts/results/', testrailPlatformdata);
         let testrailMetadata = {};
         testrailMetadata['custom_url'] = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
-        if (fs.existsSync(platformDataFile) && fs.statSync(platformDataFile).isFile()) {
+        if (fs.existsSync(platformDataFile) &&
+            fs.statSync(platformDataFile).isFile()) {
             const rawFile = fs.readFileSync(platformDataFile, 'utf8');
             const platformData = JSON.parse(rawFile.toString());
             core.info(`Parsed platform file: ${platformDataFile}`);
@@ -1371,25 +1409,30 @@ function prepareTestrailMetadata(testsPath, testrailPlatformdata) {
                 // response from Jahia GraphQL API and the metadata file to be used
                 // with testrail (this has to be defined somewhere)
                 if (((_b = (_a = platformData.platform.jahia) === null || _a === void 0 ? void 0 : _a.version) === null || _b === void 0 ? void 0 : _b.release) !== undefined) {
-                    testrailMetadata['version'] = (_d = (_c = platformData.platform.jahia) === null || _c === void 0 ? void 0 : _c.version) === null || _d === void 0 ? void 0 : _d.release;
+                    testrailMetadata['version'] =
+                        (_d = (_c = platformData.platform.jahia) === null || _c === void 0 ? void 0 : _c.version) === null || _d === void 0 ? void 0 : _d.release;
                     if (((_f = (_e = platformData.platform.jahia) === null || _e === void 0 ? void 0 : _e.version) === null || _f === void 0 ? void 0 : _f.build) !== undefined) {
                         testrailMetadata['version'] += ` - Build: ${(_h = (_g = platformData.platform.jahia) === null || _g === void 0 ? void 0 : _g.version) === null || _h === void 0 ? void 0 : _h.build}`;
                     }
                 }
                 if (((_k = (_j = platformData.platform.jahia) === null || _j === void 0 ? void 0 : _j.database) === null || _k === void 0 ? void 0 : _k.name) !== undefined) {
-                    testrailMetadata['custom_database'] = (_m = (_l = platformData.platform.jahia) === null || _l === void 0 ? void 0 : _l.database) === null || _m === void 0 ? void 0 : _m.name;
+                    testrailMetadata['custom_database'] =
+                        (_m = (_l = platformData.platform.jahia) === null || _l === void 0 ? void 0 : _l.database) === null || _m === void 0 ? void 0 : _m.name;
                     if (((_p = (_o = platformData.platform.jahia) === null || _o === void 0 ? void 0 : _o.database) === null || _p === void 0 ? void 0 : _p.version) !== undefined) {
                         testrailMetadata['custom_database'] += ` - Version: ${(_r = (_q = platformData.platform.jahia) === null || _q === void 0 ? void 0 : _q.database) === null || _r === void 0 ? void 0 : _r.version}`;
                     }
                 }
                 if (((_u = (_t = (_s = platformData.platform.jahia) === null || _s === void 0 ? void 0 : _s.system) === null || _t === void 0 ? void 0 : _t.java) === null || _u === void 0 ? void 0 : _u.runtimeName) !== undefined) {
-                    testrailMetadata['custom_java'] = (_x = (_w = (_v = platformData.platform.jahia) === null || _v === void 0 ? void 0 : _v.system) === null || _w === void 0 ? void 0 : _w.java) === null || _x === void 0 ? void 0 : _x.runtimeName;
-                    if (((_0 = (_z = (_y = platformData.platform.jahia) === null || _y === void 0 ? void 0 : _y.system) === null || _z === void 0 ? void 0 : _z.java) === null || _0 === void 0 ? void 0 : _0.runtimeVersion) !== undefined) {
+                    testrailMetadata['custom_java'] =
+                        (_x = (_w = (_v = platformData.platform.jahia) === null || _v === void 0 ? void 0 : _v.system) === null || _w === void 0 ? void 0 : _w.java) === null || _x === void 0 ? void 0 : _x.runtimeName;
+                    if (((_0 = (_z = (_y = platformData.platform.jahia) === null || _y === void 0 ? void 0 : _y.system) === null || _z === void 0 ? void 0 : _z.java) === null || _0 === void 0 ? void 0 : _0.runtimeVersion) !==
+                        undefined) {
                         testrailMetadata['custom_java'] += ` - Version: ${(_3 = (_2 = (_1 = platformData.platform.jahia) === null || _1 === void 0 ? void 0 : _1.system) === null || _2 === void 0 ? void 0 : _2.java) === null || _3 === void 0 ? void 0 : _3.runtimeVersion}`;
                     }
                 }
                 if (((_6 = (_5 = (_4 = platformData.platform.jahia) === null || _4 === void 0 ? void 0 : _4.system) === null || _5 === void 0 ? void 0 : _5.os) === null || _6 === void 0 ? void 0 : _6.name) !== undefined) {
-                    testrailMetadata['custom_os'] = (_9 = (_8 = (_7 = platformData.platform.jahia) === null || _7 === void 0 ? void 0 : _7.system) === null || _8 === void 0 ? void 0 : _8.os) === null || _9 === void 0 ? void 0 : _9.name;
+                    testrailMetadata['custom_os'] =
+                        (_9 = (_8 = (_7 = platformData.platform.jahia) === null || _7 === void 0 ? void 0 : _7.system) === null || _8 === void 0 ? void 0 : _8.os) === null || _9 === void 0 ? void 0 : _9.name;
                     if (((_12 = (_11 = (_10 = platformData.platform.jahia) === null || _10 === void 0 ? void 0 : _10.system) === null || _11 === void 0 ? void 0 : _11.os) === null || _12 === void 0 ? void 0 : _12.architecture) !== undefined) {
                         testrailMetadata['custom_os'] += ` (${(_15 = (_14 = (_13 = platformData.platform.jahia) === null || _13 === void 0 ? void 0 : _13.system) === null || _14 === void 0 ? void 0 : _14.os) === null || _15 === void 0 ? void 0 : _15.architecture})`;
                     }
@@ -1478,12 +1521,21 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.sendResultsToZencrepes = void 0;
+const core = __importStar(__nccwpck_require__(2186));
 const path = __importStar(__nccwpck_require__(5622));
+const fs_1 = __importDefault(__nccwpck_require__(5747));
 const system_1 = __nccwpck_require__(7885);
 function sendResultsToZencrepes(testsPath, options) {
     return __awaiter(this, void 0, void 0, function* () {
+        if (!fs_1.default.existsSync(testsPath)) {
+            core.info(`${testsPath} does not exists, skipping zencrepes report`);
+            return;
+        }
         const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         const moduleFilepath = path.join(testsPath, 'artifacts/results/installed-jahia-modules.json');
         let command = 'jahia-reporter zencrepes';
@@ -1674,7 +1726,8 @@ function run() {
                         pdReporterId: core.getInput('incident_pagerduty_reporter_id'),
                         googleSpreadsheetId: core.getInput('incident_google_spreadsheet_id'),
                         googleClientEmail: core.getInput('incident_google_client_email'),
-                        googleApiKey: core.getInput('incident_google_api_key_base64')
+                        googleApiKey: core.getInput('incident_google_api_key_base64'),
+                        incidentMessage: core.getInput('incident_message_no_test')
                     });
                 }));
             }
@@ -1864,7 +1917,10 @@ function runShellCommands(commands, logfile = null, options = {}) {
     return __awaiter(this, void 0, void 0, function* () {
         for (const cmd of commands) {
             let silent = false;
-            if (options.silent !== undefined || options.silent === true || options.loggingMode === 'silent' || options.loggingMode === 'partial') {
+            if (options.silent !== undefined ||
+                options.silent === true ||
+                options.loggingMode === 'silent' ||
+                options.loggingMode === 'partial') {
                 silent = true;
             }
             if (options.printCmd === undefined || options.printCmd === true) {
@@ -1896,9 +1952,9 @@ function runShellCommands(commands, logfile = null, options = {}) {
                 if (options.loggingMode === 'partial') {
                     const logs = stdOut.split('\n');
                     if (logs.length > 500) {
-                        logs.slice(0, 250).forEach((line) => core.info(line));
+                        logs.slice(0, 250).forEach(line => core.info(line));
                         core.notice(`...... Partial output displayed, see: ${filepath} for full output ......`);
-                        logs.slice(-250).forEach((line) => core.info(line));
+                        logs.slice(-250).forEach(line => core.info(line));
                     }
                 }
                 const logFileStream = fs.createWriteStream(filepath, { flags: 'a+' });
