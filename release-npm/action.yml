@@ -105,54 +105,37 @@ runs:
       shell: bash
       run: |
         TAG_VERSION=$(echo ${{ inputs.release_version }})
-        echo 1
         FINAL_RELEASE_VERSION=$(echo ${{ inputs.release_version }} | tr '_' '.' | cut -d'-' -f 1)
-        echo 2
         MAJOR_VERSION=`echo $FINAL_RELEASE_VERSION | cut -d. -f1`
-        echo 3
         MINOR_VERSION=`echo $FINAL_RELEASE_VERSION | cut -d. -f2`
-        echo 4
         REVISION=`echo $FINAL_RELEASE_VERSION | cut -d. -f3`
-        echo 5
         if [[ "${{ inputs.primary_release_branch }}" == "master"  || "${{ inputs.primary_release_branch }}" == "main"  ||  "${{ inputs.primary_release_branch }}" =~ ^[0-9]_x$ ]]; then
-          echo 6
           NEXT_MINOR_VERSION=`expr $MINOR_VERSION + 1`
-          echo 7
           NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$NEXT_MINOR_VERSION.0"-SNAPSHOT
-          echo 8
         else
           NEXT_REVISION=`expr $REVISION + 1`
           NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$MINOR_VERSION.$NEXT_REVISION"-SNAPSHOT
         fi
 
-        echo 9
-
         echo "NEXT_DEVELOPMENT_VERSION=$NEXT_DEVELOPMENT_VERSION" >> $GITHUB_ENV
-        echo 10
         jq '.version |= "${{ inputs.release_version }}"' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
-        echo 11
         echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
-        echo 12
         git config user.name ${{ inputs.github_user_name }}
-        echo 13
         git config user.email ${{ inputs.github_user_email }}
-        echo 14
         git remote set-url origin https://x-access-token:${{ inputs.github_api_token }}@github.com/${{ inputs.github_slug}}
-        echo 15
         git add package.json
-        echo 16
         git commit -m "[skip ci] prepare release $FINAL_RELEASE_VERSION"
-        echo 17
         git push
-        echo 18
-        unset NODE_OPTIONS
-        echo 18.5
-        yarn
-        echo 19
-        yarn build
-        echo 20
-        yarn pack
-        echo 21
+
+      - name: Prepare the module
+        shell: bash
+        run: yarn
+      - name: Build the module
+        shell: bash
+        run: yarn build
+      - name: Package the module
+        shell: bash
+        run: yarn pack
 
     - name: Cache local Maven repository
       uses: actions/cache@v3
