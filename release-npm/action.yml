@@ -127,15 +127,15 @@ runs:
         git commit -m "[skip ci] prepare release $FINAL_RELEASE_VERSION"
         git push
 
-      - name: Prepare the module
-        shell: bash
-        run: yarn
-      - name: Build the module
-        shell: bash
-        run: yarn build
-      - name: Package the module
-        shell: bash
-        run: yarn pack
+    - name: Prepare the module
+      shell: bash
+      run: yarn
+    - name: Build the module
+      shell: bash
+      run: yarn build
+    - name: Package the module
+      shell: bash
+      run: yarn pack
 
     - name: Cache local Maven repository
       uses: actions/cache@v3
