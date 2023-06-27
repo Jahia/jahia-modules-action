@@ -129,7 +129,7 @@ runs:
 
         echo "NEXT_DEVELOPMENT_VERSION=$NEXT_DEVELOPMENT_VERSION" >> $GITHUB_ENV
         echo 10
-        jq '.version |= "$TAG_VERSION"' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
+        jq '.version |= "${TAG_VERSION}"' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
         echo 11
         echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
         echo 12
