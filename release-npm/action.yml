@@ -134,7 +134,7 @@ runs:
         echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
         echo 12
         git config user.name ${{ inputs.github_user_name }}
-        $echo 13
+        echo 13
         git config user.email ${{ inputs.github_user_email }}
         echo 14
         git remote set-url origin https://x-access-token:${{ inputs.github_api_token }}@github.com/${{ inputs.github_slug}}
