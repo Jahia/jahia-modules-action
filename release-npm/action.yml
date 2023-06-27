@@ -133,9 +133,9 @@ runs:
         echo 11
         echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
         echo 12
-        git config --global user.name ${{ inputs.github_user_name }}
+        git config user.name ${{ inputs.github_user_name }}
         $echo 13
-        git config --global user.email ${{ inputs.github_user_email }}
+        git config user.email ${{ inputs.github_user_email }}
         echo 14
         git remote set-url origin https://x-access-token:${{ inputs.github_api_token }}@github.com/${{ inputs.github_slug}}
         echo 15
@@ -198,8 +198,8 @@ runs:
       shell: bash
       run: |
         jq '.version |= "${{ env.NEXT_DEVELOPMENT_VERSION }}"' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
-        git config --global user.name ${{ inputs.github_user_name }}
-        git config --global user.email ${{ inputs.github_user_email }}
+        git config user.name ${{ inputs.github_user_name }}
+        git config user.email ${{ inputs.github_user_email }}
         git add package.json
         git commit -m "[skip ci] prepare for next development iteration"
         git push
