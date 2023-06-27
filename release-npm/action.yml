@@ -60,19 +60,6 @@ runs:
         echo "REPOSITORY_URL=$(jq '.jahia.maven.distributionManagement.repository.url' package.json | cut -d\" -f2)" >> $GITHUB_ENV
         echo "GROUP_ID=$(jq '.jahia.maven.groupId' package.json | cut -d\" -f2)" >> $GITHUB_ENV
 
-    - name: Generate maven cache seed
-      shell: bash
-      run: |
-        find . -name 'pom.xml' | sort | xargs cat > ./maven_cache_seed
-
-    - name: Cache local Maven repository
-      uses: actions/cache@v3
-      with:
-        path: ~/.m2/repository
-        key: v1-maven-dependencies-${{ hashFiles('**/maven_cache_seed') }}
-        restore-keys: |
-          v1-maven-dependencies-${{ hashFiles('**/maven_cache_seed') }}
-
     - name: Getting latest changes from the remote branch
       shell: bash
       run: |
@@ -121,12 +108,16 @@ runs:
         echo "NEXT_DEVELOPMENT_VERSION=$NEXT_DEVELOPMENT_VERSION" >> $GITHUB_ENV
         jq '.version |= "${{ inputs.release_version }}"' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
         echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
-        git config user.name ${{ inputs.github_user_name }}
-        git config user.email ${{ inputs.github_user_email }}
-        git remote set-url origin https://x-access-token:${{ inputs.github_api_token }}@github.com/${{ inputs.github_slug}}
-        git add package.json
-        git commit -m "[skip ci] prepare release $FINAL_RELEASE_VERSION"
-        git push
+
+        if [ ! ${{ inputs.release_version }} -eq ${{ env.MODULE_VERSION }}]
+        then
+          git config user.name ${{ inputs.github_user_name }}
+          git config user.email ${{ inputs.github_user_email }}
+          git remote set-url origin https://x-access-token:${{ inputs.github_api_token }}@github.com/${{ inputs.github_slug}}
+          git add package.json
+          git commit -m "[skip ci] prepare release $FINAL_RELEASE_VERSION"
+          git push
+        fi
 
     - name: Prepare the module
       shell: bash
@@ -137,14 +128,6 @@ runs:
     - name: Package the module
       shell: bash
       run: yarn pack
-
-    - name: Cache local Maven repository
-      uses: actions/cache@v3
-      with:
-        path: |
-          pom.xml.releaseBackup
-          release.properties
-        key: v1-rollback-${{ inputs.release_id }}
 
     - name: Update github release for id ${{ inputs.release_id }}
       shell: bash
@@ -169,7 +152,7 @@ runs:
       run: |
         mkdir /tmp/artifacts/
         cd ~
-        find . -name "*.jar" -type f  -maxdepth 3 -mindepth 3 -exec cp {} /tmp/artifacts/ \;
+        find . -name "*.tgz" -type f  -maxdepth 3 -mindepth 3 -exec cp {} /tmp/artifacts/ \;
 
     - name: Release Artifacts
       if: always()
