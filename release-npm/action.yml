@@ -43,7 +43,8 @@ inputs:
   slack-webhook-qa:
     description: 'Secret webhook to send a notif on a QA channel'
     required: false
-  description: 'Version of node to install on the host'
+  node_version:
+    description: 'Version of node to install on the host'
     required: false
     default: 'lts/*'
 
