@@ -14,10 +14,17 @@ inputs:
   module_path:
     description: 'Path to module'
     default: './'
+  node_version:
+    description: 'Version of node to install on the host'
+    required: false
+    default: 'lts/*'
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
+    - uses: actions/setup-node@v3
+      with:
+        node-version: ${{ inputs.node_version }}
 
     - name: Set environment variables from parameters
       shell: bash
