@@ -106,10 +106,10 @@ runs:
         REVISION=`echo $FINAL_RELEASE_VERSION | cut -d. -f3`
         if [[ "${{ inputs.primary_release_branch }}" == "master"  || "${{ inputs.primary_release_branch }}" == "main"  ||  "${{ inputs.primary_release_branch }}" =~ ^[0-9]_x$ ]]; then
           NEXT_MINOR_VERSION=`expr $MINOR_VERSION + 1`
-          NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$NEXT_MINOR_VERSION.0"-SNAPSHOT
+          NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$NEXT_MINOR_VERSION.0"
         else
           NEXT_REVISION=`expr $REVISION + 1`
-          NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$MINOR_VERSION.$NEXT_REVISION"-SNAPSHOT
+          NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$MINOR_VERSION.$NEXT_REVISION"
         fi
 
         echo "NEXT_DEVELOPMENT_VERSION=$NEXT_DEVELOPMENT_VERSION" >> $GITHUB_ENV
