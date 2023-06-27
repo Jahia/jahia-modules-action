@@ -61,6 +61,7 @@ runs:
         echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
         echo "NEXUS_RELEASE_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
         echo "NEXUS_RELEASE_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
+        echo "MODULE_NAME=$(jq '.name' package.json | cut -d\" -f2 )" >> $GITHUB_ENV
         echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
         echo "REPOSITORY_ID=$(jq '.jahia.maven.distributionManagement.repository.id' package.json | cut -d\" -f2)" >> $GITHUB_ENV
         echo "REPOSITORY_URL=$(jq '.jahia.maven.distributionManagement.repository.url' package.json | cut -d\" -f2)" >> $GITHUB_ENV
