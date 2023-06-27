@@ -122,7 +122,9 @@ runs:
         echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
         git config --global user.name ${{ inputs.github_user_name }}
         git config --global user.email ${{ inputs.github_user_email }}
-        git commit -am "[skip ci] prepare release $FINAL_RELEASE_VERSION"
+        git remote set-url origin https://x-access-token:${{ inputs.github_api_token }}@github.com/${{ inputs.github_slug}}
+        git add package.json
+        git commit -m "[skip ci] prepare release $FINAL_RELEASE_VERSION"
         git push
         yarn
         yarn build
@@ -176,7 +178,8 @@ runs:
         jq '.version |= "${{ env.NEXT_DEVELOPMENT_VERSION }}"' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
         git config --global user.name ${{ inputs.github_user_name }}
         git config --global user.email ${{ inputs.github_user_email }}
-        git commit -am "[skip ci] prepare for next development iteration"
+        git add package.json
+        git commit -m "[skip ci] prepare for next development iteration"
         git push
 
 
