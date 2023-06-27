@@ -145,6 +145,8 @@ runs:
         echo 17
         git push
         echo 18
+        unset NODE_OPTIONS
+        echo 18.5
         yarn
         echo 19
         yarn build
