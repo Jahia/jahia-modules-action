@@ -37,6 +37,7 @@ runs:
         else
           echo "MODULE_OLD_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
           MODULE_VERSION="$MODULE_OLD_VERSION"-SNAPSHOT
+          echo $MODULE_VERSION
           echo "MODULE_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
         fi
 
