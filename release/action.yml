@@ -164,6 +164,7 @@ runs:
         path: |
           **/target/java-bom*
           **/target/classes/javascript/**/bom/*
+          !**/target/checkout/*
         retention-days: ${{ inputs.github_artifact_retention }}
 
     - name: Post to a Slack channel
