@@ -37,6 +37,15 @@ runs:
         echo "REPOSITORY_URL=$(jq '.jahia.maven.distributionManagement.snapshotRepository.url' package.json | cut -d\" -f2)" >> $GITHUB_ENV
         echo "GROUP_ID=$(jq '.jahia.maven.groupId' package.json | cut -d\" -f2)" >> $GITHUB_ENV
 
+        if [[ $MODULE_VERSION == *-SNAPSHOT ]]; then
+          echo "MODULE_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
+        else
+          echo "MODULE_OLD_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
+          MODULE_VERSION+="-SNAPSHOT"
+          echo $MODULE_VERSION
+          echo "MODULE_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
+        fi
+
     # This step save the maven cache between runs
     # More details can be found here: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
     - name: Cache local Maven repository
@@ -59,6 +68,13 @@ runs:
       shell: bash
       run: yarn pack
 
+    - name: Rename build file if necessary
+      shell: bash
+      run: |
+        if [ ! -e ./${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz ]; then
+          mv ./${{ env.MODULE_NAME }}-v${{ env.MODULE_OLD_VERSION }}.tgz ./${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
+        fi
+
     - name: Publish to maven
       shell: bash
-      run: mvn -s ${{ inputs.mvn_settings_filepath }} deploy:deploy-file -Dfile=${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz -DgroupId=${{ env.GROUP_ID }} -DartifactId=${{ env.MODULE_NAME }} -Dversion=${{ env.MODULE_VERSION }}-SNAPSHOT -Dpackaging=tgz -Durl=${{ env.REPOSITORY_URL }} -DrepositoryId=${{ env.REPOSITORY_ID }} -Drepo.id=${{ env.REPOSITORY_ID }} -Drepo.login=${{ env.NEXUS_USERNAME }} -Drepo.pwd=${{ env.NEXUS_PASSWORD }}
+      run: mvn -s ${{ inputs.mvn_settings_filepath }} deploy:deploy-file -Dfile=${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz -DgroupId=${{ env.GROUP_ID }} -DartifactId=${{ env.MODULE_NAME }} -Dversion=${{ env.MODULE_VERSION }} -Dpackaging=tgz -Durl=${{ env.REPOSITORY_URL }} -DrepositoryId=${{ env.REPOSITORY_ID }} -Drepo.id=${{ env.REPOSITORY_ID }} -Drepo.login=${{ env.NEXUS_USERNAME }} -Drepo.pwd=${{ env.NEXUS_PASSWORD }}
