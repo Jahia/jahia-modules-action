@@ -112,11 +112,11 @@ runs:
           NEXT_REVISION=`expr $REVISION + 1`
           NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$MINOR_VERSION.$NEXT_REVISION"
         fi
+        echo "NEXT_DEVELOPMENT_VERSION=$NEXT_DEVELOPMENT_VERSION" >> $GITHUB_ENV
 
     - name: Update package.json
       shell: bash
       run: |
-        echo "NEXT_DEVELOPMENT_VERSION=$NEXT_DEVELOPMENT_VERSION" >> $GITHUB_ENV
         jq '.version |= "${{ env.FINAL_RELEASE_VERSION }}"' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
 
         if [ ! ${{ env.FINAL_RELEASE_VERSION }} -eq ${{ env.MODULE_VERSION }} ]
