@@ -69,7 +69,7 @@ runs:
     - name: Show direct link to Dependency Track
       shell: bash
       run: |
-        echo "::notice title=Dependency Track location::SBOM has been uploaded to: ${{ inputs.dependencytrack_apikey }}https://${{ inputs.dependencytrack_hostname }} Project name: ${{ inputs.dependencytrack_projectname }} version: ${{ inputs.dependencytrack_projectversion }}"
+        echo "::notice title=Dependency Track location::SBOM has been uploaded to: https://${{ inputs.dependencytrack_hostname }} Project name: ${{ inputs.dependencytrack_projectname }} version: ${{ inputs.dependencytrack_projectversion }}"
           
     - name: Upload sbom to Dependency Track
       uses: DependencyTrack/gh-upload-sbom@v1.0.0
