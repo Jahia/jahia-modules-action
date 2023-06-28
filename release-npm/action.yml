@@ -113,11 +113,14 @@ runs:
           NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$MINOR_VERSION.$NEXT_REVISION"
         fi
 
+    - name: Update package.json
+      shell: bash
+      run: |
         echo "NEXT_DEVELOPMENT_VERSION=$NEXT_DEVELOPMENT_VERSION" >> $GITHUB_ENV
-        jq '.version |= $FINAL_RELEASE_VERSION' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
+        jq '.version |= ${{ env.FINAL_RELEASE_VERSION }}' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
         echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
 
-        if [ ! $FINAL_RELEASE_VERSION -eq $MODULE_VERSION ]
+        if [ ! ${{ env.FINAL_RELEASE_VERSION }} -eq ${{ env.MODULE_VERSION }} ]
         then
           git config user.name ${{ inputs.github_user_name }}
           git config user.email ${{ inputs.github_user_email }}
