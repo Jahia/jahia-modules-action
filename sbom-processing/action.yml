@@ -1,4 +1,4 @@
-name: SBOM Handling
+name: SBOM processing
 description: Create software bill of materials and pass it to OWASP Dependency Track
 
 inputs:
@@ -40,22 +40,6 @@ runs:
       shell: bash
       run: |
           find . \( -name "*.cdx.json" -o -name "*bom.json" \) -exec cyclonedx merge --output-file sbom-all.cdx.json --input-files "{}" +
-          apt-get update && apt-get install -y jq
-          jq '. |
-          {
-            "bomFormat": .bomFormat,
-            "specVersion": .specVersion,
-            "serialNumber": .serialNumber,
-            "version": .version,
-            "metadata": {
-              "tools": [
-                (.metadata.tools | unique[])
-              ]
-            },
-            "components": [
-              (.components | unique[])
-            ]
-          }' "sbom-all.cdx.json" > sbom-all.cdx.json.tmp && mv sbom-all.cdx.json.tmp sbom-all.cdx.json
           cyclonedx validate --input-version v1_4 --input-file sbom-all.cdx.json
           
     - name: Upload sbom
@@ -69,7 +53,7 @@ runs:
     - name: Show direct link to Dependency Track
       shell: bash
       run: |
-        echo "::notice title=Dependency Track location::SBOM has been uploaded to: ${{ inputs.dependencytrack_apikey }}https://${{ inputs.dependencytrack_hostname }} Project name: ${{ inputs.dependencytrack_projectname }} version: ${{ inputs.dependencytrack_projectversion }}"
+        echo "::notice title=Dependency Track location::SBOM has been uploaded to: https://${{ inputs.dependencytrack_hostname }} Project name: ${{ inputs.dependencytrack_projectname }} version: ${{ inputs.dependencytrack_projectversion }}"
           
     - name: Upload sbom to Dependency Track
       uses: DependencyTrack/gh-upload-sbom@v1.0.0

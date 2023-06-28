@@ -1,0 +1,89 @@
+name: Build NPM
+descripion: Build a npm-module
+
+inputs:
+  github_artifact_retention:
+    description: 'Time during which artifact are kept in Github infrastructure'
+    default: '2'
+  module_path:
+    description: 'Path to the module folder (if not ./ precise path from the github_workspace)'
+    required: false
+    default: ./
+  node_version:
+    description: 'Version of node to install on the host'
+    required: false
+    default: 'lts/*'
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/setup-node@v3
+      with:
+        node-version: ${{ inputs.node_version }}
+
+    - name: Get package.json infos
+      shell: bash
+      run: |
+        # Get informations from package.json to replace the ones that are in pom.xml in classic modules
+        cd ${{ inputs.module_path }}
+        echo "MODULE_NAME=$(jq '.name' package.json | cut -d\" -f2 )" >> $GITHUB_ENV
+        MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2 )
+        if [[ $MODULE_VERSION == *-SNAPSHOT ]]; then
+          echo "MODULE_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
+        else
+          echo "MODULE_OLD_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
+          MODULE_VERSION+="-SNAPSHOT"
+          echo $MODULE_VERSION
+          echo "MODULE_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
+        fi
+
+    - name: Prepare the module
+      shell: bash
+      run: |
+        cd ${{ inputs.module_path }}
+        yarn
+
+    - name: Build the module
+      shell: bash
+      run: |
+        cd ${{ inputs.module_path }}
+        yarn build
+
+    - name: Package the module
+      shell: bash
+      run: |
+        cd ${{ inputs.module_path }}
+        yarn pack
+
+    - name: Rename build file if necessary
+      shell: bash
+      run: |
+        if [ ! -e ${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz ]; then
+          mv ${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_OLD_VERSION }}.tgz ${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
+        fi
+
+    - name: Archive build artifacts
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifacts
+        path: |
+          ${{inputs.module_path}}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
+        retention-days: ${{ inputs.github_artifact_retention }}
+
+    - name: Keep session opened if /tmp/debug file is present
+      shell: bash
+      if: always()
+      run: |
+        echo "::group::Keep session opened if /tmp/debug file is present"
+        WAIT_DURATION=0
+        while [[ -e /tmp/debug ]]; do
+          echo "Debug file present - $(( ++ WAIT_DURATION ))s - waiting for file removal..."
+          if [ $WAIT_DURATION -gt ${{ inputs.debug_session_timeout }} ]; then
+            echo "Reached timeout of: ${{ inputs.debug_session_timeout }}"
+            echo "Exiting the loop"
+            break
+          fi
+          sleep 1;
+        done
+        echo "::endgroup::"
