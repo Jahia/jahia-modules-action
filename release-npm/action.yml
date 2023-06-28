@@ -118,7 +118,6 @@ runs:
       run: |
         echo "NEXT_DEVELOPMENT_VERSION=$NEXT_DEVELOPMENT_VERSION" >> $GITHUB_ENV
         jq '.version |= ${{ env.FINAL_RELEASE_VERSION }}' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
-        echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
 
         if [ ! ${{ env.FINAL_RELEASE_VERSION }} -eq ${{ env.MODULE_VERSION }} ]
         then
@@ -129,6 +128,7 @@ runs:
           git commit -m "[skip ci] prepare release $FINAL_RELEASE_VERSION"
           git push
         fi
+        echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
 
     - name: Prepare the module
       shell: bash
