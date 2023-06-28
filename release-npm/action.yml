@@ -117,7 +117,7 @@ runs:
       shell: bash
       run: |
         echo "NEXT_DEVELOPMENT_VERSION=$NEXT_DEVELOPMENT_VERSION" >> $GITHUB_ENV
-        jq '.version |= ${{ env.FINAL_RELEASE_VERSION }}' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
+        jq '.version |= "${{ env.FINAL_RELEASE_VERSION }}"' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
 
         if [ ! ${{ env.FINAL_RELEASE_VERSION }} -eq ${{ env.MODULE_VERSION }} ]
         then
