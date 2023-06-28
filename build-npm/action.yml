@@ -53,6 +53,8 @@ runs:
       run: yarn pack
 
     - name: Rename build file if necessary
+      shell: bash
+      run: |Ò
       if [ -ne ./${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz ]; then
       mv ./${{ env.MODULE_NAME }}-v${{ env.MODULE_OLD_VERSION }}.tgz ./${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
       fi
