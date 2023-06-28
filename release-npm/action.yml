@@ -1,5 +1,5 @@
-name: Release
-description: Release a Jahia module
+name: Release NPM
+description: Release a Jahia NPM module
 
 inputs:
   primary_release_branch:
@@ -43,40 +43,47 @@ inputs:
   slack-webhook-qa:
     description: 'Secret webhook to send a notif on a QA channel'
     required: false
+  node_version:
+    description: 'Version of node to install on the host'
+    required: false
+    default: 'lts/*'
+  module_path:
+    description: 'Path to the module folder (if not ./ precise path from the github_workspace)'
+    required: false
+    default: ./
 
 runs:
   using: 'composite'
   steps:
+    - uses: actions/setup-node@v3
+      with:
+        node-version: ${{ inputs.node_version }}
     - name: Set environment variables from parameters
       shell: bash
       run: |
+        # Get informations from package.json to replace the ones that are in pom.xml in classic modules
+        cd ${{ inputs.module_path }}
         echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
         echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
         echo "NEXUS_RELEASE_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
         echo "NEXUS_RELEASE_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
-
-    - name: Generate maven cache seeed
-      shell: bash
-      run: |
-        find . -name 'pom.xml' | sort | xargs cat > ./maven_cache_seed
-
-    - name: Cache local Maven repository
-      uses: actions/cache@v3
-      with:
-        path: ~/.m2/repository
-        key: v1-maven-dependencies-${{ hashFiles('**/maven_cache_seed') }}
-        restore-keys: |
-          v1-maven-dependencies-${{ hashFiles('**/maven_cache_seed') }}
+        echo "MODULE_NAME=$(jq '.name' package.json | cut -d\" -f2 )" >> $GITHUB_ENV
+        echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
+        echo "REPOSITORY_ID=$(jq '.jahia.maven.distributionManagement.repository.id' package.json | cut -d\" -f2)" >> $GITHUB_ENV
+        echo "REPOSITORY_URL=$(jq '.jahia.maven.distributionManagement.repository.url' package.json | cut -d\" -f2)" >> $GITHUB_ENV
+        echo "GROUP_ID=$(jq '.jahia.maven.groupId' package.json | cut -d\" -f2)" >> $GITHUB_ENV
 
     - name: Getting latest changes from the remote branch
       shell: bash
       run: |
+        cd ${{ inputs.module_path }}
         git fetch --all
         git pull origin ${{ inputs.primary_release_branch }} --quiet
 
     - name: Delete github tag ${{ inputs.release_version }}
       shell: bash
       run: |
+        cd ${{ inputs.module_path }}
         git config user.email ${{ inputs.git_user_email }}
         git config user.name ${{ inputs.git_user_name }}
         git tag --delete ${{ inputs.release_version }}
@@ -85,12 +92,14 @@ runs:
     - name: Remove any previous changes, this is required by mvn release prepare
       shell: bash
       run: |
+        cd ${{ inputs.module_path }}
         git reset --hard
         git checkout ${{ inputs.primary_release_branch }}
 
     - name: Added some debug details
       shell: bash
       run: |
+        cd ${{ inputs.module_path }}
         git branch
         echo "---"
         git status
@@ -100,32 +109,62 @@ runs:
     - name: Release prepare version for ${{ inputs.release_version }}
       shell: bash
       run: |
+        # Define next development version
+        cd ${{ inputs.module_path }}
         TAG_VERSION=$(echo ${{ inputs.release_version }})
         FINAL_RELEASE_VERSION=$(echo ${{ inputs.release_version }} | tr '_' '.' | cut -d'-' -f 1)
+        echo "FINAL_RELEASE_VERSION=$FINAL_RELEASE_VERSION" >> $GITHUB_ENV
         MAJOR_VERSION=`echo $FINAL_RELEASE_VERSION | cut -d. -f1`
         MINOR_VERSION=`echo $FINAL_RELEASE_VERSION | cut -d. -f2`
         REVISION=`echo $FINAL_RELEASE_VERSION | cut -d. -f3`
         if [[ "${{ inputs.primary_release_branch }}" == "master"  || "${{ inputs.primary_release_branch }}" == "main"  ||  "${{ inputs.primary_release_branch }}" =~ ^[0-9]_x$ ]]; then
           NEXT_MINOR_VERSION=`expr $MINOR_VERSION + 1`
-          NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$NEXT_MINOR_VERSION.0"-SNAPSHOT
+          NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$NEXT_MINOR_VERSION.0"
         else
           NEXT_REVISION=`expr $REVISION + 1`
-          NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$MINOR_VERSION.$NEXT_REVISION"-SNAPSHOT
+          NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$MINOR_VERSION.$NEXT_REVISION"
         fi
-        mvn -B -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=$TAG_VERSION release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin]"
+        echo "NEXT_DEVELOPMENT_VERSION=$NEXT_DEVELOPMENT_VERSION" >> $GITHUB_ENV
 
-    - name: Cache local Maven repository
-      uses: actions/cache@v3
-      with:
-        path: |
-          pom.xml.releaseBackup
-          release.properties
-        key: v1-rollback-${{ inputs.release_id }}
+    - name: Update package.json
+      shell: bash
+      run: |
+        # Update package.json to match version precised in release tag
+        cd ${{ inputs.module_path }}
+        jq '.version |= "${{ env.FINAL_RELEASE_VERSION }}"' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
+
+        if [ ! ${{ env.FINAL_RELEASE_VERSION }} -eq ${{ env.MODULE_VERSION }} ]
+        then
+          git config user.name ${{ inputs.github_user_name }}
+          git config user.email ${{ inputs.github_user_email }}
+          git remote set-url origin https://x-access-token:${{ inputs.github_api_token }}@github.com/${{ inputs.github_slug}}
+          git add package.json
+          git commit -m "[skip ci] prepare release $FINAL_RELEASE_VERSION"
+          git push
+        fi
+        echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
+
+    - name: Prepare the module
+      shell: bash
+      run: |
+        cd ${{ inputs.module_path }}
+        yarn
+    - name: Build the module
+      shell: bash
+      run: |
+        cd ${{ inputs.module_path }}
+        yarn build
+    - name: Package the module
+      shell: bash
+      run: |
+        cd ${{ inputs.module_path }}
+        yarn pack
 
     - name: Update github release for id ${{ inputs.release_id }}
       shell: bash
       run: |
         echo "Update github release for id ${{ inputs.release_id }}"
+        cd ${{ inputs.module_path }}
         curl -X PATCH \
         -H "Accept:application/vnd.github.v3+json" \
         -d "{\"tag_name\":\"${{ inputs.release_version }}\", \"prerelease\": false, \"draft\": false}" -u \
@@ -138,14 +177,14 @@ runs:
 
     - name: Perform release
       shell: bash
-      run: mvn -B -s ${{ inputs.mvn_settings_filepath }} release:perform -Prelease-to-staging-repository
+      run: mvn -s ${{ inputs.mvn_settings_filepath }} deploy:deploy-file -Dfile=${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz -DgroupId=${{ env.GROUP_ID }} -DartifactId=${{ env.MODULE_NAME }} -Dversion=${{ env.MODULE_VERSION }} -Dpackaging=tgz -Durl=${{ env.REPOSITORY_URL }} -DrepositoryId=${{ env.REPOSITORY_ID }}
 
     - name: Copy artifacts
       shell: bash
       run: |
         mkdir /tmp/artifacts/
-        cd ~
-        find . -name "*.jar" -type f  -maxdepth 3 -mindepth 3 -exec cp {} /tmp/artifacts/ \;
+        cd ${{ inputs.module_path }}
+        find . -name "*.tgz" -type f  -maxdepth 3 -mindepth 3 -exec cp {} /tmp/artifacts/ \;
 
     - name: Release Artifacts
       if: always()
@@ -156,16 +195,18 @@ runs:
           /tmp/artifacts/
         retention-days: ${{ inputs.github_artifact_retention }}
 
-    - name: Archive SBOM artifacts
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: sbom-artifacts
-        path: |
-          **/target/java-bom*
-          **/target/classes/javascript/**/bom/*
-          !**/target/checkout/*
-        retention-days: ${{ inputs.github_artifact_retention }}
+    - name: set next development version into package.json
+      shell: bash
+      run: |
+        # Update package.json to match next development version
+        cd ${{ inputs.module_path }}
+        jq '.version |= "${{ env.NEXT_DEVELOPMENT_VERSION }}"' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
+        git config user.name ${{ inputs.github_user_name }}
+        git config user.email ${{ inputs.github_user_email }}
+        git add package.json
+        git commit -m "[skip ci] prepare for next development iteration"
+        git push
+
 
     - name: Post to a Slack channel
       if: ${{ inputs.slack-webhook-qa }}
