@@ -32,8 +32,7 @@ runs:
         echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
         echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
         echo "MODULE_NAME=$(jq '.name' package.json | cut -d\" -f2)" >> $GITHUB_ENV
-        echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
-        echo $MODULE_VERSION
+        MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)
         echo "REPOSITORY_ID=$(jq '.jahia.maven.distributionManagement.snapshotRepository.id' package.json | cut -d\" -f2)" >> $GITHUB_ENV
         echo "REPOSITORY_URL=$(jq '.jahia.maven.distributionManagement.snapshotRepository.url' package.json | cut -d\" -f2)" >> $GITHUB_ENV
         echo "GROUP_ID=$(jq '.jahia.maven.groupId' package.json | cut -d\" -f2)" >> $GITHUB_ENV
