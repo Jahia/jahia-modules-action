@@ -1,4 +1,4 @@
-name: SBOM Handling
+name: SBOM processing
 description: Create software bill of materials and pass it to OWASP Dependency Track
 
 inputs:
