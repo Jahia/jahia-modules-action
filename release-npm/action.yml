@@ -101,6 +101,7 @@ runs:
       run: |
         TAG_VERSION=$(echo ${{ inputs.release_version }})
         FINAL_RELEASE_VERSION=$(echo ${{ inputs.release_version }} | tr '_' '.' | cut -d'-' -f 1)
+        echo "FINAL_RELEASE_VERSION=$FINAL_RELEASE_VERSION" >> $GITHUB_ENV
         MAJOR_VERSION=`echo $FINAL_RELEASE_VERSION | cut -d. -f1`
         MINOR_VERSION=`echo $FINAL_RELEASE_VERSION | cut -d. -f2`
         REVISION=`echo $FINAL_RELEASE_VERSION | cut -d. -f3`
@@ -113,10 +114,10 @@ runs:
         fi
 
         echo "NEXT_DEVELOPMENT_VERSION=$NEXT_DEVELOPMENT_VERSION" >> $GITHUB_ENV
-        jq '.version |= "${{ inputs.release_version }}"' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
+        jq '.version |= "${{ env.FINAL_RELEASE_VERSION }}"' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
         echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
 
-        if [ ! ${{ inputs.release_version }} -eq ${{ env.MODULE_VERSION }}]
+        if [ ! ${{ FINAL_RELEASE_VERSION }} -eq ${{ env.MODULE_VERSION }} ]
         then
           git config user.name ${{ inputs.github_user_name }}
           git config user.email ${{ inputs.github_user_email }}
