@@ -1,0 +1,67 @@
+name: SBOM processing
+description: Create software bill of materials and pass it to OWASP Dependency Track
+
+inputs:
+  dependencytrack_hostname:
+    description: 'Server hostname of the OWASP Dependency Track server'
+    required: true
+  dependencytrack_apikey:
+    description: 'Authentication token for the OWASP Dependency Track server'
+    required: true
+  dependencytrack_projectname:
+    description: 'Name of the project in Dependency Track'
+    required: false
+    default: ${{ github.event.repository.name }}
+  dependencytrack_projectversion:
+    description: 'Version of the project in Dependency Track'
+    required: false
+    default: ${{ github.ref_name }}
+  sbom_artifacts:
+    description: 'Name of the artifact target folder that was saved from build stage (using upload-artifact)'
+    required: false
+    default: 'sbom-artifacts'    
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set environment variables from parameters
+      shell: bash
+      run: |
+        echo "DEPENDENCYTRACK_HOSTNAME=${{ inputs.dependencytrack_hostname }}" >> $GITHUB_ENV
+        echo "DEPENDENCYTRACK_APIKEY=${{ inputs.dependencytrack_apikey }}" >> $GITHUB_ENV
+        
+    - name: Download sbom artifacts
+      uses: actions/download-artifact@v3
+      if: ${{ inputs.sbom_artifacts != '' }}
+      with:
+        name: ${{ inputs.sbom_artifacts }}
+
+    - name: Merge sbom
+      shell: bash
+      run: |
+          find . \( -name "*.cdx.json" -o -name "*bom.json" \) -exec cyclonedx merge --output-file sbom-all.cdx.json --input-files "{}" +
+          cyclonedx validate --input-version v1_4 --input-file sbom-all.cdx.json
+          
+    - name: Upload sbom
+      uses: actions/upload-artifact@v3
+      with:
+        name: sbom
+        path: |
+          sbom-all.cdx.json
+        retention-days: 2
+
+    - name: Show direct link to Dependency Track
+      shell: bash
+      run: |
+        echo "::notice title=Dependency Track location::SBOM has been uploaded to: https://${{ inputs.dependencytrack_hostname }} Project name: ${{ inputs.dependencytrack_projectname }} version: ${{ inputs.dependencytrack_projectversion }}"
+          
+    - name: Upload sbom to Dependency Track
+      uses: DependencyTrack/gh-upload-sbom@v1.0.0
+      with:
+          bomfilename: sbom-all.cdx.json
+          serverhostname: ${{ inputs.dependencytrack_hostname }}
+          apikey: ${{ inputs.dependencytrack_apikey }}
+          autocreate: true
+          projectname: ${{ inputs.dependencytrack_projectname }}
+          projectversion: ${{ inputs.dependencytrack_projectversion }}
+        
