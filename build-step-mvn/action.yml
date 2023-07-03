@@ -1,0 +1,86 @@
+name: build-step-mvn
+description: Build step for Jahia MVN module
+
+inputs:
+  module_path:
+    description: 'Path to the module folder (if not ./ precise path from the github_workspace)'
+    required: false
+    default: ./
+  mvn_settings_filepath:
+    description: Filepath to the settings.xml file
+    default: '.github/maven.settings.xml'
+    required: false
+  copy_dependencies:
+    description: Copy dependencies to provision artifacts
+    default: 'true'
+    required: false
+  archive_only_jars:
+    description: Copy dependencies to provision artifacts
+    default: 'false'
+    required: false
+  nexus_username:
+    description: 'Nexus Username'
+    required: false
+    default: ''
+  nexus_password:
+    description: 'Nexus Password'
+    required: false
+    default: ''
+  github_artifact_retention:
+    description: 'Time during which artifact are kept in Github infrastructure'
+    required: false
+    default: '2'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set environment variables from parameters
+      shell: bash
+      run: |
+        echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
+        echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
+
+    # This step save the maven cache between runs
+    # More details can be found here: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
+    - name: Cache local Maven repository
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.m2/repository
+          /root/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+
+    - name: Build package
+      shell: bash
+      run: |
+        cd ${{ inputs.module_path }}
+        mvn -B -U -ntp -s ${{ inputs.mvn_settings_filepath }} clean install
+
+    - name: Copy dependencies to provision artifacts
+      if: ${{ inputs.copy_dependencies == 'true' }}
+      shell: bash
+      run: |
+        cd ${{ inputs.module_path }}
+        mvn -B -s ${{ inputs.mvn_settings_filepath }} dependency:copy-dependencies -DexcludeTransitive=true -DincludeScope=provided -DincludeGroupIds=org.jahia.modules -DincludeTypes=jar
+
+    - name: Archive build artifacts
+      if: ${{ inputs.archive_only_jars == 'false' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifacts
+        path: |
+          ${{ inputs.module_path }}target/*
+          ${{ inputs.module_path }}*/target/*
+          **/*source-release.zip
+        retention-days: ${{ inputs.github_artifact_retention }}
+
+    - name: Archive build artifacts (.jars)
+      if: ${{ inputs.archive_only_jars == 'true' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifacts
+        path: |
+          ${{ inputs.module_path }}**/target/*.jar
+        retention-days: ${{ inputs.github_artifact_retention }}
