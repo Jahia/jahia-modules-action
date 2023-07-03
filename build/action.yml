@@ -111,7 +111,7 @@ runs:
         files: "${{ inputs.tests_module_path }}package.json"
 
     - name: Build tests package (NPM)
-      iif: ${{ inputs.tests_module_type == 'npm' && steps.check_test_module_npm.outputs.files_exists == 'true' }}
+      if: ${{ inputs.tests_module_type == 'npm' && steps.check_test_module_npm.outputs.files_exists == 'true' }}
       uses: jahia/jahia-modules-action/build@npm-test-module
       with:
         module_path: ${{ inputs.tests_module_path }}
