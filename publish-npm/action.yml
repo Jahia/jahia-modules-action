@@ -31,8 +31,8 @@ runs:
       shell: bash
       run: |
         # Get informations from package.json to replace the ones that are in pom.xml in classic modules
-        cd {{ inputs.module_path }}
-        echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
+        cd ${{ inputs.module_path }}
+        echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
         echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
         echo "MODULE_NAME=$(jq '.name' package.json | cut -d\" -f2)" >> $GITHUB_ENV
         MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)
