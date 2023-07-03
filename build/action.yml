@@ -110,28 +110,13 @@ runs:
       with:
         files: "${{ inputs.tests_module_path }}package.json"
 
-    - name: Setup node for building test module (NPM)
-      if: ${{ inputs.tests_module_type == 'npm' }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ inputs.node_version }}
-
     - name: Build tests package (NPM)
-      shell: bash
-      if: ${{ inputs.tests_module_type == 'npm' && steps.check_test_module_npm.outputs.files_exists == 'true' }}
-      run: |
-        ROOT_PATH=$(pwd)
-        cd ${{ inputs.tests_module_path }}
-        yarn install && yarn build && yarn pack
-
-    - name: Archive test artifacts (NPM)
-      if: ${{ inputs.tests_module_type == 'npm' && steps.check_test_module_npm.outputs.files_exists == 'true' }}
-      uses: actions/upload-artifact@v3
+      iif: ${{ inputs.tests_module_type == 'npm' && steps.check_test_module_npm.outputs.files_exists == 'true' }}
+      uses: jahia/jahia-modules-action/build@npm-test-module
       with:
-        name: build-artifacts
-        path: |
-          ${{ inputs.tests_module_path }}/*.tgz
-        retention-days: ${{ inputs.github_artifact_retention }}
+        module_path: ${{ inputs.tests_module_path }}
+        node-version: ${{ inputs.node_version }}
+        github_artifact_retention: ${{ inputs.github_artifact_retention }}
 
     - name: Keep session opened if /tmp/debug file is present
       shell: bash
