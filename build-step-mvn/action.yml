@@ -55,15 +55,17 @@ runs:
     - name: Build package
       shell: bash
       run: |
+        ROOT_PATH=$(pwd)
         cd ${{ inputs.module_path }}
-        mvn -B -U -ntp -s ${{ inputs.mvn_settings_filepath }} clean install
+        mvn -B -U -ntp -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} clean install
 
     - name: Copy dependencies to provision artifacts
       if: ${{ inputs.copy_dependencies == 'true' }}
       shell: bash
       run: |
+        ROOT_PATH=$(pwd)
         cd ${{ inputs.module_path }}
-        mvn -B -s ${{ inputs.mvn_settings_filepath }} dependency:copy-dependencies -DexcludeTransitive=true -DincludeScope=provided -DincludeGroupIds=org.jahia.modules -DincludeTypes=jar
+        mvn -B -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} dependency:copy-dependencies -DexcludeTransitive=true -DincludeScope=provided -DincludeGroupIds=org.jahia.modules -DincludeTypes=jar
 
     - name: Archive build artifacts
       if: ${{ inputs.archive_only_jars == 'false' }}
