@@ -1,0 +1,221 @@
+name: Release NPM
+description: Release a Jahia NPM module
+
+inputs:
+  primary_release_branch:
+    description: Name of the primary release branch (master, main, ...)
+    default: 'main'
+    required: false
+  mvn_settings_filepath:
+    description: Filepath to the settings.xml file
+    default: '.github/maven.settings.xml'
+    required: false
+  nexus_username:
+    description: 'Nexus Username'
+    required: true
+  nexus_password:
+    description: 'Nexus Password'
+    required: true
+  github_slug:
+    description: 'GitHub SLUG of the module (for example: jahia/sandbox)'
+    required: true
+  release_id:
+    description: GitHub release ID
+    required: true
+  release_version:
+    description: Version to release
+    required: true
+  git_user_name:
+    description: Git user name
+    default: 'Jahia CI'
+    required: false
+  git_user_email:
+    description: Git user email
+    default: 'jahia-ci@jahia.com'
+    required: false
+  github_api_token:
+    description: GitHub API token
+    required: true
+  github_artifact_retention:
+    description: 'Time during which artifact are kept in Github infrastructure'
+    required: false
+    default: '2'
+  slack-webhook-qa:
+    description: 'Secret webhook to send a notif on a QA channel'
+    required: false
+  node_version:
+    description: 'Version of node to install on the host'
+    required: false
+    default: 'lts/*'
+  module_path:
+    description: 'Path to the module folder (if not ./ precise path from the github_workspace)'
+    required: false
+    default: ./
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/setup-node@v3
+      with:
+        node-version: ${{ inputs.node_version }}
+    - name: Set environment variables from parameters
+      shell: bash
+      run: |
+        # Get informations from package.json to replace the ones that are in pom.xml in classic modules
+        cd ${{ inputs.module_path }}
+        echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
+        echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
+        echo "NEXUS_RELEASE_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
+        echo "NEXUS_RELEASE_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
+        echo "MODULE_NAME=$(jq '.name' package.json | cut -d\" -f2 )" >> $GITHUB_ENV
+        echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
+        echo "REPOSITORY_ID=$(jq '.jahia.maven.distributionManagement.repository.id' package.json | cut -d\" -f2)" >> $GITHUB_ENV
+        echo "REPOSITORY_URL=$(jq '.jahia.maven.distributionManagement.repository.url' package.json | cut -d\" -f2)" >> $GITHUB_ENV
+        echo "GROUP_ID=$(jq '.jahia.maven.groupId' package.json | cut -d\" -f2)" >> $GITHUB_ENV
+
+    - name: Getting latest changes from the remote branch
+      shell: bash
+      run: |
+        cd ${{ inputs.module_path }}
+        git fetch --all
+        git pull origin ${{ inputs.primary_release_branch }} --quiet
+
+    - name: Delete github tag ${{ inputs.release_version }}
+      shell: bash
+      run: |
+        cd ${{ inputs.module_path }}
+        git config user.email ${{ inputs.git_user_email }}
+        git config user.name ${{ inputs.git_user_name }}
+        git tag --delete ${{ inputs.release_version }}
+        git push origin :refs/tags/${{ inputs.release_version }}
+
+    - name: Remove any previous changes, this is required by mvn release prepare
+      shell: bash
+      run: |
+        cd ${{ inputs.module_path }}
+        git reset --hard
+        git checkout ${{ inputs.primary_release_branch }}
+
+    - name: Added some debug details
+      shell: bash
+      run: |
+        cd ${{ inputs.module_path }}
+        git branch
+        echo "---"
+        git status
+        echo "---"
+        git show --summary
+
+    - name: Release prepare version for ${{ inputs.release_version }}
+      shell: bash
+      run: |
+        # Define next development version
+        cd ${{ inputs.module_path }}
+        TAG_VERSION=$(echo ${{ inputs.release_version }})
+        FINAL_RELEASE_VERSION=$(echo ${{ inputs.release_version }} | tr '_' '.' | cut -d'-' -f 1)
+        echo "FINAL_RELEASE_VERSION=$FINAL_RELEASE_VERSION" >> $GITHUB_ENV
+        MAJOR_VERSION=`echo $FINAL_RELEASE_VERSION | cut -d. -f1`
+        MINOR_VERSION=`echo $FINAL_RELEASE_VERSION | cut -d. -f2`
+        REVISION=`echo $FINAL_RELEASE_VERSION | cut -d. -f3`
+        if [[ "${{ inputs.primary_release_branch }}" == "master"  || "${{ inputs.primary_release_branch }}" == "main"  ||  "${{ inputs.primary_release_branch }}" =~ ^[0-9]_x$ ]]; then
+          NEXT_MINOR_VERSION=`expr $MINOR_VERSION + 1`
+          NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$NEXT_MINOR_VERSION.0"
+        else
+          NEXT_REVISION=`expr $REVISION + 1`
+          NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$MINOR_VERSION.$NEXT_REVISION"
+        fi
+        echo "NEXT_DEVELOPMENT_VERSION=$NEXT_DEVELOPMENT_VERSION" >> $GITHUB_ENV
+
+    - name: Update package.json
+      shell: bash
+      run: |
+        # Update package.json to match version precised in release tag
+        cd ${{ inputs.module_path }}
+        jq '.version |= "${{ env.FINAL_RELEASE_VERSION }}"' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
+
+        if [ ! ${{ env.FINAL_RELEASE_VERSION }} -eq ${{ env.MODULE_VERSION }} ]
+        then
+          git config user.name ${{ inputs.github_user_name }}
+          git config user.email ${{ inputs.github_user_email }}
+          git remote set-url origin https://x-access-token:${{ inputs.github_api_token }}@github.com/${{ inputs.github_slug}}
+          git add package.json
+          git commit -m "[skip ci] prepare release $FINAL_RELEASE_VERSION"
+          git push
+        fi
+        echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
+
+    - name: Prepare the module
+      shell: bash
+      run: |
+        cd ${{ inputs.module_path }}
+        yarn
+    - name: Build the module
+      shell: bash
+      run: |
+        cd ${{ inputs.module_path }}
+        yarn build
+    - name: Package the module
+      shell: bash
+      run: |
+        cd ${{ inputs.module_path }}
+        yarn pack
+
+    - name: Update github release for id ${{ inputs.release_id }}
+      shell: bash
+      run: |
+        echo "Update github release for id ${{ inputs.release_id }}"
+        cd ${{ inputs.module_path }}
+        curl -X PATCH \
+        -H "Accept:application/vnd.github.v3+json" \
+        -d "{\"tag_name\":\"${{ inputs.release_version }}\", \"prerelease\": false, \"draft\": false}" -u \
+        jahia-ci:${{ inputs.github_api_token }} https://api.github.com/repos/${{ inputs.github_slug }}/releases/${{ inputs.release_id }}
+        curl \
+        -H "Content-Type: $(file -b --mime-type CHANGELOG.md)" \
+        -u jahia-ci:${{ inputs.github_api_token }}  \
+        --data-binary @CHANGELOG.md \
+        "https://uploads.github.com/repos/${{ inputs.github_slug }}/releases/${{ inputs.release_id }}/assets?name=$(basename CHANGELOG.md)"
+
+    - name: Perform release
+      shell: bash
+      run: mvn -s ${{ inputs.mvn_settings_filepath }} deploy:deploy-file -Dfile=${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz -DgroupId=${{ env.GROUP_ID }} -DartifactId=${{ env.MODULE_NAME }} -Dversion=${{ env.MODULE_VERSION }} -Dpackaging=tgz -Durl=${{ env.REPOSITORY_URL }} -DrepositoryId=${{ env.REPOSITORY_ID }}
+
+    - name: Copy artifacts
+      shell: bash
+      run: |
+        mkdir /tmp/artifacts/
+        cd ${{ inputs.module_path }}
+        find . -name "*.tgz" -type f  -maxdepth 3 -mindepth 3 -exec cp {} /tmp/artifacts/ \;
+
+    - name: Release Artifacts
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-artifacts
+        path: |
+          /tmp/artifacts/
+        retention-days: ${{ inputs.github_artifact_retention }}
+
+    - name: set next development version into package.json
+      shell: bash
+      run: |
+        # Update package.json to match next development version
+        cd ${{ inputs.module_path }}
+        jq '.version |= "${{ env.NEXT_DEVELOPMENT_VERSION }}"' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
+        git config user.name ${{ inputs.github_user_name }}
+        git config user.email ${{ inputs.github_user_email }}
+        git add package.json
+        git commit -m "[skip ci] prepare for next development iteration"
+        git push
+
+
+    - name: Post to a Slack channel
+      if: ${{ inputs.slack-webhook-qa }}
+      uses: slackapi/slack-github-action@v1.23.0
+      with:
+        payload: |
+          {
+            "module": "${{ inputs.github_slug }}",
+            "version": "${{ inputs.release_version }}"
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook-qa }}
