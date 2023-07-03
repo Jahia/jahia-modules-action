@@ -2,9 +2,6 @@ name: Build
 description: Build a Jahia module
 
 inputs:
-  module_id:
-    description: Module ID
-    required: true
   mvn_settings_filepath:
     description: Filepath to the settings.xml file
     default: '.github/maven.settings.xml'
@@ -41,43 +38,13 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Set environment variables from parameters
-      shell: bash
-      run: |
-        echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
-        echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
-
-    # This step save the maven cache between runs
-    # More details can be found here: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
-    - name: Cache local Maven repository
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.m2/repository
-          /root/.m2/repository
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-        restore-keys: |
-          ${{ runner.os }}-maven-
-
     - name: Build package
-      shell: bash
-      run: mvn -B -U -ntp -s ${{ inputs.mvn_settings_filepath }} clean install
-
-    - name: Copy dependencies to provision artifacts
-      shell: bash
-      run: mvn -B -s ${{ inputs.mvn_settings_filepath }} dependency:copy-dependencies -DexcludeTransitive=true -DincludeScope=provided -DincludeGroupIds=org.jahia.modules -DincludeTypes=jar
-
-    - name: Archive build artifacts
-      if: always()
-      uses: actions/upload-artifact@v3
+      uses: jahia/jahia-modules-action/build-step-mvn@npm-test-module
       with:
-        name: build-artifacts
-        path: |
-          target/*
-          ./*/target/*
-          **/*source-release.zip
-          !${{ inputs.tests_module_path }}*
-        retention-days: ${{ inputs.github_artifact_retention }}
+        mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
+        nexus_username: ${{ inputs.nexus_username }}
+        nexus_password: ${{ inputs.nexus_password }}
+        github_artifact_retention: ${{ inputs.github_artifact_retention }}
 
     - name: Check if test module is present (MVN)
       if: ${{ inputs.tests_module_type == 'mvn' }}
@@ -87,21 +54,16 @@ runs:
         files: "${{ inputs.tests_module_path }}pom.xml"
 
     - name: Build tests package (MVN)
-      shell: bash
+      uses: jahia/jahia-modules-action/build-step-mvn@npm-test-module
       if: ${{ inputs.tests_module_type == 'mvn' && steps.check_test_module_mvn.outputs.files_exists == 'true' }}
-      run: |
-        ROOT_PATH=$(pwd)
-        cd ${{ inputs.tests_module_path }}
-        mvn -B -U -ntp -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} clean install
-
-    - name: Archive test artifacts (MVN)
-      if: ${{ inputs.tests_module_type == 'mvn' && steps.check_test_module_mvn.outputs.files_exists == 'true' }}
-      uses: actions/upload-artifact@v3
       with:
-        name: build-artifacts
-        path: |
-          ${{ inputs.tests_module_path }}**/target/*.jar
-        retention-days: ${{ inputs.github_artifact_retention }}
+        module_path: ${{ inputs.tests_module_path }}
+        copy_dependencies: 'false'
+        archive_only_jars: 'true'
+        mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
+        nexus_username: ${{ inputs.nexus_username }}
+        nexus_password: ${{ inputs.nexus_password }}
+        github_artifact_retention: ${{ inputs.github_artifact_retention }}
 
     - name: Check if test module is present (NPM)
       if: ${{ inputs.tests_module_type == 'npm' }}
@@ -112,7 +74,7 @@ runs:
 
     - name: Build tests package (NPM)
       if: ${{ inputs.tests_module_type == 'npm' && steps.check_test_module_npm.outputs.files_exists == 'true' }}
-      uses: jahia/jahia-modules-action/build-npm@npm-test-module
+      uses: jahia/jahia-modules-action/build-step-npm@npm-test-module
       with:
         module_path: ${{ inputs.tests_module_path }}
         node-version: ${{ inputs.node_version }}
