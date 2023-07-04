@@ -28,13 +28,13 @@ runs:
         node-version: ${{ inputs.node_version }}
         github_artifact_retention: ${{ inputs.github_artifact_retention }}
 
-    - name: Check if test module is present (NPM)
+    - name: Check if test module is present
       id: check_test_module_npm
       uses: andstor/file-existence-action@v2
       with:
         files: "${{ inputs.tests_module_path }}package.json"
 
-    - name: Build tests package (NPM)
+    - name: Build tests package
       if: ${{ steps.check_test_module_npm.outputs.files_exists == 'true' }}
       uses: jahia/jahia-modules-action/build-step-npm@npm-test-module
       with:
