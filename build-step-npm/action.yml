@@ -64,7 +64,7 @@ runs:
       run: |
         cd ${{ inputs.module_path }}
         if [ ! -e ${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz ]; then
-          mv ${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_OLD_VERSION }}.tgz 
+          mv ${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_OLD_VERSION }}.tgz ${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
         fi
         mkdir target
         mv ${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz target/${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
