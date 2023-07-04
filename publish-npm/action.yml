@@ -23,10 +23,6 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - uses: actions/setup-node@v3
-      with:
-        node-version: ${{ inputs.node_version }}
-
     - name: Set environment variables from parameters
       shell: bash
       run: |
@@ -34,51 +30,20 @@ runs:
         cd ${{ inputs.module_path }}
         echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
         echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
-        echo "MODULE_NAME=$(jq '.name' package.json | cut -d\" -f2)" >> $GITHUB_ENV
-        MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)
         echo "REPOSITORY_ID=$(jq '.jahia.maven.distributionManagement.snapshotRepository.id' package.json | cut -d\" -f2)" >> $GITHUB_ENV
         echo "REPOSITORY_URL=$(jq '.jahia.maven.distributionManagement.snapshotRepository.url' package.json | cut -d\" -f2)" >> $GITHUB_ENV
         echo "GROUP_ID=$(jq '.jahia.maven.groupId' package.json | cut -d\" -f2)" >> $GITHUB_ENV
 
-        # Add -SNAPSHOT to the version if it isn't present
-
-        if [[ $MODULE_VERSION == *-SNAPSHOT ]]; then
-          echo "MODULE_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
-        else
-          echo "MODULE_OLD_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
-          MODULE_VERSION+="-SNAPSHOT"
-          echo $MODULE_VERSION
-          echo "MODULE_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
-        fi
-
-    - name: Prepare the module
-      shell: bash
-      run: |
-        cd ${{ inputs.module_path }}
-        yarn
-
-    - name: Build the module
-      shell: bash
-      run: |
-        cd ${{ inputs.module_path}}
-        yarn build
-
-    - name: Package the module
-      shell: bash
-      run: |
-        cd ${{ inputs.module_path }}
-        yarn pack
-
-    - name: Rename build file if necessary
-      shell: bash
-      run: |
-        # Add -SNAPSHOT to the filename only if necessary
-        if [ ! -e ${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz ]; then
-          mv ${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_OLD_VERSION }}.tgz ${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
-        fi
+    - name: Build package
+      uses: jahia/jahia-modules-action/build-step-npm@npm-test-module
+      with:
+        module_path: ${{ inputs.module_path }}
+        node-version: ${{ inputs.node_version }}
+        archive_artifacts: 'false'
+        github_artifact_retention: ${{ inputs.github_artifact_retention }}
 
     - name: Publish to maven
       shell: bash
       run: |
         # Run mvn deploy with parameters got from the package.json
-        mvn -s ${{ inputs.mvn_settings_filepath }} deploy:deploy-file -Dfile=${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz -DgroupId=${{ env.GROUP_ID }} -DartifactId=${{ env.MODULE_NAME }} -Dversion=${{ env.MODULE_VERSION }} -Dpackaging=tgz -Durl=${{ env.REPOSITORY_URL }} -DrepositoryId=${{ env.REPOSITORY_ID }}
+        mvn -s ${{ inputs.mvn_settings_filepath }} deploy:deploy-file -Dfile=${{ inputs.module_path }}/target/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz -DgroupId=${{ env.GROUP_ID }} -DartifactId=${{ env.MODULE_NAME }} -Dversion=${{ env.MODULE_VERSION }} -Dpackaging=tgz -Durl=${{ env.REPOSITORY_URL }} -DrepositoryId=${{ env.REPOSITORY_ID }}
