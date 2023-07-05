@@ -23,7 +23,7 @@ inputs:
     required: false
     default: '2'
   tests_module_path:
-    description: 'Path to a folder in the repository containing a tests module to be built'
+    description: 'Path to a folder in the repository containing a tests module to be built (Both NPM and MVN test module supported)'
     required: false
     default: 'tests/jahia-module/'
   tests_module_type:

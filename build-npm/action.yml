@@ -10,7 +10,7 @@ inputs:
     required: false
     default: ./
   tests_module_path:
-    description: 'Path to a folder in the repository containing a tests module to be built'
+    description: 'Path to a folder in the repository containing a tests module to be built (Only NPM test module supported)'
     required: false
     default: 'tests/jahia-module/'
   node_version:
@@ -28,7 +28,7 @@ runs:
         node-version: ${{ inputs.node_version }}
         github_artifact_retention: ${{ inputs.github_artifact_retention }}
 
-    - name: Check if test module is present
+    - name: Check if test module is present (Only NPM test module is supported)
       id: check_test_module_npm
       uses: andstor/file-existence-action@v2
       with:
