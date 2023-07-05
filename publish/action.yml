@@ -78,7 +78,7 @@ runs:
 
     - name: Publish tests package NPM
       if: ${{ inputs.tests_module_type == 'npm' && steps.check_test_module_npm.outputs.files_exists == 'true' }}
-      uses: jahia/jahia-modules-action/publish-npm@npm-test-module
+      uses: jahia/jahia-modules-action/publish-npm@v2
       with:
         mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
         nexus_username: ${{ inputs.nexus_username }}
