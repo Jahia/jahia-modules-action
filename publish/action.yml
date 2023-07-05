@@ -13,9 +13,17 @@ inputs:
     description: 'Nexus Password'
     required: true
   tests_module_path:
-    description: 'Path to a folder in the repository containing a tests module to be built'
+    description: 'Path to a folder in the repository containing a tests module to be built (Both NPM and MVN test module supported)'
     required: false
-    default: 'tests/jahia-module/'  
+    default: 'tests/jahia-module/'
+  tests_module_type:
+    description: 'Type of module for the tests module (mvn,npm)'
+    required: false
+    default: 'mvn'
+  node_version:
+    description: 'Version of node to install on the host'
+    required: false
+    default: 'lts/*'
 
 runs:
   using: "composite"
@@ -40,15 +48,16 @@ runs:
       shell: bash
       run: mvn -B -s ${{ inputs.mvn_settings_filepath }} clean deploy -Dmaven.resolver.transport=wagon | tee mvnLogs.txt
 
-    - name: Check if test module is present
-      id: check_test_module
+    - name: Check if test module is present (MVN)
+      if: ${{ inputs.tests_module_type == 'mvn' }}
+      id: check_test_module_mvn
       uses: andstor/file-existence-action@v2
       with:
         files: "${{ inputs.tests_module_path }}pom.xml"
 
-    - name: Publish tests package (if present)
+    - name: Publish tests package MVN
       shell: bash
-      if: steps.check_test_module.outputs.files_exists == 'true'
+      if: ${{ inputs.tests_module_type == 'mvn' && steps.check_test_module_mvn.outputs.files_exists == 'true' }}
       run: |
         ROOT_PATH=$(pwd)
         cd ${{ inputs.tests_module_path }}
@@ -59,3 +68,21 @@ runs:
       run: |
         EXTRACTED_NEXUS_ARTIFACT_URL=`grep -e "Uploaded.*\.jar" mvnLogs.txt | grep -v sources | sed -e 's/.*\(https.*.jar\).*/\1/g'` 
         echo "::notice title=Snapshot module location::Artifact has been uploaded to: $EXTRACTED_NEXUS_ARTIFACT_URL"
+
+    - name: Check if test module is present (NPM)
+      if: ${{ inputs.tests_module_type == 'npm' }}
+      id: check_test_module_npm
+      uses: andstor/file-existence-action@v2
+      with:
+        files: "${{ inputs.tests_module_path }}package.json"
+
+    - name: Publish tests package NPM
+      if: ${{ inputs.tests_module_type == 'npm' && steps.check_test_module_npm.outputs.files_exists == 'true' }}
+      uses: jahia/jahia-modules-action/publish-npm@v2
+      with:
+        mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
+        nexus_username: ${{ inputs.nexus_username }}
+        nexus_password: ${{ inputs.nexus_password }}
+        module_path: ${{ inputs.tests_module_path }}
+        node-version: ${{ inputs.node_version }}
+        github_artifact_retention: ${{ inputs.github_artifact_retention }}

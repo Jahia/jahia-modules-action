@@ -53,7 +53,8 @@ export async function prepareBuildArtifact(
     for (const targetFolder of folders) {
       const files = fs.readdirSync(targetFolder)
       for (const f of files) {
-        if (f.includes('-SNAPSHOT.jar')) {
+        // Handle .jar for classic MVN modules and .tgz for NPM modules
+        if (f.includes('-SNAPSHOT.jar') || f.includes('-SNAPSHOT.tgz')) {
           const srcFile = path.join(targetFolder, f)
           const dstFile = path.join(artifactsFolder, f)
           core.info(`Copying file: ${srcFile} to ${dstFile}`)

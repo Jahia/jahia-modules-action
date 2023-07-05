@@ -9,6 +9,10 @@ inputs:
     description: 'Path to the module folder (if not ./ precise path from the github_workspace)'
     required: false
     default: ./
+  tests_module_path:
+    description: 'Path to a folder in the repository containing a tests module to be built (Only NPM test module supported)'
+    required: false
+    default: 'tests/jahia-module/'
   node_version:
     description: 'Version of node to install on the host'
     required: false
@@ -17,59 +21,26 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - uses: actions/setup-node@v3
+    - name: Build package
+      uses: jahia/jahia-modules-action/build-step-npm@v2
       with:
+        module_path: ${{ inputs.module_path }}
         node-version: ${{ inputs.node_version }}
+        github_artifact_retention: ${{ inputs.github_artifact_retention }}
 
-    - name: Get package.json infos
-      shell: bash
-      run: |
-        # Get informations from package.json to replace the ones that are in pom.xml in classic modules
-        cd ${{ inputs.module_path }}
-        echo "MODULE_NAME=$(jq '.name' package.json | cut -d\" -f2 )" >> $GITHUB_ENV
-        MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2 )
-        if [[ $MODULE_VERSION == *-SNAPSHOT ]]; then
-          echo "MODULE_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
-        else
-          echo "MODULE_OLD_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
-          MODULE_VERSION+="-SNAPSHOT"
-          echo $MODULE_VERSION
-          echo "MODULE_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
-        fi
-
-    - name: Prepare the module
-      shell: bash
-      run: |
-        cd ${{ inputs.module_path }}
-        yarn
-
-    - name: Build the module
-      shell: bash
-      run: |
-        cd ${{ inputs.module_path }}
-        yarn build
-
-    - name: Package the module
-      shell: bash
-      run: |
-        cd ${{ inputs.module_path }}
-        yarn pack
-
-    - name: Rename build file if necessary
-      shell: bash
-      run: |
-        if [ ! -e ${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz ]; then
-          mv ${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_OLD_VERSION }}.tgz ${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
-        fi
-
-    - name: Archive build artifacts
-      if: always()
-      uses: actions/upload-artifact@v3
+    - name: Check if test module is present (Only NPM test module is supported)
+      id: check_test_module_npm
+      uses: andstor/file-existence-action@v2
       with:
-        name: build-artifacts
-        path: |
-          ${{inputs.module_path}}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
-        retention-days: ${{ inputs.github_artifact_retention }}
+        files: "${{ inputs.tests_module_path }}package.json"
+
+    - name: Build tests package
+      if: ${{ steps.check_test_module_npm.outputs.files_exists == 'true' }}
+      uses: jahia/jahia-modules-action/build-step-npm@v2
+      with:
+        module_path: ${{ inputs.tests_module_path }}
+        node-version: ${{ inputs.node_version }}
+        github_artifact_retention: ${{ inputs.github_artifact_retention }}
 
     - name: Keep session opened if /tmp/debug file is present
       shell: bash
