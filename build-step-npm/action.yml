@@ -62,6 +62,7 @@ runs:
     - name: Rename build file if necessary and move to /target
       shell: bash
       run: |
+        # We move the .tgz to /target to ease CI manipulation inherited from maven structure
         cd ${{ inputs.module_path }}
         if [ ! -e ${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz ]; then
           mv ${{ env.MODULE_NAME }}-v${{ env.MODULE_OLD_VERSION }}.tgz ${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz

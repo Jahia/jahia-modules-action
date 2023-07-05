@@ -19,6 +19,10 @@ inputs:
     description: 'Path to the module folder (if not ./ precise path from the github_workspace)'
     required: false
     default: ./
+  tests_module_path:
+    description: 'Path to a folder in the repository containing a tests module to be built (Only NPM test module supported)'
+    required: false
+    default: 'tests/jahia-module/'
 
 runs:
   using: 'composite'
@@ -47,3 +51,24 @@ runs:
       run: |
         # Run mvn deploy with parameters got from the package.json
         mvn -s ${{ inputs.mvn_settings_filepath }} deploy:deploy-file -Dfile=${{ inputs.module_path }}/target/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz -DgroupId=${{ env.GROUP_ID }} -DartifactId=${{ env.MODULE_NAME }} -Dversion=${{ env.MODULE_VERSION }} -Dpackaging=tgz -Durl=${{ env.REPOSITORY_URL }} -DrepositoryId=${{ env.REPOSITORY_ID }}
+
+    - name: Check if test module is present (Only NPM test module is supported)
+      id: check_test_module_npm
+      uses: andstor/file-existence-action@v2
+      with:
+        files: "${{ inputs.tests_module_path }}package.json"
+
+    - name: Build tests package
+      if: ${{ steps.check_test_module_npm.outputs.files_exists == 'true' }}
+      uses: jahia/jahia-modules-action/build-step-npm@npm-test-module
+      with:
+        module_path: ${{ inputs.tests_module_path }}
+        node-version: ${{ inputs.node_version }}
+        github_artifact_retention: ${{ inputs.github_artifact_retention }}
+
+    - name: Publish tests package to maven
+      if: ${{ steps.check_test_module_npm.outputs.files_exists == 'true' }}
+      shell: bash
+      run: |
+        # Run mvn deploy with parameters got from the package.json
+        mvn -s ${{ inputs.mvn_settings_filepath }} deploy:deploy-file -Dfile=${{ inputs.tests_module_path }}/target/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz -DgroupId=${{ env.GROUP_ID }} -DartifactId=${{ env.MODULE_NAME }} -Dversion=${{ env.MODULE_VERSION }} -Dpackaging=tgz -Durl=${{ env.REPOSITORY_URL }} -DrepositoryId=${{ env.REPOSITORY_ID }}
