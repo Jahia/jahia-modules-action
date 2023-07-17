@@ -6339,6 +6339,7 @@ class ToolRunner extends events.EventEmitter {
         this.options = options || {};
     }
     _debug(message) {
+        console.log('debug', message)
         if (this.options.listeners && this.options.listeners.debug) {
             this.options.listeners.debug(message);
         }
