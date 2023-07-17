@@ -731,7 +731,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const fs = __importStar(__nccwpck_require__(5747));
 const path = __importStar(__nccwpck_require__(5622));
 const system_1 = __nccwpck_require__(7885);
-function startDockerEnvironment(testsFolder, ciStartupScript, dockerComposeFile, loggingMode) {
+function startDockerEnvironment(testsFolder, ciStartupScript, dockerComposeFile, loggingMode, timeoutMinutes) {
     return __awaiter(this, void 0, void 0, function* () {
         const startupFile = path.join(testsFolder, ciStartupScript);
         const composeFile = path.join(testsFolder, dockerComposeFile);
@@ -743,12 +743,13 @@ function startDockerEnvironment(testsFolder, ciStartupScript, dockerComposeFile,
             yield (0, system_1.runShellCommands)([`bash ${startupFile}`], 'artifacts/startup.log', {
                 cwd: testsFolder,
                 ignoreReturnCode: true,
-                loggingMode
+                loggingMode,
+                timeoutMinutes
             });
         }
         else if (fs.existsSync(composeFile)) {
             core.info(`Starting environment using compose file: ${composeFile}`);
-            yield (0, system_1.runShellCommands)([`docker-compose -f ${composeFile} up --abort-on-container-exit`], 'artifacts/startup.log', { cwd: testsFolder, ignoreReturnCode: true, loggingMode });
+            yield (0, system_1.runShellCommands)([`docker-compose -f ${composeFile} up --abort-on-container-exit`], 'artifacts/startup.log', { cwd: testsFolder, ignoreReturnCode: true, loggingMode, timeoutMinutes });
         }
         else {
             core.setFailed(`Unable to find environment startup instructions. Could not find startup script (${startupFile}) NOR compose file ${composeFile}`);
@@ -1616,8 +1617,8 @@ function run() {
                 yield (0, docker_1.pullDockerImages)(core.getInput('jahia_image'), core.getInput('jcustomer_image'));
             }));
             // Spin-up the containers
-            yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🐋 Starting the Docker environment`, () => __awaiter(this, void 0, void 0, function* () {
-                yield (0, docker_1.startDockerEnvironment)(testsFolder, core.getInput('ci_startup_script'), core.getInput('docker_compose_file'), core.getInput('logging_mode'));
+            yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🐋 Starting the Docker environment (timeout: ${core.getInput('timeout_minutes')}mn)`, () => __awaiter(this, void 0, void 0, function* () {
+                yield (0, docker_1.startDockerEnvironment)(testsFolder, core.getInput('ci_startup_script'), core.getInput('docker_compose_file'), core.getInput('logging_mode'), parseInt(core.getInput('timeout_minutes')));
             }));
             // Export containers artifacts (reports, secreenshots, videos)
             yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🐋 Export containers artifacts (reports, secreenshots, videos, logs) `, () => __awaiter(this, void 0, void 0, function* () {
@@ -1861,6 +1862,22 @@ const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
 const fs = __importStar(__nccwpck_require__(5747));
 const path = __importStar(__nccwpck_require__(5622));
+// Wrap the Github exec function with a timeout
+// Inspired by: https://javascript.plainenglish.io/how-to-add-a-timeout-limit-to-asynchronous-javascript-functions-3676d89c186d
+// Default timeout is set to a very high value on purpose, in most cases a lower timeout value will be set in startDockerEnvironment
+function execWithTimeout(asyncPromise, timeoutMinutes = 360) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let timeoutHandle;
+        const timeoutPromise = new Promise((_resolve, reject) => {
+            timeoutHandle = setTimeout(() => reject(console.log(`Timeout of ${timeoutMinutes}s reached for command`)), timeoutMinutes * 1000 // Converts s to ms
+            );
+        });
+        return Promise.race([asyncPromise, timeoutPromise]).then(result => {
+            clearTimeout(timeoutHandle);
+            return result;
+        });
+    });
+}
 function runShellCommands(commands, logfile = null, options = {}) {
     return __awaiter(this, void 0, void 0, function* () {
         for (const cmd of commands) {
@@ -1887,7 +1904,8 @@ function runShellCommands(commands, logfile = null, options = {}) {
                     stdErr += data.toString();
                 }
             };
-            yield exec.exec(cmd, [], Object.assign(Object.assign({}, options), { silent: silent }));
+            const execCmd = exec.exec(cmd, [], Object.assign(Object.assign({}, options), { silent: silent }));
+            yield execWithTimeout(execCmd, options.timeoutMinutes);
             if (logfile !== null &&
                 logfile !== '' &&
                 process.env.GITHUB_WORKSPACE &&

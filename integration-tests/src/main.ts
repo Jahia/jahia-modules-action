@@ -164,13 +164,14 @@ async function run(): Promise<void> {
 
     // Spin-up the containers
     await core.group(
-      `${timeSinceStart(startTime)} 🐋 Starting the Docker environment`,
+      `${timeSinceStart(startTime)} 🐋 Starting the Docker environment (timeout: ${core.getInput('timeout_minutes')}mn)`,
       async () => {
         await startDockerEnvironment(
           testsFolder,
           core.getInput('ci_startup_script'),
           core.getInput('docker_compose_file'),
-          core.getInput('logging_mode')
+          core.getInput('logging_mode'),
+          parseInt(core.getInput('timeout_minutes'))
         )
       }
     )

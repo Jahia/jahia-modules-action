@@ -6,6 +6,25 @@ import * as path from 'path'
 interface CustomOptions {
   printCmd?: boolean
   loggingMode?: string
+  timeoutMinutes?: number
+}
+
+// Wrap the Github exec function with a timeout
+// Inspired by: https://javascript.plainenglish.io/how-to-add-a-timeout-limit-to-asynchronous-javascript-functions-3676d89c186d
+// Default timeout is set to a very high value on purpose, in most cases a lower timeout value will be set in startDockerEnvironment
+async function execWithTimeout (asyncPromise: Promise<any>, timeoutMinutes: number = 360): Promise<any> {
+  let timeoutHandle: any;
+  const timeoutPromise = new Promise((_resolve, reject) => {
+    timeoutHandle = setTimeout(
+        () => reject(console.log(`Timeout of ${timeoutMinutes}s reached for command`)),
+        timeoutMinutes*1000 // Converts s to ms
+    );
+  }); 
+
+  return Promise.race([asyncPromise, timeoutPromise]).then(result => {
+    clearTimeout(timeoutHandle);
+    return result;
+  })
 }
 
 export async function runShellCommands(
@@ -43,10 +62,12 @@ export async function runShellCommands(
         stdErr += data.toString()
       }
     }
-    await exec.exec(cmd, [], {
+
+    const execCmd = exec.exec(cmd, [], {
       ...options,
       silent: silent
     })
+    await execWithTimeout(execCmd, options.timeoutMinutes)
 
     if (
       logfile !== null &&
