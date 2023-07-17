@@ -10,18 +10,17 @@ interface CustomOptions {
 }
 
 // Adds a timeout mechanism to the exec using AbortController
-async function execWithTimeout (execCmd: any, execOptions: any, signal: any): Promise<any> {  
-  function abort() {
-    core.info(`Timeout reached at: ${JSON.stringify(new Date())}. The command will be interrupted`)
-  }
-  signal.addEventListener('abort', abort, { once: true });
-
+async function execWithTimeout (execCmd: any, execOptions: any): Promise<any> {
+  core.info(`Command starting at: ${JSON.stringify(new Date())}`)
   try {
-    core.info(`Command starting at: ${JSON.stringify(new Date())}`)
     await exec.exec(execCmd, [], execOptions)
     core.info(`Command completed at: ${JSON.stringify(new Date())}`)
-  } finally {
-    signal.removeEventListener('abort', abort);
+  } catch (error: any) {
+    if (error.name === "AbortError") {
+      core.info(`Timeout reached at: ${JSON.stringify(new Date())}. The command was interrupted`)
+    } else {
+      core.info(`There was an issue processing the command (${error.name}). It failed at: ${JSON.stringify(new Date())}`)
+    }
   }
 }
 
@@ -61,17 +60,19 @@ export async function runShellCommands(
       }
     }
 
-    const ac = new AbortController();
+
     // Default timeout is set to a very high value on purpose, in most cases a lower timeout value will be set in startDockerEnvironment
     const defaultTimeout = 360
     core.info(`Timeout for the command is set to ${options.timeoutMinutes === undefined ? defaultTimeout : options.timeoutMinutes}mn`)
     const timeoutDelay = options.timeoutMinutes === undefined ? defaultTimeout*60*1000 : options.timeoutMinutes*60*1000;
-    setTimeout(() => ac.abort(), timeoutDelay);
+    const ac = new AbortController();
+    const signal = AbortSignal.timeout(timeoutDelay);
 
     await execWithTimeout(cmd, {
       ...options,
-      silent: silent
-    }, ac.signal)
+      silent: silent,
+      signal: signal
+    })
 
     if (
       logfile !== null &&
