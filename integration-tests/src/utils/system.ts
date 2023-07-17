@@ -17,7 +17,7 @@ async function execWithTimeout (execCmd: any, execOptions: any): Promise<any> {
     await exec.exec(execCmd, [], execOptions)
     core.info(`Command completed at: ${JSON.stringify(new Date())}`)
   } catch (error: any) {
-    if (error.name === "AbortError") {
+    if (error.name === 'AbortError') {
       core.info(`Timeout reached at: ${JSON.stringify(new Date())}. The command was interrupted`)
     } else {
       core.info(`There was an issue processing the command (${error.name}). It failed at: ${JSON.stringify(new Date())}`)
@@ -73,7 +73,7 @@ export async function runShellCommands(
     const signal = AbortSignal.timeout(timeoutDelay);
 
     signal.addEventListener("abort", () => {
-      core.info(`Timeout reached at: ${JSON.stringify(new Date())}. Listener event`)
+      core.info(`Timeout reached at: ${JSON.stringify(new Date())}`)
     }, { once: true });
 
     await execWithTimeout(cmd, {

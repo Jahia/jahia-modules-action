@@ -1169,14 +1169,22 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.createPagerdutyIncident = void 0;
+const core = __importStar(__nccwpck_require__(2186));
 const path = __importStar(__nccwpck_require__(5622));
+const fs = __importStar(__nccwpck_require__(5747));
 const system_1 = __nccwpck_require__(7885);
 function createPagerdutyIncident(testsPath, options) {
     return __awaiter(this, void 0, void 0, function* () {
         const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         let command = 'jahia-reporter pagerduty:incident';
-        command += ` --sourcePath="${reportsPath}"`;
-        command += ' --sourceType="xml"';
+        if (fs.existsSync(reportsPath)) {
+            command += ` --sourcePath="${reportsPath}"`;
+            command += ' --sourceType="xml"';
+        }
+        else {
+            core.info(`ERROR: The following path does not exist: ${reportsPath} pagerduty incident will not be based on test results`);
+            command += ' --incidentMessage="Unable to find test folder, the tests were likely interrupted"';
+        }
         command += ` --pdApiKey="${options.pdApiKey}"`;
         command += ` --pdReporterEmail="${options.pdReporterEmail}"`;
         command += ` --pdReporterId="${options.pdReporterId}"`;
@@ -1234,23 +1242,30 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.sendSlackNotification = void 0;
+const core = __importStar(__nccwpck_require__(2186));
 const path = __importStar(__nccwpck_require__(5622));
+const fs = __importStar(__nccwpck_require__(5747));
 const system_1 = __nccwpck_require__(7885);
 function sendSlackNotification(testsPath, options) {
     return __awaiter(this, void 0, void 0, function* () {
         const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         const moduleFilepath = path.join(testsPath, 'artifacts/results/installed-jahia-modules.json');
-        let command = 'jahia-reporter slack';
-        command += ` --sourcePath="${reportsPath}"`;
-        command += ' --sourceType="xml"';
-        command += ` --channelId="${options.channelId}"`;
-        command += ` --channelAllId="${options.channelAllId}"`;
-        command += ` --token="${options.token}"`;
-        command += ` --skipSuccessful`;
-        command += ` --moduleFilepath="${moduleFilepath}"`;
-        command += ` --msgAuthor="Github Actions (${process.env.GITHUB_REPOSITORY})"`;
-        command += ` --runUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
-        yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
+        if (fs.existsSync(reportsPath)) {
+            let command = 'jahia-reporter slack';
+            command += ` --sourcePath="${reportsPath}"`;
+            command += ' --sourceType="xml"';
+            command += ` --channelId="${options.channelId}"`;
+            command += ` --channelAllId="${options.channelAllId}"`;
+            command += ` --token="${options.token}"`;
+            command += ` --skipSuccessful`;
+            command += ` --moduleFilepath="${moduleFilepath}"`;
+            command += ` --msgAuthor="Github Actions (${process.env.GITHUB_REPOSITORY})"`;
+            command += ` --runUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
+            yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
+        }
+        else {
+            core.info(`ERROR: The following path does not exist: ${reportsPath}, slack message will not be sent`);
+        }
     });
 }
 exports.sendSlackNotification = sendSlackNotification;
@@ -1297,16 +1312,23 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.showTestsSummary = void 0;
+const core = __importStar(__nccwpck_require__(2186));
 const path = __importStar(__nccwpck_require__(5622));
+const fs = __importStar(__nccwpck_require__(5747));
 const system_1 = __nccwpck_require__(7885);
 function showTestsSummary(testsPath) {
     return __awaiter(this, void 0, void 0, function* () {
         const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
-        let command = 'jahia-reporter summary';
-        command += ` --sourcePath="${reportsPath}"`;
-        command += ' --sourceType="xml"';
-        command += ' -s';
-        yield (0, system_1.runShellCommands)([command]);
+        if (fs.existsSync(reportsPath)) {
+            let command = 'jahia-reporter summary';
+            command += ` --sourcePath="${reportsPath}"`;
+            command += ' --sourceType="xml"';
+            command += ' -s';
+            yield (0, system_1.runShellCommands)([command]);
+        }
+        else {
+            core.info(`ERROR: The following path does not exist: ${reportsPath}, summary will not be displayed`);
+        }
     });
 }
 exports.showTestsSummary = showTestsSummary;
@@ -1420,18 +1442,23 @@ function publishToTestrail(testsPath, options) {
         const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         const testrailLinkFile = path.join(testsPath, 'artifacts/results/testrail_link');
         const metadataFile = path.join(testsPath, 'artifacts/results/testrail-metadata.json');
-        let command = 'jahia-reporter testrail';
-        command += ` --testrailUsername="${options.testrailUsername}"`;
-        command += ` --testrailPassword="${options.testrailPassword}"`;
-        command += ` --sourcePath="${reportsPath}"`;
-        command += ' --sourceType="xml"';
-        command += ` --projectName="${options.testrailProject}"`;
-        command += ` --parentSection="${options.testrailParentSection}"`;
-        command += ` --milestone="${options.testrailMilestone}"`;
-        command += ` --defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
-        command += ` --testrailCustomResultFields="${metadataFile}"`;
-        command += ` --linkRunFile="${testrailLinkFile}"`;
-        yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
+        if (fs.existsSync(reportsPath)) {
+            let command = 'jahia-reporter testrail';
+            command += ` --testrailUsername="${options.testrailUsername}"`;
+            command += ` --testrailPassword="${options.testrailPassword}"`;
+            command += ` --sourcePath="${reportsPath}"`;
+            command += ' --sourceType="xml"';
+            command += ` --projectName="${options.testrailProject}"`;
+            command += ` --parentSection="${options.testrailParentSection}"`;
+            command += ` --milestone="${options.testrailMilestone}"`;
+            command += ` --defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
+            command += ` --testrailCustomResultFields="${metadataFile}"`;
+            command += ` --linkRunFile="${testrailLinkFile}"`;
+            yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
+        }
+        else {
+            core.info(`ERROR: The following path does not exist: ${reportsPath}, report will not be submitted to testrail`);
+        }
         if (fs.statSync(testrailLinkFile).isFile()) {
             const rawFile = fs.readFileSync(testrailLinkFile, 'utf8');
             core.info(`Testrail run available at: ${rawFile.toString()}`);
@@ -1482,21 +1509,28 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.sendResultsToZencrepes = void 0;
+const core = __importStar(__nccwpck_require__(2186));
 const path = __importStar(__nccwpck_require__(5622));
+const fs = __importStar(__nccwpck_require__(5747));
 const system_1 = __nccwpck_require__(7885);
 function sendResultsToZencrepes(testsPath, options) {
     return __awaiter(this, void 0, void 0, function* () {
         const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         const moduleFilepath = path.join(testsPath, 'artifacts/results/installed-jahia-modules.json');
-        let command = 'jahia-reporter zencrepes';
-        command += ` --sourcePath="${reportsPath}"`;
-        command += ' --sourceType="xml"';
-        command += ` --webhook="https://zencrepes.jahia.com/zqueue/testing/webhook"`;
-        command += ` --webhookSecret="${options.webhookSecret}"`;
-        command += ` --moduleFilepath="${moduleFilepath}"`;
-        command += ` --name="${options.service}"`;
-        command += ` --runUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
-        yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
+        if (fs.existsSync(reportsPath)) {
+            let command = 'jahia-reporter zencrepes';
+            command += ` --sourcePath="${reportsPath}"`;
+            command += ' --sourceType="xml"';
+            command += ` --webhook="https://zencrepes.jahia.com/zqueue/testing/webhook"`;
+            command += ` --webhookSecret="${options.webhookSecret}"`;
+            command += ` --moduleFilepath="${moduleFilepath}"`;
+            command += ` --name="${options.service}"`;
+            command += ` --runUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`;
+            yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
+        }
+        else {
+            core.info(`ERROR: The following path does not exist: ${reportsPath}, report will not be submitted to ZenCrepes`);
+        }
     });
 }
 exports.sendResultsToZencrepes = sendResultsToZencrepes;
@@ -1872,7 +1906,7 @@ function execWithTimeout(execCmd, execOptions) {
             core.info(`Command completed at: ${JSON.stringify(new Date())}`);
         }
         catch (error) {
-            if (error.name === "AbortError") {
+            if (error.name === 'AbortError') {
                 core.info(`Timeout reached at: ${JSON.stringify(new Date())}. The command was interrupted`);
             }
             else {
@@ -1917,7 +1951,7 @@ function runShellCommands(commands, logfile = null, options = {}) {
             const timeoutDelay = options.timeoutMinutes === undefined ? defaultTimeout * 60 * 1000 : options.timeoutMinutes * 60 * 1000;
             const signal = AbortSignal.timeout(timeoutDelay);
             signal.addEventListener("abort", () => {
-                core.info(`Timeout reached at: ${JSON.stringify(new Date())}. Listener event`);
+                core.info(`Timeout reached at: ${JSON.stringify(new Date())}`);
             }, { once: true });
             yield execWithTimeout(cmd, Object.assign(Object.assign({}, options), { silent: silent, signal: signal }));
             if (logfile !== null &&
@@ -6339,7 +6373,6 @@ class ToolRunner extends events.EventEmitter {
         this.options = options || {};
     }
     _debug(message) {
-        console.log('debug', message)
         if (this.options.listeners && this.options.listeners.debug) {
             this.options.listeners.debug(message);
         }

@@ -1,4 +1,6 @@
+import * as core from '@actions/core'
 import * as path from 'path'
+import * as fs from 'fs'
 
 import {runShellCommands} from '../utils/system'
 
@@ -19,8 +21,14 @@ export async function createPagerdutyIncident(
   const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
 
   let command = 'jahia-reporter pagerduty:incident'
-  command += ` --sourcePath="${reportsPath}"`
-  command += ' --sourceType="xml"'
+
+  if (fs.existsSync(reportsPath)) {
+    command += ` --sourcePath="${reportsPath}"`
+    command += ' --sourceType="xml"'
+  } else {
+    core.info(`ERROR: The following path does not exist: ${reportsPath} pagerduty incident will not be based on test results`)
+    command += ' --incidentMessage="Unable to find test folder, the tests were likely interrupted"'
+  }
   command += ` --pdApiKey="${options.pdApiKey}"`
   command += ` --pdReporterEmail="${options.pdReporterEmail}"`
   command += ` --pdReporterId="${options.pdReporterId}"`
