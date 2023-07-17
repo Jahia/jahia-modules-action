@@ -9,9 +9,7 @@ interface CustomOptions {
   timeoutMinutes?: number
 }
 
-// Wrap the Github exec function with a timeout
-// Inspired by: https://javascript.plainenglish.io/how-to-add-a-timeout-limit-to-asynchronous-javascript-functions-3676d89c186d
-// Default timeout is set to a very high value on purpose, in most cases a lower timeout value will be set in startDockerEnvironment
+// Adds a timeout mechanism to the exec using AbortController
 async function execWithTimeout (execCmd: any, execOptions: any, signal: any): Promise<any> {  
   function abort() {
     core.info(`Timeout reached at: ${JSON.stringify(new Date())}. The command will be interrupted`)
@@ -25,22 +23,6 @@ async function execWithTimeout (execCmd: any, execOptions: any, signal: any): Pr
   } finally {
     signal.removeEventListener('abort', abort);
   }
-
-  // let timeoutHandle: any;
-  // const timeoutDelay = timeoutMinutes*60*1000;
-  // core.info(`Timeout for the command is set to ${timeoutMinutes}mn, starting at: ${JSON.stringify(new Date())}`)
-  // const timeoutPromise = new Promise((_resolve, reject) => {
-  //   timeoutHandle = setTimeout(
-  //       () => reject(core.info(`Timeout of ${timeoutMinutes}mn reached at: ${JSON.stringify(new Date())}. The command will be interrupted`)),
-  //       timeoutDelay // Converts s to ms
-  //   );
-  // }); 
-
-  // return Promise.race([asyncPromise, timeoutPromise]).then(result => {
-  //   core.info(`Execution completed at ${JSON.stringify(new Date())}`)
-  //   clearTimeout(timeoutHandle);
-  //   return result;
-  // })
 }
 
 export async function runShellCommands(
@@ -79,13 +61,10 @@ export async function runShellCommands(
       }
     }
 
-    // const execCmd = exec.exec(cmd, [], {
-    //   ...options,
-    //   silent: silent
-    // })
     const ac = new AbortController();
-    core.info(`Timeout for the command is set to ${options.timeoutMinutes === undefined ? 360 : options.timeoutMinutes}mn, starting at: ${JSON.stringify(new Date())}`)
+    // Default timeout is set to a very high value on purpose, in most cases a lower timeout value will be set in startDockerEnvironment
     const defaultTimeout = 360
+    core.info(`Timeout for the command is set to ${options.timeoutMinutes === undefined ? defaultTimeout : options.timeoutMinutes}mn, starting at: ${JSON.stringify(new Date())}`)
     const timeoutDelay = options.timeoutMinutes === undefined ? defaultTimeout*60*1000 : options.timeoutMinutes*60*1000;
     setTimeout(() => ac.abort(), timeoutDelay);
 
