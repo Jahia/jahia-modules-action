@@ -1455,13 +1455,13 @@ function publishToTestrail(testsPath, options) {
             command += ` --testrailCustomResultFields="${metadataFile}"`;
             command += ` --linkRunFile="${testrailLinkFile}"`;
             yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
+            if (fs.statSync(testrailLinkFile).isFile()) {
+                const rawFile = fs.readFileSync(testrailLinkFile, 'utf8');
+                core.info(`Testrail run available at: ${rawFile.toString()}`);
+            }
         }
         else {
             core.info(`ERROR: The following path does not exist: ${reportsPath}, report will not be submitted to testrail`);
-        }
-        if (fs.statSync(testrailLinkFile).isFile()) {
-            const rawFile = fs.readFileSync(testrailLinkFile, 'utf8');
-            core.info(`Testrail run available at: ${rawFile.toString()}`);
         }
     });
 }
@@ -1897,6 +1897,7 @@ const exec = __importStar(__nccwpck_require__(1514));
 const fs = __importStar(__nccwpck_require__(5747));
 const path = __importStar(__nccwpck_require__(5622));
 // Adds a timeout mechanism to the exec using AbortController
+// Proper operation is dependant upon: https://github.com/actions/toolkit/pull/1469
 function execWithTimeout(execCmd, execOptions) {
     return __awaiter(this, void 0, void 0, function* () {
         core.info(`Command starting at: ${JSON.stringify(new Date())}`);
@@ -6685,7 +6686,7 @@ class ToolRunner extends events.EventEmitter {
         const result = {};
         result.cwd = options.cwd;
         result.env = options.env;
-        result.signal = options.signal;
+        result.signal = options.signal;       
         result['windowsVerbatimArguments'] =
             options.windowsVerbatimArguments || this._isCmdFile();
         if (options.windowsVerbatimArguments) {

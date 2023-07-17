@@ -107,12 +107,14 @@ export async function publishToTestrail(
     command += ` --linkRunFile="${testrailLinkFile}"`
   
     await runShellCommands([command], null, {printCmd: false})
+
+    if (fs.statSync(testrailLinkFile).isFile()) {
+      const rawFile = fs.readFileSync(testrailLinkFile, 'utf8')
+      core.info(`Testrail run available at: ${rawFile.toString()}`)
+    }    
   } else {
     core.info(`ERROR: The following path does not exist: ${reportsPath}, report will not be submitted to testrail`)
   }
 
-  if (fs.statSync(testrailLinkFile).isFile()) {
-    const rawFile = fs.readFileSync(testrailLinkFile, 'utf8')
-    core.info(`Testrail run available at: ${rawFile.toString()}`)
-  }
+
 }

@@ -10,6 +10,7 @@ interface CustomOptions {
 }
 
 // Adds a timeout mechanism to the exec using AbortController
+// Proper operation is dependant upon: https://github.com/actions/toolkit/pull/1469
 async function execWithTimeout (execCmd: any, execOptions: any): Promise<any> {
   core.info(`Command starting at: ${JSON.stringify(new Date())}`)
   core.info(`Options: ${JSON.stringify(execOptions)}`)
