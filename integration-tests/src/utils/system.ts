@@ -17,7 +17,7 @@ async function execWithTimeout (execCmd: any, execOptions: any, signal: any): Pr
   signal.addEventListener('abort', abort, { once: true });
 
   try {
-    core.info(`Command started at: ${JSON.stringify(new Date())}`)
+    core.info(`Command starting at: ${JSON.stringify(new Date())}`)
     await exec.exec(execCmd, [], execOptions)
     core.info(`Command completed at: ${JSON.stringify(new Date())}`)
   } finally {
@@ -64,7 +64,7 @@ export async function runShellCommands(
     const ac = new AbortController();
     // Default timeout is set to a very high value on purpose, in most cases a lower timeout value will be set in startDockerEnvironment
     const defaultTimeout = 360
-    core.info(`Timeout for the command is set to ${options.timeoutMinutes === undefined ? defaultTimeout : options.timeoutMinutes}mn, starting at: ${JSON.stringify(new Date())}`)
+    core.info(`Timeout for the command is set to ${options.timeoutMinutes === undefined ? defaultTimeout : options.timeoutMinutes}mn`)
     const timeoutDelay = options.timeoutMinutes === undefined ? defaultTimeout*60*1000 : options.timeoutMinutes*60*1000;
     setTimeout(() => ac.abort(), timeoutDelay);
 
