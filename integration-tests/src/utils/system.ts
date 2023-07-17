@@ -14,10 +14,12 @@ interface CustomOptions {
 // Default timeout is set to a very high value on purpose, in most cases a lower timeout value will be set in startDockerEnvironment
 async function execWithTimeout (asyncPromise: Promise<any>, timeoutMinutes: number = 360): Promise<any> {
   let timeoutHandle: any;
+  const timeoutDelay = timeoutMinutes*1000;
+  core.info(`Timeout for the command is set to ${timeoutMinutes}`)
   const timeoutPromise = new Promise((_resolve, reject) => {
     timeoutHandle = setTimeout(
-        () => reject(console.log(`Timeout of ${timeoutMinutes}s reached for command`)),
-        timeoutMinutes*1000 // Converts s to ms
+        () => reject(core.info(`Timeout of ${timeoutMinutes}s reached for command`)),
+        timeoutDelay // Converts s to ms
     );
   }); 
 

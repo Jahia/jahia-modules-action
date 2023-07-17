@@ -1868,8 +1868,10 @@ const path = __importStar(__nccwpck_require__(5622));
 function execWithTimeout(asyncPromise, timeoutMinutes = 360) {
     return __awaiter(this, void 0, void 0, function* () {
         let timeoutHandle;
+        const timeoutDelay = timeoutMinutes * 1000;
+        core.info(`Timeout for the command is set to ${timeoutMinutes}`);
         const timeoutPromise = new Promise((_resolve, reject) => {
-            timeoutHandle = setTimeout(() => reject(console.log(`Timeout of ${timeoutMinutes}s reached for command`)), timeoutMinutes * 1000 // Converts s to ms
+            timeoutHandle = setTimeout(() => reject(core.info(`Timeout of ${timeoutMinutes}s reached for command`)), timeoutDelay // Converts s to ms
             );
         });
         return Promise.race([asyncPromise, timeoutPromise]).then(result => {
