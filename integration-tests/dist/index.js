@@ -1868,13 +1868,14 @@ const path = __importStar(__nccwpck_require__(5622));
 function execWithTimeout(asyncPromise, timeoutMinutes = 360) {
     return __awaiter(this, void 0, void 0, function* () {
         let timeoutHandle;
-        const timeoutDelay = timeoutMinutes * 1000;
-        core.info(`Timeout for the command is set to ${timeoutMinutes}`);
+        const timeoutDelay = timeoutMinutes * 60 * 1000;
+        core.info(`Timeout for the command is set to ${timeoutMinutes}mn, starting at: ${JSON.stringify(new Date())}`);
         const timeoutPromise = new Promise((_resolve, reject) => {
-            timeoutHandle = setTimeout(() => reject(core.info(`Timeout of ${timeoutMinutes}s reached for command`)), timeoutDelay // Converts s to ms
+            timeoutHandle = setTimeout(() => reject(core.info(`Timeout of ${timeoutDelay}ms reached at: ${JSON.stringify(new Date())}. The command will be interrupted`)), timeoutDelay // Converts s to ms
             );
         });
         return Promise.race([asyncPromise, timeoutPromise]).then(result => {
+            core.info(`Execution completed at ${JSON.stringify(new Date())}`);
             clearTimeout(timeoutHandle);
             return result;
         });

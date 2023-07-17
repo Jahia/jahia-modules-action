@@ -14,16 +14,17 @@ interface CustomOptions {
 // Default timeout is set to a very high value on purpose, in most cases a lower timeout value will be set in startDockerEnvironment
 async function execWithTimeout (asyncPromise: Promise<any>, timeoutMinutes: number = 360): Promise<any> {
   let timeoutHandle: any;
-  const timeoutDelay = timeoutMinutes*1000;
-  core.info(`Timeout for the command is set to ${timeoutMinutes}`)
+  const timeoutDelay = timeoutMinutes*60*1000;
+  core.info(`Timeout for the command is set to ${timeoutMinutes}mn, starting at: ${JSON.stringify(new Date())}`)
   const timeoutPromise = new Promise((_resolve, reject) => {
     timeoutHandle = setTimeout(
-        () => reject(core.info(`Timeout of ${timeoutMinutes}s reached for command`)),
+        () => reject(core.info(`Timeout of ${timeoutDelay}ms reached at: ${JSON.stringify(new Date())}. The command will be interrupted`)),
         timeoutDelay // Converts s to ms
     );
   }); 
 
   return Promise.race([asyncPromise, timeoutPromise]).then(result => {
+    core.info(`Execution completed at ${JSON.stringify(new Date())}`)
     clearTimeout(timeoutHandle);
     return result;
   })
