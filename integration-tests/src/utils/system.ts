@@ -12,6 +12,7 @@ interface CustomOptions {
 // Adds a timeout mechanism to the exec using AbortController
 async function execWithTimeout (execCmd: any, execOptions: any): Promise<any> {
   core.info(`Command starting at: ${JSON.stringify(new Date())}`)
+  core.info(`Options: ${JSON.stringify(execOptions)}`)
   try {
     await exec.exec(execCmd, [], execOptions)
     core.info(`Command completed at: ${JSON.stringify(new Date())}`)
@@ -105,12 +106,12 @@ export async function runShellCommands(
       }      
       
       const logFileStream = fs.createWriteStream(filepath, {flags: 'a+'})
-      logFileStream.write(`Executing: ${cmd}`)
-      logFileStream.write('===== STDOUT =====')
+      logFileStream.write(`Executing: ${cmd} \n`)
+      logFileStream.write('\n ===== STDOUT ===== \n')
       logFileStream.write(stdOut)
-      logFileStream.write('===== STDERR =====')
+      logFileStream.write('\n ===== STDERR ===== \n')
       logFileStream.write(stdErr)
-      logFileStream.write('===== DEBUG =====')
+      logFileStream.write('\n ===== DEBUG =====')
       logFileStream.write(stdDebug)      
       logFileStream.end()
       core.info(`Saved command output to: ${filepath}`)
