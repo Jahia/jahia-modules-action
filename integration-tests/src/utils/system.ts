@@ -12,22 +12,35 @@ interface CustomOptions {
 // Wrap the Github exec function with a timeout
 // Inspired by: https://javascript.plainenglish.io/how-to-add-a-timeout-limit-to-asynchronous-javascript-functions-3676d89c186d
 // Default timeout is set to a very high value on purpose, in most cases a lower timeout value will be set in startDockerEnvironment
-async function execWithTimeout (asyncPromise: Promise<any>, timeoutMinutes: number = 360): Promise<any> {
-  let timeoutHandle: any;
-  const timeoutDelay = timeoutMinutes*60*1000;
-  core.info(`Timeout for the command is set to ${timeoutMinutes}mn, starting at: ${JSON.stringify(new Date())}`)
-  const timeoutPromise = new Promise((_resolve, reject) => {
-    timeoutHandle = setTimeout(
-        () => reject(core.info(`Timeout of ${timeoutDelay}ms reached at: ${JSON.stringify(new Date())}. The command will be interrupted`)),
-        timeoutDelay // Converts s to ms
-    );
-  }); 
+async function execWithTimeout (execCmd: any, execOptions: any, signal: any): Promise<any> {  
+  function abort() {
+    core.info(`Timeout reached at: ${JSON.stringify(new Date())}. The command will be interrupted`)
+  }
+  signal.addEventListener('abort', abort, { once: true });
 
-  return Promise.race([asyncPromise, timeoutPromise]).then(result => {
-    core.info(`Execution completed at ${JSON.stringify(new Date())}`)
-    clearTimeout(timeoutHandle);
-    return result;
-  })
+  try {
+    core.info(`Command started at: ${JSON.stringify(new Date())}`)
+    await exec.exec(execCmd, [], execOptions)
+    core.info(`Command completed at: ${JSON.stringify(new Date())}`)
+  } finally {
+    signal.removeEventListener('abort', abort);
+  }
+
+  // let timeoutHandle: any;
+  // const timeoutDelay = timeoutMinutes*60*1000;
+  // core.info(`Timeout for the command is set to ${timeoutMinutes}mn, starting at: ${JSON.stringify(new Date())}`)
+  // const timeoutPromise = new Promise((_resolve, reject) => {
+  //   timeoutHandle = setTimeout(
+  //       () => reject(core.info(`Timeout of ${timeoutMinutes}mn reached at: ${JSON.stringify(new Date())}. The command will be interrupted`)),
+  //       timeoutDelay // Converts s to ms
+  //   );
+  // }); 
+
+  // return Promise.race([asyncPromise, timeoutPromise]).then(result => {
+  //   core.info(`Execution completed at ${JSON.stringify(new Date())}`)
+  //   clearTimeout(timeoutHandle);
+  //   return result;
+  // })
 }
 
 export async function runShellCommands(
@@ -66,11 +79,19 @@ export async function runShellCommands(
       }
     }
 
-    const execCmd = exec.exec(cmd, [], {
+    // const execCmd = exec.exec(cmd, [], {
+    //   ...options,
+    //   silent: silent
+    // })
+    const ac = new AbortController();
+    core.info(`Timeout for the command is set to ${options.timeoutMinutes === undefined ? 360 : options.timeoutMinutes}mn, starting at: ${JSON.stringify(new Date())}`)
+    const timeoutDelay = options.timeoutMinutes === undefined ? 360 : options.timeoutMinutes*60*1000;
+    setTimeout(() => ac.abort(), timeoutDelay);
+    
+    await execWithTimeout(cmd, {
       ...options,
       silent: silent
-    })
-    await execWithTimeout(execCmd, options.timeoutMinutes)
+    }, ac.signal)
 
     if (
       logfile !== null &&
