@@ -85,9 +85,10 @@ export async function runShellCommands(
     // })
     const ac = new AbortController();
     core.info(`Timeout for the command is set to ${options.timeoutMinutes === undefined ? 360 : options.timeoutMinutes}mn, starting at: ${JSON.stringify(new Date())}`)
-    const timeoutDelay = options.timeoutMinutes === undefined ? 360 : options.timeoutMinutes*60*1000;
+    const defaultTimeout = 360
+    const timeoutDelay = options.timeoutMinutes === undefined ? defaultTimeout*60*1000 : options.timeoutMinutes*60*1000;
     setTimeout(() => ac.abort(), timeoutDelay);
-    
+
     await execWithTimeout(cmd, {
       ...options,
       silent: silent
