@@ -1895,6 +1895,7 @@ function runShellCommands(commands, logfile = null, options = {}) {
             }
             let stdOut = '';
             let stdErr = '';
+            let stdDebug = '';
             if (options.loggingMode === 'partial') {
                 core.notice(`Command output has been silenced, a portion of the logs will be displayed once job is complete`);
             }
@@ -1904,14 +1905,19 @@ function runShellCommands(commands, logfile = null, options = {}) {
                 },
                 stderr: (data) => {
                     stdErr += data.toString();
+                },
+                debug: (data) => {
+                    stdDebug += data.toString();
                 }
             };
             // Default timeout is set to a very high value on purpose, in most cases a lower timeout value will be set in startDockerEnvironment
             const defaultTimeout = 360;
             core.info(`Timeout for the command is set to ${options.timeoutMinutes === undefined ? defaultTimeout : options.timeoutMinutes}mn`);
             const timeoutDelay = options.timeoutMinutes === undefined ? defaultTimeout * 60 * 1000 : options.timeoutMinutes * 60 * 1000;
-            const ac = new AbortController();
             const signal = AbortSignal.timeout(timeoutDelay);
+            signal.addEventListener("abort", () => {
+                core.info(`Timeout reached at: ${JSON.stringify(new Date())}. Listener event`);
+            }, { once: true });
             yield execWithTimeout(cmd, Object.assign(Object.assign({}, options), { silent: silent, signal: signal }));
             if (logfile !== null &&
                 logfile !== '' &&
@@ -1933,6 +1939,8 @@ function runShellCommands(commands, logfile = null, options = {}) {
                 logFileStream.write(stdOut);
                 logFileStream.write('===== STDERR =====');
                 logFileStream.write(stdErr);
+                logFileStream.write('===== DEBUG =====');
+                logFileStream.write(stdDebug);
                 logFileStream.end();
                 core.info(`Saved command output to: ${filepath}`);
             }
