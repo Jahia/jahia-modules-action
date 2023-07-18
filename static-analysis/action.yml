@@ -54,7 +54,6 @@ runs:
         echo "::group::Run yarn if package.json exists in module folder: ${{ inputs.module_path }}"
         if [[ -d "${{ inputs.module_path }}" && -e "${{ inputs.module_path }}package.json" ]]; then
           cd ${{ inputs.module_path }}
-          yarn set version stable
           yarn
         fi
         echo "::endgroup::"

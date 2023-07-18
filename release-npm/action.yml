@@ -158,7 +158,7 @@ runs:
       shell: bash
       run: |
         cd ${{ inputs.module_path }}
-        yarn pack
+        yarn jahia-pack
 
     - name: Update github release for id ${{ inputs.release_id }}
       shell: bash
