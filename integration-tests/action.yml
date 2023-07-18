@@ -40,6 +40,10 @@ inputs:
     description: 'Profile to be used for the tests, this becomes an environment variable usable by the tests'
     required: false
     default: ''
+  timeout_minutes:
+    description: 'The maximum number of minutes to run the tests before killing the process.'
+    required: false
+    default: '60'    
   tests_manifest:
     description: 'Manifest contraining the provisioning script'
     required: true

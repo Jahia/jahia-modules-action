@@ -6,6 +6,24 @@ import * as path from 'path'
 interface CustomOptions {
   printCmd?: boolean
   loggingMode?: string
+  timeoutMinutes?: number
+}
+
+// Adds a timeout mechanism to the exec using AbortController
+// Proper operation is dependant upon: https://github.com/actions/toolkit/pull/1469
+async function execWithTimeout (execCmd: any, execOptions: any): Promise<any> {
+  core.info(`Command starting at: ${JSON.stringify(new Date())}`)
+  core.info(`Options: ${JSON.stringify(execOptions)}`)
+  try {
+    await exec.exec(execCmd, [], execOptions)
+    core.info(`Command completed at: ${JSON.stringify(new Date())}`)
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      core.info(`Timeout reached at: ${JSON.stringify(new Date())}. The command was interrupted`)
+    } else {
+      core.info(`There was an issue processing the command (${error.name}). It failed at: ${JSON.stringify(new Date())}`)
+    }
+  }
 }
 
 export async function runShellCommands(
@@ -30,6 +48,7 @@ export async function runShellCommands(
 
     let stdOut = ''
     let stdErr = ''
+    let stdDebug = ''
 
     if (options.loggingMode === 'partial') {
       core.notice(`Command output has been silenced, a portion of the logs will be displayed once job is complete`)
@@ -41,11 +60,27 @@ export async function runShellCommands(
       },
       stderr: (data: Buffer) => {
         stdErr += data.toString()
-      }
+      },
+      debug: (data: string) => {
+        stdDebug += data.toString()
+      }      
     }
-    await exec.exec(cmd, [], {
+
+
+    // Default timeout is set to a very high value on purpose, in most cases a lower timeout value will be set in startDockerEnvironment
+    const defaultTimeout = 360
+    core.info(`Timeout for the command is set to ${options.timeoutMinutes === undefined ? defaultTimeout : options.timeoutMinutes}mn`)
+    const timeoutDelay = options.timeoutMinutes === undefined ? defaultTimeout*60*1000 : options.timeoutMinutes*60*1000;
+    const signal = AbortSignal.timeout(timeoutDelay);
+
+    signal.addEventListener("abort", () => {
+      core.info(`Timeout reached at: ${JSON.stringify(new Date())}`)
+    }, { once: true });
+
+    await execWithTimeout(cmd, {
       ...options,
-      silent: silent
+      silent: silent,
+      signal: signal
     })
 
     if (
@@ -72,11 +107,13 @@ export async function runShellCommands(
       }      
       
       const logFileStream = fs.createWriteStream(filepath, {flags: 'a+'})
-      logFileStream.write(`Executing: ${cmd}`)
-      logFileStream.write('===== STDOUT =====')
+      logFileStream.write(`Executing: ${cmd} \n`)
+      logFileStream.write('\n ===== STDOUT ===== \n')
       logFileStream.write(stdOut)
-      logFileStream.write('===== STDERR =====')
+      logFileStream.write('\n ===== STDERR ===== \n')
       logFileStream.write(stdErr)
+      logFileStream.write('\n ===== DEBUG =====')
+      logFileStream.write(stdDebug)      
       logFileStream.end()
       core.info(`Saved command output to: ${filepath}`)
     }

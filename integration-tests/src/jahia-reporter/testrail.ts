@@ -93,22 +93,28 @@ export async function publishToTestrail(
   )
   const metadataFile = path.join(testsPath, 'artifacts/results/testrail-metadata.json')
 
-  let command = 'jahia-reporter testrail'
-  command += ` --testrailUsername="${options.testrailUsername}"`
-  command += ` --testrailPassword="${options.testrailPassword}"`
-  command += ` --sourcePath="${reportsPath}"`
-  command += ' --sourceType="xml"'
-  command += ` --projectName="${options.testrailProject}"`
-  command += ` --parentSection="${options.testrailParentSection}"`
-  command += ` --milestone="${options.testrailMilestone}"`
-  command += ` --defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`
-  command += ` --testrailCustomResultFields="${metadataFile}"`
-  command += ` --linkRunFile="${testrailLinkFile}"`
+  if (fs.existsSync(reportsPath)) {
+    let command = 'jahia-reporter testrail'
+    command += ` --testrailUsername="${options.testrailUsername}"`
+    command += ` --testrailPassword="${options.testrailPassword}"`
+    command += ` --sourcePath="${reportsPath}"`
+    command += ' --sourceType="xml"'
+    command += ` --projectName="${options.testrailProject}"`
+    command += ` --parentSection="${options.testrailParentSection}"`
+    command += ` --milestone="${options.testrailMilestone}"`
+    command += ` --defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`
+    command += ` --testrailCustomResultFields="${metadataFile}"`
+    command += ` --linkRunFile="${testrailLinkFile}"`
+  
+    await runShellCommands([command], null, {printCmd: false})
 
-  await runShellCommands([command], null, {printCmd: false})
-
-  if (fs.statSync(testrailLinkFile).isFile()) {
-    const rawFile = fs.readFileSync(testrailLinkFile, 'utf8')
-    core.info(`Testrail run available at: ${rawFile.toString()}`)
+    if (fs.statSync(testrailLinkFile).isFile()) {
+      const rawFile = fs.readFileSync(testrailLinkFile, 'utf8')
+      core.info(`Testrail run available at: ${rawFile.toString()}`)
+    }    
+  } else {
+    core.info(`ERROR: The following path does not exist: ${reportsPath}, report will not be submitted to testrail`)
   }
+
+
 }
