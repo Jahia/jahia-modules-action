@@ -57,7 +57,8 @@ runs:
       run: |
         ROOT_PATH=$(pwd)
         cd ${{ inputs.module_path }}
-        mvn -B -U -ntp -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} clean install
+        rm -rf /root/.m2/repository/org/jahia/configuration/osgi-tools
+        mvn -B -X -U -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} clean install
 
     - name: Copy dependencies to provision artifacts
       if: ${{ inputs.copy_dependencies == 'true' }}
