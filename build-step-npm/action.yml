@@ -45,6 +45,7 @@ runs:
       shell: bash
       run: |
         cd ${{ inputs.module_path }}
+        yarn set version stable
         yarn
 
     - name: Build the module
@@ -57,7 +58,7 @@ runs:
       shell: bash
       run: |
         cd ${{ inputs.module_path }}
-        yarn pack
+        yarn jahia-pack
 
     - name: Rename build file if necessary and move to /target
       shell: bash
