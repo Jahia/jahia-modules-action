@@ -38,13 +38,11 @@ runs:
         echo "REPOSITORY_URL=$(jq '.jahia.maven.distributionManagement.snapshotRepository.url' package.json | cut -d\" -f2)" >> $GITHUB_ENV
         echo "GROUP_ID=$(jq '.jahia.maven.groupId' package.json | cut -d\" -f2)" >> $GITHUB_ENV
 
-    - name: Build package
-      uses: jahia/jahia-modules-action/build-step-npm@v2
+    - name: Get cache build data
+      uses: actions/cache/restore@v3
       with:
-        module_path: ${{ inputs.module_path }}
-        node-version: ${{ inputs.node_version }}
-        archive_artifacts: 'false'
-        github_artifact_retention: ${{ inputs.github_artifact_retention }}
+        path: ${{ inputs.module_path }}
+        key: cache-build-npm-{{ md5sum package.json }}
 
     - name: Publish to maven
       shell: bash
