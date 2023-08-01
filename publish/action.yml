@@ -2,6 +2,10 @@ name: Publish
 description: Publish a Jahia module to NEXUS
 
 inputs:
+  module_path:
+    description: 'Path to the module folder (if not ./ precise path from the github_workspace)'
+    required: false
+    default: ./
   mvn_settings_filepath:
     description: Filepath to the settings.xml file
     default: '.github/maven.settings.xml'
@@ -44,9 +48,21 @@ runs:
         restore-keys: |
           ${{ runner.os }}-maven-
 
+    - name: Get mvn cache build data
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ inputs.module_path }}
+        key: cache-build-mvn-{{ md5sum pom.xml }}
+
+    - name: Get npm cache build data
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ inputs.module_path }}
+        key: cache-build-npm-{{ md5sum package.json }}
+
     - name: Build package
       shell: bash
-      run: mvn -B -s ${{ inputs.mvn_settings_filepath }} clean deploy -Dmaven.resolver.transport=wagon | tee mvnLogs.txt
+      run: mvn -B -s ${{ inputs.mvn_settings_filepath }} deploy -Dmaven.resolver.transport=wagon | tee mvnLogs.txt
 
     - name: Check if test module is present (MVN)
       if: ${{ inputs.tests_module_type == 'mvn' }}
@@ -61,12 +77,12 @@ runs:
       run: |
         ROOT_PATH=$(pwd)
         cd ${{ inputs.tests_module_path }}
-        mvn -B -U -ntp -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} clean deploy -Dmaven.resolver.transport=wagon 
+        mvn -B -U -ntp -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} deploy -Dmaven.resolver.transport=wagon
 
     - name: Direct link location of the Artifact
       shell: bash
       run: |
-        EXTRACTED_NEXUS_ARTIFACT_URL=`grep -e "Uploaded.*\.jar" mvnLogs.txt | grep -v sources | sed -e 's/.*\(https.*.jar\).*/\1/g'` 
+        EXTRACTED_NEXUS_ARTIFACT_URL=`grep -e "Uploaded.*\.jar" mvnLogs.txt | grep -v sources | sed -e 's/.*\(https.*.jar\).*/\1/g'`
         echo "::notice title=Snapshot module location::Artifact has been uploaded to: $EXTRACTED_NEXUS_ARTIFACT_URL"
 
     - name: Check if test module is present (NPM)
