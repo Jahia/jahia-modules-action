@@ -48,17 +48,11 @@ runs:
         restore-keys: |
           ${{ runner.os }}-maven-
 
-    - name: Get mvn cache build data
+    - name: Get cache build data
       uses: actions/cache/restore@v3
       with:
         path: ${{ inputs.module_path }}
-        key: cache-build-mvn-{{ md5sum pom.xml }}
-
-    - name: Get npm cache build data
-      uses: actions/cache/restore@v3
-      with:
-        path: ${{ inputs.module_path }}
-        key: cache-build-npm-{{ md5sum package.json }}
+        key: cache-build-{{ md5sum pom.xml }}
 
     - name: Build package
       shell: bash
