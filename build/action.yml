@@ -2,6 +2,10 @@ name: Build
 description: Build a Jahia module
 
 inputs:
+  module_path:
+    description: 'Path to the module folder (if not ./ precise path from the github_workspace)'
+    required: false
+    default: ./
   mvn_settings_filepath:
     description: Filepath to the settings.xml file
     default: '.github/maven.settings.xml'
