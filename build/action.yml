@@ -84,19 +84,14 @@ runs:
         node-version: ${{ inputs.node_version }}
         github_artifact_retention: ${{ inputs.github_artifact_retention }}
 
-    - name: Cache updated local Maven repository
+    - name: Cache build data
       uses: actions/cache/save@v3
       with:
         path: |
           ~/.m2/repository
           /root/.m2/repository
-        key: cache-build-maven-m2-{{ md5sum pom.xml }}
-
-    - name: Cache build data
-      uses: actions/cache/save@v3
-      with:
-        path: ${{ inputs.module_path }}
-        key: cache-build-{{ md5sum pom.xml }}
+          ${{ inputs.module_path }}
+        key: cache-build-${{ github.run_id }}-{{ md5sum pom.xml }}
 
     - name: Keep session opened if /tmp/debug file is present
       shell: bash
