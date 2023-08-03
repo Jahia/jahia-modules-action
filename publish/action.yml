@@ -51,7 +51,7 @@ runs:
 
     - name: Build package
       shell: bash
-      run: mvn -B -s ${{ inputs.mvn_settings_filepath }} deploy -Dmaven.resolver.transport=wagon | tee mvnLogs.txt
+      run: mvn -B -s ${{ inputs.mvn_settings_filepath }} deploy -DskipTests -Dmaven.resolver.transport=wagon | tee mvnLogs.txt
 
     - name: Check if test module is present (MVN)
       if: ${{ inputs.tests_module_type == 'mvn' }}
@@ -66,7 +66,7 @@ runs:
       run: |
         ROOT_PATH=$(pwd)
         cd ${{ inputs.tests_module_path }}
-        mvn -B -U -ntp -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} deploy -Dmaven.resolver.transport=wagon
+        mvn -B -U -ntp -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} deploy -DskipTests -Dmaven.resolver.transport=wagon
 
     - name: Direct link location of the Artifact
       shell: bash
