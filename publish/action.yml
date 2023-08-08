@@ -40,13 +40,13 @@ runs:
 
     # This step save the maven cache between runs
     # More details can be found here: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
-    - name: Get local Maven repository
-      uses: actions/cache/restore@v3
+    - name: Cache local Maven repository
+      uses: actions/cache@v3
       with:
-        path: |
-          ~/.m2/repository
-          /root/.m2/repository
-        key: cache-build-maven-m2-{{ md5sum pom.xml }}
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
 
     - name: Get cache build data
       uses: actions/cache/restore@v3
