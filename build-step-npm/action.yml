@@ -71,12 +71,6 @@ runs:
         mkdir target
         mv ${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz target/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
 
-    - name: Cache build data
-      uses: actions/cache/save@v3
-      with:
-        path: ${{ inputs.module_path }}
-        key: cache-build-npm-{{ md5sum package.json }}
-
     - name: Archive build artifacts
       if: ${{ inputs.archive_artifacts == 'true' }}
       uses: actions/upload-artifact@v3
