@@ -59,6 +59,12 @@ runs:
         cd ${{ inputs.module_path }}
         mvn -B -U -ntp -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} clean install
 
+    - name: Cache build data
+      uses: actions/cache/save@v3
+      with:
+        path: ${{ inputs.module_path }}
+        key: cache-build-mvn-{{ md5sum pom.xml }}
+
     - name: Copy dependencies to provision artifacts
       if: ${{ inputs.copy_dependencies == 'true' }}
       shell: bash

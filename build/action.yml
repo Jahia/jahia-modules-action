@@ -80,12 +80,6 @@ runs:
         node-version: ${{ inputs.node_version }}
         github_artifact_retention: ${{ inputs.github_artifact_retention }}
 
-    - name: Cache build data
-      uses: actions/cache/save@v3
-      with:
-        path: ${{ inputs.module_path }}
-        key: cache-build-{{ md5sum pom.xml }}
-
     - name: Keep session opened if /tmp/debug file is present
       shell: bash
       if: always()
