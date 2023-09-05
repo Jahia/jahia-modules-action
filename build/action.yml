@@ -39,7 +39,7 @@ runs:
   using: 'composite'
   steps:
     - name: Build package
-      uses: jahia/jahia-modules-action/build-step-mvn@v2
+      uses: jahia/jahia-modules-action/build-step-mvn@fixYarn
       with:
         mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
         nexus_username: ${{ inputs.nexus_username }}
@@ -54,7 +54,7 @@ runs:
         files: "${{ inputs.tests_module_path }}pom.xml"
 
     - name: Build tests package (MVN)
-      uses: jahia/jahia-modules-action/build-step-mvn@v2
+      uses: jahia/jahia-modules-action/build-step-mvn@fixYarn
       if: ${{ inputs.tests_module_type == 'mvn' && steps.check_test_module_mvn.outputs.files_exists == 'true' }}
       with:
         module_path: ${{ inputs.tests_module_path }}
@@ -74,7 +74,7 @@ runs:
 
     - name: Build tests package (NPM)
       if: ${{ inputs.tests_module_type == 'npm' && steps.check_test_module_npm.outputs.files_exists == 'true' }}
-      uses: jahia/jahia-modules-action/build-step-npm@v2
+      uses: jahia/jahia-modules-action/build-step-npm@fixYarn
       with:
         module_path: ${{ inputs.tests_module_path }}
         node-version: ${{ inputs.node_version }}
