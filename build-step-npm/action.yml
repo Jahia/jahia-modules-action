@@ -42,23 +42,22 @@ runs:
         fi
 
     - name: Prepare the module
-      shell: bash
-      run: |
-        cd ${{ inputs.module_path }}
-        yarn set version stable
-        yarn
+      uses: borales/actions-yarn@v4
+      with:
+        cmd: install
+        dir: ${{ inputs.module_path }}
 
     - name: Build the module
-      shell: bash
-      run: |
-        cd ${{ inputs.module_path }}
-        yarn build
+      uses: borales/actions-yarn@v4
+      with:
+        cmd: build
+        dir: ${{ inputs.module_path }}
 
     - name: Package the module
-      shell: bash
-      run: |
-        cd ${{ inputs.module_path }}
-        yarn jahia-pack
+      uses: borales/actions-yarn@v4
+      with:
+        cmd: jahia-pack
+        dir: ${{ inputs.module_path }}
 
     - name: Rename build file if necessary and move to /target
       shell: bash
