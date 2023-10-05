@@ -39,6 +39,10 @@ inputs:
     description: skip Audit-ci for tests when set to true
     type: boolean
     default: true
+  enable_corepack: 
+    description: Enable tool to help manage versions of package managers (e.g. yarn)
+    type: boolean
+    default: false
 
 runs:
   using: "composite"
@@ -46,6 +50,11 @@ runs:
     - uses: actions/setup-node@v3
       with:
         node-version: ${{ inputs.node_version }}
+    - name: Enable enable_corepack
+      if: ${{ inputs.enable_corepack == 'true' }}
+      shell: bash
+      run: |
+        corepack enable
 
     # Install node dependencies
     - name: Run yarn if package.json exists in module folder
