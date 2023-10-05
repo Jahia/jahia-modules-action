@@ -54,7 +54,7 @@ runs:
       if: ${{ inputs.enable_corepack == 'true' }}
       shell: bash
       run: |
-        corepack enable
+        corepack enable && corepack prepare --activate
 
     # Install node dependencies
     - name: Run yarn if package.json exists in module folder
@@ -111,7 +111,7 @@ runs:
         echo "Scan javascript vulnerabilities in the module with audit-ci"
         if [[ -d "${{ inputs.module_path }}" && -e "${{ inputs.module_path }}package.json" ]]; then
           cd ${{ inputs.module_path }}
-          audit-ci --skip-dev --${{ inputs.auditci_level }}
+          npx audit-ci --skip-dev --${{ inputs.auditci_level }}
         fi
     - name: Audit-ci tests (javascript only)
       if: ${{ inputs.skip_vulns_tests == 'false' }}
@@ -120,7 +120,7 @@ runs:
         echo "Scan javascript vulnerabilities in the tests with audit-ci"
         if [[ -d "${{ inputs.tests_path }}" && -e "${{ inputs.tests_path }}package.json" ]]; then
           cd ${{ inputs.tests_path }}
-          audit-ci --${{ inputs.auditci_level_tests }}
+          npx audit-ci --${{ inputs.auditci_level_tests }}
         fi
         echo "::endgroup::"
 
