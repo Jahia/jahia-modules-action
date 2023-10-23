@@ -131,7 +131,8 @@ runs:
         echo "Release prepare for test module"
         if [[ "${{ inputs.tests_module_type }}" == "mvn"  &&  "${{ steps.check_test_module_mvn.outputs.files_exists }}" == "true" ]]; then
           cd ${{ inputs.tests_module_path }}
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=$TAG_VERSION release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin] [Tests module]"
+
+          mvn -B -s ${{ env.GITHUB_WORKSPACE }}/${{ inputs.mvn_settings_filepath }} -B -Dtag=$TAG_VERSION release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin] [Tests module]"
         fi
 
     - name: Cache local Maven repository
