@@ -127,15 +127,15 @@ runs:
           NEXT_REVISION=`expr $REVISION + 1`
           NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$MINOR_VERSION.$NEXT_REVISION"-SNAPSHOT
         fi
-        if [[ "${{ inputs.tests_module_type }}" == "mvn"  &&  "${{ steps.check_test_module_mvn.outputs.files_exists }}" == "true" ]]; then
+        if [[ "${{ inputs.tests_module_type }}" == "mvn" && "${{ steps.check_test_module_mvn.outputs.files_exists }}" == "true" ]]; then
           echo "Release prepare for test module"
           cd ${{ inputs.tests_module_path }}
           # mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} -B release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin] [Tests module]"
           # We only want to generate one single tag (for both the module and the test module), thus not being able to use release:prepare
           # We need to update the version in the test module, then commit these changes.
-          mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} -B release:update-versions -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION"
+          mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} -B release:update-versions -DdevelopmentVersion="$FINAL_RELEASE_VERSION"
           git add .
-          git commit -m "[skip ci] Update version of the test module"
+          git commit -m "[skip ci] [Test module] Update version of the test module to the release"
           git push
         else
           echo "No test module found"
@@ -179,6 +179,19 @@ runs:
         cd ${GITHUB_WORKSPACE}
         mvn -B -s ${{ inputs.mvn_settings_filepath }} release:perform -Prelease-to-staging-repository
 
+    - name: Set development version for the test module (if present)
+      shell: bash
+      run: | 
+        if [[ "${{ inputs.tests_module_type }}" == "mvn" && "${{ steps.check_test_module_mvn.outputs.files_exists }}" == "true" ]]; then
+          echo "Release prepare for test module"
+          cd ${{ inputs.tests_module_path }}
+          mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} -B release:update-versions -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION"
+          git add .
+          git commit -m "[skip ci] [Test module] Set next development version"
+          git push
+        else
+          echo "No test module found to set development version"
+        fi
 
     - name: Copy artifacts
       shell: bash
