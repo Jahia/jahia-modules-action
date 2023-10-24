@@ -127,14 +127,16 @@ runs:
           NEXT_REVISION=`expr $REVISION + 1`
           NEXT_DEVELOPMENT_VERSION="$MAJOR_VERSION.$MINOR_VERSION.$NEXT_REVISION"-SNAPSHOT
         fi
-        mvn -B -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=$TAG_VERSION release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin]"
         if [[ "${{ inputs.tests_module_type }}" == "mvn"  &&  "${{ steps.check_test_module_mvn.outputs.files_exists }}" == "true" ]]; then
           echo "Release prepare for test module"
           cd ${{ inputs.tests_module_path }}
-          mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} -B -Dtag=$TAG_VERSION release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin] [Tests module]"
+          mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} -B release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin] [Tests module]"
         else
           echo "No test module found"
         fi
+        cd ${GITHUB_WORKSPACE}
+        mvn -B -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=$TAG_VERSION release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin]"
+
 
     - name: Cache local Maven repository
       uses: actions/cache@v3
@@ -161,14 +163,16 @@ runs:
     - name: Perform release
       shell: bash
       run: | 
-        mvn -B -s ${{ inputs.mvn_settings_filepath }} release:perform -Prelease-to-staging-repository
         if [[ "${{ inputs.tests_module_type }}" == "mvn"  &&  "${{ steps.check_test_module_mvn.outputs.files_exists }}" == "true" ]]; then
           echo "Perform release for test module"
           cd ${{ inputs.tests_module_path }}
-          mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} -B -Dtag=$TAG_VERSION release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin] [Tests module]"
+          mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} release:perform -Prelease-to-staging-repository
         else
           echo "No test module found"          
         fi
+        cd ${GITHUB_WORKSPACE}
+        mvn -B -s ${{ inputs.mvn_settings_filepath }} release:perform -Prelease-to-staging-repository
+
 
     - name: Copy artifacts
       shell: bash
