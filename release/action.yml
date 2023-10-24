@@ -131,7 +131,12 @@ runs:
           echo "Release prepare for test module"
           cd ${{ inputs.tests_module_path }}
           # mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} -B release:prepare -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION" -DscmCommentPrefix="[skip ci] [maven-release-plugin] [Tests module]"
+          # We only want to generate one single tag (for both the module and the test module), thus not being able to use release:prepare
+          # We need to update the version in the test module, then commit these changes.
           mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} -B release:update-versions -DreleaseVersion=$FINAL_RELEASE_VERSION -DdevelopmentVersion="$NEXT_DEVELOPMENT_VERSION"
+          git add .
+          git commit -m "[skip ci] Update version of the test module"
+          git push
         else
           echo "No test module found"
         fi
