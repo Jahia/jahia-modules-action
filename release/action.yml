@@ -196,6 +196,7 @@ runs:
       shell: bash
       run: | 
         if [[ "${{ inputs.tests_module_type }}" == "mvn" && "${{ steps.check_test_module_mvn.outputs.files_exists }}" == "true" ]]; then
+          cd ${{ inputs.tests_module_path }}
           mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} versions:set -DnewVersion="${{ steps.versions.outputs.next_development_version }}"
           git add .
           # Note: We do want the CI to run to build the snapshot version of the test module
