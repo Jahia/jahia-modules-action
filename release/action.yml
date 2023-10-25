@@ -199,8 +199,7 @@ runs:
           cd ${{ inputs.tests_module_path }}
           mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} versions:set -DnewVersion="${{ steps.versions.outputs.next_development_version }}"
           git add .
-          # Note: We do want the CI to run to build the snapshot version of the test module
-          git commit -m "[Test module] Update version of the test module to the next development version"
+          git commit -m "[skip ci] [Test module] Update version of the test module to the next development version"
           git push
         else
           echo "No test module found to set development version"
