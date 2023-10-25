@@ -132,12 +132,14 @@ runs:
         echo "NEXT_DEVELOPMENT_VERSION=${NEXT_DEVELOPMENT_VERSION}"
         echo "next_development_version=${NEXT_DEVELOPMENT_VERSION}" >> $GITHUB_OUTPUT
         echo "final_release_version=${FINAL_RELEASE_VERSION}" >> $GITHUB_OUTPUT
+        echo "tag_version=${TAG_VERSION}" >> $GITHUB_OUTPUT
 
     - name: Release prepare version for ${{ inputs.release_version }}
       shell: bash
       run: |
         echo "FINAL_RELEASE_VERSION=${{ steps.versions.outputs.final_release_version }}"
         echo "NEXT_DEVELOPMENT_VERSION=${{ steps.versions.outputs.next_development_version }}"
+        echo "TAG_VERSION=${{ steps.versions.outputs.tag_version }}"
         if [[ "${{ inputs.tests_module_type }}" == "mvn" && "${{ steps.check_test_module_mvn.outputs.files_exists }}" == "true" ]]; then
           echo "Release prepare for test module"
           cd ${{ inputs.tests_module_path }}
@@ -153,7 +155,7 @@ runs:
           echo "No test module found"
         fi
         cd ${GITHUB_WORKSPACE}
-        mvn -B -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=$TAG_VERSION release:prepare -DreleaseVersion="${{ steps.versions.outputs.final_release_version }}" -DdevelopmentVersion="${{ steps.versions.outputs.next_development_version }}" -DscmCommentPrefix="[skip ci] [maven-release-plugin]"
+        mvn -B -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=${{ steps.versions.outputs.tag_version }} release:prepare -DreleaseVersion="${{ steps.versions.outputs.final_release_version }}" -DdevelopmentVersion="${{ steps.versions.outputs.next_development_version }}" -DscmCommentPrefix="[skip ci] [maven-release-plugin]"
 
     - name: Cache local Maven repository
       uses: actions/cache@v3
