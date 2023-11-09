@@ -77,7 +77,7 @@ runs:
       uses: jahia/jahia-modules-action/build-step-npm@v2
       with:
         module_path: ${{ inputs.tests_module_path }}
-        node-version: ${{ inputs.node_version }}
+        node_version: ${{ inputs.node_version }}
         github_artifact_retention: ${{ inputs.github_artifact_retention }}
 
     - name: Keep session opened if /tmp/debug file is present
