@@ -11,9 +11,11 @@ interface JahiaReporterZencrepes {
 
 export async function sendResultsToZencrepes(
   testsPath: string,
+  testsResultsPath: string,
+  reportType: string,  
   options: JahiaReporterZencrepes
 ): Promise<any> {
-  const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
+  const reportsPath = path.join(testsPath, testsResultsPath)
   const moduleFilepath = path.join(
     testsPath,
     'artifacts/results/installed-jahia-modules.json'
@@ -22,7 +24,7 @@ export async function sendResultsToZencrepes(
   if (fs.existsSync(reportsPath)) {
     let command = 'jahia-reporter zencrepes'
     command += ` --sourcePath="${reportsPath}"`
-    command += ' --sourceType="xml"'
+    command += ` --sourceType="${reportType}"`
     command += ` --webhook="https://zencrepes.jahia.com/zqueue/testing/webhook"`
     command += ` --webhookSecret="${options.webhookSecret}"`
     command += ` --moduleFilepath="${moduleFilepath}"`

@@ -1170,19 +1170,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.createPagerdutyIncident = void 0;
 const core = __importStar(__nccwpck_require__(2186));
-const path = __importStar(__nccwpck_require__(5622));
 const fs = __importStar(__nccwpck_require__(5747));
 const system_1 = __nccwpck_require__(7885);
-function createPagerdutyIncident(testsPath, options) {
+function createPagerdutyIncident(testsPath, reportType, options) {
     return __awaiter(this, void 0, void 0, function* () {
-        const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         let command = 'jahia-reporter pagerduty:incident';
-        if (fs.existsSync(reportsPath)) {
-            command += ` --sourcePath="${reportsPath}"`;
-            command += ' --sourceType="xml"';
+        if (fs.existsSync(testsPath)) {
+            command += ` --sourcePath="${testsPath}"`;
+            command += ` --sourceType="${reportType}"`;
         }
         else {
-            core.info(`ERROR: The following path does not exist: ${reportsPath} pagerduty incident will not be based on test results`);
+            core.info(`ERROR: The following path does not exist: ${testsPath} pagerduty incident will not be based on test results`);
             command += ' --incidentMessage="Unable to find test folder, the tests were likely interrupted"';
         }
         command += ` --pdApiKey="${options.pdApiKey}"`;
@@ -1246,14 +1244,13 @@ const core = __importStar(__nccwpck_require__(2186));
 const path = __importStar(__nccwpck_require__(5622));
 const fs = __importStar(__nccwpck_require__(5747));
 const system_1 = __nccwpck_require__(7885);
-function sendSlackNotification(testsPath, options) {
+function sendSlackNotification(testsPath, reportType, options) {
     return __awaiter(this, void 0, void 0, function* () {
-        const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
         const moduleFilepath = path.join(testsPath, 'artifacts/results/installed-jahia-modules.json');
-        if (fs.existsSync(reportsPath)) {
+        if (fs.existsSync(testsPath)) {
             let command = 'jahia-reporter slack';
-            command += ` --sourcePath="${reportsPath}"`;
-            command += ' --sourceType="xml"';
+            command += ` --sourcePath="${testsPath}"`;
+            command += ` --sourceType="${reportType}"`;
             command += ` --channelId="${options.channelId}"`;
             command += ` --channelAllId="${options.channelAllId}"`;
             command += ` --token="${options.token}"`;
@@ -1264,7 +1261,7 @@ function sendSlackNotification(testsPath, options) {
             yield (0, system_1.runShellCommands)([command], null, { printCmd: false });
         }
         else {
-            core.info(`ERROR: The following path does not exist: ${reportsPath}, slack message will not be sent`);
+            core.info(`ERROR: The following path does not exist: ${testsPath}, slack message will not be sent`);
         }
     });
 }
@@ -1313,21 +1310,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.showTestsSummary = void 0;
 const core = __importStar(__nccwpck_require__(2186));
-const path = __importStar(__nccwpck_require__(5622));
 const fs = __importStar(__nccwpck_require__(5747));
 const system_1 = __nccwpck_require__(7885);
-function showTestsSummary(testsPath) {
+function showTestsSummary(testsPath, reportType) {
     return __awaiter(this, void 0, void 0, function* () {
-        const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
-        if (fs.existsSync(reportsPath)) {
+        if (fs.existsSync(testsPath)) {
             let command = 'jahia-reporter summary';
-            command += ` --sourcePath="${reportsPath}"`;
-            command += ' --sourceType="xml"';
+            command += ` --sourcePath="${testsPath}"`;
+            command += ` --sourceType="${reportType}"`;
             command += ' -s';
             yield (0, system_1.runShellCommands)([command]);
         }
         else {
-            core.info(`ERROR: The following path does not exist: ${reportsPath}, summary will not be displayed`);
+            core.info(`ERROR: The following path does not exist: ${testsPath}, summary will not be displayed`);
         }
     });
 }
@@ -1437,9 +1432,9 @@ function prepareTestrailMetadata(testsPath, testrailPlatformdata) {
     });
 }
 exports.prepareTestrailMetadata = prepareTestrailMetadata;
-function publishToTestrail(testsPath, options) {
+function publishToTestrail(testsPath, testsResultsPath, reportType, options) {
     return __awaiter(this, void 0, void 0, function* () {
-        const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
+        const reportsPath = path.join(testsPath, testsResultsPath);
         const testrailLinkFile = path.join(testsPath, 'artifacts/results/testrail_link');
         const metadataFile = path.join(testsPath, 'artifacts/results/testrail-metadata.json');
         if (fs.existsSync(reportsPath)) {
@@ -1447,7 +1442,7 @@ function publishToTestrail(testsPath, options) {
             command += ` --testrailUsername="${options.testrailUsername}"`;
             command += ` --testrailPassword="${options.testrailPassword}"`;
             command += ` --sourcePath="${reportsPath}"`;
-            command += ' --sourceType="xml"';
+            command += ` --sourceType="${reportType}"`;
             command += ` --projectName="${options.testrailProject}"`;
             command += ` --parentSection="${options.testrailParentSection}"`;
             command += ` --milestone="${options.testrailMilestone}"`;
@@ -1513,14 +1508,14 @@ const core = __importStar(__nccwpck_require__(2186));
 const path = __importStar(__nccwpck_require__(5622));
 const fs = __importStar(__nccwpck_require__(5747));
 const system_1 = __nccwpck_require__(7885);
-function sendResultsToZencrepes(testsPath, options) {
+function sendResultsToZencrepes(testsPath, testsResultsPath, reportType, options) {
     return __awaiter(this, void 0, void 0, function* () {
-        const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports');
+        const reportsPath = path.join(testsPath, testsResultsPath);
         const moduleFilepath = path.join(testsPath, 'artifacts/results/installed-jahia-modules.json');
         if (fs.existsSync(reportsPath)) {
             let command = 'jahia-reporter zencrepes';
             command += ` --sourcePath="${reportsPath}"`;
-            command += ' --sourceType="xml"';
+            command += ` --sourceType="${reportType}"`;
             command += ` --webhook="https://zencrepes.jahia.com/zqueue/testing/webhook"`;
             command += ` --webhookSecret="${options.webhookSecret}"`;
             command += ` --moduleFilepath="${moduleFilepath}"`;
@@ -1667,14 +1662,14 @@ function run() {
                 yield (0, docker_1.stopDockerEnvironment)(testsFolder, core.getInput('logging_mode'));
             }));
             // Display a short "console" report directly in the run output
-            yield (0, jahia_reporter_1.showTestsSummary)(testsFolder);
+            yield (0, jahia_reporter_1.showTestsSummary)(path.join(testsFolder, core.getInput('tests_report_path')), core.getInput('tests_report_type'));
             // Publish results to testrail
             // Publish to testrail - into separate project
             if (core.getInput('should_skip_testrail') === 'false' ||
                 core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH) {
                 yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Publishing results to Testrail project: ${core.getInput('testrail_project')}`, () => __awaiter(this, void 0, void 0, function* () {
                     yield (0, jahia_reporter_1.prepareTestrailMetadata)(testsFolder, core.getInput('testrail_platformdata'));
-                    yield (0, jahia_reporter_1.publishToTestrail)(testsFolder, {
+                    yield (0, jahia_reporter_1.publishToTestrail)(testsFolder, core.getInput('tests_report_path'), core.getInput('tests_report_type'), {
                         testrailUsername: core.getInput('testrail_username'),
                         testrailPassword: core.getInput('testrail_password'),
                         testrailParentSection: '',
@@ -1689,7 +1684,7 @@ function run() {
                 core.getInput('should_skip_jahiaCIreporting') !== 'true') {
                 yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Publishing results to Testrail project: Jahia-CI}`, () => __awaiter(this, void 0, void 0, function* () {
                     yield (0, jahia_reporter_1.prepareTestrailMetadata)(testsFolder, core.getInput('testrail_platformdata'));
-                    yield (0, jahia_reporter_1.publishToTestrail)(testsFolder, {
+                    yield (0, jahia_reporter_1.publishToTestrail)(testsFolder, core.getInput('tests_report_path'), core.getInput('tests_report_type'), {
                         testrailUsername: core.getInput('testrail_username'),
                         testrailPassword: core.getInput('testrail_password'),
                         testrailParentSection: core.getInput('testrail_project'),
@@ -1703,7 +1698,7 @@ function run() {
                 process.env.CURRENT_BRANCH !== undefined &&
                 ['master', 'main', core.getInput('primary_release_branch')].includes(process.env.CURRENT_BRANCH)) {
                 yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Creating incident in Pagerduty (if applicable)`, () => __awaiter(this, void 0, void 0, function* () {
-                    yield (0, jahia_reporter_1.createPagerdutyIncident)(testsFolder, {
+                    yield (0, jahia_reporter_1.createPagerdutyIncident)(path.join(testsFolder, core.getInput('tests_report_path')), core.getInput('tests_report_type'), {
                         service: core.getInput('incident_service') || core.getInput('module_id'),
                         pdApiKey: core.getInput('incident_pagerduty_api_key'),
                         pdReporterEmail: core.getInput('incident_pagerduty_reporter_email'),
@@ -1734,7 +1729,7 @@ function run() {
             if (core.getInput('should_skip_notifications') === 'false' ||
                 core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH) {
                 yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Send notification to Slack`, () => __awaiter(this, void 0, void 0, function* () {
-                    yield (0, jahia_reporter_1.sendSlackNotification)(testsFolder, {
+                    yield (0, jahia_reporter_1.sendSlackNotification)(path.join(testsFolder, core.getInput('tests_report_path')), core.getInput('tests_report_type'), {
                         channelId: core.getInput('slack_channel_id_notifications'),
                         channelAllId: core.getInput('slack_channel_id_notifications_all'),
                         token: core.getInput('slack_client_token')
@@ -1745,7 +1740,7 @@ function run() {
             if (core.getInput('should_skip_zencrepes') === 'false' ||
                 core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH) {
                 yield core.group(`${(0, utils_1.timeSinceStart)(startTime)} 🛠️ Send results to ZenCrepes`, () => __awaiter(this, void 0, void 0, function* () {
-                    yield (0, jahia_reporter_1.sendResultsToZencrepes)(testsFolder, {
+                    yield (0, jahia_reporter_1.sendResultsToZencrepes)(testsFolder, core.getInput('tests_report_path'), core.getInput('tests_report_type'), {
                         service: core.getInput('module_id'),
                         webhookSecret: core.getInput('zencrepes_secret')
                     });
@@ -6686,7 +6681,6 @@ class ToolRunner extends events.EventEmitter {
         const result = {};
         result.cwd = options.cwd;
         result.env = options.env;
-        result.signal = options.signal;       
         result['windowsVerbatimArguments'] =
             options.windowsVerbatimArguments || this._isCmdFile();
         if (options.windowsVerbatimArguments) {
