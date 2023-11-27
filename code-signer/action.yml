@@ -94,7 +94,6 @@ runs:
             -username="${{ inputs.signer_username }}" \
             -password='${{ inputs.signer_password }}' \
             -credential_id="${{ inputs.credential_id }}" \
-            -totp_secret="${{ inputs.totp_secret }}" \
             -output_dir_path="$OUTPUT_DIR" \
             $INSTALLER_FILE # -input_file_path option is replaced by last param
           cp $OUTPUT_DIR/`basename $INSTALLER_FILE` $INSTALLER_FILE # overwrite original file
