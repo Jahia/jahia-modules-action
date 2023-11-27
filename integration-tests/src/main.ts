@@ -213,7 +213,7 @@ async function run(): Promise<void> {
     )
 
     // Display a short "console" report directly in the run output
-    await showTestsSummary(testsFolder)
+    await showTestsSummary(path.join(testsFolder, core.getInput('tests_report_path')), core.getInput('tests_report_type'))
 
     // Publish results to testrail
     // Publish to testrail - into separate project
@@ -226,13 +226,18 @@ async function run(): Promise<void> {
         async () => {
           await prepareTestrailMetadata(testsFolder, core.getInput('testrail_platformdata'))
 
-          await publishToTestrail(testsFolder, {
-            testrailUsername: core.getInput('testrail_username'),
-            testrailPassword: core.getInput('testrail_password'),
-            testrailParentSection: '',
-            testrailProject: core.getInput('testrail_project'),
-            testrailMilestone: core.getInput('testrail_milestone')
-          })
+          await publishToTestrail(
+            testsFolder, 
+            core.getInput('tests_report_path'), 
+            core.getInput('tests_report_type'), 
+            {
+              testrailUsername: core.getInput('testrail_username'),
+              testrailPassword: core.getInput('testrail_password'),
+              testrailParentSection: '',
+              testrailProject: core.getInput('testrail_project'),
+              testrailMilestone: core.getInput('testrail_milestone')
+            }
+          )
         }
       )
     }
@@ -248,13 +253,18 @@ async function run(): Promise<void> {
         async () => {
           await prepareTestrailMetadata(testsFolder, core.getInput('testrail_platformdata'))
 
-          await publishToTestrail(testsFolder, {
-            testrailUsername: core.getInput('testrail_username'),
-            testrailPassword: core.getInput('testrail_password'),
-            testrailParentSection: core.getInput('testrail_project'),
-            testrailProject: 'JahiaCI',
-            testrailMilestone: core.getInput('testrail_milestone')
-          })
+          await publishToTestrail(
+            testsFolder, 
+            core.getInput('tests_report_path'), 
+            core.getInput('tests_report_type'), 
+            {
+              testrailUsername: core.getInput('testrail_username'),
+              testrailPassword: core.getInput('testrail_password'),
+              testrailParentSection: core.getInput('testrail_project'),
+              testrailProject: 'JahiaCI',
+              testrailMilestone: core.getInput('testrail_milestone')
+            }
+          )
         }
       )
     }
@@ -270,18 +280,22 @@ async function run(): Promise<void> {
           startTime
         )} 🛠️ Creating incident in Pagerduty (if applicable)`,
         async () => {
-          await createPagerdutyIncident(testsFolder, {
-            service:
-              core.getInput('incident_service') || core.getInput('module_id'),
-            pdApiKey: core.getInput('incident_pagerduty_api_key'),
-            pdReporterEmail: core.getInput('incident_pagerduty_reporter_email'),
-            pdReporterId: core.getInput('incident_pagerduty_reporter_id'),
-            googleSpreadsheetId: core.getInput(
-              'incident_google_spreadsheet_id'
-            ),
-            googleClientEmail: core.getInput('incident_google_client_email'),
-            googleApiKey: core.getInput('incident_google_api_key_base64')
-          })
+          await createPagerdutyIncident(
+            path.join(testsFolder, core.getInput('tests_report_path')), 
+            core.getInput('tests_report_type'), 
+            {
+              service:
+                core.getInput('incident_service') || core.getInput('module_id'),
+              pdApiKey: core.getInput('incident_pagerduty_api_key'),
+              pdReporterEmail: core.getInput('incident_pagerduty_reporter_email'),
+              pdReporterId: core.getInput('incident_pagerduty_reporter_id'),
+              googleSpreadsheetId: core.getInput(
+                'incident_google_spreadsheet_id'
+              ),
+              googleClientEmail: core.getInput('incident_google_client_email'),
+              googleApiKey: core.getInput('incident_google_api_key_base64')
+            }
+          )
         }
       )
     }
@@ -335,11 +349,15 @@ async function run(): Promise<void> {
       await core.group(
         `${timeSinceStart(startTime)} 🛠️ Send notification to Slack`,
         async () => {
-          await sendSlackNotification(testsFolder, {
-            channelId: core.getInput('slack_channel_id_notifications'),
-            channelAllId: core.getInput('slack_channel_id_notifications_all'),
-            token: core.getInput('slack_client_token')
-          })
+          await sendSlackNotification(
+            path.join(testsFolder, core.getInput('tests_report_path')), 
+            core.getInput('tests_report_type'), 
+            {
+              channelId: core.getInput('slack_channel_id_notifications'),
+              channelAllId: core.getInput('slack_channel_id_notifications_all'),
+              token: core.getInput('slack_client_token')
+            }
+          )
         }
       )
     }
@@ -352,10 +370,15 @@ async function run(): Promise<void> {
       await core.group(
         `${timeSinceStart(startTime)} 🛠️ Send results to ZenCrepes`,
         async () => {
-          await sendResultsToZencrepes(testsFolder, {
-            service: core.getInput('module_id'),
-            webhookSecret: core.getInput('zencrepes_secret')
-          })
+          await sendResultsToZencrepes(
+            testsFolder, 
+            core.getInput('tests_report_path'), 
+            core.getInput('tests_report_type'), 
+            {
+              service: core.getInput('module_id'),
+              webhookSecret: core.getInput('zencrepes_secret')
+            }
+          )
         }
       )
     }

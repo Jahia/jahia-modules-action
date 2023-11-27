@@ -75,6 +75,14 @@ inputs:
     description: 'Name of the check report'
     required: false
     default: 'JUnit Test Report'
+  tests_report_path:
+    description: 'Path to the report folder/file inside the tests folder to be used by jahia-reporter for processing test results'
+    required: false
+    default: 'artifacts/results/xml_reports'
+  tests_report_type:
+    description: 'Type of report to be used by jahia-reporter for processing test results'
+    required: false
+    default: 'xml'
   jahia_license:
     description: 'Base64 encoded Jahia license'
     required: false

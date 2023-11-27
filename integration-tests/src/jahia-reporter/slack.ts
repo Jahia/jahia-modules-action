@@ -12,17 +12,17 @@ interface JahiaReporterSlack {
 
 export async function sendSlackNotification(
   testsPath: string,
+  reportType: string,
   options: JahiaReporterSlack
 ): Promise<any> {
-  const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
   const moduleFilepath = path.join(
     testsPath,
     'artifacts/results/installed-jahia-modules.json'
   )
-  if (fs.existsSync(reportsPath)) {
+  if (fs.existsSync(testsPath)) {
     let command = 'jahia-reporter slack'
-    command += ` --sourcePath="${reportsPath}"`
-    command += ' --sourceType="xml"'
+    command += ` --sourcePath="${testsPath}"`
+    command += ` --sourceType="${reportType}"`
     command += ` --channelId="${options.channelId}"`
     command += ` --channelAllId="${options.channelAllId}"`
     command += ` --token="${options.token}"`
@@ -33,6 +33,6 @@ export async function sendSlackNotification(
 
     await runShellCommands([command], null, {printCmd: false})
   } else {
-    core.info(`ERROR: The following path does not exist: ${reportsPath}, slack message will not be sent`)
+    core.info(`ERROR: The following path does not exist: ${testsPath}, slack message will not be sent`)
   }  
 }

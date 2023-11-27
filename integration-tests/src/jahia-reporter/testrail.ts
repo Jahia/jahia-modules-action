@@ -84,9 +84,11 @@ export async function prepareTestrailMetadata(
 
 export async function publishToTestrail(
   testsPath: string,
+  testsResultsPath: string,
+  reportType: string,
   options: JahiaReporterTestrail
 ): Promise<any> {
-  const reportsPath = path.join(testsPath, 'artifacts/results/xml_reports')
+  const reportsPath = path.join(testsPath, testsResultsPath)
   const testrailLinkFile = path.join(
     testsPath,
     'artifacts/results/testrail_link'
@@ -98,7 +100,7 @@ export async function publishToTestrail(
     command += ` --testrailUsername="${options.testrailUsername}"`
     command += ` --testrailPassword="${options.testrailPassword}"`
     command += ` --sourcePath="${reportsPath}"`
-    command += ' --sourceType="xml"'
+    command += ` --sourceType="${reportType}"`
     command += ` --projectName="${options.testrailProject}"`
     command += ` --parentSection="${options.testrailParentSection}"`
     command += ` --milestone="${options.testrailMilestone}"`
