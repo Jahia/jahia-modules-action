@@ -24,6 +24,26 @@ yarn run build
 # Package
 yarn run package
 
+# Fix issue with child.spawn
+We are currently waiting for both https://github.com/actions/toolkit/issues/1534 and https://github.com/actions/toolkit/pull/1469 to be included into the action toolkit to support step cancellation.
+
+In the meantime, after building/packaging, modity the `dist/index.js` search for `_getSpawnOptions(options, toolPath)` and update it as follow (simply adding the signal option):
+
+Before:
+```
+const result = {};
+result.cwd = options.cwd;
+result.env = options.env;
+```
+
+After:
+```
+const result = {};
+result.cwd = options.cwd;
+result.signal = options.signal;
+result.env = options.env;
+```
+
 # Add, commit and push the changes
 git add .
 git commit -m "Your Commit Message"

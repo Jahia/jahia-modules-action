@@ -6680,6 +6680,7 @@ class ToolRunner extends events.EventEmitter {
         options = options || {};
         const result = {};
         result.cwd = options.cwd;
+        result.signal = options.signal;
         result.env = options.env;
         result['windowsVerbatimArguments'] =
             options.windowsVerbatimArguments || this._isCmdFile();
