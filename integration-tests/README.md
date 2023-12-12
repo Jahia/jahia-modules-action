@@ -23,6 +23,7 @@ yarn run build
 
 # Package
 yarn run package
+```
 
 # Fix issue with child.spawn
 We are currently waiting for both https://github.com/actions/toolkit/issues/1534 and https://github.com/actions/toolkit/pull/1469 to be included into the action toolkit to support step cancellation.
@@ -45,6 +46,7 @@ result.env = options.env;
 ```
 
 # Add, commit and push the changes
+```bash
 git add .
 git commit -m "Your Commit Message"
 git push --set-upstream origin YOUR_BRANCH
