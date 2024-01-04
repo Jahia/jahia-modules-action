@@ -146,7 +146,7 @@ runs:
           # We only want to generate one single tag (for both the module and the test module), thus not being able to use release:prepare
           # We need to update the version in the test module, then commit these changes.
           mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} versions:set -DnewVersion="${{ steps.versions.outputs.final_release_version }}"
-          git add .
+          git add pom.xml
           git commit -m "[skip ci] [Test module] Update version of the test module to the release"
           git push
           mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} deploy
