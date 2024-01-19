@@ -74,7 +74,7 @@ runs:
 
     - name: Build tests package (NPM)
       if: ${{ inputs.tests_module_type == 'npm' && steps.check_test_module_npm.outputs.files_exists == 'true' }}
-      uses: jahia/jahia-modules-action/build-step-npm@QA-15060
+      uses: jahia/jahia-modules-action/build-step-npm@v2
       with:
         module_path: ${{ inputs.tests_module_path }}
         node_version: ${{ inputs.node_version }}
