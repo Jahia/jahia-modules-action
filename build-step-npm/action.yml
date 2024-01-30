@@ -46,11 +46,11 @@ runs:
     
     - name: Build Pack
       run: |
-      corepack enable
-      yarn set version stable
-      yarn install
-      yarn build
-      yarn jahia-pack
+        corepack enable
+        yarn set version stable
+        yarn install
+        yarn build
+        yarn jahia-pack
 
     - name: Rename build file if necessary and move to /target
       shell: bash
