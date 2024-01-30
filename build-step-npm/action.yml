@@ -24,6 +24,9 @@ runs:
     - uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node_version }}
+    
+    - name: Enable corepack
+      run: corepack enable
 
     - name: Get package.json infos
       shell: bash

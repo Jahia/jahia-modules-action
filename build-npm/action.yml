@@ -22,7 +22,7 @@ runs:
   using: 'composite'
   steps:
     - name: Build package
-      uses: jahia/jahia-modules-action/build-step-npm@v2
+      uses: jahia/jahia-modules-action/build-step-npm@BACKLOG-21836
       with:
         module_path: ${{ inputs.module_path }}
         node_version: ${{ inputs.node_version }}
@@ -36,7 +36,7 @@ runs:
 
     - name: Build tests package
       if: ${{ steps.check_test_module_npm.outputs.files_exists == 'true' }}
-      uses: jahia/jahia-modules-action/build-step-npm@v2
+      uses: jahia/jahia-modules-action/build-step-npm@BACKLOG-21836
       with:
         module_path: ${{ inputs.tests_module_path }}
         node_version: ${{ inputs.node_version }}
