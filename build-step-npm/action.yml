@@ -45,6 +45,7 @@ runs:
         fi
     
     - name: Build Pack
+      shell: bash
       run: |
         corepack enable
         yarn set version stable
