@@ -27,6 +27,7 @@ runs:
     
     - name: Enable corepack
       run: corepack enable
+      shell: bash
 
     - name: Get package.json infos
       shell: bash
@@ -49,12 +50,15 @@ runs:
 
     - name: Prepare the module
       run: yarn install
+      shell: bash
 
     - name: Build the module
       run: yarn build
+      shell: bash
 
     - name: Package the module
       run: yarn jahia-pack
+      shell: bash
 
     - name: Rename build file if necessary and move to /target
       shell: bash
