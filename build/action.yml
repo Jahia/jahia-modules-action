@@ -49,7 +49,7 @@ runs:
     - name: Check if test module is present (MVN)
       if: ${{ inputs.tests_module_type == 'mvn' }}
       id: check_test_module_mvn
-      uses: andstor/file-existence-action@v2
+      uses: andstor/file-existence-action@v3
       with:
         files: "${{ inputs.tests_module_path }}pom.xml"
 
@@ -68,7 +68,7 @@ runs:
     - name: Check if test module is present (NPM)
       if: ${{ inputs.tests_module_type == 'npm' }}
       id: check_test_module_npm
-      uses: andstor/file-existence-action@v2
+      uses: andstor/file-existence-action@v3
       with:
         files: "${{ inputs.tests_module_path }}package.json"
 
