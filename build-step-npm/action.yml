@@ -21,7 +21,7 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - uses: actions/setup-node@v3
+    - uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node_version }}
 
@@ -43,24 +43,13 @@ runs:
           echo $MODULE_VERSION
           echo "MODULE_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
         fi
-
-    - name: Prepare the module
-      uses: borales/actions-yarn@v4
-      with:
-        cmd: install
-        dir: ${{ inputs.module_path }}
-
-    - name: Build the module
-      uses: borales/actions-yarn@v4
-      with:
-        cmd: build
-        dir: ${{ inputs.module_path }}
-
-    - name: Package the module
-      uses: borales/actions-yarn@v4
-      with:
-        cmd: jahia-pack
-        dir: ${{ inputs.module_path }}
+    
+    - name: Build Pack
+      shell: bash
+      run: |
+        yarn install
+        yarn build
+        yarn jahia-pack
 
     - name: Rename build file if necessary and move to /target
       shell: bash
