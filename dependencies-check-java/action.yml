@@ -112,12 +112,6 @@ runs:
           echo "ALLOWLIST=$(cat ${{ inputs.license_allowlist }})" >> $GITHUB_ENV
         fi
 
-    - name: Restore dependencies from cache
-      uses: actions/cache/restore@v3
-      with:
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-        path: ~/.m2/repository
-
     - name: Check licenses
       shell: bash
       run: |
