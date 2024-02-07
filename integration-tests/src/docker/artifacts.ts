@@ -10,12 +10,18 @@ export async function copyRunArtifacts(
 ): Promise<void> {
   await runShellCommands(
     [`docker cp ${containerName}:/home/jahians/results ${desinationPath}`],
-    'artifacts/cypress-artifacts.log'
+    'artifacts/cypress-artifacts.log',
+    {
+      ignoreReturnCode: true,
+    }
   )
 
   await runShellCommands(
     [`docker stats --all --no-stream`],
-    'artifacts/results/cypress-stats.log'
+    'artifacts/results/cypress-stats.log',
+    {
+      ignoreReturnCode: true,
+    }
   )
 
   await runShellCommands(
@@ -29,6 +35,7 @@ export async function copyRunArtifacts(
   )
 
   await runShellCommands([`docker logs jahia`], 'artifacts/results/jahia.log', {
+    ignoreReturnCode: true,
     silent: true
   })
 
@@ -36,6 +43,7 @@ export async function copyRunArtifacts(
     [`docker logs ${containerName}`],
     `artifacts/results/${containerName}.log`,
     {
+      ignoreReturnCode: true,
       silent: true
     }
   )
@@ -45,5 +53,8 @@ export async function copyRunArtifacts(
       desinationPath,
       `results/docker.log`
     )}`
-  ])
+  ], 
+  null, {
+    ignoreReturnCode: true
+  })
 }
