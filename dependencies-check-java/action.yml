@@ -30,33 +30,31 @@ runs:
           cat base64_file | base64 -di > ${{ inputs.root_folder }}/base-pom.xml
         fi
 
-    - name: Save/Restore base dependencies from cache
-      uses: actions/cache@v3
+    - name: Restore base dependencies from cache
+      uses: actions/cache/restore@v3
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       with:
         key: ${{ runner.os }}-maven-${{ hashFiles('**/base-pom.xml') }}
-        path: |
-          ~/.m2
+        path: ~/.m2/repository
 
     - name: Get dependencies from base POM
       shell: bash
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       run: |
-        mvn -f ${{ inputs.root_folder }}/base-pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DoutputFile=base-deps.txt --no-transfer-progress
+        mvn -Dmaven.repo.local="~/.m2/repository" -f ${{ inputs.root_folder }}/base-pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DoutputFile=base-deps.txt --no-transfer-progress
 
-    - name: Save/Restore dependencies from cache
-      uses: actions/cache@v3
+    - name: Restore dependencies from cache
+      uses: actions/cache/restore@v3
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       with:
         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-        path: |
-          ~/.m2
+        path: ~/.m2/repository
 
     - name: Get dependencies from local POM
       shell: bash
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       run: |
-        mvn -f ${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DoutputFile=deps.txt --no-transfer-progress
+        mvn -Dmaven.repo.local="~/.m2/repository" -f ${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DoutputFile=deps.txt --no-transfer-progress
 
     - name: Get POM differences and push a comment
       shell: bash
@@ -114,10 +112,16 @@ runs:
           echo "ALLOWLIST=$(cat ${{ inputs.license_allowlist }})" >> $GITHUB_ENV
         fi
 
+    - name: Restore dependencies from cache
+      uses: actions/cache/restore@v3
+      with:
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        path: ~/.m2/repository
+
     - name: Check licenses
       shell: bash
       run: |
-        mvn license:add-third-party -DlinkOnly=true -Dlicense.includedScopes=runtime -Dlicense.excludedScopes=test,provided -Dlicense.excludedTypes=war,pom -Dlicense.excludedGroups="^org\.jahia\..*" -Dlicense.useMissingFile=true --no-transfer-progress
+        mvn license:add-third-party -Dmaven.repo.local="~/.m2/repository" -DlinkOnly=true -Dlicense.includedScopes=runtime -Dlicense.excludedScopes=test,provided -Dlicense.excludedTypes=war,pom -Dlicense.excludedGroups="^org\.jahia\..*" -Dlicense.useMissingFile=true --no-transfer-progress
         grep -Eiv "^List|^The project has no dependencies|.*Jahia|${ALLOWLIST}" ${{ inputs.root_folder }}/target/generated-sources/license/THIRD-PARTY.txt > bad-licenses.txt || true
         if [[ $(wc -l <bad-licenses.txt) -gt 0 && $(wc -w <bad-licenses.txt) -gt 0 ]]; then
           echo "LICENSE_DIFF_STATUS=1" >> $GITHUB_ENV
