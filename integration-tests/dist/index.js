@@ -384,22 +384,30 @@ const posix_1 = __importDefault(__nccwpck_require__(3301));
 const system_1 = __nccwpck_require__(7885);
 function copyRunArtifacts(containerName, desinationPath, testsFolder) {
     return __awaiter(this, void 0, void 0, function* () {
-        yield (0, system_1.runShellCommands)([`docker cp ${containerName}:/home/jahians/results ${desinationPath}`], 'artifacts/cypress-artifacts.log');
-        yield (0, system_1.runShellCommands)([`docker stats --all --no-stream`], 'artifacts/results/cypress-stats.log');
+        yield (0, system_1.runShellCommands)([`docker cp ${containerName}:/home/jahians/results ${desinationPath}`], 'artifacts/cypress-artifacts.log', {
+            ignoreReturnCode: true,
+        });
+        yield (0, system_1.runShellCommands)([`docker stats --all --no-stream`], 'artifacts/results/cypress-stats.log', {
+            ignoreReturnCode: true,
+        });
         yield (0, system_1.runShellCommands)([`docker-compose logs -t --tail="all" `], 'artifacts/results/all-containers.log', {
             cwd: testsFolder,
             ignoreReturnCode: true,
             silent: true
         });
         yield (0, system_1.runShellCommands)([`docker logs jahia`], 'artifacts/results/jahia.log', {
+            ignoreReturnCode: true,
             silent: true
         });
         yield (0, system_1.runShellCommands)([`docker logs ${containerName}`], `artifacts/results/${containerName}.log`, {
+            ignoreReturnCode: true,
             silent: true
         });
         yield (0, system_1.runShellCommands)([
             `cp ${posix_1.default.join(desinationPath, `docker.log`)} ${posix_1.default.join(desinationPath, `results/docker.log`)}`
-        ]);
+        ], null, {
+            ignoreReturnCode: true
+        });
     });
 }
 exports.copyRunArtifacts = copyRunArtifacts;
