@@ -47,6 +47,7 @@ runs:
     - name: Build Pack
       shell: bash
       run: |
+        corepack enable
         yarn install
         yarn build
         yarn jahia-pack
