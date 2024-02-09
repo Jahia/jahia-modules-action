@@ -45,7 +45,7 @@ runs:
         fi
     
     - name: Prepare the module
-      uses: borales/actions-yarn@v55
+      uses: borales/actions-yarn@v5
       with:
         cmd: install
         dir: ${{ inputs.module_path }}
