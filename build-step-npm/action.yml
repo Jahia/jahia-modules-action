@@ -44,14 +44,23 @@ runs:
           echo "MODULE_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
         fi
     
-    - name: Build Pack
-      shell: bash
-      run: |
-        corepack enable
-        yarn set version stable
-        yarn install --frozen-lockfile
-        yarn build
-        yarn jahia-pack
+    - name: Prepare the module
+      uses: borales/actions-yarn@v55
+      with:
+        cmd: install
+        dir: ${{ inputs.module_path }}
+
+    - name: Build the module
+      uses: borales/actions-yarn@v5
+      with:
+        cmd: build
+        dir: ${{ inputs.module_path }}
+
+    - name: Package the module
+      uses: borales/actions-yarn@v5
+      with:
+        cmd: jahia-pack
+        dir: ${{ inputs.module_path }}
 
     - name: Rename build file if necessary and move to /target
       shell: bash
