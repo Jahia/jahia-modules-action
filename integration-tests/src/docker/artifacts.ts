@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 import path from 'path/posix'
+import fs from "fs";
 
 import {runShellCommands} from '../utils/system'
 
@@ -15,6 +16,12 @@ export async function copyRunArtifacts(
       ignoreReturnCode: true,
     }
   )
+
+  // The command above might fail (for example if the test container failed building)
+  // In such a case, it might be necessary to create the results folder
+  if (!fs.existsSync(path.join(desinationPath, 'results/'))) {
+    fs.mkdirSync(path.join(desinationPath, 'results/'))
+  }
 
   await runShellCommands(
     [`docker stats --all --no-stream`],

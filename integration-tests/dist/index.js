@@ -381,12 +381,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.copyRunArtifacts = void 0;
 const posix_1 = __importDefault(__nccwpck_require__(3301));
+const fs_1 = __importDefault(__nccwpck_require__(5747));
 const system_1 = __nccwpck_require__(7885);
 function copyRunArtifacts(containerName, desinationPath, testsFolder) {
     return __awaiter(this, void 0, void 0, function* () {
         yield (0, system_1.runShellCommands)([`docker cp ${containerName}:/home/jahians/results ${desinationPath}`], 'artifacts/cypress-artifacts.log', {
             ignoreReturnCode: true,
         });
+        // The command above might fail (for example if the test container failed building)
+        // In such a case, it might be necessary to create the results folder
+        if (!fs_1.default.existsSync(posix_1.default.join(desinationPath, 'results/'))) {
+            fs_1.default.mkdirSync(posix_1.default.join(desinationPath, 'results/'));
+        }
         yield (0, system_1.runShellCommands)([`docker stats --all --no-stream`], 'artifacts/results/cypress-stats.log', {
             ignoreReturnCode: true,
         });
