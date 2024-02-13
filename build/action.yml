@@ -54,7 +54,7 @@ runs:
         files: "${{ inputs.tests_module_path }}pom.xml"
 
     - name: Build tests package (MVN)
-      uses: jahia/jahia-modules-action/build-step-mvn@v2
+      uses: jahia/jahia-modules-action/build-step-mvn@TECH-1639
       if: ${{ inputs.tests_module_type == 'mvn' && steps.check_test_module_mvn.outputs.files_exists == 'true' }}
       with:
         module_path: ${{ inputs.tests_module_path }}
