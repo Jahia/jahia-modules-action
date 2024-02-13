@@ -39,7 +39,7 @@ runs:
   using: 'composite'
   steps:
     - name: Build package
-      uses: jahia/jahia-modules-action/build-step-mvn@v2
+      uses: jahia/jahia-modules-action/build-step-mvn@TECH-1639
       with:
         mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
         nexus_username: ${{ inputs.nexus_username }}
