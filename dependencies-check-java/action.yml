@@ -20,7 +20,7 @@ runs:
     - name: Set mvn local repo location
       shell: bash
       run: |
-        echo ~/.m2/repository >> $MVN_LOCAL_REPO
+        echo "MVN_LOCAL_REPO=$(echo ~/.m2/repository)" >> $GITHUB_ENV
         echo "Base local mvn repo set to: " $MVN_LOCAL_REPO
 
     - name: Get base POM
