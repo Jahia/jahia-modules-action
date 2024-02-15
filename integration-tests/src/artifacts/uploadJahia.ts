@@ -14,7 +14,7 @@ const runRsync = async (
     .flags('rvz')
     .set(
       'e',
-      'ssh -A -o "ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com" -o StrictHostKeyChecking=off'
+      'ssh -vvv -A -o "ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com" -o StrictHostKeyChecking=off'
     )
     .source(artifactPath)
     .destination(`jahia@rqa1.int.jahia.com:${dstFilePath}`)

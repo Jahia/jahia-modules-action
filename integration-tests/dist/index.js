@@ -320,7 +320,7 @@ const runRsync = (artifactPath, dstFilePath) => __awaiter(void 0, void 0, void 0
     const rsync = Rsync.build({});
     rsync
         .flags('rvz')
-        .set('e', 'ssh -A -o "ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com" -o StrictHostKeyChecking=off')
+        .set('e', 'ssh -vvv -A -o "ProxyCommand=ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=off -W %h:%p -p 220 jahia-ci@circleci-bastion-prod.jahia.com" -o StrictHostKeyChecking=off')
         .source(artifactPath)
         .destination(`jahia@rqa1.int.jahia.com:${dstFilePath}`);
     core.info(`About to execute: ${rsync.command()}`);
@@ -6688,7 +6688,6 @@ class ToolRunner extends events.EventEmitter {
         options = options || {};
         const result = {};
         result.cwd = options.cwd;
-        result.signal = options.signal;
         result.env = options.env;
         result['windowsVerbatimArguments'] =
             options.windowsVerbatimArguments || this._isCmdFile();
