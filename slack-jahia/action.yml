@@ -32,7 +32,7 @@ runs:
       run: echo 'DOCKER_COMMAND=```docker pull jahia/${{ inputs.docker-repo }}:${{ inputs.docker-image-tag }}```' >> $GITHUB_ENV
     - name: Get branch name
       id: branch-name
-      uses: tj-actions/branch-names@v6
+      uses: tj-actions/branch-names@v8
     - name: Get repository name
       shell: bash
       run: echo "REPO_NAME=$(basename ${{ github.repository }})" >> $GITHUB_ENV
