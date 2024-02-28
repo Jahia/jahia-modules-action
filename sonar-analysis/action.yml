@@ -114,7 +114,7 @@ runs:
           -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
           -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DnodeAuditSkipDevDependencies=true \
           -DsuppressionFiles=https://raw.githubusercontent.com/Jahia/jahia/master/.owasp/suppressions.xml \
-          -DdataDirectory=~/.owasp/dependency-check-data"
+          -DnvdApiKey=${{ secrets.NVD_APIKEY }} -DdataDirectory=~/.owasp/dependency-check-data"
         echo "SONAR_PARAMS=${SONAR_PARAMS}" >> $GITHUB_ENV
 
     - name: Sonar OWASP
@@ -125,7 +125,7 @@ runs:
           echo "Skipping OWASP for PR analysis"
         else
           echo "Executing an OWASP analysis on branch: ${{ inputs.primary_release_branch }}"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:8.2.1:aggregate \
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:9.0.9:aggregate \
             $SONAR_PARAMS
         fi
 
