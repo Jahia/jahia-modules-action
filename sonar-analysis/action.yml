@@ -144,7 +144,7 @@ runs:
               -Dsonar.pullrequest.branch=$GITHUB_REF \
               -Dsonar.pullrequest.key=${{ inputs.github_pr_id }} \
               -Dsonar.pullrequest.base=${{ inputs.primary_release_branch }} \
-              -Dsonar.pullrequest.github.repository=${{ inputs.github_slug }}
+              -Dsonar.pullrequest.github.repository=${{ inputs.github_slug }} ${{ inputs.nvd_apikey != '' && '-DnvdApiKey=' }}${{ inputs.nvd_apikey }}"
         elif [[ ${{ steps.extract_branch.outputs.branch }} == ${{ inputs.primary_release_branch }} ]]; then
           echo "Executing an analysis on the main branch"
           mvn -B -s ${{ inputs.mvn_settings_filepath }} sonar:sonar \
