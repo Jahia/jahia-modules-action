@@ -118,7 +118,7 @@ runs:
           -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
           -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DnodeAuditSkipDevDependencies=true \
           -DsuppressionFiles=https://raw.githubusercontent.com/Jahia/jahia/master/.owasp/suppressions.xml \
-          -DdataDirectory=~/.owasp/dependency-check-data"
+          -DdataDirectory=~/.owasp/dependency-check-data  ${{ inputs.nvd_apikey != '' && '-DnvdApiKey=' }}${{ inputs.nvd_apikey }}"
         echo "SONAR_PARAMS=${SONAR_PARAMS}" >> $GITHUB_ENV
 
     - name: Sonar OWASP
@@ -130,7 +130,7 @@ runs:
         else
           echo "Executing an OWASP analysis on branch: ${{ inputs.primary_release_branch }}"
           mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:9.0.9:aggregate \
-            $SONAR_PARAMS ${{ inputs.nvd_apikey:+-DnvdApiKey=inputs.nvd_apikey }}
+            $SONAR_PARAMS
         fi
 
     - name: Sonar Release branch analysis
@@ -144,8 +144,7 @@ runs:
               -Dsonar.pullrequest.branch=$GITHUB_REF \
               -Dsonar.pullrequest.key=${{ inputs.github_pr_id }} \
               -Dsonar.pullrequest.base=${{ inputs.primary_release_branch }} \
-              -Dsonar.pullrequest.github.repository=${{ inputs.github_slug }} \
-              ${{ inputs.nvd_apikey:+-DnvdApiKey=inputs.nvd_apikey }}
+              -Dsonar.pullrequest.github.repository=${{ inputs.github_slug }}
         elif [[ ${{ steps.extract_branch.outputs.branch }} == ${{ inputs.primary_release_branch }} ]]; then
           echo "Executing an analysis on the main branch"
           mvn -B -s ${{ inputs.mvn_settings_filepath }} sonar:sonar \
