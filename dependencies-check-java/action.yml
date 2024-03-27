@@ -37,7 +37,7 @@ runs:
         fi
 
     - name: Restore base dependencies from cache
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       with:
         key: ${{ runner.os }}-maven-${{ hashFiles('**/base-pom.xml') }}
@@ -50,7 +50,7 @@ runs:
         mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${{ inputs.root_folder }}/base-pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DoutputFile=base-deps.txt --no-transfer-progress
 
     - name: Restore dependencies from cache
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       with:
         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
