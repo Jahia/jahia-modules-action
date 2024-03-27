@@ -23,6 +23,12 @@ inputs:
   node_version:
     description: 'Version of node to install on the host'
     default: 'lts/*'
+  yarn_version:
+    description: 'Version of Yarn to use for module'
+    required: false
+  yarn_test_version:
+    description: 'Version of Yarn to use for tests in module'
+    required: false
   skip_lint_modules:
     description: skip linter for modules when set to true
     type: boolean
@@ -54,6 +60,9 @@ runs:
         echo "::group::Run yarn if package.json exists in module folder: ${{ inputs.module_path }}"
         if [[ -d "${{ inputs.module_path }}" && -e "${{ inputs.module_path }}package.json" ]]; then
           cd ${{ inputs.module_path }}
+          if [[ -n "${{ inputs.yarn_version }}" ]]; then
+            yarn set version ${{ inputs.yarn_version }}
+          fi
           yarn
         fi
         echo "::endgroup::"
@@ -63,6 +72,9 @@ runs:
         echo "::group::Run yarn if package.json exists in tests folder: ${{ inputs.tests_path }}"
         if [[ -d "${{ inputs.tests_path }}" && -e "${{ inputs.tests_path }}package.json" ]]; then
           cd ${{ inputs.tests_path }}
+          if [[ -n "${{ inputs.yarn_tests_version }}" ]]; then
+            yarn set version ${{ inputs.yarn_tests_version }}
+          fi
           yarn
         fi
         echo "::endgroup::"
