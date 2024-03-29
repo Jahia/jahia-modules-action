@@ -47,7 +47,7 @@ runs:
       shell: bash
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       run: |
-        mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${{ inputs.root_folder }}/base-pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DoutputFile=base-deps.txt --no-transfer-progress
+        mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${{ inputs.root_folder }}/base-pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DexcludeTransitive=true -DoutputFile=base-deps.txt --no-transfer-progress
 
     - name: Restore dependencies from cache
       uses: actions/cache/restore@v3
@@ -60,7 +60,7 @@ runs:
       shell: bash
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       run: |
-        mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DoutputFile=deps.txt --no-transfer-progress
+        mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DexcludeTransitive=true -DoutputFile=deps.txt --no-transfer-progress
 
     - name: Get POM differences and push a comment
       shell: bash
