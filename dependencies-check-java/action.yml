@@ -47,7 +47,7 @@ runs:
       shell: bash
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       run: |
-        mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${{ inputs.root_folder }}/base-pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DoutputFile=base-deps.txt --no-transfer-progress
+        mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${{ inputs.root_folder }}/base-pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DexcludeTransitive=true -DoutputFile=base-deps.txt --no-transfer-progress
 
     - name: Restore dependencies from cache
       uses: actions/cache/restore@v3
@@ -60,15 +60,15 @@ runs:
       shell: bash
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       run: |
-        mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DoutputFile=deps.txt --no-transfer-progress
+        mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DexcludeTransitive=true -DoutputFile=deps.txt --no-transfer-progress
 
     - name: Get POM differences and push a comment
       shell: bash
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       env:
-        REGEX_UPDATED_LINE: 'Updated\?<\s+([-\.a-z0-9]+):([-\.a-z0-9]+):[a-z]+:([0-9\.]+):[a-z]+\?---\?>\s+([-\.a-z0-9]+):([-\.a-z0-9]+):[a-z]+:([0-9\.]+):[a-z]+'
-        REGEX_ADDED_LINE: 'Added\?>\s+([-\.a-z0-9]+):([-\.a-z0-9]+):[a-z]+:([0-9\.]+):[a-z]+'
-        REGEX_DELETED_LINE: 'Removed\?<\s+([-\.a-z0-9]+):([-\.a-z0-9]+):[a-z]+:([0-9\.]+):[a-z]+'
+        REGEX_UPDATED_LINE: 'Updated\?<\s+([-\.a-z0-9]+):([-\.a-z0-9]+):[a-z]+:([0-9\.]+):[a-z]+.*\?---\?>\s+([-\.a-z0-9]+):([-\.a-z0-9]+):[a-z]+:([0-9\.]+):[a-z]+.*'
+        REGEX_ADDED_LINE: 'Added\?>\s+([-\.a-z0-9]+):([-\.a-z0-9]+):[a-z]+:([0-9\.]+):[a-z]+.*'
+        REGEX_DELETED_LINE: 'Removed\?<\s+([-\.a-z0-9]+):([-\.a-z0-9]+):[a-z]+:([0-9\.]+):[a-z]+.*'
         REPLACEMENT_FOR_UPDATED_LINE: '\?| \[\1\/\2\]\(https:\/\/mvnrepository.com\/artifact\/\1\/\2\) | \3 | \6 | \[Snyk vulnerability DB\]\(https:\/\/security.snyk.io\/package\/maven\/\4:\5\/\6\) and \[Sonatype OSS Index\]\(https:\/\/ossindex.sonatype.org\/component\/pkg:maven\/\4\/\5@\6\) |'
         REPLACEMENT_FOR_ADDED_LINE: '\?| \[\1\/\2\]\(https:\/\/mvnrepository.com\/artifact\/\1\/\2\) (Added) | | \3 | \[Snyk vulnerability DB\]\(https:\/\/security.snyk.io\/package\/maven\/\1:\2\/\3\) and \[Sonatype OSS Index\]\(https:\/\/ossindex.sonatype.org\/component\/pkg:maven\/\1\/\2@\3\) |'
         REPLACEMENT_FOR_DELETED_LINE: '\?| \[\1\/\2\]\(https:\/\/mvnrepository.com\/artifact\/\1\/\2\) (Removed) | \3 | | \[Snyk vulnerability DB\]\(https:\/\/security.snyk.io\/package\/maven\/\1:\2\/\3\) and \[Sonatype OSS Index\]\(https:\/\/ossindex.sonatype.org\/component\/pkg:maven\/\1\/\2@\3\) |'
