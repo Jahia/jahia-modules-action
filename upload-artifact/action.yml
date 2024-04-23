@@ -24,7 +24,7 @@ runs:
   steps:
     - name: Uploading artifact to GitHub
       if: ${{ inputs.destination == 'github' }}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}

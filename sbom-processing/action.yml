@@ -31,7 +31,7 @@ runs:
         echo "DEPENDENCYTRACK_APIKEY=${{ inputs.dependencytrack_apikey }}" >> $GITHUB_ENV
         
     - name: Download sbom artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       if: ${{ inputs.sbom_artifacts != '' }}
       with:
         name: ${{ inputs.sbom_artifacts }}
@@ -43,7 +43,7 @@ runs:
           cyclonedx validate --input-version v1_4 --input-file sbom-all.cdx.json
           
     - name: Upload sbom
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: sbom
         path: |
