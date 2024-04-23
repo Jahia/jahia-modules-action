@@ -22,7 +22,7 @@ git checkout -b YOUR_BRANCH
 yarn run build
 
 # Package
-NODE_OPTIONS=--openssl-legacy-provider yarn run package
+yarn run package
 ```
 
 # Fix issue with child.spawn
