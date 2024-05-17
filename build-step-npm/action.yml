@@ -80,5 +80,5 @@ runs:
         name: build-artifacts
         path: |
           ${{ inputs.module_path }}**/target/*.tgz
-          **/bom/*
+          ${{ inputs.module_path }}**/bom/*
         retention-days: ${{ inputs.github_artifact_retention }}
