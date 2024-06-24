@@ -1,11 +1,14 @@
 import * as core from '@actions/core'
-import * as artifact from '@actions/artifact'
+import {DefaultArtifactClient} from '@actions/artifact'
 
 export async function downloadArtifact(artifactName: string): Promise<any> {
-  const artifactClient = artifact.create()
+  const artifactClient = new DefaultArtifactClient()  
 
-  const downloadResponse = await artifactClient.downloadArtifact(artifactName)
+  // Get artifact name
+  const artifact = await artifactClient.getArtifact(artifactName)
+  const downloadResponse = await artifactClient.downloadArtifact(artifact.artifact.id)
+
   core.info(
-    `🗄️ The following file was downloaded: ${downloadResponse.artifactName} to ${downloadResponse.downloadPath}`
+    `🗄️ The following file was downloaded: ${artifact.artifact.name} to ${downloadResponse.downloadPath}`
   )
 }
