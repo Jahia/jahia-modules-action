@@ -139,6 +139,10 @@ inputs:
     description: 'Name of the artifacts to download from previous job'
     required: false
     default: 'build-artifacts'
+  build_artifacts_tests:
+    description: 'Name of the artifacts to download from previous job (tests modules)'
+    required: false
+    default: 'build-artifacts-tests'    
   should_skip_zencrepes:
     description: 'Should zencrepes notifications be skipped ?'
     required: false

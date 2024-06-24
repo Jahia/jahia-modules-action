@@ -117,9 +117,16 @@ async function run(): Promise<void> {
     // Download the build artifact
     if (core.getInput('should_use_build_artifacts') === 'true') {
       await core.group(
-        `${timeSinceStart(startTime)} 🛠️ Download previous artifact`,
+        `${timeSinceStart(startTime)} 🛠️ Download previous build artifact`,
         async () => {
           await downloadArtifact(core.getInput('build_artifacts'))
+        }
+      )
+
+      await core.group(
+        `${timeSinceStart(startTime)} 🛠️ Download previous build artifact (tests modules)`,
+        async () => {
+          await downloadArtifact(core.getInput('build_artifacts_tests'))
         }
       )
     }
