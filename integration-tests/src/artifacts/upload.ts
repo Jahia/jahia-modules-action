@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import * as artifact from '@actions/artifact'
+import {DefaultArtifactClient} from '@actions/artifact'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -32,7 +32,7 @@ export async function uploadArtifact(
   retentionDays: number
 ): Promise<any> {
   const cleanedArtifactName = cleanArtifactName(artifactName)
-  const artifactClient = artifact.create()
+  const artifactClient = new DefaultArtifactClient()
   const artifactsFiles = await getFiles(artifactPath)
 
   core.info('About the upload the following files as artifacts: ')
@@ -46,11 +46,10 @@ export async function uploadArtifact(
     artifactsFiles,
     artifactPath,
     {
-      continueOnError: true,
       retentionDays: retentionDays
     }
   )
   core.info(
-    `Uploaded: ${uploadResponse.artifactName} for a total size of: ${uploadResponse.size}`
+    `Uploaded artifact ID: ${uploadResponse.id} for a total size of: ${uploadResponse.size}`
   )
 }
