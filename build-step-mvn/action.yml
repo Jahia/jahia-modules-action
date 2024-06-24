@@ -26,6 +26,10 @@ inputs:
     description: 'Nexus Password'
     required: false
     default: ''
+  github_artifact_name:
+    description: 'Name of the artifacts on GitHub servers'
+    required: false
+    default: 'build-artifacts'
   github_artifact_retention:
     description: 'Time during which artifact are kept in Github infrastructure'
     required: false
@@ -71,7 +75,7 @@ runs:
       if: ${{ inputs.archive_only_jars == 'false' }}
       uses: actions/upload-artifact@v4
       with:
-        name: build-artifacts
+        name: ${{ inputs.github_artifact_name }}
         path: |
           ${{ inputs.module_path }}target/*
           ${{ inputs.module_path }}*/target/*
@@ -82,7 +86,7 @@ runs:
       if: ${{ inputs.archive_only_jars == 'true' }}
       uses: actions/upload-artifact@v4
       with:
-        name: build-artifacts
+        name: ${{ inputs.github_artifact_name }}
         path: |
           ${{ inputs.module_path }}**/target/*.jar
         retention-days: ${{ inputs.github_artifact_retention }}

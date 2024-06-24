@@ -64,6 +64,7 @@ runs:
         nexus_username: ${{ inputs.nexus_username }}
         nexus_password: ${{ inputs.nexus_password }}
         github_artifact_retention: ${{ inputs.github_artifact_retention }}
+        github_artifact_name: build-artifacts-tests
 
     - name: Check if test module is present (NPM)
       if: ${{ inputs.tests_module_type == 'npm' }}
@@ -79,6 +80,7 @@ runs:
         module_path: ${{ inputs.tests_module_path }}
         node_version: ${{ inputs.node_version }}
         github_artifact_retention: ${{ inputs.github_artifact_retention }}
+        github_artifact_name: build-artifacts-tests
 
     - name: Keep session opened if /tmp/debug file is present
       shell: bash
