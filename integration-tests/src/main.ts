@@ -116,24 +116,19 @@ async function run(): Promise<void> {
     )
 
     // Download the build artifact
-    if (core.getInput('should_use_build_artifacts') === 'true') {
-      await core.group(
-        `${timeSinceStart(startTime)} 🛠️ Download previous build artifact`,
-        async () => {
-          await downloadArtifact(core.getInput('build_artifacts'))
-        }
-      )
-      listArtifacts().then(async artifacts => {
-        if(artifacts.some(artifact => artifact.name === core.getInput('build_artifacts_tests'))) {
-          await core.group(
-            `${timeSinceStart(startTime)} 🛠️ Download previous build artifact (tests modules)`,
-            async () => {
-              await downloadArtifact(core.getInput('build_artifacts_tests'))
-            }
-          )
-        }
-      });
-    }
+    await core.group(
+      `${timeSinceStart(startTime)} 🛠️ Download previous build artifact`,
+      async () => {
+        listArtifacts().then(async artifacts => {
+          const allowedArtifacts = [core.getInput('build_artifacts'), core.getInput('build_artifacts_tests')]
+          artifacts
+            .filter(artifact => allowedArtifacts.includes(artifact.name))
+            .forEach(async artifact => {
+              await downloadArtifact(artifact.name)
+          })
+        })
+      }
+    )
 
     // Prepare the build artifacts to include them in the docker image
     if (core.getInput('should_skip_artifacts') === 'false') {
