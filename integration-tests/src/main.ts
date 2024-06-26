@@ -121,11 +121,10 @@ async function run(): Promise<void> {
       async () => {
         listArtifacts().then(async artifacts => {
           const allowedArtifacts = [core.getInput('build_artifacts'), core.getInput('build_artifacts_tests')]
-          artifacts
-            .filter(artifact => allowedArtifacts.includes(artifact.name))
-            .forEach(async artifact => {
+          for(const artifact of artifacts.filter(artifact => allowedArtifacts.includes(artifact.name))) {
+            
               await downloadArtifact(artifact.name)
-          })
+          }
         })
       }
     )
