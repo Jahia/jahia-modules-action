@@ -8,7 +8,8 @@ import {
   downloadArtifact,
   prepareBuildArtifact,
   uploadArtifact,
-  uploadArtifactJahia
+  uploadArtifactJahia,
+  listArtifacts
 } from './artifacts'
 import {
   buildDockerTestImage,
@@ -115,21 +116,16 @@ async function run(): Promise<void> {
     )
 
     // Download the build artifact
-    if (core.getInput('should_use_build_artifacts') === 'true') {
-      await core.group(
-        `${timeSinceStart(startTime)} 🛠️ Download previous build artifact`,
-        async () => {
-          await downloadArtifact(core.getInput('build_artifacts'))
+    await core.group(
+      `${timeSinceStart(startTime)} 🛠️ Download previous build artifact`,
+      async () => {
+        const artifacts = await listArtifacts()
+        const allowedArtifacts = [core.getInput('build_artifacts'), core.getInput('build_artifacts_tests')]
+        for(const artifact of artifacts.filter(artifact => allowedArtifacts.includes(artifact.name))) {
+            await downloadArtifact(artifact.name)
         }
-      )
-
-      await core.group(
-        `${timeSinceStart(startTime)} 🛠️ Download previous build artifact (tests modules)`,
-        async () => {
-          await downloadArtifact(core.getInput('build_artifacts_tests'))
-        }
-      )
-    }
+      }
+    )
 
     // Prepare the build artifacts to include them in the docker image
     if (core.getInput('should_skip_artifacts') === 'false') {

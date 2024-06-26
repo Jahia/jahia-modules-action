@@ -135,6 +135,7 @@ inputs:
     description: 'Should the job attempt to download previously built artifacts'
     required: false
     default: 'true'
+    deprecationMessage: 'This input is deprecated. Build artifacts are now downloaded if available'
   build_artifacts:
     description: 'Name of the artifacts to download from previous job'
     required: false
