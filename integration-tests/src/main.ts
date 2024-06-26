@@ -119,13 +119,11 @@ async function run(): Promise<void> {
     await core.group(
       `${timeSinceStart(startTime)} 🛠️ Download previous build artifact`,
       async () => {
-        listArtifacts().then(async artifacts => {
-          const allowedArtifacts = [core.getInput('build_artifacts'), core.getInput('build_artifacts_tests')]
-          for(const artifact of artifacts.filter(artifact => allowedArtifacts.includes(artifact.name))) {
-            
-              await downloadArtifact(artifact.name)
-          }
-        })
+        const artifacts = await listArtifacts()
+        const allowedArtifacts = [core.getInput('build_artifacts'), core.getInput('build_artifacts_tests')]
+        for(const artifact of artifacts.filter(artifact => allowedArtifacts.includes(artifact.name))) {
+            await downloadArtifact(artifact.name)
+        }
       }
     )
 
