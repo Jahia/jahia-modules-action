@@ -61,7 +61,8 @@ runs:
       run: |
         ROOT_PATH=$(pwd)
         cd ${{ inputs.module_path }}
-        mvn -B -U -ntp -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} clean install
+        mvn  -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} dependency:tree    
+        mvn -B -U -X -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} clean install
 
     - name: Copy dependencies to provision artifacts
       if: ${{ inputs.copy_dependencies == 'true' }}
