@@ -58,7 +58,7 @@ runs:
     # Using a fork until: https://github.com/DependencyTrack/gh-upload-sbom/pull/35 is merged
     # This fixes the issue faced with INFRA-2967
     - name: Upload sbom to Dependency Track
-      uses: entigolabs/gh-upload-sbom@master
+      uses: Jahia/gh-upload-sbom@master
       with:
           bomfilename: sbom-all.cdx.json
           serverhostname: ${{ inputs.dependencytrack_hostname }}
