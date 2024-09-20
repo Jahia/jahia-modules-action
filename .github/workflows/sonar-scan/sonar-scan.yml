@@ -1,0 +1,72 @@
+# This workflow trigger a full Sonar analysis at regular interval
+# Github actions command reference: https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions
+name: Sonar Analysis
+
+on:
+  workflow_call:
+    inputs:
+      module_id:
+        required: true
+        type: string
+      mvn_settings_filepath:
+        description: Filepath to the settings.xml file
+        default: '.github/maven.settings.xml'
+        required: false
+      job_container:
+        required: false
+        type: string
+        default: "jahia/cimg-mvn-cache:ga_cimg_openjdk_8.0.312-node"
+      git_branch:
+        required: false
+        type: string
+        default: "main"
+      java_distribution:
+        required: false
+        type: string
+        default: "zulu"
+      java_version:
+        required: false
+        type: string
+        default: "11.0.19"
+      tests_module_type:
+        required: false
+        type: string
+        default: "mvn"
+
+jobs:
+  sonar-analysis:
+    name: Sonar Analysis
+    runs-on: self-hosted
+    env:
+      NEXUS_INTERNAL_URL: ${{ secrets.NEXUS_INTERNAL_URL }}
+    container:
+      image: ${{ inputs.job_container }}
+      credentials:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_branch }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: ${{ inputs.java_distribution }}
+          java-version: ${{ inputs.java_version }}
+      - uses: jahia/jahia-modules-action/build@v2
+        with:
+          module_id: ${{ inputs.module_id }}
+          tests_module_type: ${{ inputs.tests_module_type }}
+          mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+      - uses: jahia/jahia-modules-action/sonar-analysis@v2
+        with:
+          primary_release_branch: ${{ inputs.git_branch }}
+          build_artifacts: ''
+          github_pr_id: ${{github.event.number}}
+          sonar_url: ${{ secrets.SONAR_URL }}
+          sonar_token: ${{ secrets.SONAR_TOKEN }}
+          nvd_apikey: ${{ secrets.NVD_APIKEY }}
+          mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
