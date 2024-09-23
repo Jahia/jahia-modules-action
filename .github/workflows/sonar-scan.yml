@@ -124,19 +124,17 @@ jobs:
         run: |
           echo "JR_FORCE_SUCCESS=${{ env.JR_FORCE_SUCCESS}}"
           echo "JR_MESSAGE=${{ env.JR_MESSAGE}}"
-          if [[ ${{ env.JR_MESSAGE}} != "skip" ]]; then
-            npm install -g @jahia/jahia-reporter@latest
-            jahia-reporter pagerduty:incident \
-              --incidentMessage="${{ env.JR_MESSAGE}}" \
-              ${{ env.JR_FORCE_SUCCESS}} \
-              --pdApiKey=${{ secrets.INCIDENT_PAGERDUTY_API_KEY }} \
-              --pdReporterEmail=${{ secrets.INCIDENT_PAGERDUTY_REPORTER_EMAIL }} \
-              --pdReporterId=${{ secrets.INCIDENT_PAGERDUTY_REPORTER_ID }} \
-              --pdTwoStepsAssign \
-              --googleSpreadsheetId=${{ secrets.INCIDENT_GOOGLE_SPREADSHEET_ID }} \
-              --googleClientEmail=${{ secrets.INCIDENT_GOOGLE_CLIENT_EMAIL }} \
-              --googleApiKey=${{ secrets.INCIDENT_GOOGLE_PRIVATE_KEY_BASE64 }} \
-              --googleUpdateState \
-              --service=${{ env.INCIDENT_SERVICE}} \
-              --sourceUrl=${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}/actions/runs/${{ env.GITHUB_RUN_ID }}
-          fi          
+          npm install -g @jahia/jahia-reporter@latest
+          jahia-reporter pagerduty:incident \
+            --incidentMessage="${{ env.JR_MESSAGE}}" \
+            ${{ env.JR_FORCE_SUCCESS}} \
+            --pdApiKey=${{ secrets.INCIDENT_PAGERDUTY_API_KEY }} \
+            --pdReporterEmail=${{ secrets.INCIDENT_PAGERDUTY_REPORTER_EMAIL }} \
+            --pdReporterId=${{ secrets.INCIDENT_PAGERDUTY_REPORTER_ID }} \
+            --pdTwoStepsAssign \
+            --googleSpreadsheetId=${{ secrets.INCIDENT_GOOGLE_SPREADSHEET_ID }} \
+            --googleClientEmail=${{ secrets.INCIDENT_GOOGLE_CLIENT_EMAIL }} \
+            --googleApiKey=${{ secrets.INCIDENT_GOOGLE_PRIVATE_KEY_BASE64 }} \
+            --googleUpdateState \
+            --service=${{ env.INCIDENT_SERVICE}} \
+            --sourceUrl=${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}/actions/runs/${{ env.GITHUB_RUN_ID }}
