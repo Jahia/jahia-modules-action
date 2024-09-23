@@ -6,33 +6,35 @@ on:
   workflow_call:
     inputs:
       module_id:
-        required: true
         type: string
+        required: true
       mvn_settings_filepath:
+        type: string
         description: Filepath to the settings.xml file
         default: '.github/maven.settings.xml'
         required: false
       job_container:
-        required: false
         type: string
+        required: false
         default: "jahia/cimg-mvn-cache:ga_cimg_openjdk_8.0.312-node"
       git_branch:
-        required: false
         type: string
+        required: false
         default: "main"
       java_distribution:
-        required: false
         type: string
+        required: false
         default: "zulu"
       java_version:
-        required: false
         type: string
+        required: false
         default: "11.0.19"
       tests_module_type:
-        required: false
         type: string
+        required: false
         default: "mvn"
       incident_service:
+        type: string      
         description: 'Service subject to the incident. If empty, will default to the value of module_id'
         required: false
         default: ''
