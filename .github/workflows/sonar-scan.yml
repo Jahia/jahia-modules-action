@@ -62,7 +62,6 @@ jobs:
           java-version: ${{ inputs.java_version }}
       - uses: jahia/jahia-modules-action/build@v2
         with:
-          module_id: ${{ inputs.module_id }}
           tests_module_type: ${{ inputs.tests_module_type }}
           mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
