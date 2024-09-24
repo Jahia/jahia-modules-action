@@ -118,6 +118,7 @@ runs:
           -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
           -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DnodeAuditSkipDevDependencies=true \
           -DsuppressionFiles=https://raw.githubusercontent.com/Jahia/jahia/master/.owasp/suppressions.xml \
+          -DyarnAuditAnalyzerEnabled=false \
           -DdataDirectory=~/.owasp/dependency-check-data ${{ (inputs.nvd_apikey != '' && '-DnvdApiKey=') || '' }}${{ inputs.nvd_apikey }}"
         echo "SONAR_PARAMS=${SONAR_PARAMS}" >> $GITHUB_ENV
 
