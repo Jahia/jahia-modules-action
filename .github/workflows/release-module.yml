@@ -1,0 +1,115 @@
+name: Release Module
+
+on:
+  workflow_call:
+    inputs:
+      module_id:
+        type: string
+        required: true
+      mvn_settings_filepath:
+        type: string
+        description: Filepath to the settings.xml file
+        default: '.github/maven.settings.xml'
+        required: false
+      instance_type:
+        type: string
+        required: false
+        description: 'Type of instances to run the job on (self hosted or ubuntu-latest)'
+        default: "self-hosted"
+      job_container:
+        type: string
+        required: false
+        default: "jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node"
+      primary_release_branch:
+        type: string
+        required: false
+        default: "main"
+      github_slug:
+        type: string
+        required: false
+        default: ""
+
+      java_distribution:
+        type: string
+        required: false
+        default: "zulu"
+      java_version:
+        type: string
+        required: false
+        default: "11.0.19"
+      tests_module_type:
+        type: string
+        required: false
+        default: "mvn"
+      incident_service:
+        type: string      
+        description: 'Service subject to the incident. If empty, will default to the value of module_id'
+        required: false
+        default: ''
+
+jobs:
+  release-module:
+    name: Release Module
+    runs-on: ${{ inputs.instance_type }}
+    container:
+      image: ${{ inputs.job_container }}
+      credentials:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    steps:
+      - name: Add safe directory
+        shell: bash
+        run: |
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      # Providing the SSH PRIVATE of a user part of an admin group
+      # is necessary to bypass PR checks
+      - uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.GH_SSH_PRIVATE_KEY_JAHIACI }}
+
+      # Setting up the SSH agent to be able to commit back to the repository
+      # https://github.com/webfactory/ssh-agent
+      - uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.GH_SSH_PRIVATE_KEY_JAHIACI }}
+
+      - name: Configure github_slug
+        shell: bash
+        run: |
+          echo "GITHUB_SLUG=${{ inputs.github_slug }}" >> $GITHUB_ENV
+          if [[ "${{ inputs.github_slug }}" == "" ]]; then
+            echo "GITHUB_SLUG=${{ github.github.repository }}" >> $GITHUB_ENV
+          fi
+
+      - uses: jahia/jahia-modules-action/release@v2
+        name: Release Module
+        with:
+          github_slug: ${{ env.GITHUB_SLUG }}
+          primary_release_branch: ${{ inputs.primary_release_branch }}
+          release_id: ${{ github.event.release.id }}
+          release_version: ${{ github.event.release.tag_name }}
+          github_api_token: ${{ secrets.GH_API_TOKEN }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+          mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
+          slack-webhook-qa: ${{ secrets.SLACK_WEBHOOK_URL_RC_FOR_QA }}
+
+      - uses: jahia/jahia-modules-action/update-signature@v2
+        with:
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+          nexus_enterprise_releases_url: ${{ secrets.NEXUS_ENTERPRISE_RELEASES_URL }}
+          force_signature: true
+
+  sbom:
+    name: SBOM processing
+    needs: release-module
+    runs-on: ubuntu-latest
+    container:
+      image: cyclonedx/cyclonedx-cli:0.24.2   
+    steps:
+      - uses: jahia/jahia-modules-action/sbom-processing@v2
+        with:
+          dependencytrack_hostname: ${{ vars.DEPENDENCYTRACK_HOSTNAME }}
+          dependencytrack_apikey: ${{ secrets.DEPENDENCYTRACK_APIKEY }}
