@@ -7,7 +7,7 @@ on:
         type: string
         required: false
         description: 'Type of instances to run the job on (self hosted or ubuntu-latest)'
-        default: "self-hosted"    
+        default: "ubuntu-latest"    
       mvn_settings_filepath:
         type: string
         description: Filepath to the settings.xml file
