@@ -69,6 +69,18 @@ jobs:
             echo "GITHUB_SLUG=${{ github.github.repository }}" >> $GITHUB_ENV
           fi
 
+      - name: Prepare Nexus credentials
+        shell: bash
+        run: |
+          echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
+          if [[ "${{ inputs.nexus_username }}" == "" ]]; then
+            echo "NEXUS_USERNAME=${{ secrets.NEXUS_USERNAME }}" >> $GITHUB_ENV
+          fi
+          echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
+          if [[ "${{ inputs.nexus_password }}" == "" ]]; then
+            echo "NEXUS_PASSWORD=${{ secrets.NEXUS_PASSWORD }}" >> $GITHUB_ENV
+          fi
+
       - uses: jahia/jahia-modules-action/release@v2
         name: Release Module
         with:
@@ -77,8 +89,8 @@ jobs:
           release_id: ${{ github.event.release.id }}
           release_version: ${{ github.event.release.tag_name }}
           github_api_token: ${{ secrets.GH_API_TOKEN }}
-          nexus_username: ${{ inputs.nexus_username }}
-          nexus_password: ${{ inputs.nexus_password }}
+          nexus_username: ${{ env.NEXUS_USERNAME }}
+          nexus_password: ${{ env.NEXUS_PASSWORD }}
           mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
           slack-webhook-qa: ${{ secrets.SLACK_WEBHOOK_URL_RC_FOR_QA }}
 
