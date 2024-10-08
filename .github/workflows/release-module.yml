@@ -3,19 +3,16 @@ name: Release Module
 on:
   workflow_call:
     inputs:
-      module_id:
+      instance_type:
         type: string
-        required: true
+        required: false
+        description: 'Type of instances to run the job on (self hosted or ubuntu-latest)'
+        default: "self-hosted"    
       mvn_settings_filepath:
         type: string
         description: Filepath to the settings.xml file
         default: '.github/maven.settings.xml'
         required: false
-      instance_type:
-        type: string
-        required: false
-        description: 'Type of instances to run the job on (self hosted or ubuntu-latest)'
-        default: "self-hosted"
       job_container:
         type: string
         required: false
@@ -28,24 +25,14 @@ on:
         type: string
         required: false
         default: ""
-
-      java_distribution:
+      nexus_username:
         type: string
         required: false
-        default: "zulu"
-      java_version:
+        default: ""        
+      nexus_password:
         type: string
         required: false
-        default: "11.0.19"
-      tests_module_type:
-        type: string
-        required: false
-        default: "mvn"
-      incident_service:
-        type: string      
-        description: 'Service subject to the incident. If empty, will default to the value of module_id'
-        required: false
-        default: ''
+        default: "" 
 
 jobs:
   release-module:
@@ -90,15 +77,15 @@ jobs:
           release_id: ${{ github.event.release.id }}
           release_version: ${{ github.event.release.tag_name }}
           github_api_token: ${{ secrets.GH_API_TOKEN }}
-          nexus_username: ${{ secrets.NEXUS_USERNAME }}
-          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+          nexus_username: ${{ inputs.nexus_username }}
+          nexus_password: ${{ inputs.nexus_password }}
           mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
           slack-webhook-qa: ${{ secrets.SLACK_WEBHOOK_URL_RC_FOR_QA }}
 
       - uses: jahia/jahia-modules-action/update-signature@v2
         with:
-          nexus_username: ${{ secrets.NEXUS_USERNAME }}
-          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+          nexus_username: ${{ inputs.nexus_username }}
+          nexus_password: ${{ inputs.nexus_password }}
           nexus_enterprise_releases_url: ${{ secrets.NEXUS_ENTERPRISE_RELEASES_URL }}
           force_signature: true
 
