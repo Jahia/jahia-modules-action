@@ -114,11 +114,11 @@ jobs:
             echo "NEXUS_PASSWORD=${{ secrets.NEXUS_PASSWORD }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Defined variables
+      - name: Displaing defined variables
         shell: bash
         run: |
           echo "NEXUS_USERNAME=${{ steps.nexus-creds.outputs.NEXUS_USERNAME }}" 
-          echo "GITHUB_SLUG=${{ steps.slug.outputs.GITHUB_SLUG }}
+          echo "GITHUB_SLUG=${{ steps.slug.outputs.GITHUB_SLUG }}"
 
       - uses: jahia/jahia-modules-action/release@v2
         name: Release Module
