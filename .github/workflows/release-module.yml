@@ -6,12 +6,12 @@ on:
       instance_type:
         type: string
         required: false
-        description: 'Type of instances to run the job on (self hosted or ubuntu-latest)'
+        description: "Type of instances to run the job on (self hosted or ubuntu-latest)"
         default: "ubuntu-latest"    
       mvn_settings_filepath:
         type: string
         description: Filepath to the settings.xml file
-        default: '.github/maven.settings.xml'
+        default: ".github/maven.settings.xml"
         required: false
       job_container:
         type: string
@@ -34,25 +34,30 @@ on:
         required: false
         default: "" 
       tests_module_path:
-        description: 'Path to a folder in the repository containing a tests module to be built (Both NPM and MVN test module supported)'
+        type: string
+        description: "Path to a folder in the repository containing a tests module to be built (Both NPM and MVN test module supported)"
         required: false
-        default: 'tests/jahia-module/'
+        default: "tests/jahia-module/"
       tests_module_type:
-        description: 'Type of module for the tests module (mvn,npm)'
+        type: string
+        description: "Type of module for the tests module (mvn,npm)"
         required: false
-        default: 'mvn'          
+        default: "mvn"          
       git_user_name:
+        type: string
         description: Git user name
-        default: 'Jahia CI'
+        default: "Jahia CI"
         required: false
       git_user_email:
+        type: string
         description: Git user email
-        default: 'jahia-ci@jahia.com'
+        default: "jahia-ci@jahia.com"
         required: false
       github_artifact_retention:
-        description: 'Time during which artifact are kept in Github infrastructure'
+        type: string
+        description: "Time during which artifact are kept in Github infrastructure"
         required: false
-        default: '2'
+        default: "2"
 
 jobs:
   release-module:
@@ -86,7 +91,6 @@ jobs:
         run: |
           echo "GITHUB_SLUG=${{ inputs.github_slug }}" >> $GITHUB_ENV
           if [[ "${{ inputs.github_slug }}" == "" ]]; then
-            echo "No GitHub Slug provided, using value from "
             echo "GITHUB_SLUG=${{ github.repository }}" >> $GITHUB_ENV
           fi
           echo "GITHUB_SLUG=${{ inputs.github_slug }}" >> $GITHUB_ENV
