@@ -86,8 +86,10 @@ jobs:
         run: |
           echo "GITHUB_SLUG=${{ inputs.github_slug }}" >> $GITHUB_ENV
           if [[ "${{ inputs.github_slug }}" == "" ]]; then
-            echo "GITHUB_SLUG=${{ github.github.repository }}" >> $GITHUB_ENV
+            echo "No GitHub Slug provided, using value from "
+            echo "GITHUB_SLUG=${{ github.repository }}" >> $GITHUB_ENV
           fi
+          echo "GITHUB_SLUG=${{ inputs.github_slug }}" >> $GITHUB_ENV
 
       - name: Prepare Nexus credentials
         shell: bash
