@@ -86,38 +86,50 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.GH_SSH_PRIVATE_KEY_JAHIACI }}
 
+      # Note: https://docs.github.com/en/actions/sharing-automations/reusing-workflows#limitations
+      # Reusable workflows are called directly within a job, and not from within a job step. 
+      # You cannot, therefore, use GITHUB_ENV to pass values to job steps in the caller workflow.
+      # Thus using an id and step outputs
       - name: Configure github_slug
+        id: slug
         shell: bash
         run: |
-          echo "GITHUB_SLUG=${{ inputs.github_slug }}" >> $GITHUB_ENV
+          echo "GITHUB_SLUG=${{ inputs.github_slug }}" >> $GITHUB_OUTPUT
           if [[ "${{ inputs.github_slug }}" == "" ]]; then
             echo "No Slug provided, using the repository: ${{ github.repository }}"
-            echo "GITHUB_SLUG=${{ github.repository }}" >> $GITHUB_ENV
+            echo "GITHUB_SLUG=${{ github.repository }}" >> $GITHUB_OUTPUT
           fi
-          echo "GITHUB_SLUG=${{ inputs.github_slug }}" >> $GITHUB_ENV
+          echo "GITHUB_SLUG=${{ inputs.github_slug }}" >> $GITHUB_OUTPUT
 
       - name: Prepare Nexus credentials
+        id: nexus-creds
         shell: bash
         run: |
-          echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
+          echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_OUTPUT
           if [[ "${{ inputs.nexus_username }}" == "" ]]; then
-            echo "NEXUS_USERNAME=${{ secrets.NEXUS_USERNAME }}" >> $GITHUB_ENV
+            echo "NEXUS_USERNAME=${{ secrets.NEXUS_USERNAME }}" >> $GITHUB_OUTPUT
           fi
-          echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
+          echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_OUTPUT
           if [[ "${{ inputs.nexus_password }}" == "" ]]; then
-            echo "NEXUS_PASSWORD=${{ secrets.NEXUS_PASSWORD }}" >> $GITHUB_ENV
+            echo "NEXUS_PASSWORD=${{ secrets.NEXUS_PASSWORD }}" >> $GITHUB_OUTPUT
           fi
+
+      - name: Defined variables
+        shell: bash
+        run: |
+          echo "NEXUS_USERNAME=${{ steps.nexus-creds.outputs.NEXUS_USERNAME }}" 
+          echo "GITHUB_SLUG=${{ steps.slug.outputs.GITHUB_SLUG }}
 
       - uses: jahia/jahia-modules-action/release@v2
         name: Release Module
         with:
           primary_release_branch: ${{ inputs.primary_release_branch }}
           mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
-          nexus_username: ${{ env.NEXUS_USERNAME }}
-          nexus_password: ${{ env.NEXUS_PASSWORD }}
+          nexus_username: ${{ steps.nexus-creds.outputs.NEXUS_USERNAME }}
+          nexus_password: ${{ steps.nexus-creds.outputs.NEXUS_PASSWORD }}
           tests_module_path: ${{ inputs.tests_module_path }}
           tests_module_type: ${{ inputs.tests_module_type }}
-          github_slug: ${{ env.GITHUB_SLUG }}          
+          github_slug: ${{ steps.slug.outputs.GITHUB_SLUG }}
           release_id: ${{ github.event.release.id }}
           release_version: ${{ github.event.release.tag_name }}
           git_user_name: ${{ inputs.git_user_name }}
