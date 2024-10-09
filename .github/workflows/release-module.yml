@@ -94,12 +94,12 @@ jobs:
         id: slug
         shell: bash
         run: |
-          echo "GITHUB_SLUG=${{ inputs.github_slug }}" >> $GITHUB_OUTPUT
           if [[ "${{ inputs.github_slug }}" == "" ]]; then
             echo "No Slug provided, using the repository: ${{ github.repository }}"
             echo "GITHUB_SLUG=${{ github.repository }}" >> $GITHUB_OUTPUT
+          else
+            echo "GITHUB_SLUG=${{ inputs.github_slug }}" >> $GITHUB_OUTPUT
           fi
-          echo "GITHUB_SLUG=${{ inputs.github_slug }}" >> $GITHUB_OUTPUT
 
       - name: Prepare Nexus credentials
         id: nexus-creds
