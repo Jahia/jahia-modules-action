@@ -127,9 +127,8 @@ jobs:
 
       - uses: jahia/jahia-modules-action/update-signature@v2
         with:
-          nexus_username: ${{ inputs.nexus_username }}
-          nexus_password: ${{ inputs.nexus_password }}
-          nexus_enterprise_releases_url: ${{ secrets.NEXUS_ENTERPRISE_RELEASES_URL }}
+          nexus_username: ${{ env.NEXUS_USERNAME }}
+          nexus_password: ${{ env.NEXUS_PASSWORD }}
           force_signature: true
 
   sbom:
