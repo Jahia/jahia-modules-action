@@ -91,6 +91,7 @@ jobs:
         run: |
           echo "GITHUB_SLUG=${{ inputs.github_slug }}" >> $GITHUB_ENV
           if [[ "${{ inputs.github_slug }}" == "" ]]; then
+            echo "No Slug provided, using the repository: ${{ github.repository }}"
             echo "GITHUB_SLUG=${{ github.repository }}" >> $GITHUB_ENV
           fi
           echo "GITHUB_SLUG=${{ inputs.github_slug }}" >> $GITHUB_ENV
