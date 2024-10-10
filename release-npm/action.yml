@@ -148,7 +148,7 @@ runs:
         echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
 
     - name: Build package
-      uses: jahia/jahia-modules-action/build-step-npm@v2
+      uses: jahia/jahia-modules-action/build-step-npm@BACKLOG-23224-snapshot-management-for-npm-modules
       with:
         module_path: ${{ inputs.module_path }}
         node_version: ${{ inputs.node_version }}
