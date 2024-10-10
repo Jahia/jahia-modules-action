@@ -129,12 +129,15 @@ runs:
     - name: Update package.json
       shell: bash
       run: |
-        # Update package.json to match version precised in release tag
         cd ${{ inputs.module_path }}
+        # Update package.json to match version precised in release tag
         jq '.version |= "${{ env.FINAL_RELEASE_VERSION }}"' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
+        # Disable snapshot mode
+        jq '.jahia.snapshot |= false' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
 
-        if [ ! ${{ env.FINAL_RELEASE_VERSION }} -eq ${{ env.MODULE_VERSION }} ]
-        then
+        # Commit package.json if there are changes
+        if [[ -n "$(git diff --name-only package.json)" ]]; then
+          echo "Commit and push changes to package.json"
           git config user.name ${{ inputs.github_user_name }}
           git config user.email ${{ inputs.github_user_email }}
           git remote set-url origin https://x-access-token:${{ inputs.github_api_token }}@github.com/${{ inputs.github_slug}}
@@ -198,9 +201,11 @@ runs:
     - name: set next development version into package.json
       shell: bash
       run: |
-        # Update package.json to match next development version
         cd ${{ inputs.module_path }}
+        # Update package.json to match next development version
         jq '.version |= "${{ env.NEXT_DEVELOPMENT_VERSION }}"' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
+        # Enable snapshot mode
+        jq '.jahia.snapshot |= true' package.json > txt.json && jq '.' txt.json > package.json && rm txt.json
         git config user.name ${{ inputs.github_user_name }}
         git config user.email ${{ inputs.github_user_email }}
         git add package.json
