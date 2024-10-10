@@ -147,21 +147,12 @@ runs:
         fi
         echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
 
-    - name: Prepare the module
-      shell: bash
-      run: |
-        cd ${{ inputs.module_path }}
-        yarn
-    - name: Build the module
-      shell: bash
-      run: |
-        cd ${{ inputs.module_path }}
-        yarn build
-    - name: Package the module
-      shell: bash
-      run: |
-        cd ${{ inputs.module_path }}
-        yarn jahia-pack
+    - name: Build package
+      uses: jahia/jahia-modules-action/build-step-npm@v2
+      with:
+        module_path: ${{ inputs.module_path }}
+        node_version: ${{ inputs.node_version }}
+        github_artifact_retention: ${{ inputs.github_artifact_retention }}
 
     - name: Update github release for id ${{ inputs.release_id }}
       shell: bash
@@ -180,23 +171,7 @@ runs:
 
     - name: Perform release
       shell: bash
-      run: mvn -s ${{ inputs.mvn_settings_filepath }} deploy:deploy-file -Dfile=${{ inputs.module_path }}${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz -DgroupId=${{ env.GROUP_ID }} -DartifactId=${{ env.MODULE_NAME }} -Dversion=${{ env.MODULE_VERSION }} -Dpackaging=tgz -Durl=${{ env.REPOSITORY_URL }} -DrepositoryId=${{ env.REPOSITORY_ID }}
-
-    - name: Copy artifacts
-      shell: bash
-      run: |
-        mkdir /tmp/artifacts/
-        cd ${{ inputs.module_path }}
-        find . -name "*.tgz" -type f  -maxdepth 3 -mindepth 3 -exec cp {} /tmp/artifacts/ \;
-
-    - name: Release Artifacts
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: release-artifacts
-        path: |
-          /tmp/artifacts/
-        retention-days: ${{ inputs.github_artifact_retention }}
+      run: mvn -s ${{ inputs.mvn_settings_filepath }} deploy:deploy-file -Dfile=${{ inputs.module_path }}target/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz -DgroupId=${{ env.GROUP_ID }} -DartifactId=${{ env.MODULE_NAME }} -Dversion=${{ env.MODULE_VERSION }} -Dpackaging=tgz -Durl=${{ env.REPOSITORY_URL }} -DrepositoryId=${{ env.REPOSITORY_ID }}
 
     - name: set next development version into package.json
       shell: bash
@@ -211,7 +186,6 @@ runs:
         git add package.json
         git commit -m "[skip ci] prepare for next development iteration"
         git push
-
 
     - name: Post to a Slack channel
       if: ${{ inputs.slack-webhook-qa }}
