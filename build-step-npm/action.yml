@@ -46,6 +46,8 @@ runs:
           echo "MODULE_VERSION=${MODULE_VERSION%%-SNAPSHOT}-SNAPSHOT" >> $GITHUB_ENV
           echo "MODULE_OLD_VERSION=${MODULE_OLD_VERSION}" 
           echo "MODULE_VERSION=${MODULE_VERSION}"
+        elif [[ $IS_SNAPSHOT == false ]]; then
+          echo "MODULE_VERSION=${MODULE_VERSION}" >> $GITHUB_ENV
         elif [[ $MODULE_VERSION == *-SNAPSHOT ]]; then
           echo "MODULE_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
         else
