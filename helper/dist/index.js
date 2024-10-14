@@ -53,7 +53,10 @@ function run() {
                 core.setFailed('❌ A token is required to execute this action');
                 return;
             }
-            const instanceId = execSync('ec2metadata --instance-id');
+            let instanceId = execSync('ec2metadata --instance-id');
+            if (instanceId !== undefined) {
+                instanceId = instanceId.toString().replace(/\s*|\t|\r|\n/gm, "");
+            }
             const instanceType = execSync('ec2metadata --instance-type');
             core.notice(`Job is running on instance: ${instanceId} (spec: ${instanceType}) - Connect to the instance using: #> aws ssm start-session --target ${instanceId}`);
             core.startGroup(`📘 Keep a session open for Debugging`);
