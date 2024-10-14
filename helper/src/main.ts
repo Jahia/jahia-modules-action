@@ -22,7 +22,10 @@ async function run(): Promise<void> {
       return
     }
 
-    const instanceId = execSync('ec2metadata --instance-id');    
+    let instanceId = execSync('ec2metadata --instance-id');
+    if (instanceId !== undefined) {      
+      instanceId = instanceId.toString().replace(/\s*|\t|\r|\n/gm, "");
+    }    
     const instanceType = execSync('ec2metadata --instance-type');
     core.notice(`Job is running on instance: ${instanceId} (spec: ${instanceType}) - Connect to the instance using: #> aws ssm start-session --target ${instanceId}`)
 
@@ -47,7 +50,6 @@ async function run(): Promise<void> {
     core.info('_____________ #> curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/mac/sessionmanager-bundle.zip" -o "sessionmanager-bundle.zip"')
     core.info('_____________ #> unzip sessionmanager-bundle.zip ')
     core.info('_____________ #> sudo ./sessionmanager-bundle/install -i /usr/local/sessionmanagerplugin -b /usr/local/bin/session-manager-plugin')
-    core.info('ssss')
     core.endGroup()
 
     core.startGroup(`📘 How to use "SSH" into a runner`)
