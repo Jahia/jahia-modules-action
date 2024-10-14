@@ -50,7 +50,6 @@ async function run(): Promise<void> {
     core.info('_____________ #> curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/mac/sessionmanager-bundle.zip" -o "sessionmanager-bundle.zip"')
     core.info('_____________ #> unzip sessionmanager-bundle.zip ')
     core.info('_____________ #> sudo ./sessionmanager-bundle/install -i /usr/local/sessionmanagerplugin -b /usr/local/bin/session-manager-plugin')
-    core.info('ssss')
     core.endGroup()
 
     core.startGroup(`📘 How to use "SSH" into a runner`)
