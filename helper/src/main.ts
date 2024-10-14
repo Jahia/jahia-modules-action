@@ -84,7 +84,7 @@ async function run(): Promise<void> {
 
     core.startGroup(`📘 Access Docker logs`)
     core.info('By default, the server will stream all the Docker containers logs to CloudWatch')
-    core.info('This is useful to debug issues to debug when a runner looses connectivity to GitHub Actions (thus cannot download artifacts)')
+    core.info('This is useful to debug issues to debug when a runner loses connectivity to GitHub Actions (thus cannot download artifacts)')
     core.info('Note that retention is only 3 days')
     core.info('Step 1: Install awscli')
     core.info('_____________ #> brew install awscli ')    
