@@ -107,6 +107,29 @@ function run() {
             core.info('Step 3: Once done, remove the file');
             core.info('_____________ #> rm /tmp/debug');
             core.endGroup();
+            core.startGroup(`📘 Access Docker logs`);
+            core.info('By default, the server will stream all the Docker containers logs to CloudWatch');
+            core.info('This is useful to debug issues to debug when a runner looses connectivity to GitHub Actions (thus cannot download artifacts)');
+            core.info('Note that retention is only 3 days');
+            core.info('Step 1: Install awscli');
+            core.info('_____________ #> brew install awscli ');
+            core.info('Step 2: Download the log file (you might need to adjust the start time depending on when your instance was started)');
+            core.info(`_____________ #> awslogs get /github-self-hosted-runners/ephe5170/docker-logs ${instanceId}/docker-logs --start='4h ago' -G -S  > /tmp/${instanceId}.log`);
+            core.info('Step 3: Analyze the logs');
+            core.info('_____________ #> cat /tmp/${instanceId}.log');
+            core.endGroup();
+            core.startGroup(`📘 Access Host metrics (NMON)`);
+            core.info('The host running the GitHub Actions runners is recording and streaming metrics to CloudWatch using nmon');
+            core.info('You can visualize those using awslogs and NMON');
+            core.info('Note that retention is only 3 days');
+            core.info('Step 1: Download NMON Visualizer and install awscli');
+            core.info('_____________ #> curl -L https://github.com/nmonvisualizer/nmonvisualizer/releases/download/2024-02-29/NMONVisualizer_2024-02-29.jar > /tmp/NMONVisualizer.jar');
+            core.info('_____________ #> brew install awscli ');
+            core.info('Step 2: Download the log file (you might need to adjust the start time depending on when your instance was started)');
+            core.info(`_____________ #> awslogs get /github-self-hosted-runners/ephe5170/nmon ${instanceId}/nmon --start='4h ago' -G -S  > /tmp/${instanceId}.nmon`);
+            core.info('Step 3: Visualize the data with NMON Visualizer');
+            core.info('_____________ #> java -jar /tmp/NMONVisualizer.jar /tmp/${instanceId}.nmon');
+            core.endGroup();
         }
         catch (error) {
             if (error instanceof Error)
