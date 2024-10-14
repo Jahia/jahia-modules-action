@@ -91,7 +91,7 @@ async function run(): Promise<void> {
     core.info('Step 2: Download the log file (you might need to adjust the start time depending on when your instance was started)')
     core.info(`_____________ #> awslogs get /github-self-hosted-runners/ephe5170/docker-logs ${instanceId}/docker-logs --start='4h ago' -G -S  > /tmp/${instanceId}.log`)
     core.info('Step 3: Analyze the logs')
-    core.info('_____________ #> cat /tmp/${instanceId}.log')
+    core.info(`_____________ #> cat /tmp/${instanceId}.log`)
     core.endGroup()
 
     core.startGroup(`📘 Access Host metrics (NMON)`)
@@ -104,7 +104,7 @@ async function run(): Promise<void> {
     core.info('Step 2: Download the log file (you might need to adjust the start time depending on when your instance was started)')
     core.info(`_____________ #> awslogs get /github-self-hosted-runners/ephe5170/nmon ${instanceId}/nmon --start='4h ago' -G -S  > /tmp/${instanceId}.nmon`)
     core.info('Step 3: Visualize the data with NMON Visualizer')
-    core.info('_____________ #> java -jar /tmp/NMONVisualizer.jar /tmp/${instanceId}.nmon')
+    core.info(`_____________ #> java -jar /tmp/NMONVisualizer.jar /tmp/${instanceId}.nmon`)
     core.endGroup()
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
