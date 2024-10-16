@@ -60,6 +60,9 @@ on:
       should_use_build_artifacts:
         type: boolean
         default: false
+      should_skip_testrail:
+        type: boolean
+        default: false        
       test_report_name:
         type: string
         default: "Tests Report"
@@ -99,7 +102,7 @@ jobs:
           elasticsearch_image: ${{ inputs.elasticsearch_image }}
           jcustomer_image: ${{ inputs.jcustomer_image }}
           should_use_build_artifacts: ${{ inputs.should_use_build_artifacts }}
-          should_skip_testrail: false
+          should_skip_testrail: ${{ inputs.should_skip_testrail }}
           should_skip_pagerduty: ${{ inputs.pagerduty_skip_notification }}
           github_artifact_name: ${{ inputs.artifact_prefix }}-${{ github.run_number }}
           jahia_artifact_name: ${{ inputs.artifact_prefix }}-${{ github.run_number }}
