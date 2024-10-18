@@ -1,0 +1,133 @@
+name: Reusable workflow (Integration Tests)
+
+on:
+  workflow_call:
+    inputs:
+      instance_type:
+        type: string
+        required: false
+        description: "Type of instances to run the job on (self hosted or ubuntu-latest)"
+        default: "self-hosted"    
+      module_id:
+        required: true
+        type: string
+      jahia_image:
+        required: true
+        type: string
+      jahia_cluster_enabled:
+        required: false
+        type: boolean
+        default: false
+      jcustomer_image:
+        required: false
+        type: string
+        default: ""
+      jcustomer_cluster_enabled:
+        required: false
+        type: boolean
+        default: true
+      elasticsearch_image:
+        required: false
+        type: string
+        default: ""
+      module_branch:
+        required: false
+        type: string
+        default: "master"
+      provisioning_manifest:
+        required: true
+        type: string
+      pagerduty_incident_service:
+        required: false
+        type: string
+        default: ""
+      pagerduty_skip_notification:
+        required: false
+        type: boolean
+        default: false
+      timeout_job:
+        type: number
+        default: 65
+      timeout_step:
+        type: number
+        default: 50
+      tests_profile:
+        type: string
+        default: ""
+      artifact_prefix:
+        type: string
+        default: "tests"
+      should_use_build_artifacts:
+        type: boolean
+        default: false
+      should_skip_testrail:
+        type: boolean
+        default: false        
+      test_report_name:
+        type: string
+        default: "Tests Report"
+      testrail_project:
+        type: string
+        default: ""        
+
+jobs:
+  integration-tests:
+    name: Integration Tests
+    runs-on: ${{ inputs.instance_type }}
+    strategy:
+      fail-fast: false
+    timeout-minutes: ${{ inputs.timeout_job }}
+    steps:
+      - uses: jahia/jahia-modules-action/helper@v2
+      - uses: KengoTODA/actions-setup-docker-compose@main
+        with:
+          version: '1.29.2'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.module_branch }}
+      - uses: jahia/jahia-modules-action/integration-tests@v2
+        with:
+          module_id: ${{ inputs.module_id }}
+          incident_service: ${{ inputs.pagerduty_incident_service }}
+          testrail_project: ${{ inputs.testrail_project }}
+          timeout_minutes: ${{ inputs.timeout_step }}
+          tests_manifest: ${{ inputs.provisioning_manifest }}
+          tests_profile: ${{ inputs.tests_profile }}
+          jahia_image: ${{ inputs.jahia_image }}
+          jahia_license: ${{ secrets.JAHIA_LICENSE_8X_FULL }}
+          jahia_cluster_enabled: ${{ inputs.jahia_cluster_enabled }}
+          elasticsearch_image: ${{ inputs.elasticsearch_image }}
+          jcustomer_image: ${{ inputs.jcustomer_image }}
+          should_use_build_artifacts: ${{ inputs.should_use_build_artifacts }}
+          should_skip_testrail: ${{ inputs.should_skip_testrail }}
+          should_skip_pagerduty: ${{ inputs.pagerduty_skip_notification }}
+          github_artifact_name: ${{ inputs.artifact_prefix }}-${{ github.run_number }}
+          jahia_artifact_name: ${{ inputs.artifact_prefix }}-${{ github.run_number }}
+          tests_report_type: json
+          tests_report_path: 'artifacts/results/reports/report.json'
+          bastion_ssh_private_key: ${{ secrets.BASTION_SSH_PRIVATE_KEY_JAHIACI }}
+          docker_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          docker_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+          testrail_username: ${{ secrets.TESTRAIL_USERNAME }}
+          testrail_password: ${{ secrets.TESTRAIL_PASSWORD }}
+          incident_pagerduty_api_key: ${{ secrets.INCIDENT_PAGERDUTY_API_KEY }}
+          incident_pagerduty_reporter_email: ${{ secrets.INCIDENT_PAGERDUTY_REPORTER_EMAIL }}
+          incident_pagerduty_reporter_id: ${{ secrets.INCIDENT_PAGERDUTY_REPORTER_ID }}
+          incident_google_spreadsheet_id: ${{ secrets.INCIDENT_GOOGLE_SPREADSHEET_ID }}
+          incident_google_client_email: ${{ secrets.INCIDENT_GOOGLE_CLIENT_EMAIL }}
+          incident_google_api_key_base64: ${{ secrets.INCIDENT_GOOGLE_PRIVATE_KEY_BASE64 }}
+          zencrepes_secret: ${{ secrets.ZENCREPES_WEBHOOK_SECRET }}
+
+      - name: Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: ${{ inputs.test_report_name }}
+          path: tests/artifacts/results/xml_reports/**/*.xml
+          reporter: java-junit
+          fail-on-error: 'false'
