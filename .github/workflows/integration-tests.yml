@@ -68,7 +68,13 @@ on:
         default: "Tests Report"
       testrail_project:
         type: string
-        default: ""        
+        default: ""
+      mvn_java_distribution:
+        type: string
+        default: "temurin"
+      mvn_java_version:
+        type: string
+        default: 11
 
 jobs:
   integration-tests:
@@ -85,6 +91,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
+      - uses: s4u/setup-maven-action@v1.15.0
+        with:
+          java-distribution: ${{ inputs.mvn_java_distribution }}
+          java-version: ${{ inputs.mvn_java_version }}
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.module_branch }}
