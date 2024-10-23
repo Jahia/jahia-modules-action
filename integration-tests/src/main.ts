@@ -167,7 +167,7 @@ async function run(): Promise<void> {
 
     // Spin-up the containers
     await core.group(
-      `${timeSinceStart(startTime)} 🐋 Starting the Docker environment (timeout: ${core.getInput('timeout_minutes')}mn)`,
+      `${timeSinceStart(startTime)} 🐋 Starting the Docker environment (will timeout after: ${core.getInput('timeout_minutes')}mn)`,
       async () => {
         await startDockerEnvironment(
           testsFolder,
