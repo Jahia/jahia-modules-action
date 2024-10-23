@@ -39,7 +39,16 @@ runs:
         MODULE_NAME="${MODULE_NAME////-}"
         echo "MODULE_NAME=$MODULE_NAME" >> $GITHUB_ENV
         MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2 )
-        if [[ $MODULE_VERSION == *-SNAPSHOT ]]; then
+        IS_SNAPSHOT=$(jq '.jahia.snapshot' package.json | cut -d\" -f2 )
+        echo "IS_SNAPSHOT=$IS_SNAPSHOT" >> $GITHUB_ENV
+        if [[ $IS_SNAPSHOT == true ]]; then
+          echo "MODULE_OLD_VERSION=${MODULE_VERSION%%-SNAPSHOT}" >> $GITHUB_ENV
+          echo "MODULE_VERSION=${MODULE_VERSION%%-SNAPSHOT}-SNAPSHOT" >> $GITHUB_ENV
+          echo "MODULE_OLD_VERSION=${MODULE_OLD_VERSION}" 
+          echo "MODULE_VERSION=${MODULE_VERSION}"
+        elif [[ $IS_SNAPSHOT == false ]]; then
+          echo "MODULE_VERSION=${MODULE_VERSION}" >> $GITHUB_ENV
+        elif [[ $MODULE_VERSION == *-SNAPSHOT ]]; then
           echo "MODULE_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
         else
           echo "MODULE_OLD_VERSION=$MODULE_VERSION" >> $GITHUB_ENV
