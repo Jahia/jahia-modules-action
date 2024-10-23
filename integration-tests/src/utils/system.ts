@@ -74,7 +74,7 @@ export async function runShellCommands(
     const signal = AbortSignal.timeout(timeoutDelay);
 
     signal.addEventListener("abort", () => {
-      core.info(`Timeout reached at: ${JSON.stringify(new Date())}`)
+      core.error(`Timeout reached at: ${JSON.stringify(new Date())}`)
     }, { once: true });
 
     await execWithTimeout(cmd, {
