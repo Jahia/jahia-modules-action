@@ -90,7 +90,7 @@ runs:
         # sign installer exes
         for INSTALLER_FILE in `find ${{ inputs.installer_dir }} -name "${{ inputs.file_pattern }}" \( -name "*.exe" \)`; do
           echo "Signing $INSTALLER_FILE..."
-          ./sign4j --verbose --onthespot --strict ./codeSignTool-sign4j.sh sign \
+          ./sign4j ./codeSignTool-sign4j.sh sign \
             -username="${{ inputs.signer_username }}" \
             -password=${{ inputs.signer_password }} \
             -credential_id="${{ inputs.credential_id }}" \
