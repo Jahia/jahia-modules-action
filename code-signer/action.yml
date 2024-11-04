@@ -79,8 +79,8 @@ runs:
         for INSTALLER_FILE in `find ${{ inputs.installer_dir }} -name "${{ inputs.file_pattern }}" \( -name "*.jar" \)`; do
           echo "Signing $INSTALLER_FILE..."
           ./CodeSignTool.sh sign \
-            -username="${{ inputs.signer_username }}" \
-            -password='${{ inputs.signer_password }}' \
+            -username=${{ inputs.signer_username }} \
+            -password=${{ inputs.signer_password }} \
             -credential_id="${{ inputs.credential_id }}" \
             -totp_secret="${{ inputs.totp_secret }}" \
             -output_dir_path="$OUTPUT_DIR" \
