@@ -61,7 +61,7 @@ runs:
         chmod -Rc 755 CodeSignTool
 
         # Download sign4j binary (to sign exes) and custom codesigntool script
-        git clone --depth 1 --branch PIPELINE-91 git@github.com:Jahia/JahiaReleaseTool.git
+        git clone --depth 1 --branch master git@github.com:Jahia/JahiaReleaseTool.git
         cp JahiaReleaseTool/bin/sign4j CodeSignTool
         cp JahiaReleaseTool/codeSignTool-sign4j.sh CodeSignTool
         
