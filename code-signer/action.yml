@@ -80,7 +80,7 @@ runs:
           echo "Signing $INSTALLER_FILE..."
           ./CodeSignTool.sh sign \
             -username="${{ inputs.signer_username }}" \
-            -password='${{ inputs.signer_password }}' \
+            -password=${{ inputs.signer_password }} \
             -credential_id="${{ inputs.credential_id }}" \
             -totp_secret="${{ inputs.totp_secret }}" \
             -output_dir_path="$OUTPUT_DIR" \
