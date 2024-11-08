@@ -80,12 +80,17 @@ runs:
       run: |
         # We move the .tgz to /target to ease CI manipulation inherited from maven structure
         cd ${{ inputs.module_path }}
-        if [ ! -e ${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz ]; then
-          mv ${{ env.MODULE_NAME }}-v${{ env.MODULE_OLD_VERSION }}.tgz ${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
+        if [ -e dist/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz ]; then
+          mkdir -p target
+          mv dist/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz target/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
+        else
+          # Fallback to the old behaviour
+          if [ ! -e ${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz ]; then
+            mv ${{ env.MODULE_NAME }}-v${{ env.MODULE_OLD_VERSION }}.tgz ${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
+          fi
+          mkdir target
+          mv ${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz target/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
         fi
-        mkdir target
-        mv ${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz target/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
-
     - name: Archive build artifacts
       if: ${{ inputs.archive_artifacts == 'true' }}
       uses: actions/upload-artifact@v4
