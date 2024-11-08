@@ -22,7 +22,7 @@ runs:
   using: 'composite'
   steps:
     - name: Build package
-      uses: jahia/jahia-modules-action/build-step-npm@v2
+      uses: jahia/jahia-modules-action/build-step-npm@BACKLOG-23333-move-to-dist-folder
       with:
         module_path: ${{ inputs.module_path }}
         node_version: ${{ inputs.node_version }}
