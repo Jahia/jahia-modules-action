@@ -1,0 +1,60 @@
+# This workflow performs various tasks for cleanup, triage, ... on GitHub Issues
+name: Issues Chores
+
+on:
+  workflow_call:
+    inputs:
+      instance_type:
+        type: string
+        required: false
+        description: "Type of instances to run the job on (self hosted or ubuntu-latest)"
+        default: "self-hosted"
+
+jobs:
+  issues-chores:
+    name: Issues Chores
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hello World
+        shell: bash
+        if: always()
+        run: |
+          echo "Hello World!"
+      # List of steps to implement:
+      # - Automatically move back to jahia-private all issues with the "jahia-only" label
+      # - Automatically add to the "Bug Triage" project all issues with the "need-triage" label
+      # - Automatically add to the "Global Roadmap" project all issues with the "Epic" type
+      # - Automatically close stale issues (no updates for more than 6 months)
+
+      # Transfer issues with label "jahia-only" back to jahia-private
+      - name: Transfer Issue & Create Stub
+        uses: lando/transfer-issue-action@v2
+        with:
+          token: ${{ secrets.GH_API_TOKEN }}        
+          router: jahia-only:jahia-private      
+      - name: Update Transferred Issue
+        uses: actions/github-script@v5
+        if: steps.transfer-issue.outputs.new_issue_number != ''
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              issue_number: `${{ steps.transfer-issue.outputs.new_issue_number}}`,
+              owner: context.repo.owner,
+              repo: `${{ steps.transfer-issue.outputs.destinatiom_repo }}`,
+              body: `@${ context.payload.issue.user.login } your issues was moved back to jahia/jahia-private since it contained the jahia-only label!`
+            });
+
+      # Close stale issues
+      # Official GitHub Workflow documented here
+      # https://docs.github.com/en/actions/use-cases-and-examples/project-management/closing-inactive-issues
+      # Reference: https://github.com/marketplace/actions/close-stale-issues
+      - uses: actions/stale@v5
+        with:
+          days-before-issue-stale: 30
+          days-before-issue-close: 90
+          stale-issue-label: "stale"
+          stale-issue-message: "This issue is stale because it has been open for 30 days with no activity."
+          close-issue-message: "This issue was closed because it has been inactive for 14 days since being marked as stale."
+          days-before-pr-stale: -1
+          days-before-pr-close: -1
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
