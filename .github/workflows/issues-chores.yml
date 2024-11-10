@@ -28,7 +28,7 @@ jobs:
       # https://github.com/marketplace/actions/add-to-github-projects
       # Add all issues with need-triage label to the "Bug Triage" project
       # Official Action from GitHub
-      - uses: actions/add-to-project@1.0.2
+      - uses: actions/add-to-project@v1.0.2
         with:
           project-url: https://github.com/orgs/Jahia/projects/13
           github-token: ${{ secrets.GH_API_TOKEN }}
