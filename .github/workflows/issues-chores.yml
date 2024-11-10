@@ -15,11 +15,6 @@ jobs:
     name: Issues Chores
     runs-on: ubuntu-latest
     steps:
-      - name: Hello World
-        shell: bash
-        if: always()
-        run: |
-          echo "Hello World!"
       # List of steps to implement:
       # - Automatically move back to jahia-private all issues with the "jahia-only" label
       # - Automatically add to the "Global Roadmap" project all issues with the "Epic" type
@@ -31,14 +26,14 @@ jobs:
       - uses: actions/add-to-project@v1.0.2
         with:
           project-url: https://github.com/orgs/Jahia/projects/13
-          github-token: ${{ secrets.GH_API_TOKEN }}
+          github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
           labeled: needs-triage
 
       # Transfer issues with label "jahia-only" back to jahia-private
       - name: Transfer Issue & Create Stub
         uses: lando/transfer-issue-action@v2
         with:
-          token: ${{ secrets.GH_API_TOKEN }}        
+          token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}        
           router: jahia-only:jahia-private      
       - name: Update Transferred Issue
         uses: actions/github-script@v5
@@ -65,4 +60,4 @@ jobs:
           close-issue-message: "This issue was closed because it has been inactive for 14 days since being marked as stale."
           days-before-pr-stale: -1
           days-before-pr-close: -1
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
