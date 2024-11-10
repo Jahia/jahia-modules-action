@@ -26,16 +26,13 @@ jobs:
       # - Automatically close stale issues (no updates for more than 6 months)
 
       # https://github.com/marketplace/actions/add-to-github-projects
-      # Add all issues with need-triage label to the Triage project
+      # Add all issues with need-triage label to the "Bug Triage" project
       # Official Action from GitHub
       - uses: actions/add-to-project@1.0.2
         with:
-          # You can target a project in a different organization
-          # to the issue
-          project-url: https://github.com/orgs/<orgName>/projects/<projectNumber>
-          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
-          labeled: bug, needs-triage
-          label-operator: OR      
+          project-url: https://github.com/orgs/Jahia/projects/13
+          github-token: ${{ secrets.GH_API_TOKEN }}
+          labeled: needs-triage
 
       # Transfer issues with label "jahia-only" back to jahia-private
       - name: Transfer Issue & Create Stub
