@@ -132,6 +132,16 @@ function run() {
             core.info('Step 3: Visualize the data with NMON Visualizer');
             core.info(`_____________ #> java -jar /tmp/NMONVisualizer.jar /tmp/${instanceId}.nmon`);
             core.endGroup();
+            core.startGroup(`📘 Access Docker Stats (Resource consumption on docker containers)`);
+            core.info('The host running the GitHub Actions runners is recording and streaming docker stats to CloudWatch using nmon');
+            core.info('You can download those using awslogs');
+            core.info('Note that retention is only 3 days');
+            core.info('Step 1: Install awscli');
+            core.info('_____________ #> brew install awscli ');
+            core.info('Step 2: Download the log file (you might need to adjust the start time depending on when your instance was started)');
+            core.info(`_____________ #> awslogs get /github-self-hosted-runners/ephe5170/docker-stats ${instanceId}/docker-stats --start='4h ago' -G -S  > /tmp/${instanceId}.nmon`);
+            core.info('Data is captured every 5 seconds in the form of ndjson (one json object per line)');
+            core.endGroup();
         }
         catch (error) {
             if (error instanceof Error)
