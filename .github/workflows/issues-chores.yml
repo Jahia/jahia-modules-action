@@ -51,7 +51,6 @@ jobs:
       # https://github.com/orgs/Jahia/projects/18
       - name: Attach all Epics to the Roadmap - Global project
         uses: actions/add-to-project@v1.0.2
-        if: ${{ context.payload.issue.type === "Epic" }}
         with:
           project-url: https://github.com/orgs/Jahia/projects/18
           github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
