@@ -59,6 +59,11 @@ jobs:
               repo: context.repo.repo,
             })
 
+      - name: Hello World
+        shell: bash
+        run: |
+          echo ${{ steps.issue-details.outputs.result}}
+
       - name: View context attributes
         uses: actions/github-script@v7
         with:
