@@ -67,7 +67,7 @@ jobs:
             if (context.payload.issue.type !== undefined) {
               return console.log(context.payload.issue.type.name)
             }
-            return ''
+            return 'Hello'
           result-encoding: string
 
       - name: Get result
