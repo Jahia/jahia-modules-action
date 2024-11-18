@@ -59,10 +59,16 @@ jobs:
         run: |
           echo ${{ steps.issue-details.outputs.result}}
 
-      - name: View context attributes
+      - name: Get issue type
+        id: get-issue-type
         uses: actions/github-script@v7
         with:
-          script: console.log(context)
+          script: console.log(context.payload.issue.type)
+
+      - name: Hello World
+        shell: bash
+        run: |
+          echo ${{ steps.get-issue-type.outputs.result}}
 
       # Add all tickets of Type "Epic" and label "Area:" to the global roadmap project
       # https://github.com/orgs/Jahia/projects/18
