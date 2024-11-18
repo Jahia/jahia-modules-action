@@ -65,7 +65,7 @@ jobs:
         with:
           script: | 
             if (context.payload.issue.type !== undefined) {
-              return context.payload.issue.type.name
+              return console.log(context.payload.issue.type.name)
             }
           result-encoding: string
 
