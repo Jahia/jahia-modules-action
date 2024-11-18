@@ -50,6 +50,18 @@ jobs:
               body: `@${ context.payload.issue.user.login } your issues was moved back to jahia/jahia-private since it contained the jahia-only label!`
             });
 
+      # Transfer issues between repositories of the Jahia org
+      # Note: Pending review/merge of this PR: https://github.com/lando/transfer-issue-action/pull/97
+      # Will update once PR is merged.
+      - name: Transfer Issue & Create Stub
+        uses: Fgerthoffert/transfer-issue-action@main
+        with:
+          token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}        
+          router: "transfer:"
+          create_labels_if_missing: true
+          allow_private_public_transfer: true
+          enable_custom_label_routing: true
+
       #
       # Attach issues to projects
       #
