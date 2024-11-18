@@ -92,6 +92,6 @@ jobs:
       - name: Attach all tickets with label Area:Delivery to the Delivery Roadmap Project
         uses: actions/add-to-project@v1.0.2
         with:
-          project-url: https://github.com/orgs/Jahia/projects/22
+          project-url: https://github.com/orgs/Jahia/projects/12
           github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
           labeled: Area:Delivery
