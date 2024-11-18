@@ -48,11 +48,11 @@ jobs:
           result-encoding: string
           retries: 3
           script: |
-            return github.rest.issues.get({
+            return JSON.stringify(github.rest.issues.get({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-            })
+            }))
 
       - name: Hello World
         shell: bash
