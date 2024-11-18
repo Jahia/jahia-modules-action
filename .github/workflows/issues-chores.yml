@@ -70,10 +70,8 @@ jobs:
             return ''
           result-encoding: string
 
-      - name: Hello World
-        shell: bash
-        run: |
-          echo ${{steps.issue-type.outputs.result}}
+      - name: Get result
+        run: echo "${{steps.issue-type.outputs.result}}"
 
       # Add all tickets of Type "Epic" and label "Area:" to the global roadmap project
       # https://github.com/orgs/Jahia/projects/18
