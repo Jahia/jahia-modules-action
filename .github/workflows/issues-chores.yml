@@ -68,6 +68,7 @@ jobs:
               return console.log(context.payload.issue.type.name)
             }
             return ''
+          result-encoding: string
 
       - name: Hello World
         shell: bash
