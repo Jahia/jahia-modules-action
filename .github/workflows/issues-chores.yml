@@ -43,38 +43,6 @@ jobs:
             });
 
       - uses: actions/github-script@v7
-        id: issue-details
-        with:
-          result-encoding: string
-          retries: 3
-          script: |
-            return JSON.stringify(github.rest.issues.get({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            }))
-
-      - name: Hello World
-        shell: bash
-        run: |
-          echo ${{ steps.issue-details.outputs.result}}
-
-      - name: Get issue type
-        id: issue-type
-        uses: actions/github-script@v7
-        with:
-          script: | 
-            if (context.payload.issue.type !== undefined) {
-              return context.payload.issue.type.name)
-            }
-            return ''
-
-      - name: Hello World
-        shell: bash
-        run: |
-          echo ${{ steps.issue-type.outputs.result}}
-
-      - uses: actions/github-script@v7
         id: set-result
         with:
           script: if (context.payload.issue.type !== undefined) {return context.payload.issue.type.name)}
