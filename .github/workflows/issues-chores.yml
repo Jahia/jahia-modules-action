@@ -15,6 +15,13 @@ jobs:
     name: Issues Chores
     runs-on: ubuntu-latest
     steps:
+      - name: Get Issue type
+        uses: actions/github-script@v7
+        id: get-issue-type
+        with:
+          script: if (context.payload.issue.type !== undefined) {return context.payload.issue.type.name}
+          result-encoding: string
+
       # https://github.com/marketplace/actions/add-to-github-projects
       # Add all issues with need-triage label to the "Bug Triage" project
       # Official Action from GitHub
@@ -42,14 +49,9 @@ jobs:
               body: `@${ context.payload.issue.user.login } your issues was moved back to jahia/jahia-private since it contained the jahia-only label!`
             });
 
-      - uses: actions/github-script@v7
-        id: get-issue-type
-        with:
-          script: if (context.payload.issue.type !== undefined) {return context.payload.issue.type.name}
-          result-encoding: string
-      - name: Get result
-        run: echo "${{steps.get-issue-type.outputs.result}}"
-
+      #
+      # Attach issues to projects
+      #
       # Add all tickets of Type "Epic" and label "Area:" to the global roadmap project
       # https://github.com/orgs/Jahia/projects/18
       - name: Attach all Epics to the Roadmap - Global project
@@ -60,3 +62,35 @@ jobs:
           github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
           labeled: Area:Product, Area:Delivery, Area:Tech, Area:QA, Area:Security
           label-operator: OR
+
+      # https://github.com/orgs/Jahia/projects/21
+      - name: Attach all tickets with label Area:QA to the QA Roadmap Project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/21
+          github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
+          labeled: Area:QA
+
+      # https://github.com/orgs/Jahia/projects/22
+      - name: Attach all tickets with label Area:QA to the Security Roadmap Project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/22
+          github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
+          labeled: Area:Security
+
+      # https://github.com/orgs/Jahia/projects/23
+      - name: Attach all tickets with label Area:Tech to the Tech Roadmap Project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/22
+          github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
+          labeled: Area:Tech
+
+      # https://github.com/orgs/Jahia/projects/23
+      - name: Attach all tickets with label Area:Delivery to the Delivery Roadmap Project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/22
+          github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
+          labeled: Area:Delivery
