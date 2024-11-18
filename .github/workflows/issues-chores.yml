@@ -45,7 +45,7 @@ jobs:
       - name: Echo issue type
         shell: bash
         run: |
-          echo "world"
+          echo ${ context.payload.issue }
 
       # Add all tickets of Type "Epic" and label "Area:" to the global roadmap project
       # https://github.com/orgs/Jahia/projects/18
