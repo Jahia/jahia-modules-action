@@ -68,10 +68,15 @@ runs:
         # Clean-up
         rm -rf JahiaReleaseTool
         rm -rf CodeSignTool.zip
+    - name: Output key and certificate information
+      shell: bash
+      working-directory: CodeSignTool
+      run: |
+        ./CodeSignTool.sh credential_info -credential_id="${{ inputs.credential_id }}" -username="${{ inputs.signer_username }}" -password=${{ inputs.signer_password }}
     - name: Generate signed installer files
       shell: bash
+      working-directory: CodeSignTool
       run: |
-        cd CodeSignTool
         export OUTPUT_DIR=/tmp/signed-installers
         export TOTP_SECRET=${{ inputs.totp_secret }}
         mkdir $OUTPUT_DIR
