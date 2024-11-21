@@ -54,13 +54,24 @@ jobs:
       # Note: Pending review/merge of this PR: https://github.com/lando/transfer-issue-action/pull/97
       # Will update once PR is merged.
       - name: Transfer Issue & Create Stub
-        uses: Fgerthoffert/transfer-issue-action@main
+        uses: Fgerthoffert/transfer-issue-action@v1.0.0
         with:
           token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}        
           router: "transfer:"
           create_labels_if_missing: true
           allow_private_public_transfer: true
           enable_custom_label_routing: true
+
+      # Create links in Jira to GitHub Issues
+      # We still need to create a Jira User and update the server_host
+      - name: Create links to GitHub in Jira issues
+        uses: Fgerthoffert/actions-create-jira-link@v1.0.0
+        with:
+          token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
+          jira_server_host: jira.jahia.org
+          jira_server_username: ${{ secrets.JIRA_USERNAME }}
+          jira_server_password: ${{ secrets.JIRA_PASSWORD }}
+          github_project_field: "Support tickets"      
 
       #
       # Attach issues to projects
