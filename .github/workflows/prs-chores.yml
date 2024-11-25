@@ -1,4 +1,4 @@
-# This workflow performs various tasks for cleanup, triage, ... on GitHub Issues
+# This workflow performs various tasks for cleanup, triage, ... on GitHub PRs
 name: PRs Chores
 
 on:
