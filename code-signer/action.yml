@@ -68,12 +68,15 @@ runs:
         # Clean-up
         rm -rf JahiaReleaseTool
         rm -rf CodeSignTool.zip
+    - uses: actions/setup-java@v4.5.0
+      with:
+        distribution: 'temurin'
+        java-version: '11'
     - name: Generate signed installer files
       shell: bash
       run: |
         cd CodeSignTool
         export OUTPUT_DIR=/tmp/signed-installers
-        export TOTP_SECRET=${{ inputs.totp_secret }}
         mkdir $OUTPUT_DIR
         # sign installer jars
         for INSTALLER_FILE in `find ${{ inputs.installer_dir }} -name "${{ inputs.file_pattern }}" \( -name "*.jar" \)`; do
@@ -85,18 +88,20 @@ runs:
             -totp_secret="${{ inputs.totp_secret }}" \
             -output_dir_path="$OUTPUT_DIR" \
             -input_file_path="$INSTALLER_FILE"
+          cp ${INSTALLER_FILE} ${INSTALLER_FILE}.unsigned # keep unsigned for backup
           cp $OUTPUT_DIR/`basename $INSTALLER_FILE` $INSTALLER_FILE # overwrite original file
         done
         # sign installer exes
         for INSTALLER_FILE in `find ${{ inputs.installer_dir }} -name "${{ inputs.file_pattern }}" \( -name "*.exe" \)`; do
           echo "Signing $INSTALLER_FILE..."
-          ./sign4j ./codeSignTool-sign4j.sh sign \
+          ./sign4j --verbose ./codeSignTool-sign4j.sh sign \
             -username="${{ inputs.signer_username }}" \
             -password=${{ inputs.signer_password }} \
             -credential_id="${{ inputs.credential_id }}" \
             -totp_secret="${{ inputs.totp_secret }}" \
             -output_dir_path="$OUTPUT_DIR" \
             $INSTALLER_FILE # -input_file_path option is replaced by last param
+          cp ${INSTALLER_FILE} ${INSTALLER_FILE}.unsigned # keep unsigned for backup
           cp $OUTPUT_DIR/`basename $INSTALLER_FILE` $INSTALLER_FILE # overwrite original file
         done
     - name: Keep session opened if /tmp/debug file is present
