@@ -18,6 +18,8 @@ jobs:
       # condition you can continue the execution with the populated error message.          
       - uses: marocchino/sticky-pull-request-comment@v2
         if: always() && (steps.lint_pr_title.outputs.error_message != null)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_API_TOKEN }}        
         with:
           header: pr-title-lint-error
           message: |
@@ -36,6 +38,8 @@ jobs:
       # Delete a previous comment when the issue has been resolved
       - if: ${{ steps.lint_pr_title.outputs.error_message == null }}
         uses: marocchino/sticky-pull-request-comment@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_API_TOKEN }}        
         with:   
           header: pr-title-lint-error
           delete: true
