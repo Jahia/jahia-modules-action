@@ -8,10 +8,6 @@ on:
       - synchronize
       - reopened
 
-permissions:
-  pull-requests: write
-  contents: read
-
 jobs:
   prs-chores:
     uses:  Jahia/jahia-modules-action/.github/workflows/prs-chores.yml@2281-create-a-pr-chores-workflow
