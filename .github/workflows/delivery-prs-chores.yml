@@ -10,6 +10,7 @@ on:
 
 permissions:
   pull-requests: read
+  contents: read
 
 jobs:
   prs-chores:
