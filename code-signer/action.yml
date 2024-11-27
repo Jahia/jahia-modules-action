@@ -68,6 +68,10 @@ runs:
         # Clean-up
         rm -rf JahiaReleaseTool
         rm -rf CodeSignTool.zip
+    - uses: actions/setup-java@v4.5.0
+      with:
+        distribution: 'temurin'
+        java-version: '11'
     - name: Output CodeSignTool information
       shell: bash
       working-directory: CodeSignTool
@@ -81,7 +85,6 @@ runs:
       working-directory: CodeSignTool
       run: |
         export OUTPUT_DIR=/tmp/signed-installers
-        export TOTP_SECRET=${{ inputs.totp_secret }}
         mkdir $OUTPUT_DIR
         # sign installer jars
         for INSTALLER_FILE in `find ${{ inputs.installer_dir }} -name "${{ inputs.file_pattern }}" \( -name "*.jar" \)`; do
@@ -98,7 +101,7 @@ runs:
         # sign installer exes
         for INSTALLER_FILE in `find ${{ inputs.installer_dir }} -name "${{ inputs.file_pattern }}" \( -name "*.exe" \)`; do
           echo "Signing $INSTALLER_FILE..."
-          ./sign4j ./codeSignTool-sign4j.sh sign \
+          ./sign4j --verbose ./codeSignTool-sign4j.sh sign \
             -username="${{ inputs.signer_username }}" \
             -password=${{ inputs.signer_password }} \
             -credential_id="${{ inputs.credential_id }}" \

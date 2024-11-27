@@ -51,6 +51,10 @@ inputs:
   slack-webhook-qa:
     description: 'Secret webhook to send a notif on a QA channel'
     required: false
+  npmjs_publish_token:
+    description: 'Token used to publish NPM packages to npmjs.com, typically used when the Maven release process delegates the package publication to npm'
+    default: ''
+    required: false
 
 runs:
   using: 'composite'
@@ -62,8 +66,22 @@ runs:
         echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
         echo "NEXUS_RELEASE_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
         echo "NEXUS_RELEASE_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
+        echo "NEXUS_RELEASE_PASSWORD=${{ inputs.npmjs_publish_token }}" >> $GITHUB_ENV
 
-    - name: Generate maven cache seeed
+    - name: Set NPM environment variable from parameter
+      if: ${{ inputs.npmjs_publish_token != '' }}
+      shell: bash
+      run: |
+        echo "NODE_AUTH_TOKEN=${{ inputs.npmjs_publish_token }}" >> $GITHUB_ENV
+
+    - name: Setup .npmrc file to publish to npm
+      if: ${{ inputs.npmjs_publish_token != '' }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: 'lts/*'
+        registry-url: 'https://registry.npmjs.org'
+
+    - name: Generate maven cache seed
       shell: bash
       run: |
         find . -name 'pom.xml' | sort | xargs cat > ./maven_cache_seed
