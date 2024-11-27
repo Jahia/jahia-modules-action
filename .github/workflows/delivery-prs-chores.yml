@@ -1,4 +1,4 @@
-name: "Delivery - Lint PR title"
+name: "Delivery - PR Chores"
 
 on:
   pull_request:
