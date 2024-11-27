@@ -9,6 +9,6 @@ on:
       - reopened
 
 jobs:
-  prs-chores:
+  rf:
     uses:  Jahia/jahia-modules-action/.github/workflows/prs-chores.yml@2281-create-a-pr-chores-workflow
     secrets: inherit
