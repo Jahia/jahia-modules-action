@@ -118,3 +118,23 @@ jobs:
           project-url: https://github.com/orgs/Jahia/projects/12
           github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
           labeled: Area:Delivery
+
+      # https://github.com/orgs/Jahia/projects/22
+      - name: Attach all tickets with label Area:QA to the Security Roadmap Project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/22
+          github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
+          labeled: Area:Security, incident
+          label-operator: OR
+
+      - name: Jira Security Issue Creation
+        uses: bryannice/gitactions-jira-issue-creation@1.2.1
+        env:
+          JIRA_ACCOUNT_URL: https://support.jahia.com/
+          JIRA_API_TOKEN: jiraApiToken
+          JIRA_ISSUE_DESCRIPTION: Demo'ing Jira Issue Creation
+          JIRA_ISSUE_SUMMARY: ${{ context.payload.issue }}
+          JIRA_ISSUE_TYPE: Vulnerability
+          JIRA_PROJECT: SECURITY
+          JIRA_USERNAME: security+jira@jahia.com
