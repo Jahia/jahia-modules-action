@@ -98,6 +98,28 @@ jobs:
       # https://github.com/orgs/Jahia/projects/22
       - name: Attach all tickets with label Area:QA to the Security Roadmap Project
         uses: actions/add-to-project@v1.0.2
+        id: new-security-incident
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/22
+          github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
+          labeled: Area:Security, incident
+          label-operator: AND
+
+      - name: Jira Security Issue Creation
+        uses: bryannice/gitactions-jira-issue-creation@1.2.1
+        if: ${{ steps.new-security-incident.outputs.result == 'Epic' }}
+        env:
+          JIRA_ACCOUNT_URL: https://jira.jahia.org
+          JIRA_API_TOKEN: ${{ secrets.JIRA_TOKEN }}
+          JIRA_ISSUE_DESCRIPTION: ${{ context.payload.issue.body }}
+          JIRA_ISSUE_SUMMARY: ${{ context.payload.issue.title }}
+          JIRA_ISSUE_TYPE: Vulnerability
+          JIRA_PROJECT: SECBACKLOG
+          JIRA_USERNAME: mdechecchi@jahia.com
+
+      # https://github.com/orgs/Jahia/projects/22
+      - name: Attach all tickets with label Area:QA to the Security Roadmap Project
+        uses: actions/add-to-project@v1.0.2
         with:
           project-url: https://github.com/orgs/Jahia/projects/22
           github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
@@ -118,23 +140,3 @@ jobs:
           project-url: https://github.com/orgs/Jahia/projects/12
           github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
           labeled: Area:Delivery
-
-      # https://github.com/orgs/Jahia/projects/22
-      - name: Attach all tickets with label Area:QA to the Security Roadmap Project
-        uses: actions/add-to-project@v1.0.2
-        with:
-          project-url: https://github.com/orgs/Jahia/projects/22
-          github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
-          labeled: Area:Security, incident
-          label-operator: OR
-
-      - name: Jira Security Issue Creation
-        uses: bryannice/gitactions-jira-issue-creation@1.2.1
-        env:
-          JIRA_ACCOUNT_URL: https://jira.jahia.org
-          JIRA_API_TOKEN: ${{ secrets.JIRA_TOKEN }}
-          JIRA_ISSUE_DESCRIPTION: ${{ context.payload.issue.body }}
-          JIRA_ISSUE_SUMMARY: ${{ context.payload.issue.title }}
-          JIRA_ISSUE_TYPE: Vulnerability
-          JIRA_PROJECT: SECBACKLOG
-          JIRA_USERNAME: mdechecchi@jahia.com
