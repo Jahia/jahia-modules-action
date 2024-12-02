@@ -3,16 +3,10 @@ name: Issues Chores
 
 on:
   workflow_call:
-    inputs:
-      instance_type:
-        type: string
-        required: false
-        description: "Type of instances to run the job on (self hosted or ubuntu-latest)"
-        default: "self-hosted"
 
 jobs:
-  issues-chores:
-    name: Issues Chores
+  projects:
+    name: Projects
     runs-on: ubuntu-latest
     steps:
       # Issue type is not available by default, this makes it available for if conditions
@@ -23,15 +17,66 @@ jobs:
           script: if (context.payload.issue.type !== undefined) {return context.payload.issue.type.name}
           result-encoding: string
 
+      # Using an official action from GitHub to attach issues to projects
       # https://github.com/marketplace/actions/add-to-github-projects
-      # Add all issues with need-triage label to the "Bug Triage" project
-      # Official Action from GitHub
-      - uses: actions/add-to-project@v1.0.2
+
+      - name: Attach needs-triage to the Bugs Triage project
+        uses: actions/add-to-project@v1.0.2
         with:
           project-url: https://github.com/orgs/Jahia/projects/13
-          github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
-          labeled: needs-triage
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          labeled: need-triage
 
+      - name: Attach customers to the Customers project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/24
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          labeled: customer
+
+      # Add all tickets of Type "Epic" and label "Area:" to the global roadmap project
+      - name: Attach all Epics to the Roadmap - Global project
+        uses: actions/add-to-project@v1.0.2
+        if: ${{ steps.get-issue-type.outputs.result == 'Epic' }}
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/18
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          labeled: Area:Product, Area:Delivery, Area:Tech, Area:QA, Area:Security
+          label-operator: OR
+
+      - name: Attach all tickets with label Area:QA to the QA Roadmap Project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/21
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          labeled: Area:QA
+
+      - name: Attach all tickets with label Area:QA to the Security Roadmap Project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/22
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          labeled: Area:Security
+
+      - name: Attach all tickets with label Area:Tech to the Tech Roadmap Project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/23
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          labeled: Area:Tech
+
+      - name: Attach all tickets with label Area:Delivery to the Delivery Roadmap Project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/12
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          labeled: Area:Delivery
+
+  transfer:
+    name: Transfer
+    runs-on: ubuntu-latest
+    needs: projects
+    steps:
       # Transfer issues with label "jahia-only" back to jahia-private
       - name: Transfer Issue & Create Stub
         uses: lando/transfer-issue-action@v2
@@ -56,65 +101,24 @@ jobs:
       - name: Transfer Issue & Create Stub
         uses: Fgerthoffert/transfer-issue-action@v1.0.0
         with:
-          token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}        
+          token: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
           router: "transfer:"
           create_labels_if_missing: true
           allow_private_public_transfer: true
           enable_custom_label_routing: true
 
+  links:
+    name: Links
+    runs-on: ubuntu-latest
+    needs: transfer
+    steps:
       # Create links in Jira to GitHub Issues
       # We still need to create a Jira User and update the server_host
       - name: Create links to GitHub in Jira issues
         uses: Fgerthoffert/actions-create-jira-link@v1.0.0
         with:
-          token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
+          token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           jira_server_host: jira.jahia.org
           jira_server_username: ${{ secrets.JIRA_USERNAME }}
           jira_server_password: ${{ secrets.JIRA_PASSWORD }}
-          github_project_field: "Support tickets"      
-
-      #
-      # Attach issues to projects
-      #
-      # Add all tickets of Type "Epic" and label "Area:" to the global roadmap project
-      # https://github.com/orgs/Jahia/projects/18
-      - name: Attach all Epics to the Roadmap - Global project
-        uses: actions/add-to-project@v1.0.2
-        if: ${{ steps.get-issue-type.outputs.result == 'Epic' }}
-        with:
-          project-url: https://github.com/orgs/Jahia/projects/18
-          github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
-          labeled: Area:Product, Area:Delivery, Area:Tech, Area:QA, Area:Security
-          label-operator: OR
-
-      # https://github.com/orgs/Jahia/projects/21
-      - name: Attach all tickets with label Area:QA to the QA Roadmap Project
-        uses: actions/add-to-project@v1.0.2
-        with:
-          project-url: https://github.com/orgs/Jahia/projects/21
-          github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
-          labeled: Area:QA
-
-      # https://github.com/orgs/Jahia/projects/22
-      - name: Attach all tickets with label Area:QA to the Security Roadmap Project
-        uses: actions/add-to-project@v1.0.2
-        with:
-          project-url: https://github.com/orgs/Jahia/projects/22
-          github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
-          labeled: Area:Security
-
-      # https://github.com/orgs/Jahia/projects/23
-      - name: Attach all tickets with label Area:Tech to the Tech Roadmap Project
-        uses: actions/add-to-project@v1.0.2
-        with:
-          project-url: https://github.com/orgs/Jahia/projects/22
-          github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
-          labeled: Area:Tech
-
-      # https://github.com/orgs/Jahia/projects/23
-      - name: Attach all tickets with label Area:Delivery to the Delivery Roadmap Project
-        uses: actions/add-to-project@v1.0.2
-        with:
-          project-url: https://github.com/orgs/Jahia/projects/12
-          github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
-          labeled: Area:Delivery
+          github_project_field: "Support tickets" 
