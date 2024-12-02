@@ -71,7 +71,7 @@ jobs:
           JIRA_ISSUE_TYPE: Bug
           #Vulnerability
           JIRA_PROJECT: SECBACKLOG
-          JIRA_USERNAME: mdechecchi@jahia.com
+          JIRA_USERNAME: ${{ secrets.JIRA_USERNAME }}
 
       - name: Attach all tickets with label Area:Security to the Security Roadmap Project
         uses: actions/add-to-project@v1.0.2
