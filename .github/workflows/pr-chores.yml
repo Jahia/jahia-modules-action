@@ -1,5 +1,6 @@
-# This workflow performs various tasks for cleanup, triage, ... on GitHub PRs
-name: PRs Chores
+# This workflow performs various tasks for cleanup, triage, ... on an individual GitHub PR
+# It should be called based on PR events
+name: PR Chores
 
 on:
   workflow_call:

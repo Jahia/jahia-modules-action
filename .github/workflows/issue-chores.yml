@@ -1,5 +1,6 @@
-# This workflow performs various tasks for cleanup, triage, ... on GitHub Issues
-name: Issues Chores
+# This workflow performs various tasks for cleanup, triage, ... on an individual GitHub Issue
+# It should be called based on issue events
+name: Issue Chores
 
 on:
   workflow_call:
