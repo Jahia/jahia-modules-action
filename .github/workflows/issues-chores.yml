@@ -69,12 +69,44 @@ jobs:
           JIRA_ISSUE_DESCRIPTION: ${{ context.payload.issue.body }}
           JIRA_ISSUE_SUMMARY: ${{ context.payload.issue.title }} (${{ steps.new-security-incident.outputs.itemId }})
           JIRA_ISSUE_TYPE: Bug
-          #Vulnerability
+          #JIRA_ISSUE_TYPE: Vulnerability
           JIRA_PROJECT: SECBACKLOG
           JIRA_USERNAME: ${{ secrets.JIRA_USERNAME }}
 
-      - name: Set security field
-        if: ${{ steps.new-security-incident.outputs.itemId != '' }}
+      - name: Get Security project data
+        env:
+          GH_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          ORGANIZATION: Jahia
+          PROJECT_NUMBER: 22
+        run: |
+          gh api graphql -f query='
+            query($org: String!, $number: Int!) {
+              organization(login: $org){
+                projectV2(number: $number) {
+                  id
+                  fields(first:20) {
+                    nodes {
+                      ... on ProjectV2Field {
+                        id
+                        name
+                      }
+                      ... on ProjectV2SingleSelectField {
+                        id
+                        name
+                        options {
+                          id
+                          name
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }' -f org=$ORGANIZATION -F number=$PROJECT_NUMBER > project_data.json
+          echo 'JIRA_TICKET_FIELD_ID='$(jq '.data.organization.projectV2.fields.nodes[] | select(.name== "Jira ticket ID") | .id' project_data.json) >> $GITHUB_ENVa.json) >> $GITHUB_ENV
+
+      - name: Set security field on Github issue
+        if: ${{ steps.new-security-incident.outputs.itemId != '' && steps.new-security-jira-ticket.outputs.jira_issue_url != '' }}
         env:
           GH_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
         run: |
@@ -85,7 +117,7 @@ jobs:
               $field: ID!
               $field_value: String!
             ) {
-              set_status: updateProjectV2ItemFieldValue(input: {
+              set_field_value: updateProjectV2ItemFieldValue(input: {
                 projectId: $project
                 itemId: $item
                 fieldId: $field
@@ -97,10 +129,7 @@ jobs:
                   id
                   }
               }
-            }' -f project=$PROJECT_ID -f item=$ITEM_ID -f status_field="Jira ticket ID" -f status_value="${{ steps.new-security-jira-ticket.outputs.jira_issue_url }}" --silent
-
-
-
+            }' -f project=${{ env.PROJECT_NUMBER }} -f item=${{ steps.new-security-incident.outputs.itemId }} -f field=${{ env.JIRA_TICKET_FIELD_ID }} -f field_value="${{ steps.new-security-jira-ticket.outputs.jira_issue_url }}" --silent
 
       - uses: actions/IssueOutputAction@v1.0
         with:
