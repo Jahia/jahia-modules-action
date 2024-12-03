@@ -51,6 +51,31 @@ jobs:
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:QA
 
+      - uses: actions/IssueOutputAction@v1.0
+        with:
+          repotoken: ${{ secrets.GITHUB_TOKEN }}
+          searchquery: 'event hubs is:open'
+          repoOwnerAndName: 'Azure/azure-sdk-for-net'
+
+      - name: Attach all tickets with label Area:Tech to the Tech Roadmap Project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/23
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          labeled: Area:Tech
+
+      - name: Attach all tickets with label Area:Delivery to the Delivery Roadmap Project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/12
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          labeled: Area:Delivery
+
+  security:
+    name: Security
+    runs-on: ubuntu-latest
+    needs: projects
+    steps:
       - name: Attach all tickets with label Area:Security and incident to the Security Roadmap Project
         uses: actions/add-to-project@v1.0.2
         id: new-security-incident
@@ -60,8 +85,32 @@ jobs:
           labeled: Area:Security, incident
           label-operator: AND
 
+      - name: Check if issue has already a Jira ticket field value
+        env:
+          GH_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+        run: |
+          gh api graphql -f query='
+            query($issue_id: String!, $custom_field_name: String!) {
+              node (id: $issue_id) {
+                ... on Issue {
+                  title
+                  projectItems(first: 10) {
+                    nodes {
+                      fieldValueByName(name: $custom_field_name) {
+                        ... on ProjectV2ItemFieldTextValue {
+                          text
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }' -f issue_id=${{ context.payload.issue.node_id }} -f custom_field_name="Jira ticket ID" > project_data.json
+          echo 'JIRA_TICKET_FIELD_VALUE='$(jq '.data.node.projectItems.nodes[] | .text' project_data.json) >> $GITHUB_ENV
+
       - name: Create a Security issue in the Support Jira
         uses: bryannice/gitactions-jira-issue-creation@1.2.1
+        if: ${{ env.JIRA_TICKET_FIELD_VALUE == '' }}
         id: new-security-jira-ticket
         env:
           JIRA_ACCOUNT_URL: https://jira.jahia.org
@@ -74,6 +123,7 @@ jobs:
           JIRA_USERNAME: ${{ secrets.JIRA_USERNAME }}
 
       - name: Get Security project data
+        if: ${{ env.JIRA_TICKET_FIELD_VALUE == '' }}
         env:
           GH_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           ORGANIZATION: Jahia
@@ -103,10 +153,10 @@ jobs:
                 }
               }
             }' -f org=$ORGANIZATION -F number=$PROJECT_NUMBER > project_data.json
-          echo 'JIRA_TICKET_FIELD_ID='$(jq '.data.organization.projectV2.fields.nodes[] | select(.name== "Jira ticket ID") | .id' project_data.json) >> $GITHUB_ENVa.json) >> $GITHUB_ENV
+          echo 'JIRA_TICKET_FIELD_ID='$(jq '.data.organization.projectV2.fields.nodes[] | select(.name== "Jira ticket ID") | .id' project_data.json) >> $GITHUB_ENV
 
       - name: Set security field on Github issue
-        if: ${{ steps.new-security-incident.outputs.itemId != '' && steps.new-security-jira-ticket.outputs.jira_issue_url != '' }}
+        if: ${{ env.JIRA_TICKET_FIELD_VALUE != '' && steps.new-security-incident.outputs.itemId != '' && steps.new-security-jira-ticket.outputs.jira_issue_url != '' }}
         env:
           GH_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
         run: |
@@ -131,13 +181,7 @@ jobs:
               }
             }' -f project=${{ env.PROJECT_NUMBER }} -f item=${{ steps.new-security-incident.outputs.itemId }} -f field=${{ env.JIRA_TICKET_FIELD_ID }} -f field_value="${{ steps.new-security-jira-ticket.outputs.jira_issue_url }}" --silent
 
-      - uses: actions/IssueOutputAction@v1.0
-        with:
-          repotoken: ${{ secrets.GITHUB_TOKEN }}
-          searchquery: 'event hubs is:open'
-          repoOwnerAndName: 'Azure/azure-sdk-for-net'
-
-
+      # TODO: prevent duplicate in GH
       - name: Attach all tickets with label Area:Security to the Security Roadmap Project
         uses: actions/add-to-project@v1.0.2
         with:
@@ -145,24 +189,10 @@ jobs:
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:Security
 
-      - name: Attach all tickets with label Area:Tech to the Tech Roadmap Project
-        uses: actions/add-to-project@v1.0.2
-        with:
-          project-url: https://github.com/orgs/Jahia/projects/23
-          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
-          labeled: Area:Tech
-
-      - name: Attach all tickets with label Area:Delivery to the Delivery Roadmap Project
-        uses: actions/add-to-project@v1.0.2
-        with:
-          project-url: https://github.com/orgs/Jahia/projects/12
-          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
-          labeled: Area:Delivery
-
   transfer:
     name: Transfer
     runs-on: ubuntu-latest
-    needs: projects
+    needs: security
     steps:
       # Transfer issues with label "jahia-only" back to jahia-private
       - name: Transfer Issue & Create Stub
