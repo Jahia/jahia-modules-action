@@ -156,7 +156,7 @@ jobs:
           echo 'JIRA_TICKET_FIELD_ID='$(jq '.data.organization.projectV2.fields.nodes[] | select(.name== "Jira ticket ID") | .id' project_data.json) >> $GITHUB_ENV
 
       - name: Set security field on Github issue
-        if: ${{ env.JIRA_TICKET_FIELD_VALUE != '' && steps.new-security-incident.outputs.itemId != '' && steps.new-security-jira-ticket.outputs.jira_issue_url != '' }}
+        if: ${{ env.JIRA_TICKET_FIELD_VALUE == '' && steps.new-security-incident.outputs.itemId != '' && steps.new-security-jira-ticket.outputs.jira_issue_url != '' }}
         env:
           GH_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
         run: |
