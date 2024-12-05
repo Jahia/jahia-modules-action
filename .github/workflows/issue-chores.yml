@@ -86,7 +86,7 @@ jobs:
         run: |
           gh api graphql -f query='
             query($custom_field_name: String!) {
-              node (id: context.payload.issue.node_id) {
+              node (id: ${ context.payload.issue.node_id }) {
                 ... on Issue {
                   title
                   projectItems(first: 10) {
