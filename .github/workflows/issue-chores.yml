@@ -52,12 +52,6 @@ jobs:
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:QA
 
-      - uses: actions/IssueOutputAction@v1.0
-        with:
-          repotoken: ${{ secrets.GITHUB_TOKEN }}
-          searchquery: 'event hubs is:open'
-          repoOwnerAndName: 'Azure/azure-sdk-for-net'
-
       - name: Attach all tickets with label Area:Tech to the Tech Roadmap Project
         uses: actions/add-to-project@v1.0.2
         with:
