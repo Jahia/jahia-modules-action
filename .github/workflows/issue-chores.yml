@@ -83,6 +83,7 @@ jobs:
       - name: Check if issue has already a Jira ticket field value
         env:
           GH_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          ISSUE_ID: ${{ context.payload.issue.node_id }}
         run: |
           gh api graphql -f query='
             query($node_id: ID!, $custom_field_name: String!) {
@@ -100,7 +101,7 @@ jobs:
                   }
                 }
               }
-            }' -f node_id=${ context.payload.issue.node_id } -f custom_field_name="Jira ticket ID" > project_data.json
+            }' -f node_id=${{ env.ISSUE_ID }} -f custom_field_name="Jira ticket ID" > project_data.json
           echo 'JIRA_TICKET_FIELD_VALUE='$(jq '.data.node.projectItems.nodes[] | .text' project_data.json) >> $GITHUB_ENV
 
       - name: Create a Security issue in the Support Jira
