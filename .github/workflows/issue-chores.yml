@@ -83,7 +83,7 @@ jobs:
       - name: Check if issue has already a Jira ticket field value
         env:
           GH_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
-          ISSUE_ID: ${{ context.payload.issue.node_id }}
+          ISSUE_ID: ${{ github.event.issue.node_id }}
         run: |
           gh api graphql -f query='
             query($node_id: ID!, $custom_field_name: String!) {
@@ -111,8 +111,8 @@ jobs:
         env:
           JIRA_ACCOUNT_URL: https://jira.jahia.org
           JIRA_API_TOKEN: ${{ secrets.JIRA_TOKEN }}
-          JIRA_ISSUE_DESCRIPTION: context.payload.issue.body
-          JIRA_ISSUE_SUMMARY: context.payload.issue.title (${{ steps.new-security-incident.outputs.itemId }})
+          JIRA_ISSUE_DESCRIPTION: ${{ github.event.issue.body }}
+          JIRA_ISSUE_SUMMARY: ${{ github.event.issue.title }}context.payload.issue.title (${{ steps.new-security-incident.outputs.itemId }})
           JIRA_ISSUE_TYPE: Bug
           #JIRA_ISSUE_TYPE: Vulnerability
           JIRA_PROJECT: SECBACKLOG
