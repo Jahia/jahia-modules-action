@@ -52,13 +52,6 @@ jobs:
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:QA
 
-      - name: Attach all tickets with label Area:QA to the Security Roadmap Project
-        uses: actions/add-to-project@v1.0.2
-        with:
-          project-url: https://github.com/orgs/Jahia/projects/22
-          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
-          labeled: Area:Security
-
       - name: Attach all tickets with label Area:Tech to the Tech Roadmap Project
         uses: actions/add-to-project@v1.0.2
         with:
@@ -72,6 +65,91 @@ jobs:
           project-url: https://github.com/orgs/Jahia/projects/12
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:Delivery
+
+      - name: Attach all tickets with label Area:Security and incident to the Security Roadmap Project
+        uses: actions/add-to-project@v1.0.2
+        id: new-security-incident
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/22
+          github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
+          labeled: Area:Security, incident
+          label-operator: AND
+
+      - run: npm install jira-client
+
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          result-encoding: string
+          retries: 3
+          script: |
+            const jiraApi = require('jira-client');
+            const jiraSecurityTicket = 'SECBACKLOG-0'
+            const securityProjectJiraField = 'Jira ticket ID'
+            const securityProjectName = 'Area - Security'
+            const projectFields = await github.graphql(`
+              query issue($issueId: ID! $projectField: String!) {
+                node(id: $issueId) {
+                  ... on Issue {
+                    title
+                    projectItems(first: 10) {
+                      nodes {
+                        project {
+                          title
+                        }
+                        fieldId
+                        fieldValueByName(name: $projectField) {
+                          ... on ProjectV2ItemFieldTextValue {
+                            text
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }    
+              `,
+              { issueId: context.payload.issue.node_id, projectField: securityProjectJiraField }
+            )
+            let securityTicket = ''
+            let securityProjectJiraFieldID = ''
+            const securityProject = projectFields.node.projectItems.nodes.find(pi => pi.project.title === securityProjectName)
+            if (securityProject !== undefined) {
+              securityTicket = securityProject.fieldValueByName.text
+              securityProjectJiraFieldID = securityProject.fieldId
+            }
+            console.log(`Linked security ticket is: ${securityTicket}`)
+            
+            const projectFields = await github.graphql(`
+              mutation (
+                $project: ID!
+                $item: ID!
+                $field: ID!
+                $field_value: String!
+              ) {
+                set_field_value: updateProjectV2ItemFieldValue(input: {
+                  projectId: $project
+                  itemId: $item
+                  fieldId: $field
+                  value: {
+                    singleSelectOptionId: $field_value
+                    }
+                }) {
+                  projectV2Item {
+                    id
+                    }
+                }
+              `,
+              { project: ${{ env.github-org }}, item: context.payload.issue.node_id, field: securityProjectJiraFieldID, field_value: jiraSecurityTicket }} }
+              )
+
+
+      - name: Attach all tickets with label Area:QA to the Security Roadmap Project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/22
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          labeled: Area:Security
 
   transfer:
     name: Transfer
