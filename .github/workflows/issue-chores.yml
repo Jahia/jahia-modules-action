@@ -118,6 +118,7 @@ jobs:
               { issueId: context.payload.issue.node_id, projectField: securityProjectJiraField }
             )
             let securityTicket = ''
+            let securityProjectID = ''
             let securityProjectJiraFieldID = ''
             const securityProject = projectFields.node.projectItems.nodes.find(pi => pi.project.title === securityProjectName)
             if (securityProject !== undefined && securityProject.fieldValueByName !== null) {
