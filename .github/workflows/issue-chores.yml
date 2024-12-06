@@ -88,7 +88,7 @@ jobs:
             const securityProjectJiraField = 'Jira ticket ID'
             const securityProjectName = 'Area - Security'
             const projectFields = await github.graphql(`
-              query issue($issueId: ID! $projectField: String!) {
+              query issue($issueId: ID!, $projectField: String!) {
                 node(id: $issueId) {
                   ... on Issue {
                     title
@@ -127,26 +127,21 @@ jobs:
             console.log(`Jira ticket field id is: ${securityProjectJiraFieldID}`)
             
             await github.graphql(`
-              mutation (
-                $project: ID!
-                $item: ID!
-                $field: ID!
-                $field_value: String!
-              ) {
-                set_field_value: updateProjectV2ItemFieldValue(input: {
+              mutation ($project: ID!, $item: ID!, $field: ID!, $field_value: String!) {
+                updateProjectV2ItemFieldValue(input: {
                   projectId: $project
                   itemId: $item
                   fieldId: $field
                   value: {
                     singleSelectOptionId: $field_value
-                    }
+                  }
                 }) {
                   projectV2Item {
                     id
-                    }
+                  }
                 }
               `,
-              { project: 22, item: context.payload.issue.node_id, field: securityProjectJiraFieldID, field_value: jiraSecurityTicket }
+              { project: 22, item: context.payload.issue.node_id, field: ${securityProjectJiraFieldID}, field_value: ${jiraSecurityTicket} }
             )
 
 
