@@ -96,15 +96,16 @@ jobs:
                       nodes {
                         project {
                           title
+                          field(name: "Jira ticket ID") {
+                            ... on ProjectV2Field {
+                              id
+                              name
+                            }
+                          }
                         }
                         fieldValueByName(name: $projectField) {
                           ... on ProjectV2ItemFieldTextValue {
                             text
-                            field {
-                              ... on ProjectV2Field {
-                                id
-                              }
-                            }
                           }
                         }
                       }
@@ -120,9 +121,10 @@ jobs:
             const securityProject = projectFields.node.projectItems.nodes.find(pi => pi.project.title === securityProjectName)
             if (securityProject !== undefined && securityProject.fieldValueByName !== null) {
               securityTicket = securityProject.fieldValueByName.text
-              securityProjectJiraFieldID = securityProject.fieldValueByName.field.id
+              securityProjectJiraFieldID = securityProject.project.field.id
             }
             console.log(`Linked security ticket is: ${securityTicket}`)
+            console.log(`Jira ticket field id is: ${securityProjectJiraFieldID}`)
             
             await github.graphql(`
               mutation (
