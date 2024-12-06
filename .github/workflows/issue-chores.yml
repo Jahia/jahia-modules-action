@@ -142,7 +142,7 @@ jobs:
                 }
               }
               `,
-              { project: 22, item: context.payload.issue.node_id, field: ${securityProjectJiraFieldID}, field_value: ${jiraSecurityTicket} }
+              { project: 22, item: context.payload.issue.node_id, field: securityProjectJiraFieldID, field_value: jiraSecurityTicket }
             )
 
 
