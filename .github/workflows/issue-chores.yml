@@ -120,7 +120,7 @@ jobs:
             }
             console.log(`Linked security ticket is: ${securityTicket}`)
             
-            const projectFields = await github.graphql(`
+            await github.graphql(`
               mutation (
                 $project: ID!
                 $item: ID!
