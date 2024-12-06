@@ -97,10 +97,14 @@ jobs:
                         project {
                           title
                         }
-                        fieldId
                         fieldValueByName(name: $projectField) {
                           ... on ProjectV2ItemFieldTextValue {
                             text
+                            field {
+                              ... on ProjectV2Field {
+                                id
+                              }
+                            }
                           }
                         }
                       }
@@ -116,7 +120,7 @@ jobs:
             const securityProject = projectFields.node.projectItems.nodes.find(pi => pi.project.title === securityProjectName)
             if (securityProject !== undefined) {
               securityTicket = securityProject.fieldValueByName.text
-              securityProjectJiraFieldID = securityProject.fieldId
+              securityProjectJiraFieldID = securityProject.fieldValueByName.field.id
             }
             console.log(`Linked security ticket is: ${securityTicket}`)
             
