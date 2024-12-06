@@ -140,8 +140,8 @@ jobs:
                     }
                 }
               `,
-              { project: ${{ env.github-org }}, item: context.payload.issue.node_id, field: securityProjectJiraFieldID, field_value: jiraSecurityTicket }} }
-              )
+              { project: 22, item: context.payload.issue.node_id, field: securityProjectJiraFieldID, field_value: jiraSecurityTicket }} }
+            )
 
 
       - name: Attach all tickets with label Area:QA to the Security Roadmap Project
