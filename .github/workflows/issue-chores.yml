@@ -117,7 +117,8 @@ jobs:
               `,
               { issueId: context.payload.issue.node_id, projectField: securityProjectJiraField }
             )
-            console.log(JSON.stringify(${projectFields}))
+            
+            console.log(JSON.stringify(projectFields))
             let securityTicket = ''
             let securityProjectID = ''
             let securityProjectJiraFieldID = ''
@@ -149,7 +150,6 @@ jobs:
               `,
               { project: securityProjectID, item: context.payload.issue.node_id, field: securityProjectJiraFieldID, field_value: jiraSecurityTicket }
             )
-
 
       - name: Attach all tickets with label Area:QA to the Security Roadmap Project
         uses: actions/add-to-project@v1.0.2
