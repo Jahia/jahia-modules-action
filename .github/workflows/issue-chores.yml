@@ -112,7 +112,7 @@ jobs:
                     }
                   }
                 }
-              }    
+              }
               `,
               { issueId: context.payload.issue.node_id, projectField: securityProjectJiraField }
             )
@@ -140,6 +140,7 @@ jobs:
                     id
                   }
                 }
+              }
               `,
               { project: 22, item: context.payload.issue.node_id, field: ${securityProjectJiraFieldID}, field_value: ${jiraSecurityTicket} }
             )
