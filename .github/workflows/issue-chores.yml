@@ -117,6 +117,7 @@ jobs:
               `,
               { issueId: context.payload.issue.node_id, projectField: securityProjectJiraField }
             )
+            console.log('projectFields: ${projectFields}')
             let securityTicket = ''
             let securityProjectID = ''
             let securityProjectJiraFieldID = ''
