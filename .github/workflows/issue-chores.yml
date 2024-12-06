@@ -118,7 +118,7 @@ jobs:
             let securityTicket = ''
             let securityProjectJiraFieldID = ''
             const securityProject = projectFields.node.projectItems.nodes.find(pi => pi.project.title === securityProjectName)
-            if (securityProject !== undefined) {
+            if (securityProject !== undefined && securityProject.fieldValueByName !== null) {
               securityTicket = securityProject.fieldValueByName.text
               securityProjectJiraFieldID = securityProject.fieldValueByName.field.id
             }
