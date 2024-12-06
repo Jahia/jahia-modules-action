@@ -102,24 +102,25 @@ jobs:
                 }
               }
             }' -f node_id=${{ env.ISSUE_ID }} -f custom_field_name="Jira ticket ID" > project_data.json
-          echo 'JIRA_TICKET_FIELD_VALUE='$(jq '.data.node.projectItems.nodes[] | .text' project_data.json) >> $GITHUB_ENV
+          echo 'JIRA_TICKET_FIELD_VALUE='$(jq '.data.node.projectItems.nodes[].fieldValueByName | .text' project_data.json) >> $GITHUB_ENV
+          echo "Ticket: ${{ env.JIRA_TICKET_FIELD_VALUE }}"
 
       - name: Create a Security issue in the Support Jira
         uses: bryannice/gitactions-jira-issue-creation@1.2.1
-        if: ${{ env.JIRA_TICKET_FIELD_VALUE == '' }}
+        if: ${{ env.JIRA_TICKET_FIELD_VALUE == null }}
         id: new-security-jira-ticket
         env:
           JIRA_ACCOUNT_URL: https://jira.jahia.org
           JIRA_API_TOKEN: ${{ secrets.JIRA_TOKEN }}
           JIRA_ISSUE_DESCRIPTION: ${{ github.event.issue.body }}
-          JIRA_ISSUE_SUMMARY: ${{ github.event.issue.title }}context.payload.issue.title (${{ steps.new-security-incident.outputs.itemId }})
+          JIRA_ISSUE_SUMMARY: ${{ github.event.issue.title }} (${{ steps.new-security-incident.outputs.itemId }})
           JIRA_ISSUE_TYPE: Bug
           #JIRA_ISSUE_TYPE: Vulnerability
           JIRA_PROJECT: SECBACKLOG
           JIRA_USERNAME: ${{ secrets.JIRA_USERNAME }}
 
       - name: Get Security project data
-        if: ${{ env.JIRA_TICKET_FIELD_VALUE == '' }}
+        if: ${{ env.JIRA_TICKET_FIELD_VALUE == null }}
         env:
           GH_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           ORGANIZATION: Jahia
@@ -152,7 +153,7 @@ jobs:
           echo 'JIRA_TICKET_FIELD_ID='$(jq '.data.organization.projectV2.fields.nodes[] | select(.name== "Jira ticket ID") | .id' project_data.json) >> $GITHUB_ENV
 
       - name: Set security field on Github issue
-        if: ${{ env.JIRA_TICKET_FIELD_VALUE == '' && steps.new-security-incident.outputs.itemId != '' && steps.new-security-jira-ticket.outputs.jira_issue_url != '' }}
+        if: ${{ env.JIRA_TICKET_FIELD_VALUE == null && steps.new-security-incident.outputs.itemId != '' && steps.new-security-jira-ticket.outputs.jira_issue_url != '' }}
         env:
           GH_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
         run: |
