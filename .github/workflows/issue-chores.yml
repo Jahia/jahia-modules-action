@@ -123,8 +123,10 @@ jobs:
             let securityProjectID = ''
             let securityProjectJiraFieldID = ''
             const securityProject = projectFields.node.projectItems.nodes.find(pi => pi.project.title === securityProjectName)
-            if (securityProject !== undefined && securityProject.fieldValueByName !== null) {
-              securityTicket = securityProject.fieldValueByName.text
+            if (securityProject !== undefined) {
+              if (securityProject.fieldValueByName !== null) {
+                securityTicket = securityProject.fieldValueByName.text
+              }
               securityProjectID = securityProject.project.id
               securityProjectJiraFieldID = securityProject.project.field.id
             }
