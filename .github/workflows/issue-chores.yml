@@ -190,7 +190,7 @@ jobs:
               )
               
               await github.rest.issues.createComment({
-                issue_number: context.payload.issue.number,
+                issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.name,
                 body: `A copy of this ticket has been created: https://${ jiraHost }/browse/${ issue.key }.`
