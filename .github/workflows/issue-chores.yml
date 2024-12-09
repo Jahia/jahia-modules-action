@@ -79,6 +79,7 @@ jobs:
 
       - name: Create a Security Jira ticket
         uses: ./.github/actions/create-security-ticket
+        if: ${{ steps.new-security-incident.outputs.itemId != '' }}
         with:
           jira-host: 'jira.jahia.org'
           jira-project: 'SECBACKLOG'
