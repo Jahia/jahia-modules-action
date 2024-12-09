@@ -95,6 +95,7 @@ runs:
           core.info(`Project ID: ${projectId}`)
 
           // Find if the issue is already attached to the current project
+          console.log(gitubIssue)
           const projectItem = gitubIssue.projectItems.nodes.find(item => item.project.id === projectId)
           core.info(`Project Item ID: ${projectItem !== undefined ? projectItem.id : 'Project not found'}`)
           if (projectItem === undefined && gitubIssue.milestone !== null) {
