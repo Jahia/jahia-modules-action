@@ -6,8 +6,9 @@ on:
   workflow_call:
 
 jobs:
-  projects:
-    name: Projects
+  projects-label:
+    name: Projects on Labels
+    if: ${{ github.event.action == "labeled" }}
     runs-on: ubuntu-latest
     steps:
       # Issue type is not available by default, this makes it available for if conditions
@@ -22,7 +23,6 @@ jobs:
       # https://github.com/marketplace/actions/add-to-github-projects
       - name: Attach needs-triage to the Bugs Triage project
         uses: actions/add-to-project@v1.0.2
-        if: github.event.action == "labeled"
         with:
           project-url: https://github.com/orgs/Jahia/projects/13
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
@@ -30,7 +30,6 @@ jobs:
 
       - name: Attach customers to the Customers project
         uses: actions/add-to-project@v1.0.2
-        if: github.event.action == "labeled"
         with:
           project-url: https://github.com/orgs/Jahia/projects/24
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
@@ -39,7 +38,7 @@ jobs:
       # Add all tickets of Type "Epic" and label "Area:" to the global roadmap project
       - name: Attach all Epics to the Roadmap - Global project
         uses: actions/add-to-project@v1.0.2
-        if: ${{ steps.get-issue-type.outputs.result == 'Epic' }}
+        if: ${{ steps.get-issue-type.outputs.result == 'Epic'}}
         with:
           project-url: https://github.com/orgs/Jahia/projects/18
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
@@ -48,7 +47,6 @@ jobs:
 
       - name: Attach all tickets with label Area:QA to the QA Roadmap Project
         uses: actions/add-to-project@v1.0.2
-        if: github.event.action == "labeled"
         with:
           project-url: https://github.com/orgs/Jahia/projects/21
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
@@ -56,7 +54,6 @@ jobs:
 
       - name: Attach all tickets with label Area:QA to the Security Roadmap Project
         uses: actions/add-to-project@v1.0.2
-        if: github.event.action == "labeled"
         with:
           project-url: https://github.com/orgs/Jahia/projects/22
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
@@ -64,7 +61,6 @@ jobs:
 
       - name: Attach all tickets with label Area:Tech to the Tech Roadmap Project
         uses: actions/add-to-project@v1.0.2
-        if: github.event.action == "labeled"
         with:
           project-url: https://github.com/orgs/Jahia/projects/23
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
@@ -72,25 +68,28 @@ jobs:
 
       - name: Attach all tickets with label Area:Delivery to the Delivery Roadmap Project
         uses: actions/add-to-project@v1.0.2
-        if: github.event.action == "labeled"
         with:
           project-url: https://github.com/orgs/Jahia/projects/12
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:Delivery
 
+  projects-milestone:
+    name: Projects on Milestones
+    if: ${{ github.event.action == "milestoned" || github.event.action == "demilestoned" }}
+    runs-on: ubuntu-latest
+    steps:
       # Adds or removes the "Product Releases" project if a milestone is added
       # or removed
       - name: Attach Project based on the presence of a milestone
         uses: jahia/jahia-modules-action/add-project-based-on-milestone@add-project-based-on-milestone
-        if: (github.event.action == "milestoned" || github.event.action == "demilestoned")
         with:
           project_url: https://github.com/orgs/Jahia/projects/29
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
-  
+
   transfer:
     name: Transfer
     runs-on: ubuntu-latest
-    needs: projects
+    needs: [projects, projects-milestone]
     steps:
       # Transfer issues with label "jahia-only" back to jahia-private
       - name: Transfer Issue & Create Stub
