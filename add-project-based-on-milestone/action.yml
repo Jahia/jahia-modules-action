@@ -106,10 +106,12 @@ runs:
             await github.graphql(`
               mutation ($projectId: ID! $contentId: ID!) {
                 addProjectV2ItemById(input: {
-                  contentId: $contentId
                   projectId: $projectId
+                  contentId: $contentId
                 }) {
-                  deletedItemId
+                  item {
+                    id
+                  }
                 }
               }
               `,
