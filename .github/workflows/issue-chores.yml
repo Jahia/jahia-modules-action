@@ -8,7 +8,7 @@ on:
 jobs:
   projects-label:
     name: Projects on Labels
-    if: ${{ github.event.action == "labeled" }}
+    if: ${{ github.event.action == 'labeled' }}
     runs-on: ubuntu-latest
     steps:
       # Issue type is not available by default, this makes it available for if conditions
@@ -75,7 +75,7 @@ jobs:
 
   projects-milestone:
     name: Projects on Milestones
-    if: ${{ github.event.action == "milestoned" || github.event.action == "demilestoned" }}
+    if: ${{ github.event.action == 'milestoned' || github.event.action == 'demilestoned' }}
     runs-on: ubuntu-latest
     steps:
       # Adds or removes the "Product Releases" project if a milestone is added
