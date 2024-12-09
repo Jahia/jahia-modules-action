@@ -10,6 +10,8 @@ jobs:
     name: Projects
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      
       # Issue type is not available by default, this makes it available for if conditions
       - name: Get Issue type
         uses: actions/github-script@v7
