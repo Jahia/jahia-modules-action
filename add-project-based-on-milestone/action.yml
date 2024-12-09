@@ -15,7 +15,7 @@ runs:
     - name: Check if a Security Jira ticket is already linked, create it if not
       uses: actions/github-script@v7
       env:
-        PROJECT_URL: ${{ inputs.project_url }}
+        projectUrl: ${{ inputs.project_url }}
       with:
         github-token: ${{ inputs.github_token }}
         result-encoding: string
