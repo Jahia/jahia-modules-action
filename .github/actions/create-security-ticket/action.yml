@@ -22,6 +22,8 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - run: npm install jira-client
+    
     - name: Check if a Security Jira ticket is already linked, create it if not
       uses: actions/github-script@v7
       with:
