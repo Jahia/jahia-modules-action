@@ -133,9 +133,9 @@ jobs:
               securityProjectID = securityProject.project.id
               securityProjectJiraFieldID = securityProject.project.field.id
             }
-            console.log(`Linked security ticket is: ${securityTicket}`)
-            console.log(`Linked security ticket is: ${securityProjectID}`)
-            console.log(`Jira ticket field id is: ${securityProjectJiraFieldID}`)
+            console.log(`Project item ID is: ${securityProjectItemID}`)
+            console.log(`Project ID is: ${securityProjectID}`)
+            console.log(`Jira ticket field ID is: ${securityProjectJiraFieldID}`)
             
             await github.graphql(`
               mutation ($project: ID! $item: ID! $field: ID! $field_value: String!) {
@@ -144,7 +144,7 @@ jobs:
                   itemId: $item
                   fieldId: $field
                   value: {
-                    singleSelectOptionId: $field_value
+                    text: $field_value
                   }
                 }) {
                   projectV2Item {
