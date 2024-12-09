@@ -136,7 +136,7 @@ jobs:
                     securityTicket = tickets[t]
                   }
                 }
-                console.log(JSON.stringify(securityTicket)
+                console.log(JSON.stringify(securityTicket))
               }
               securityProjectItemID = securityProject.id
               securityProjectID = securityProject.project.id
