@@ -1,0 +1,93 @@
+name: Add to Project based on Milestone
+description: Adds or removed an issue from a project based on the presence of any milestone
+
+inputs:
+  project_url:
+    description: Project URL to add to or remove from an Issue
+    required: true
+  github_token:
+    description: 'GitHub personal API token'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check if a Security Jira ticket is already linked, create it if not
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github_token }}
+        result-encoding: string
+        retries: 3
+        env:
+          PROJECT_URL: ${{ inputs.project_url }}
+        script: |
+          const { PROJECT_URL } = process.env
+          const githubIssueId = context.payload.issue.node_id;
+          const gitubIssue = await github.graphql(`
+            query issue($issueId: ID!) {
+              node(id: $issueId) {
+                ... on Issue {
+                  id
+                  title
+                  milestone {
+                    id
+                    title
+                  }
+                  projectItems(first:10) {
+                    nodes {
+                      id
+                      project {
+                        id                    
+                        url
+                      }
+                    }
+                  }                                  
+                }
+              }
+            }
+            `,
+            { issueId: githubIssueId }
+          )
+          if (gitubIssue === undefined) {
+            core.info(`Unable to find an issue with ID: ${githubIssueId}`)
+            return
+          }
+          
+          // Find project
+          const project = TODO
+
+          // Find if the issue is already attached to the current project
+          const projectItemId = gitubIssue.projectItems.nodes.find(item => item.project.url === PROJECT_URL)
+          if (projectItemId === undefined && gitubIssue.milestone !== null) {
+            // Issue is not attached to a project but is attached to a milestone
+            // We need to attach it to a project
+            await github.graphql(`
+              mutation ($projectId: ID! $contentId: ID!) {
+                addProjectV2ItemById(input: {
+                  contentId: $contentId
+                  projectId: $projectId
+                }) {
+                  deletedItemId
+                }
+              }
+              `,
+              { projectId: projectItemId.project.id, contentId: githubIssueId }
+            )
+          } else if (projectItemId !== undefined && gitubIssue.milestone === null) {
+            // Issue is attached to a project but not attached to a milestone
+            // We need to remove it from the project
+            await github.graphql(`
+              mutation ($projectId: ID! $itemId: ID!) {
+                deleteProjectV2Item(input: {
+                  itemId: $itemId
+                  projectId: $projectId
+                }) {
+                  deletedItemId
+                }
+              }
+              `,
+              { projectId: projectItemId.project.id, itemId: githubIssueId }
+            )
+          } else {
+            core.info(`No action required for issue with ID: ${githubIssueId}`)
+          }
