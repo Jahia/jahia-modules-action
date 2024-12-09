@@ -86,6 +86,7 @@ jobs:
           script: |
             const jiraApi = require('jira-client');
             
+            const jiraHost = 'jira.jahia.org'
             const securityProjectJiraField = 'Jira ticket ID'
             const securityProjectName = 'Area - Security'
             const projectFields = await github.graphql(`
@@ -138,7 +139,7 @@ jobs:
               // Initialize Jira connection
               const jira = new jiraApi({
                 protocol: 'https',
-                host: 'jira.jahia.org',
+                host: jiraHost,
                 username: '${{ secrets.JIRA_USERNAME }}',
                 password: '${{ secrets.JIRA_PASSWORD }}',
                 apiVersion: '2',
@@ -187,6 +188,13 @@ jobs:
                 `,
                 { project: securityProjectID, item: securityProjectItemID, field: securityProjectJiraFieldID, field_value: issue.key }
               )
+              
+              await github.rest.issues.createComment({
+                issue_number: context.payload.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.name,
+                body: `A copy of this ticket has been created: https://${ jiraHost }/browse/${ issue.key }.`
+              });
             }
 
       - name: Attach all tickets with label Area:QA to the Security Roadmap Project
