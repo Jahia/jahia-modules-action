@@ -129,14 +129,13 @@ jobs:
             const securityProject = projectFields.node.projectItems.nodes.find(pi => pi.project.title === securityProjectName)
             if (securityProject !== undefined) {
               if (securityProject.fieldValueByName !== null) {
-                console.log(JSON.stringify(securityProject.fieldValueByName.text))
                 const tickets = securityProject.fieldValueByName.text.split(',')
                 for(let t = 0; t < tickets.length; t++){
                   if (tickets[t].startsWith(jiraProject)) {
                     securityTicket = tickets[t]
                   }
                 }
-                console.log(JSON.stringify(securityTicket))
+                console.log('Security ticket found: ' + JSON.stringify(securityTicket))
               }
               securityProjectItemID = securityProject.id
               securityProjectID = securityProject.project.id
@@ -157,6 +156,7 @@ jobs:
               const issueSummary = '[Product] ' + "${{ github.event.issue.title }}" + ' (#' + "${{ github.event.issue.number }}" + ')'
               const issueBody = "${{ github.event.issue.body }}";
 
+              // Remove the version when moving to the support Jira
               const issue = await jira.addNewIssue({
                 fields: {
                   "project":
