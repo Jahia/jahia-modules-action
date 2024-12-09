@@ -145,11 +145,8 @@ jobs:
                 strictSSL: true
               })
 
-              const issueId = "${{ github.event.issue.id }}";
-              const issueTitle = "${{ github.event.issue.title }}";
+              const issueSummary = '[Product] ' + "${{ github.event.issue.title }}" + ' (' + "${{ github.event.issue.id }}" + ')'
               const issueBody = "${{ github.event.issue.body }}";
-              const issueSummary = '[Product] ${ issueTitle } (${ issueId })'
-              const issueDescription = '${ issueBody }'
 
               const issue = await jira.addNewIssue({
                 fields: {
@@ -158,7 +155,7 @@ jobs:
                       "key": "SECBACKLOG"
                   },
                   "summary": issueSummary,
-                  "description": issueDescription,
+                  "description": issueBody,
                   "versions": 
                   [
                     {
