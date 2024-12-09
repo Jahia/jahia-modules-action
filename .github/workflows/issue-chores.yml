@@ -192,7 +192,7 @@ jobs:
               await github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: "${{ github.repository_owner }}",
-                repo: "${{ github.repository }}",
+                repo: "${{ github.event.repository.name }}",
                 body: `A copy of this ticket has been created: https://${ jiraHost }/browse/${ issue.key }.`
               });
             }
