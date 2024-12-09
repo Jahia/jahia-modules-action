@@ -19,7 +19,7 @@ runs:
         result-encoding: string
         retries: 3
         env:
-          PROJECT_URL: ${{ inputs.project_url }}
+          PROJECT_URL: '${{ inputs.project_url }}'
         script: |
           const { PROJECT_URL } = process.env
           const githubIssueId = context.payload.issue.node_id;
