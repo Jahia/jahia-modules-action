@@ -97,16 +97,12 @@ jobs:
             });
 
       # Transfer issues between repositories of the Jahia org
-      # Note: Pending review/merge of this PR: https://github.com/lando/transfer-issue-action/pull/97
-      # Will update once PR is merged.
       - name: Transfer Issue & Create Stub
-        uses: Fgerthoffert/transfer-issue-action@v1.0.0
+        uses: Fgerthoffert/actions-transfer-issue@v1.0.0
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
           router: "transfer:"
-          create_labels_if_missing: true
           allow_private_public_transfer: true
-          enable_custom_label_routing: true
 
   links:
     name: Links
