@@ -1,5 +1,5 @@
 name: Create a Security ticket
-description: Check if a Security Jira ticket is already linked, create it if not
+description: Create a Security Jira ticket from a Github issue
 
 inputs:
   jira-host:
