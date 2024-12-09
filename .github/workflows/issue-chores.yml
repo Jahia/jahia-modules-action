@@ -155,7 +155,7 @@ jobs:
                 },
                 "summary": issueSummary,
                 "description": issueDescription,
-                "Affects Version/s": 
+                "versions": 
                 [
                   {
                     "name": "8.2.0.0"
