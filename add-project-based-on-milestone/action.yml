@@ -130,7 +130,7 @@ runs:
                 }
               }
               `,
-              { projectId: projectItem.project.id, itemId: githubIssueId }
+              { projectId: projectItem.project.id, itemId: projectItem.id }
             )
           } else {
             core.info(`No action required for issue with ID: ${githubIssueId}`)
