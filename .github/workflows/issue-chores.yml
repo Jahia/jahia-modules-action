@@ -77,7 +77,8 @@ jobs:
 
       - run: npm install jira-client
 
-      - uses: actions/github-script@v7
+      - name: Check if a Security Jira ticket is already linked, create it if not
+        uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           result-encoding: string
@@ -119,7 +120,6 @@ jobs:
               { issueId: context.payload.issue.node_id, projectField: securityProjectJiraField }
             )
             
-            console.log(JSON.stringify(projectFields))
             let securityTicket = ''
             let securityProjectItemID = ''
             let securityProjectID = ''
@@ -133,9 +133,31 @@ jobs:
               securityProjectID = securityProject.project.id
               securityProjectJiraFieldID = securityProject.project.field.id
             }
-            console.log(`Project item ID is: ${securityProjectItemID}`)
-            console.log(`Project ID is: ${securityProjectID}`)
-            console.log(`Jira ticket field ID is: ${securityProjectJiraFieldID}`)
+            
+            // Initialize Jira connection
+            const jira = new JiraApi({
+              protocol: 'https',
+              host: 'jira.jahia.org',
+              username: '${{ secrets.JIRA_USERNAME }}',
+              password: '${{ secrets.JIRA_PASSWORD }}',
+              apiVersion: '2',
+              strictSSL: true
+            })
+
+            const issue = await jira.addNewIssue({
+              fields: {
+                "project":
+                {
+                    "key": "SECBACKLOG"
+                },
+                "summary": context.payload.issue.title (context.payload.issue.id),
+                "description": context.payload.issue.body,
+                "issuetype": {
+                    "name": "Bug"
+                }
+              }
+            });
+            console.log(JSON.stringify(issue))
             
             await github.graphql(`
               mutation ($project: ID! $item: ID! $field: ID! $field_value: String!) {
@@ -153,7 +175,7 @@ jobs:
                 }
               }
               `,
-              { project: securityProjectID, item: securityProjectItemID, field: securityProjectJiraFieldID, field_value: jiraSecurityTicket }
+              { project: securityProjectID, item: securityProjectItemID, field: securityProjectJiraFieldID, field_value: issue.key }
             )
 
       - name: Attach all tickets with label Area:QA to the Security Roadmap Project
