@@ -135,7 +135,7 @@ jobs:
             }
             
             // Initialize Jira connection
-            const jira = new JiraApi({
+            const jira = new jiraApi({
               protocol: 'https',
               host: 'jira.jahia.org',
               username: '${{ secrets.JIRA_USERNAME }}',
