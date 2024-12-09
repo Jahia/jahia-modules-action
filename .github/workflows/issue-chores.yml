@@ -81,7 +81,7 @@ jobs:
       # Adds or removes the "Product Releases" project if a milestone is added
       # or removed
       - name: Attach Project based on the presence of a milestone
-        uses: jahia/jahia-modules-action/add-project-based-on-milestone@v2
+        uses: jahia/jahia-modules-action/add-project-based-on-milestone@add-project-based-on-milestone
         if: (github.event.action == "milestoned" || github.event.action == "demilestoned")
         with:
           project_url: https://github.com/orgs/Jahia/projects/29
