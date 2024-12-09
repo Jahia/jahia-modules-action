@@ -90,6 +90,7 @@ jobs:
     name: Transfer
     runs-on: ubuntu-latest
     needs: [projects-label, projects-milestone]
+    if: always()
     steps:
       # Transfer issues with label "jahia-only" back to jahia-private
       - name: Transfer Issue & Create Stub
