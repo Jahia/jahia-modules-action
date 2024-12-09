@@ -145,7 +145,7 @@ jobs:
                 strictSSL: true
               })
 
-              const issueSummary = '[Product] ' + "${{ github.event.issue.title }}" + ' (' + "${{ github.event.issue.id }}" + ')'
+              const issueSummary = '[Product] ' + "${{ github.event.issue.title }}" + ' (#' + "${{ github.event.issue.number }}" + ')'
               const issueBody = "${{ github.event.issue.body }}";
 
               const issue = await jira.addNewIssue({
