@@ -56,6 +56,13 @@ runs:
           // Find project using its URL
           // Based on code from: https://github.com/actions/add-to-project/blob/main/src/add-to-project.ts
           const urlParse = /\/(?<ownerType>orgs|users)\/(?<ownerName>[^/]+)\/projects\/(?<projectNumber>\d+)/
+          const mustGetOwnerTypeQuery = (ownerType => {
+            const ownerTypeQuery = ownerType === 'orgs' ? 'organization' : ownerType === 'users' ? 'user' : null
+            if (!ownerTypeQuery) {
+              throw new Error(`Unsupported ownerType: ${ownerType}. Must be one of 'orgs' or 'users'`)
+            }
+            return ownerTypeQuery
+          })
           const urlMatch = projectUrl.match(urlParse)
           if (!urlMatch) {
             throw new Error(
