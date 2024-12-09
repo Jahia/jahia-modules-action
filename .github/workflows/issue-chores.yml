@@ -155,6 +155,7 @@ jobs:
                 },
                 "summary": issueSummary,
                 "description": issueDescription,
+                "affectedVersions:" : ["name": "8.2.0.0"],
                 "issuetype": {
                     "name": "Bug"
                 }
