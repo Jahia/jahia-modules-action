@@ -89,7 +89,7 @@ jobs:
   transfer:
     name: Transfer
     runs-on: ubuntu-latest
-    needs: [projects, projects-milestone]
+    needs: [projects-label, projects-milestone]
     steps:
       # Transfer issues with label "jahia-only" back to jahia-private
       - name: Transfer Issue & Create Stub
