@@ -81,6 +81,9 @@ jobs:
         with:
           jira-host: 'jira.jahia.org'
           jira-project: 'SECBACKLOG'
+          jira-username: ${{ secrets.JIRA_USERNAME }}
+          jira-password: ${{ secrets.JIRA_PASSWORD }}
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
 
       - name: Attach all tickets with label Area:QA to the Security Roadmap Project
         uses: actions/add-to-project@v1.0.2

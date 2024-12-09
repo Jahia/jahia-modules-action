@@ -10,6 +10,15 @@ inputs:
     description: 'Jira project'
     default: 'SECBACKLOG'
     required: true
+  jira-username:
+    description: 'Jira username'
+    required: true
+  jira-password:
+    description: 'Jira password'
+    required: true
+  github-token:
+    description: 'Github token'
+    required: true
   github-security-project:
     description: 'Github security project name'
     default: 'Area - Security'
@@ -22,12 +31,14 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - run: npm install jira-client
+    - name: Install Jira client
+      shell: bash
+      run: npm install jira-client
     
     - name: Check if a Security Jira ticket is already linked, create it if not
       uses: actions/github-script@v7
       with:
-        github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+        github-token: ${{ inputs.github-token }}
         result-encoding: string
         retries: 3
         script: |
@@ -94,8 +105,8 @@ runs:
             const jira = new jiraApi({
               protocol: 'https',
               host: jiraHost,
-              username: '${{ secrets.JIRA_USERNAME }}',
-              password: '${{ secrets.JIRA_PASSWORD }}',
+              username: '${{ inputs.jira-username }}',
+              password: '${{ inputs.jira-password }}',
               apiVersion: '2',
               strictSSL: true
             })
