@@ -85,7 +85,7 @@ jobs:
           retries: 3
           script: |
             const jiraApi = require('jira-client');
-            const jiraSecurityTicket = 'SECBACKLOG-0'
+            
             const securityProjectJiraField = 'Jira ticket ID'
             const securityProjectName = 'Area - Security'
             const projectFields = await github.graphql(`
@@ -145,8 +145,11 @@ jobs:
                 strictSSL: true
               })
 
-              let issueSummary = '[Product] ${ context.payload.issue.title } (${ context.payload.issue.id })'
-              let issueDescription = '${ context.payload.issue.body }'
+              const issueId = github.context.payload.issue.id;
+              const issueTitle = github.context.payload.issue.title;
+              const issueBody = github.context.payload.issue.body;
+              let issueSummary = '[Product] ${ issueTitle } (${ issueId })'
+              let issueDescription = '${ issueBody }'
 
               const issue = await jira.addNewIssue({
                 fields: {
