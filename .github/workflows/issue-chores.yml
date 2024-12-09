@@ -8,7 +8,7 @@ on:
 jobs:
   projects-label:
     name: Projects on Labels
-    if: ${{ github.event.action == 'labeled' }}
+    if: ${{ github.event_name == 'issues' && github.event.action == 'labeled' }}
     runs-on: ubuntu-latest
     steps:
       # Issue type is not available by default, this makes it available for if conditions
