@@ -76,7 +76,7 @@ jobs:
           label-operator: AND
 
       - name: Create a Security Jira ticket
-        uses: jahia/jahia-modules-action/create-security-ticket@v2
+        uses: jahia/jahia-modules-action/create-security-ticket@security-issue-creation-js
         if: ${{ steps.new-security-incident.outputs.itemId != '' }}
         with:
           jira-host: 'jira.jahia.org'
