@@ -55,7 +55,7 @@ runs:
           const gitubIssue = gitubIssueNode.node
           
           // Find project using its URL
-          // Based on code from: https://github.com/actions/add-to-project/blob/main/src/add-to-project.ts
+          // Copied from: https://github.com/actions/add-to-project/blob/main/src/add-to-project.ts
           const urlParse = /\/(?<ownerType>orgs|users)\/(?<ownerName>[^/]+)\/projects\/(?<projectNumber>\d+)/
           const mustGetOwnerTypeQuery = (ownerType => {
             const ownerTypeQuery = ownerType === 'orgs' ? 'organization' : ownerType === 'users' ? 'user' : null
@@ -96,9 +96,7 @@ runs:
           core.info(`Project ID: ${projectId}`)
 
           // Find if the issue is already attached to the current project
-          console.log(gitubIssue)
           const projectItem = gitubIssue.projectItems.nodes.find(item => item.project.id === projectId)
-          console.log(projectItem)
           core.info(`Project Item ID: ${projectItem !== undefined ? projectItem.id : 'Project not found'}`)
           if (projectItem === undefined && gitubIssue.milestone !== null) {
             // Issue is not attached to a project but is attached to a milestone
