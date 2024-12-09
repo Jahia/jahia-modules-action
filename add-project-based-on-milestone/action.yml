@@ -14,12 +14,12 @@ runs:
   steps:
     - name: Check if a Security Jira ticket is already linked, create it if not
       uses: actions/github-script@v7
+      env:
+        PROJECT_URL: ${{ inputs.project_url }}
       with:
         github-token: ${{ inputs.github_token }}
         result-encoding: string
         retries: 3
-        env:
-          PROJECT_URL: '${{ inputs.project_url }}'
         script: |
           const { PROJECT_URL } = process.env
           const githubIssueId = context.payload.issue.node_id;
