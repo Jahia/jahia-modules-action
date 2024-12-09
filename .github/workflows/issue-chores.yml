@@ -134,59 +134,60 @@ jobs:
               securityProjectJiraFieldID = securityProject.project.field.id
             }
             
-            // Initialize Jira connection
-            const jira = new jiraApi({
-              protocol: 'https',
-              host: 'jira.jahia.org',
-              username: '${{ secrets.JIRA_USERNAME }}',
-              password: '${{ secrets.JIRA_PASSWORD }}',
-              apiVersion: '2',
-              strictSSL: true
-            })
+            if (securityTicket === '') {
+              // Initialize Jira connection
+              const jira = new jiraApi({
+                protocol: 'https',
+                host: 'jira.jahia.org',
+                username: '${{ secrets.JIRA_USERNAME }}',
+                password: '${{ secrets.JIRA_PASSWORD }}',
+                apiVersion: '2',
+                strictSSL: true
+              })
 
-            let issueSummary = '[Product] ${ context.payload.issue.title } (${ context.payload.issue.id })'
-            let issueDescription = '${ context.payload.issue.body }'
+              let issueSummary = '[Product] ${ context.payload.issue.title } (${ context.payload.issue.id })'
+              let issueDescription = '${ context.payload.issue.body }'
 
-            const issue = await jira.addNewIssue({
-              fields: {
-                "project":
-                {
-                    "key": "SECBACKLOG"
-                },
-                "summary": issueSummary,
-                "description": issueDescription,
-                "versions": 
-                [
+              const issue = await jira.addNewIssue({
+                fields: {
+                  "project":
                   {
-                    "name": "8.2.0.0"
-                  }
-                ],
-                "issuetype": 
-                {
-                    "name": "Bug"
-                }
-              }
-            });
-            console.log(JSON.stringify(issue))
-            
-            await github.graphql(`
-              mutation ($project: ID! $item: ID! $field: ID! $field_value: String!) {
-                updateProjectV2ItemFieldValue(input: {
-                  projectId: $project
-                  itemId: $item
-                  fieldId: $field
-                  value: {
-                    text: $field_value
-                  }
-                }) {
-                  projectV2Item {
-                    id
+                      "key": "SECBACKLOG"
+                  },
+                  "summary": issueSummary,
+                  "description": issueDescription,
+                  "versions": 
+                  [
+                    {
+                      "name": "8.2.0.0"
+                    }
+                  ],
+                  "issuetype": 
+                  {
+                      "name": "Bug"
                   }
                 }
-              }
-              `,
-              { project: securityProjectID, item: securityProjectItemID, field: securityProjectJiraFieldID, field_value: issue.key }
-            )
+              });
+              
+              await github.graphql(`
+                mutation ($project: ID! $item: ID! $field: ID! $field_value: String!) {
+                  updateProjectV2ItemFieldValue(input: {
+                    projectId: $project
+                    itemId: $item
+                    fieldId: $field
+                    value: {
+                      text: $field_value
+                    }
+                  }) {
+                    projectV2Item {
+                      id
+                    }
+                  }
+                }
+                `,
+                { project: securityProjectID, item: securityProjectItemID, field: securityProjectJiraFieldID, field_value: issue.key }
+              )
+            }
 
       - name: Attach all tickets with label Area:QA to the Security Roadmap Project
         uses: actions/add-to-project@v1.0.2
