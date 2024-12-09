@@ -92,11 +92,12 @@ runs:
             },
           )
           const projectId = idResp[ownerTypeQuery]?.projectV2.id
-          core.info(`Project node ID: ${projectId}`)
+          core.info(`Project ID: ${projectId}`)
 
           // Find if the issue is already attached to the current project
-          const projectItemId = gitubIssue.projectItems.nodes.find(item => item.project.url === PROJECT_URL)
-          if (projectItemId === undefined && gitubIssue.milestone !== null) {
+          const projectItem = gitubIssue.projectItems.nodes.find(item => item.project.id === projectId)
+          core.info(`Project Item ID: ${projectItem !== undefined ? projectItem.id : 'Project not found'}`)
+          if (projectItem === undefined && gitubIssue.milestone !== null) {
             // Issue is not attached to a project but is attached to a milestone
             // We need to attach it to a project
             await github.graphql(`
@@ -111,7 +112,7 @@ runs:
               `,
               { projectId: projectId, contentId: githubIssueId }
             )
-          } else if (projectItemId !== undefined && gitubIssue.milestone === null) {
+          } else if (projectItem !== undefined && gitubIssue.milestone === null) {
             // Issue is attached to a project but not attached to a milestone
             // We need to remove it from the project
             await github.graphql(`
@@ -124,7 +125,7 @@ runs:
                 }
               }
               `,
-              { projectId: projectItemId.project.id, itemId: githubIssueId }
+              { projectId: projectItem.project.id, itemId: githubIssueId }
             )
           } else {
             core.info(`No action required for issue with ID: ${githubIssueId}`)
