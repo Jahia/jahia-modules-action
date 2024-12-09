@@ -53,8 +53,39 @@ runs:
             return
           }
           
-          // Find project
-          const project = TODO
+          // Find project using its URL
+          // Based on code from: https://github.com/actions/add-to-project/blob/main/src/add-to-project.ts
+          const urlParse = /\/(?<ownerType>orgs|users)\/(?<ownerName>[^/]+)\/projects\/(?<projectNumber>\d+)/
+          const urlMatch = projectUrl.match(urlParse)
+          if (!urlMatch) {
+            throw new Error(
+              `Invalid project URL: ${projectUrl}. Project URL should match the format <GitHub server domain name>/<orgs-or-users>/<ownerName>/projects/<projectNumber>`,
+            )
+          }
+          const projectOwnerName = urlMatch.groups?.ownerName
+          const projectNumber = parseInt(urlMatch.groups?.projectNumber ?? '', 10)
+          const ownerType = urlMatch.groups?.ownerType
+          const ownerTypeQuery = mustGetOwnerTypeQuery(ownerType)          
+
+          core.debug(`Project owner: ${projectOwnerName}`)
+          core.debug(`Project number: ${projectNumber}`)
+          core.debug(`Project owner type: ${ownerType}`)
+
+          const idResp = await github.graphql(
+            `query getProject($projectOwnerName: String!, $projectNumber: Int!) {
+              ${ownerTypeQuery}(login: $projectOwnerName) {
+                projectV2(number: $projectNumber) {
+                  id
+                }
+              }
+            }`,
+            {
+              projectOwnerName,
+              projectNumber,
+            },
+          )
+          const projectId = idResp[ownerTypeQuery]?.projectV2.id
+          core.info(`Project node ID: ${projectId}`)
 
           // Find if the issue is already attached to the current project
           const projectItemId = gitubIssue.projectItems.nodes.find(item => item.project.url === PROJECT_URL)
@@ -71,7 +102,7 @@ runs:
                 }
               }
               `,
-              { projectId: projectItemId.project.id, contentId: githubIssueId }
+              { projectId: projectId, contentId: githubIssueId }
             )
           } else if (projectItemId !== undefined && gitubIssue.milestone === null) {
             // Issue is attached to a project but not attached to a milestone
