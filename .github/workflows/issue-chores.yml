@@ -10,8 +10,6 @@ jobs:
     name: Projects
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
       # Issue type is not available by default, this makes it available for if conditions
       - name: Get Issue type
         uses: actions/github-script@v7
@@ -78,7 +76,7 @@ jobs:
           label-operator: AND
 
       - name: Create a Security Jira ticket
-        uses: ./.github/actions/create-security-ticket
+        uses: jahia/jahia-modules-action/create-security-ticket@v2
         if: ${{ steps.new-security-incident.outputs.itemId != '' }}
         with:
           jira-host: 'jira.jahia.org'
