@@ -87,10 +87,11 @@ jobs:
             const jiraApi = require('jira-client');
             
             const jiraHost = 'jira.jahia.org'
-            const securityProjectJiraField = 'Jira ticket ID'
+            const jiraProject = 'SECBACKLOG'
+            const securityProjectJiraField = 'Jira tickets'
             const securityProjectName = 'Area - Security'
             const projectFields = await github.graphql(`
-              query issue($issueId: ID! $projectField: String!) {
+              query issue($issueId: ID! $projectField: String! $fieldName: String!) {
                 node(id: $issueId) {
                   ... on Issue {
                     title
@@ -100,7 +101,7 @@ jobs:
                         project {
                           id
                           title
-                          field(name: "Jira ticket ID") {
+                          field(name: $fieldName) {
                             ... on ProjectV2Field {
                               id
                               name
@@ -118,7 +119,7 @@ jobs:
                 }
               }
               `,
-              { issueId: context.payload.issue.node_id, projectField: securityProjectJiraField }
+              { issueId: context.payload.issue.node_id, projectField: securityProjectJiraField, fieldName: securityProjectJiraField }
             )
             
             let securityTicket = ''
@@ -128,7 +129,14 @@ jobs:
             const securityProject = projectFields.node.projectItems.nodes.find(pi => pi.project.title === securityProjectName)
             if (securityProject !== undefined) {
               if (securityProject.fieldValueByName !== null) {
-                securityTicket = securityProject.fieldValueByName.text
+                console.log(JSON.stringify(securityProject.fieldValueByName.text))
+                const tickets = securityProject.fieldValueByName.text.split(',')
+                for(let t = 0; t < tickets.length; t++){
+                  if (tickets[t].startsWith(jiraProject)) {
+                    securityTicket = tickets[t]
+                  }
+                }
+                console.log(JSON.stringify(securityTicket)
               }
               securityProjectItemID = securityProject.id
               securityProjectID = securityProject.project.id
@@ -153,7 +161,7 @@ jobs:
                 fields: {
                   "project":
                   {
-                      "key": "SECBACKLOG"
+                      "key": jiraProject
                   },
                   "summary": issueSummary,
                   "description": issueBody,
@@ -253,4 +261,4 @@ jobs:
           jira_server_host: jira.jahia.org
           jira_server_username: ${{ secrets.JIRA_USERNAME }}
           jira_server_password: ${{ secrets.JIRA_PASSWORD }}
-          github_project_field: "Support tickets" 
+          github_project_field: "Jira tickets" 
