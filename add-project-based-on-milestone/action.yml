@@ -21,7 +21,7 @@ runs:
         result-encoding: string
         retries: 3
         script: |
-          const { PROJECT_URL } = process.env
+          const { projectUrl } = process.env
           const githubIssueId = context.payload.issue.node_id;
           const gitubIssue = await github.graphql(`
             query issue($issueId: ID!) {
