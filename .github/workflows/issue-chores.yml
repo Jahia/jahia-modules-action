@@ -144,14 +144,17 @@ jobs:
               strictSSL: true
             })
 
+            let issueSummary = '[Product] ${ context.payload.issue.title } (${ context.payload.issue.id })'
+            let issueDescription = '${ context.payload.issue.body }'
+
             const issue = await jira.addNewIssue({
               fields: {
                 "project":
                 {
                     "key": "SECBACKLOG"
                 },
-                "summary": context.payload.issue.title (context.payload.issue.id),
-                "description": context.payload.issue.body,
+                "summary": issueSummary,
+                "description": issueDescription,
                 "issuetype": {
                     "name": "Bug"
                 }
