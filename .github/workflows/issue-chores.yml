@@ -145,9 +145,9 @@ jobs:
                 strictSSL: true
               })
 
-              const issueId = github.event.issue.id;
-              const issueTitle = github.event.issue.title;
-              const issueBody = github.event.issue.body;
+              const issueId = ${{ github.event.issue.id }};
+              const issueTitle = ${{ github.event.issue.title }};
+              const issueBody = ${{ github.event.issue.body }};
               let issueSummary = '[Product] ${ issueTitle } (${ issueId })'
               let issueDescription = '${ issueBody }'
 
