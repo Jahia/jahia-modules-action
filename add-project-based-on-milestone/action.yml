@@ -23,7 +23,7 @@ runs:
         script: |
           const { projectUrl } = process.env
           const githubIssueId = context.payload.issue.node_id;
-          const gitubIssue = await github.graphql(`
+          const gitubIssueNode = await github.graphql(`
             query issue($issueId: ID!) {
               node(id: $issueId) {
                 ... on Issue {
@@ -48,10 +48,11 @@ runs:
             `,
             { issueId: githubIssueId }
           )
-          if (gitubIssue === undefined) {
+          if (gitubIssueNode === undefined) {
             core.info(`Unable to find an issue with ID: ${githubIssueId}`)
             return
           }
+          const gitubIssue = gitubIssueNode.node
           
           // Find project using its URL
           // Based on code from: https://github.com/actions/add-to-project/blob/main/src/add-to-project.ts
