@@ -20,9 +20,9 @@ jobs:
 
       # Using an official action from GitHub to attach issues to projects
       # https://github.com/marketplace/actions/add-to-github-projects
-
       - name: Attach needs-triage to the Bugs Triage project
         uses: actions/add-to-project@v1.0.2
+        if: github.event.action == "labeled"
         with:
           project-url: https://github.com/orgs/Jahia/projects/13
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
@@ -30,6 +30,7 @@ jobs:
 
       - name: Attach customers to the Customers project
         uses: actions/add-to-project@v1.0.2
+        if: github.event.action == "labeled"
         with:
           project-url: https://github.com/orgs/Jahia/projects/24
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
@@ -47,6 +48,7 @@ jobs:
 
       - name: Attach all tickets with label Area:QA to the QA Roadmap Project
         uses: actions/add-to-project@v1.0.2
+        if: github.event.action == "labeled"
         with:
           project-url: https://github.com/orgs/Jahia/projects/21
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
@@ -54,6 +56,7 @@ jobs:
 
       - name: Attach all tickets with label Area:QA to the Security Roadmap Project
         uses: actions/add-to-project@v1.0.2
+        if: github.event.action == "labeled"
         with:
           project-url: https://github.com/orgs/Jahia/projects/22
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
@@ -61,6 +64,7 @@ jobs:
 
       - name: Attach all tickets with label Area:Tech to the Tech Roadmap Project
         uses: actions/add-to-project@v1.0.2
+        if: github.event.action == "labeled"
         with:
           project-url: https://github.com/orgs/Jahia/projects/23
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
@@ -68,11 +72,21 @@ jobs:
 
       - name: Attach all tickets with label Area:Delivery to the Delivery Roadmap Project
         uses: actions/add-to-project@v1.0.2
+        if: github.event.action == "labeled"
         with:
           project-url: https://github.com/orgs/Jahia/projects/12
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:Delivery
 
+      # Adds or removes the "Product Releases" project if a milestone is added
+      # or removed
+      - name: Attach Project based on the presence of a milestone
+        uses: jahia/jahia-modules-action/add-project-based-on-milestone@v2
+        if: (github.event.action == "milestoned" || github.event.action == "demilestoned")
+        with:
+          project_url: https://github.com/orgs/Jahia/projects/29
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+  
   transfer:
     name: Transfer
     runs-on: ubuntu-latest
@@ -99,6 +113,7 @@ jobs:
       # Transfer issues between repositories of the Jahia org
       - name: Transfer Issue & Create Stub
         uses: Fgerthoffert/actions-transfer-issue@v1.0.0
+        if: github.event.action == "labeled"
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
           router: "transfer:"
