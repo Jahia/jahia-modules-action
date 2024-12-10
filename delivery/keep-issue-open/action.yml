@@ -61,3 +61,7 @@ runs:
             core.info(`Unable to find an issue with ID: ${githubIssueId}`)
             return
           }
+
+          const githubIssue = githubIssueNode.node
+          core.info(`Issue with ID: ${githubIssueId} has a status of: ${githubIssue.state}`)
+
