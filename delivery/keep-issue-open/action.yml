@@ -99,6 +99,7 @@ runs:
                 `,
                 { issueId: githubIssue.id }
               )
-              core.info(`Issue ID: ${contentId} was Re-Opened`)
+            core.info(`Issue ID: ${githubIssue.id} was Re-Opened`)
+
 
           }
