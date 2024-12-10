@@ -80,8 +80,25 @@ runs:
           console.log(JSON.stringify(projectItem))
           if (projectItem.fieldValueByName.text === projectFieldValue) {
             core.info(`Issue with ID: ${githubIssueId} is closed and has a ${projectField} of ${projectFieldValue}, no action needed`)
-            return         
+            return
+          } else if (projectItem.fieldValueByName.text === null) {
+            core.warning(`Issue with ID: ${githubIssueId} value is null for field ${projectField}, the action may be misconfigured`)
+            return
           } else {
             core.info(`Issue with ID: ${githubIssueId} is closed but should have a ${projectField} of ${projectFieldValue}, the issue will be Re-opened`)
+            await github.graphql(`
+                mutation ($issueId: ID!) {
+                  reopenIssue(input: {
+                    issueId: $issueId
+                  }) {
+                    issue {
+                      id
+                    }
+                  }
+                }
+                `,
+                { issueId: githubIssue.id }
+              )
+              core.info(`Issue ID: ${contentId} was Re-Opened`)
 
           }
