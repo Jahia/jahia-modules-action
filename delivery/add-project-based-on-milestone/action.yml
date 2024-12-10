@@ -97,7 +97,7 @@ runs:
 
           // Find if the issue is already attached to the current project
           const projectItem = gitubIssue.projectItems.nodes.find(item => item.project.id === projectId)
-          core.info(`Project Item ID: ${projectItem !== undefined ? projectItem.id : 'Project not found'}`)
+          core.info(`Project Item ID: ${projectItem !== undefined ? projectItem.id : 'No Project Item found (a project item is a card on the board)'}`)
           if (projectItem === undefined && gitubIssue.milestone !== null) {
             // Issue is not attached to a project but is attached to a milestone
             // We need to attach it to a project
@@ -115,6 +115,7 @@ runs:
               `,
               { projectId: projectId, contentId: githubIssueId }
             )
+            core.info(`Created a project item in Project ID: ${projectId} for issue ID: ${contentId}`)
           } else if (projectItem !== undefined && gitubIssue.milestone === null) {
             // Issue is attached to a project but not attached to a milestone
             // We need to remove it from the project
@@ -130,6 +131,7 @@ runs:
               `,
               { projectId: projectItem.project.id, itemId: projectItem.id }
             )
+            core.info(`Removed project item ID: ${projectItem.id} from project ID: ${projectItem.project.id}`)
           } else {
             core.info(`No action required for issue with ID: ${githubIssueId}`)
           }
