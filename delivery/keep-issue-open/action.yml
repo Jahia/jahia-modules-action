@@ -75,3 +75,7 @@ runs:
             core.info(`Issue with ID: ${githubIssueId} is not assigned to a project starting with: ${projectPrefix}, no action needed`)
             return
           }
+
+          core.info(`Issue contains a project item whose project starts with: ${projectPrefix}`)
+
+          
