@@ -62,14 +62,14 @@ runs:
             return
           }
 
-          const gitubIssue = githubIssueNode.node
-          core.info(`Issue with ID: ${githubIssueId} has a status of: ${gitubIssue.state}`)
+          const githubIssue = githubIssueNode.node
+          core.info(`Issue with ID: ${githubIssueId} has a status of: ${githubIssue.state}`)
 
-          if (gitubIssue.state === "OPEN") {
+          if (githubIssue.state === "OPEN") {
             core.info(`Issue with ID: ${githubIssueId} is still open, no action needed`)
             return
           }
-          const projectItem = gitubIssue.projectItems.nodes.find(item => item.project.title.startsWith(projectPrefix))
+          const projectItem = githubIssue.projectItems.nodes.find(item => item.project.title.startsWith(projectPrefix))
 
           if (projectItem === undefined) {
             core.info(`Issue with ID: ${githubIssueId} is not assigned to a project starting with: ${projectPrefix}, no action needed`)
@@ -92,7 +92,7 @@ runs:
                 }
               }
               `,
-              { issueId: gitubIssue.id }
+              { issueId: githubIssue.id }
             )
             core.info(`Issue ID: ${contentId} was Re-Opened`)
 
@@ -143,7 +143,7 @@ runs:
 
             // Search for the presence of an existing comment containing the error code
             // Only posting the comment if there were no previous similar comment in the issue.
-            const previousComment = await findPreviousComment(gitubIssue.id, errorCode)
+            const previousComment = await findPreviousComment(githubIssue.id, errorCode)
 
             if (previousComment === undefined) {
               await github.graphql(`
