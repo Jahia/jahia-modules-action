@@ -1,0 +1,163 @@
+name: Keep issue open
+description: If an issue in closed but not in the Done column of the project, re-open the issue with a comment
+
+inputs:
+  project_prefix:
+    description: Prefix of projects to consider
+    required: true
+  github_token:
+    description: 'GitHub personal API token'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Re-open an issue if not in the right column
+      uses: actions/github-script@v7
+      env:
+        projectPrefix: ${{ inputs.project_prefix }}
+      with:
+        github-token: ${{ inputs.github_token }}
+        result-encoding: string
+        retries: 3
+        script: |
+          const { projectPrefix } = process.env
+          const projectField = 'Status'
+          const projectFieldValue = 'Done'
+          const githubIssueId = context.payload.issue.node_id;
+          const gitubIssueNode = await github.graphql(`
+            query issue($issueId: ID! $projectField: String!) {
+              node(id: $issueId) {
+                ... on Issue {
+                  id
+                  state
+                  title
+                  milestone {
+                    id
+                    title
+                  }
+                  projectItems(first:10) {
+                    nodes {
+                      id
+                      project {
+                        id                    
+                        url
+                        title
+                      }
+                      fieldValueByName(name: $projectField) {
+                        ... on ProjectV2ItemFieldTextValue {
+                          text
+                        }
+                      }                      
+                    }
+                  }                                  
+                }
+              }
+            }
+            `,
+            { issueId: githubIssueId, projectField: projectField }
+          )
+          if (gitubIssueNode === undefined) {
+            core.info(`Unable to find an issue with ID: ${githubIssueId}`)
+            return
+          }
+
+          const gitubIssue = gitubIssueNode.node
+          core.info(`Issue with ID: ${githubIssueId} has a status of: ${gitubIssue.state}`)
+
+          if (gitubIssue.state === "OPEN") {
+            core.info(`Issue with ID: ${githubIssueId} is still open, no action needed`)
+            return
+          }
+          const projectItem = gitubIssue.projectItems.nodes.find(item => item.project.title.startsWith(projectPrefix))
+
+          if (projectItem === undefined) {
+            core.info(`Issue with ID: ${githubIssueId} is not assigned to a project starting with: ${projectPrefix}, no action needed`)
+            return
+          }
+
+          if (projectItem.fieldValueByName.text === projectFieldValue) {
+            core.info(`Issue with ID: ${githubIssueId} is closed and has a ${projectField} of ${projectFieldValue}, no action needed`)
+            return         
+          } else {
+            core.info(`Issue with ID: ${githubIssueId} is closed but should have a ${projectField} of ${projectFieldValue}, the issue will be Re-opened`)
+            await github.graphql(`
+              mutation ($issueId: ID!) {
+                reopenIssue(input: {
+                  issueId: $issueId
+                }) {
+                  issue {
+                    id
+                  }
+                }
+              }
+              `,
+              { issueId: gitubIssue.id }
+            )
+            core.info(`Issue ID: ${contentId} was Re-Opened`)
+
+            // Code from: https://github.com/marocchino/sticky-pull-request-comment/blob/daa4a82a0a3f6c162c02b83fa44b3ab83946f7cb/src/comment.ts#L26
+            const findPreviousComment = async (issueId, searchCode) => {
+              let after = null
+              let hasNextPage = true
+              while (hasNextPage) {
+                core.info('Paginating through comments in issue: ${issueId} after: ${after}')
+                const gitubIssueNodeComments = await github.graphql(`
+                  query issue($issueId: ID! $after: String) {
+                    node(id: $issueId) {
+                      ... on Issue {
+                        id
+                        comments(first: 100 after: $after) {
+                          nodes {
+                            id
+                            author {
+                              login
+                            }
+                            isMinimized
+                            body
+                          }
+                          pageInfo {
+                            endCursor
+                            hasNextPage
+                          }                          
+                        }                                  
+                      }
+                    }
+                  }
+                  `,
+                  { issueId: issueId, after: after }
+                )
+                const commentFound = gitubIssueNodeComments.node.comments.nodes.find(n => n.body.includes(searchCode))
+                core.debug(JSON.stringify(commentFound))
+                if (commentFound) {
+                  return commentFound
+                }
+                after = gitubIssueNodeComments.node.comments.pageInfo.endCursor
+                hasNextPage = gitubIssueNodeComments.node.comments.pageInfo.hasNextPage ?? false
+              }
+              return undefined
+            }
+
+            const errorCode = 'INCORRECT_GITHUB_PROJECT_STATUS'
+            const commentMsg = `If an issue is attached to a project starting with ${projectPrefix}, it can only be closed if its has a ${projectField} of ${projectFieldValue} \n\n code: ${errorCode}`
+
+            // Search for the presence of an existing comment containing the error code
+            // Only posting the comment if there were no previous similar comment in the issue.
+            const previousComment = await findPreviousComment(gitubIssue.id, errorCode)
+
+            if (previousComment === undefined) {
+              await github.graphql(`
+                mutation ($issueId: ID!) {
+                  addComment(input: {
+                    issueId: $issueId
+                  }) {
+                    issue {
+                      id
+                    }
+                  }
+                }
+                `,
+                { issueId: issueId }
+              )
+            }
+          }
