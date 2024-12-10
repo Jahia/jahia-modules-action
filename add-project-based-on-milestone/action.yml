@@ -12,7 +12,7 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Check if a Security Jira ticket is already linked, create it if not
+    - name: Assign project based on the present of a milestone
       uses: actions/github-script@v7
       env:
         projectUrl: ${{ inputs.project_url }}
