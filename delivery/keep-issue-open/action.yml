@@ -101,5 +101,47 @@ runs:
               )
             core.info(`Issue ID: ${githubIssue.id} was Re-Opened`)
 
+            // Code from: https://github.com/marocchino/sticky-pull-request-comment/blob/daa4a82a0a3f6c162c02b83fa44b3ab83946f7cb/src/comment.ts#L26
+            const findPreviousComment = async (issueId, searchCode) => {
+              let after = null
+              let hasNextPage = true
+              while (hasNextPage) {
+                core.info(`Paginating through comments in issue: ${issueId} after: ${after}`)
+                const githubIssueNodeComments = await github.graphql(`
+                  query issue($issueId: ID! $after: String) {
+                    node(id: $issueId) {
+                      ... on Issue {
+                        id
+                        comments(first: 100 after: $after) {
+                          nodes {
+                            id
+                            author {
+                              login
+                            }
+                            isMinimized
+                            body
+                          }
+                          pageInfo {
+                            endCursor
+                            hasNextPage
+                          }                          
+                        }                                  
+                      }
+                    }
+                  }
+                  `,
+                  { issueId: issueId, after: after }
+                )
+                const commentFound = githubIssueNodeComments.node.comments.nodes.find(n => n.body.includes(searchCode))
+                core.debug(JSON.stringify(commentFound))
+                if (commentFound) {
+                  return commentFound
+                }
+                after = githubIssueNodeComments.node.comments.pageInfo.endCursor
+                hasNextPage = githubIssueNodeComments.node.comments.pageInfo.hasNextPage ?? false
+              }
+              return undefined
+            }
+
 
           }
