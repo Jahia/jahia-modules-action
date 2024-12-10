@@ -37,17 +37,21 @@ runs:
     
     - name: Check if a Security Jira ticket is already linked, create it if not
       uses: actions/github-script@v7
+      env:
+        jiraHost: ${{ inputs.jira-host }}
+        jiraUsername: ${{ inputs.jira-username }}
+        jiraPassword: ${{ inputs.jira-password }}
+        jiraProject: ${{ inputs.jira-project }}
+        securityProjectJiraField: ${{ inputs.github-field }}
+        securityProjectName: ${{ inputs.github-security-project }}
       with:
         github-token: ${{ inputs.github-token }}
         result-encoding: string
         retries: 3
         script: |
+          const { jiraHost, jiraProject, securityProjectJiraField, securityProjectName } = process.env
           const jiraApi = require('jira-client');
           
-          const jiraHost = '${{ inputs.jira-host }}'
-          const jiraProject = '${{ inputs.jira-project }}'
-          const securityProjectJiraField = '${{ inputs.github-field }}'
-          const securityProjectName = '${{ inputs.github-security-project }}'
           const projectFields = await github.graphql(`
             query issue($issueId: ID! $projectField: String! $fieldName: String!) {
               node(id: $issueId) {
@@ -87,7 +91,7 @@ runs:
           const securityProject = projectFields.node.projectItems.nodes.find(pi => pi.project.title === securityProjectName)
           if (securityProject !== undefined) {
             if (securityProject.fieldValueByName !== null) {
-              const tickets = securityProject.fieldValueByName.text.split(',')
+              const tickets = securityProject.fieldValueByName.text.split(',').map(key => key.trim())
               for(let t = 0; t < tickets.length; t++){
                 if (tickets[t].startsWith(jiraProject)) {
                   securityTicket = tickets[t]
@@ -105,8 +109,8 @@ runs:
             const jira = new jiraApi({
               protocol: 'https',
               host: jiraHost,
-              username: '${{ inputs.jira-username }}',
-              password: '${{ inputs.jira-password }}',
+              username: jiraUsername,
+              password: jiraPassword,
               apiVersion: '2',
               strictSSL: true
             })
