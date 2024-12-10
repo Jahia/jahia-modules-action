@@ -143,5 +143,7 @@ runs:
               return undefined
             }
 
+            const errorCode = 'INCORRECT_GITHUB_PROJECT_STATUS'
+            const commentMsg = `If an issue is attached to a project starting with ${projectPrefix}, it can only be closed if its has a ${projectField} of ${projectFieldValue} \n\n code: ${errorCode}`
 
           }
