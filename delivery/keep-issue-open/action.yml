@@ -62,105 +62,105 @@ runs:
             return
           }
 
-          const githubIssue = githubIssueNode.node
-          core.info(`Issue with ID: ${githubIssueId} has a status of: ${githubIssue.state}`)
+          # const githubIssue = githubIssueNode.node
+          # core.info(`Issue with ID: ${githubIssueId} has a status of: ${githubIssue.state}`)
 
-          if (githubIssue.state === "OPEN") {
-            core.info(`Issue with ID: ${githubIssueId} is still open, no action needed`)
-            return
-          }
-          const projectItem = githubIssue.projectItems.nodes.find(item => item.project.title.startsWith(projectPrefix))
+          # if (githubIssue.state === "OPEN") {
+          #   core.info(`Issue with ID: ${githubIssueId} is still open, no action needed`)
+          #   return
+          # }
+          # const projectItem = githubIssue.projectItems.nodes.find(item => item.project.title.startsWith(projectPrefix))
 
-          if (projectItem === undefined) {
-            core.info(`Issue with ID: ${githubIssueId} is not assigned to a project starting with: ${projectPrefix}, no action needed`)
-            return
-          }
+          # if (projectItem === undefined) {
+          #   core.info(`Issue with ID: ${githubIssueId} is not assigned to a project starting with: ${projectPrefix}, no action needed`)
+          #   return
+          # }
 
-          if (projectItem.fieldValueByName.text === projectFieldValue) {
-            core.info(`Issue with ID: ${githubIssueId} is closed and has a ${projectField} of ${projectFieldValue}, no action needed`)
-            return         
-          } else {
-            core.info(`Issue with ID: ${githubIssueId} is closed but should have a ${projectField} of ${projectFieldValue}, the issue will be Re-opened`)
-            await github.graphql(`
-              mutation ($issueId: ID!) {
-                reopenIssue(input: {
-                  issueId: $issueId
-                }) {
-                  issue {
-                    id
-                  }
-                }
-              }
-              `,
-              { issueId: githubIssue.id }
-            )
-            core.info(`Issue ID: ${contentId} was Re-Opened`)
+          # if (projectItem.fieldValueByName.text === projectFieldValue) {
+          #   core.info(`Issue with ID: ${githubIssueId} is closed and has a ${projectField} of ${projectFieldValue}, no action needed`)
+          #   return         
+          # } else {
+          #   core.info(`Issue with ID: ${githubIssueId} is closed but should have a ${projectField} of ${projectFieldValue}, the issue will be Re-opened`)
+          #   await github.graphql(`
+          #     mutation ($issueId: ID!) {
+          #       reopenIssue(input: {
+          #         issueId: $issueId
+          #       }) {
+          #         issue {
+          #           id
+          #         }
+          #       }
+          #     }
+          #     `,
+          #     { issueId: githubIssue.id }
+          #   )
+          #   core.info(`Issue ID: ${contentId} was Re-Opened`)
 
-            # // Code from: https://github.com/marocchino/sticky-pull-request-comment/blob/daa4a82a0a3f6c162c02b83fa44b3ab83946f7cb/src/comment.ts#L26
-            # const findPreviousComment = async (issueId, searchCode) => {
-            #   let after = null
-            #   let hasNextPage = true
-            #   while (hasNextPage) {
-            #     core.info(`Paginating through comments in issue: ${issueId} after: ${after}`)
-            #     const githubIssueNodeComments = await github.graphql(`
-            #       query issue($issueId: ID! $after: String) {
-            #         node(id: $issueId) {
-            #           ... on Issue {
-            #             id
-            #             comments(first: 100 after: $after) {
-            #               nodes {
-            #                 id
-            #                 author {
-            #                   login
-            #                 }
-            #                 isMinimized
-            #                 body
-            #               }
-            #               pageInfo {
-            #                 endCursor
-            #                 hasNextPage
-            #               }                          
-            #             }                                  
-            #           }
-            #         }
-            #       }
-            #       `,
-            #       { issueId: issueId, after: after }
-            #     )
-            #     const commentFound = githubIssueNodeComments.node.comments.nodes.find(n => n.body.includes(searchCode))
-            #     core.debug(JSON.stringify(commentFound))
-            #     if (commentFound) {
-            #       return commentFound
-            #     }
-            #     after = githubIssueNodeComments.node.comments.pageInfo.endCursor
-            #     hasNextPage = githubIssueNodeComments.node.comments.pageInfo.hasNextPage ?? false
-            #   }
-            #   return undefined
-            # }
+          #   // Code from: https://github.com/marocchino/sticky-pull-request-comment/blob/daa4a82a0a3f6c162c02b83fa44b3ab83946f7cb/src/comment.ts#L26
+          #   const findPreviousComment = async (issueId, searchCode) => {
+          #     let after = null
+          #     let hasNextPage = true
+          #     while (hasNextPage) {
+          #       core.info(`Paginating through comments in issue: ${issueId} after: ${after}`)
+          #       const githubIssueNodeComments = await github.graphql(`
+          #         query issue($issueId: ID! $after: String) {
+          #           node(id: $issueId) {
+          #             ... on Issue {
+          #               id
+          #               comments(first: 100 after: $after) {
+          #                 nodes {
+          #                   id
+          #                   author {
+          #                     login
+          #                   }
+          #                   isMinimized
+          #                   body
+          #                 }
+          #                 pageInfo {
+          #                   endCursor
+          #                   hasNextPage
+          #                 }                          
+          #               }                                  
+          #             }
+          #           }
+          #         }
+          #         `,
+          #         { issueId: issueId, after: after }
+          #       )
+          #       const commentFound = githubIssueNodeComments.node.comments.nodes.find(n => n.body.includes(searchCode))
+          #       core.debug(JSON.stringify(commentFound))
+          #       if (commentFound) {
+          #         return commentFound
+          #       }
+          #       after = githubIssueNodeComments.node.comments.pageInfo.endCursor
+          #       hasNextPage = githubIssueNodeComments.node.comments.pageInfo.hasNextPage ?? false
+          #     }
+          #     return undefined
+          #   }
 
-            # const errorCode = 'INCORRECT_GITHUB_PROJECT_STATUS'
-            # const commentMsg = `If an issue is attached to a project starting with ${projectPrefix}, it can only be closed if its has a ${projectField} of ${projectFieldValue} \n\n code: ${errorCode}`
+          #   const errorCode = 'INCORRECT_GITHUB_PROJECT_STATUS'
+          #   const commentMsg = `If an issue is attached to a project starting with ${projectPrefix}, it can only be closed if its has a ${projectField} of ${projectFieldValue} \n\n code: ${errorCode}`
 
-            # // Search for the presence of an existing comment containing the error code
-            # // Only posting the comment if there were no previous similar comment in the issue.
-            # const previousComment = await findPreviousComment(githubIssue.id, errorCode)
+          #   // Search for the presence of an existing comment containing the error code
+          #   // Only posting the comment if there were no previous similar comment in the issue.
+          #   const previousComment = await findPreviousComment(githubIssue.id, errorCode)
 
-            # if (previousComment === undefined) {
-            #   await github.graphql(`
-            #     mutation ($issueId: ID! $body: String) {
-            #       addComment(input: {
-            #         subjectId: $issueId
-            #         body: body
-            #       }) {
-            #         clientMutationId
-            #       }
-            #     }
-            #     `,
-            #     { issueId: issueId, body: commentMsg }
-            #   )
-            #   core.info(`Added a comment with error code: ${errorCode} in issue with ID: ${issueId}`)
-            # } else {
-            #   core.info(`Found a previous comment with error code: ${errorCode} in issue with ID: ${issueId}`)
-            #   core.info(JSON.stringify(previousComment))
-            # }
-          }
+          #   if (previousComment === undefined) {
+          #     await github.graphql(`
+          #       mutation ($issueId: ID! $body: String) {
+          #         addComment(input: {
+          #           subjectId: $issueId
+          #           body: body
+          #         }) {
+          #           clientMutationId
+          #         }
+          #       }
+          #       `,
+          #       { issueId: issueId, body: commentMsg }
+          #     )
+          #     core.info(`Added a comment with error code: ${errorCode} in issue with ID: ${issueId}`)
+          #   } else {
+          #     core.info(`Found a previous comment with error code: ${errorCode} in issue with ID: ${issueId}`)
+          #     core.info(JSON.stringify(previousComment))
+          #   }
+          # }
