@@ -49,7 +49,7 @@ runs:
         result-encoding: string
         retries: 3
         script: |
-          const { jiraHost, jiraProject, securityProjectJiraField, securityProjectName } = process.env
+          const { jiraHost, jiraUsername, jiraPassword, jiraProject, securityProjectJiraField, securityProjectName } = process.env
           const jiraApi = require('jira-client');
           
           const projectFields = await github.graphql(`
