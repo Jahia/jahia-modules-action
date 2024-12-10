@@ -158,8 +158,8 @@ runs:
                 `,
                 { issueId: issueId, body: commentMsg }
               )
-              core.info('Added a comment with error code: ${errorCode} in issue with ID: ${issueId}')
+              core.info(`Added a comment with error code: ${errorCode} in issue with ID: ${issueId}`)
             } else {
-              core.info('Found a previous comment with error code: ${errorCode} in issue with ID: ${issueId}')
+              core.info(`Found a previous comment with error code: ${errorCode} in issue with ID: ${issueId}`)
               core.info(JSON.stringify(previousComment))
             }
