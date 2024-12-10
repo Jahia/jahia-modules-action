@@ -6,6 +6,16 @@ on:
   workflow_call:
 
 jobs:
+  general:
+    name: General Issue operations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Re-open issue closed and not in the Done column
+        uses: jahia/jahia-modules-action/delivery/keep-issue-open@add-project-based-on-milestone
+        with:
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          project_prefix: "Team - "
+
   projects-label:
     name: Projects on Labels
     if: ${{ github.event.action == 'labeled' }}
