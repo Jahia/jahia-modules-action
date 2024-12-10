@@ -21,5 +21,43 @@ runs:
         result-encoding: string
         retries: 3
         script: |
-          console.log("hello")
-
+          const { projectPrefix } = process.env
+          const projectField = 'Status'
+          const projectFieldValue = 'Done'
+          const githubIssueId = context.payload.issue.node_id
+          const githubIssueNode = await github.graphql(`
+            query issue($issueId: ID! $projectField: String!) {
+              node(id: $issueId) {
+                ... on Issue {
+                  id
+                  state
+                  title
+                  milestone {
+                    id
+                    title
+                  }
+                  projectItems(first:10) {
+                    nodes {
+                      id
+                      project {
+                        id                    
+                        url
+                        title
+                      }
+                      fieldValueByName(name: $projectField) {
+                        ... on ProjectV2ItemFieldTextValue {
+                          text
+                        }
+                      }                      
+                    }
+                  }                                  
+                }
+              }
+            }
+            `,
+            { issueId: githubIssueId, projectField: projectField }
+          )
+          if (githubIssueNode === undefined) {
+            core.info(`Unable to find an issue with ID: ${githubIssueId}`)
+            return
+          }
