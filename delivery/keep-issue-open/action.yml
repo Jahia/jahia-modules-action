@@ -150,6 +150,23 @@ runs:
             // Only posting the comment if there were no previous similar comment in the issue.
             const previousComment = await findPreviousComment(githubIssue.id, errorCode)
 
-            console.log(JSON.stringify(previousComment))
-
+            core.info(JSON.stringify(previousComment))
+            if (previousComment === undefined) {
+              await github.graphql(`
+                mutation ($issueId: ID! $body: String) {
+                  addComment(input: {
+                    subjectId: $issueId
+                    body: body
+                  }) {
+                    clientMutationId
+                  }
+                }
+                `,
+                { issueId: issueId, body: commentMsg }
+              )
+              core.info(`Added a comment with error code: ${errorCode} in issue with ID: ${issueId}`)
+            } else {
+              core.info(`Found a previous comment with error code: ${errorCode} in issue with ID: ${issueId}`)
+              core.info(JSON.stringify(previousComment))
+            }
           }
