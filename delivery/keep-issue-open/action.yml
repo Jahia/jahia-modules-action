@@ -153,10 +153,10 @@ runs:
             core.info(`Previous comment: ${JSON.stringify(previousComment)}`)
             if (previousComment === undefined) {
               await github.graphql(`
-                mutation ($issueId: ID! $body: String) {
+                mutation ($issueId: ID! $body: String!) {
                   addComment(input: {
                     subjectId: $issueId
-                    body: body
+                    body: $body
                   }) {
                     clientMutationId
                   }
