@@ -63,5 +63,15 @@ runs:
           }
 
           const githubIssue = githubIssueNode.node
-          core.info(`Issue with ID: ${githubIssueId} has a status of: ${githubIssue.state}`)
+          core.info(`Issue with ID: ${githubIssueId} has status: ${githubIssue.state}`)
 
+          if (githubIssue.state === "OPEN") {
+            core.info(`Issue with ID: ${githubIssueId} is still open, no action needed`)
+            return
+          }
+          const projectItem = githubIssue.projectItems.nodes.find(item => item.project.title.startsWith(projectPrefix))
+
+          if (projectItem === undefined) {
+            core.info(`Issue with ID: ${githubIssueId} is not assigned to a project starting with: ${projectPrefix}, no action needed`)
+            return
+          }
