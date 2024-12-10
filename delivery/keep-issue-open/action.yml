@@ -21,10 +21,11 @@ runs:
         result-encoding: string
         retries: 3
         script: |
-          const { projectPrefix } = process.env
-          const projectField = 'Status'
-          const projectFieldValue = 'Done'
-          const githubIssueId = context.payload.issue.node_id
+          console.log("hello")
+          # const { projectPrefix } = process.env
+          # const projectField = 'Status'
+          # const projectFieldValue = 'Done'
+          # const githubIssueId = context.payload.issue.node_id
           # const githubIssueNode = await github.graphql(`
           #   query issue($issueId: ID! $projectField: String!) {
           #     node(id: $issueId) {
