@@ -5,6 +5,14 @@ inputs:
   project_prefix:
     description: Prefix of projects to consider
     required: true
+  project_field:
+    description: Name of the field to check
+    default: Status
+    required: false
+  project_field_value:
+    description: Value of the field to check
+    default: Done
+    required: false
   github_token:
     description: 'GitHub personal API token'
     required: true
@@ -16,14 +24,14 @@ runs:
       uses: actions/github-script@v7
       env:
         projectPrefix: ${{ inputs.project_prefix }}
+        projectField: ${{ inputs.project_field }}
+        projectFieldValue: ${{ inputs.project_field_value }}
       with:
         github-token: ${{ inputs.github_token }}
         result-encoding: string
         retries: 3
         script: |
-          const { projectPrefix } = process.env
-          const projectField = 'Status'
-          const projectFieldValue = 'Done'
+          const { projectPrefix, projectField, projectFieldValue } = process.env
           const githubIssueId = context.payload.issue.node_id
           const githubIssueNode = await github.graphql(`
             query issue($issueId: ID! $projectField: String!) {
@@ -78,7 +86,7 @@ runs:
 
           core.info(`Issue contains a project item whose project starts with: ${projectPrefix}`)
           console.log(JSON.stringify(projectItem))
-          if (projectItem.fieldValueByName.text === projectFieldValue) {
+          if (projectItem.fieldValueByName.name === projectFieldValue) {
             core.info(`Issue with ID: ${githubIssueId} is closed and has a ${projectField} of ${projectFieldValue}, no action needed`)
             return
           } else if (projectItem.fieldValueByName.text === null) {
