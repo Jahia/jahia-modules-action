@@ -25,7 +25,7 @@ runs:
           const projectField = 'Status'
           const projectFieldValue = 'Done'
           const githubIssueId = context.payload.issue.node_id;
-          const gitubIssueNode = await github.graphql(`
+          const githubIssueNode = await github.graphql(`
             query issue($issueId: ID! $projectField: String!) {
               node(id: $issueId) {
                 ... on Issue {
@@ -57,12 +57,12 @@ runs:
             `,
             { issueId: githubIssueId, projectField: projectField }
           )
-          if (gitubIssueNode === undefined) {
+          if (githubIssueNode === undefined) {
             core.info(`Unable to find an issue with ID: ${githubIssueId}`)
             return
           }
 
-          const gitubIssue = gitubIssueNode.node
+          const gitubIssue = githubIssueNode.node
           core.info(`Issue with ID: ${githubIssueId} has a status of: ${gitubIssue.state}`)
 
           if (gitubIssue.state === "OPEN") {
@@ -102,7 +102,7 @@ runs:
               let hasNextPage = true
               while (hasNextPage) {
                 core.info('Paginating through comments in issue: ${issueId} after: ${after}')
-                const gitubIssueNodeComments = await github.graphql(`
+                const githubIssueNodeComments = await github.graphql(`
                   query issue($issueId: ID! $after: String) {
                     node(id: $issueId) {
                       ... on Issue {
@@ -127,13 +127,13 @@ runs:
                   `,
                   { issueId: issueId, after: after }
                 )
-                const commentFound = gitubIssueNodeComments.node.comments.nodes.find(n => n.body.includes(searchCode))
+                const commentFound = githubIssueNodeComments.node.comments.nodes.find(n => n.body.includes(searchCode))
                 core.debug(JSON.stringify(commentFound))
                 if (commentFound) {
                   return commentFound
                 }
-                after = gitubIssueNodeComments.node.comments.pageInfo.endCursor
-                hasNextPage = gitubIssueNodeComments.node.comments.pageInfo.hasNextPage ?? false
+                after = githubIssueNodeComments.node.comments.pageInfo.endCursor
+                hasNextPage = githubIssueNodeComments.node.comments.pageInfo.hasNextPage ?? false
               }
               return undefined
             }
@@ -161,5 +161,5 @@ runs:
               core.info('Added a comment with error code: ${errorCode} in issue with ID: ${issueId}')
             } else {
               core.info('Found a previous comment with error code: ${errorCode} in issue with ID: ${issueId}')
-              core.info(JSON.stringify(previousComment)
+              core.info(JSON.stringify(previousComment))
             }
