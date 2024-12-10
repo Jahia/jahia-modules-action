@@ -77,7 +77,7 @@ runs:
           }
 
           core.info(`Issue contains a project item whose project starts with: ${projectPrefix}`)
-
+          console.log(JSON.stringify(projectItem))
           if (projectItem.fieldValueByName.text === projectFieldValue) {
             core.info(`Issue with ID: ${githubIssueId} is closed and has a ${projectField} of ${projectFieldValue}, no action needed`)
             return         
