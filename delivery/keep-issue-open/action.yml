@@ -146,4 +146,10 @@ runs:
             const errorCode = 'INCORRECT_GITHUB_PROJECT_STATUS'
             const commentMsg = `If an issue is attached to a project starting with ${projectPrefix}, it can only be closed if its has a ${projectField} of ${projectFieldValue} \n\n code: ${errorCode}`
 
+            //  Search for the presence of an existing comment containing the error code
+            // Only posting the comment if there were no previous similar comment in the issue.
+            const previousComment = await findPreviousComment(githubIssue.id, errorCode)
+
+            console.log(JSON.stringify(previousComment))
+
           }
