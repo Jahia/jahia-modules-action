@@ -6,8 +6,19 @@ on:
   workflow_call:
 
 jobs:
-  projects:
-    name: Projects
+  general:
+    name: General Issue operations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Re-open issue closed and not in the Done column
+        uses: jahia/jahia-modules-action/delivery/keep-issue-open@add-project-based-on-milestone
+        with:
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          project_prefix: "Team - "
+
+  projects-label:
+    name: Projects on Labels
+    if: ${{ github.event.action == 'labeled' }}
     runs-on: ubuntu-latest
     steps:
       # Issue type is not available by default, this makes it available for if conditions
@@ -20,7 +31,6 @@ jobs:
 
       # Using an official action from GitHub to attach issues to projects
       # https://github.com/marketplace/actions/add-to-github-projects
-
       - name: Attach needs-triage to the Bugs Triage project
         uses: actions/add-to-project@v1.0.2
         with:
@@ -38,7 +48,7 @@ jobs:
       # Add all tickets of Type "Epic" and label "Area:" to the global roadmap project
       - name: Attach all Epics to the Roadmap - Global project
         uses: actions/add-to-project@v1.0.2
-        if: ${{ steps.get-issue-type.outputs.result == 'Epic' }}
+        if: ${{ steps.get-issue-type.outputs.result == 'Epic'}}
         with:
           project-url: https://github.com/orgs/Jahia/projects/18
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
@@ -94,10 +104,24 @@ jobs:
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:Security
 
+  projects-milestone:
+    name: Projects on Milestones
+    if: ${{ github.event.action == 'milestoned' || github.event.action == 'demilestoned' }}
+    runs-on: ubuntu-latest
+    steps:
+      # Adds or removes the "Product Releases" project if a milestone is added
+      # or removed
+      - name: Attach Project based on the presence of a milestone
+        uses: jahia/jahia-modules-action/delivery/add-project-based-on-milestone@add-project-based-on-milestone
+        with:
+          project_url: https://github.com/orgs/Jahia/projects/29
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+
   transfer:
     name: Transfer
     runs-on: ubuntu-latest
-    needs: projects
+    needs: [projects-label, projects-milestone]
+    if: always()
     steps:
       # Transfer issues with label "jahia-only" back to jahia-private
       - name: Transfer Issue & Create Stub
@@ -120,6 +144,7 @@ jobs:
       # Transfer issues between repositories of the Jahia org
       - name: Transfer Issue & Create Stub
         uses: Fgerthoffert/actions-transfer-issue@v1.0.0
+        if: ${{ github.event.action == 'labeled' }}
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
           router: "transfer:"
@@ -129,6 +154,7 @@ jobs:
     name: Links
     runs-on: ubuntu-latest
     needs: transfer
+    if: always()
     steps:
       # Create links in Jira to GitHub Issues
       # We still need to create a Jira User and update the server_host

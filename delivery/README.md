@@ -1,0 +1,1 @@
+This folder contains GitHub Actions dedicated to the management of issues and PRs

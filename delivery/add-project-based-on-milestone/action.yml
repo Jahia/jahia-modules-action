@@ -1,0 +1,137 @@
+name: Add to Project based on Milestone
+description: Adds or removed an issue from a project based on the presence of any milestone
+
+inputs:
+  project_url:
+    description: Project URL to add to or remove from an Issue
+    required: true
+  github_token:
+    description: 'GitHub personal API token'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Assign project based on the present of a milestone
+      uses: actions/github-script@v7
+      env:
+        projectUrl: ${{ inputs.project_url }}
+      with:
+        github-token: ${{ inputs.github_token }}
+        result-encoding: string
+        retries: 3
+        script: |
+          const { projectUrl } = process.env
+          const githubIssueId = context.payload.issue.node_id;
+          const gitubIssueNode = await github.graphql(`
+            query issue($issueId: ID!) {
+              node(id: $issueId) {
+                ... on Issue {
+                  id
+                  title
+                  milestone {
+                    id
+                    title
+                  }
+                  projectItems(first:10) {
+                    nodes {
+                      id
+                      project {
+                        id                    
+                        url
+                      }
+                    }
+                  }                                  
+                }
+              }
+            }
+            `,
+            { issueId: githubIssueId }
+          )
+          if (gitubIssueNode === undefined) {
+            core.info(`Unable to find an issue with ID: ${githubIssueId}`)
+            return
+          }
+          const gitubIssue = gitubIssueNode.node
+          
+          // Find project using its URL
+          // Copied from: https://github.com/actions/add-to-project/blob/main/src/add-to-project.ts
+          const urlParse = /\/(?<ownerType>orgs|users)\/(?<ownerName>[^/]+)\/projects\/(?<projectNumber>\d+)/
+          const mustGetOwnerTypeQuery = (ownerType => {
+            const ownerTypeQuery = ownerType === 'orgs' ? 'organization' : ownerType === 'users' ? 'user' : null
+            if (!ownerTypeQuery) {
+              throw new Error(`Unsupported ownerType: ${ownerType}. Must be one of 'orgs' or 'users'`)
+            }
+            return ownerTypeQuery
+          })
+          const urlMatch = projectUrl.match(urlParse)
+          if (!urlMatch) {
+            throw new Error(
+              `Invalid project URL: ${projectUrl}. Project URL should match the format <GitHub server domain name>/<orgs-or-users>/<ownerName>/projects/<projectNumber>`,
+            )
+          }
+          const projectOwnerName = urlMatch.groups?.ownerName
+          const projectNumber = parseInt(urlMatch.groups?.projectNumber ?? '', 10)
+          const ownerType = urlMatch.groups?.ownerType
+          const ownerTypeQuery = mustGetOwnerTypeQuery(ownerType)          
+
+          core.debug(`Project owner: ${projectOwnerName}`)
+          core.debug(`Project number: ${projectNumber}`)
+          core.debug(`Project owner type: ${ownerType}`)
+
+          const projectIdResponse = await github.graphql(
+            `query getProject($projectOwnerName: String!, $projectNumber: Int!) {
+              ${ownerTypeQuery}(login: $projectOwnerName) {
+                projectV2(number: $projectNumber) {
+                  id
+                }
+              }
+            }`,
+            {
+              projectOwnerName,
+              projectNumber,
+            },
+          )
+          const projectId = projectIdResponse[ownerTypeQuery]?.projectV2.id
+          core.info(`Project ID: ${projectId}`)
+
+          // Find if the issue is already attached to the current project
+          const projectItem = gitubIssue.projectItems.nodes.find(item => item.project.id === projectId)
+          core.info(`Project Item ID: ${projectItem !== undefined ? projectItem.id : 'No Project Item found (a project item is a card on the board)'}`)
+          if (projectItem === undefined && gitubIssue.milestone !== null) {
+            // Issue is not attached to a project but is attached to a milestone
+            // We need to attach it to a project
+            await github.graphql(`
+              mutation ($projectId: ID! $contentId: ID!) {
+                addProjectV2ItemById(input: {
+                  projectId: $projectId
+                  contentId: $contentId
+                }) {
+                  item {
+                    id
+                  }
+                }
+              }
+              `,
+              { projectId: projectId, contentId: githubIssueId }
+            )
+            core.info(`Created a project item in Project ID: ${projectId} for issue ID: ${contentId}`)
+          } else if (projectItem !== undefined && gitubIssue.milestone === null) {
+            // Issue is attached to a project but not attached to a milestone
+            // We need to remove it from the project
+            await github.graphql(`
+              mutation ($projectId: ID! $itemId: ID!) {
+                deleteProjectV2Item(input: {
+                  itemId: $itemId
+                  projectId: $projectId
+                }) {
+                  deletedItemId
+                }
+              }
+              `,
+              { projectId: projectItem.project.id, itemId: projectItem.id }
+            )
+            core.info(`Removed project item ID: ${projectItem.id} from project ID: ${projectItem.project.id}`)
+          } else {
+            core.info(`No action required for issue with ID: ${githubIssueId}`)
+          }
