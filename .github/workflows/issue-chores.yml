@@ -52,13 +52,6 @@ jobs:
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:QA
 
-      - name: Attach all tickets with label Area:QA to the Security Roadmap Project
-        uses: actions/add-to-project@v1.0.2
-        with:
-          project-url: https://github.com/orgs/Jahia/projects/22
-          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
-          labeled: Area:Security
-
       - name: Attach all tickets with label Area:Tech to the Tech Roadmap Project
         uses: actions/add-to-project@v1.0.2
         with:
@@ -72,6 +65,34 @@ jobs:
           project-url: https://github.com/orgs/Jahia/projects/12
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:Delivery
+
+      - name: Attach all tickets with label Area:Security and incident to the Security Roadmap Project
+        uses: actions/add-to-project@v1.0.2
+        id: new-security-incident
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/22
+          github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
+          labeled: Area:Security, incident
+          label-operator: AND
+
+      - name: Create a Security Jira ticket
+        uses: jahia/jahia-modules-action/create-security-ticket@security-issue-creation-js
+        if: ${{ steps.new-security-incident.outputs.itemId != '' }}
+        with:
+          jira-host: 'jira.jahia.org'
+          jira-project: 'SECBACKLOG'
+          jira-username: ${{ secrets.JIRA_USERNAME }}
+          jira-password: ${{ secrets.JIRA_PASSWORD }}
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          github-security-project: 'Area - Security'
+          github-field: 'Jira tickets'
+
+      - name: Attach all tickets with label Area:QA to the Security Roadmap Project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/22
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          labeled: Area:Security
 
   transfer:
     name: Transfer
@@ -118,4 +139,4 @@ jobs:
           jira_server_host: jira.jahia.org
           jira_server_username: ${{ secrets.JIRA_USERNAME }}
           jira_server_password: ${{ secrets.JIRA_PASSWORD }}
-          github_project_field: "Support tickets" 
+          github_project_field: "Jira tickets" 
