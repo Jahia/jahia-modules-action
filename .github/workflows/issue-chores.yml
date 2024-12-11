@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Re-open issue closed and not in the Done column
-        uses: jahia/jahia-modules-action/delivery/keep-issue-open@add-project-based-on-milestone
+        uses: jahia/jahia-modules-action/delivery/keep-issue-open@v2
         with:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           project_prefix: "Team - "
@@ -86,7 +86,7 @@ jobs:
           label-operator: AND
 
       - name: Create a Security Jira ticket
-        uses: jahia/jahia-modules-action/delivery/create-security-ticket@security-issue-creation-js
+        uses: jahia/jahia-modules-action/delivery/create-security-ticket@v2
         if: ${{ steps.new-security-incident.outputs.itemId != '' }}
         with:
           jira-host: 'jira.jahia.org'
@@ -112,7 +112,7 @@ jobs:
       # Adds or removes the "Product Releases" project if a milestone is added
       # or removed
       - name: Attach Project based on the presence of a milestone
-        uses: jahia/jahia-modules-action/delivery/add-project-based-on-milestone@add-project-based-on-milestone
+        uses: jahia/jahia-modules-action/delivery/add-project-based-on-milestone@v2
         with:
           project_url: https://github.com/orgs/Jahia/projects/29
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
