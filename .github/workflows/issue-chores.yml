@@ -84,6 +84,8 @@ jobs:
           jira-username: ${{ secrets.JIRA_USERNAME }}
           jira-password: ${{ secrets.JIRA_PASSWORD }}
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          github-security-project: 'Area - Security'
+          github-field: 'Jira tickets'
 
       - name: Attach all tickets with label Area:QA to the Security Roadmap Project
         uses: actions/add-to-project@v1.0.2

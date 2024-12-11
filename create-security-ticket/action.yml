@@ -53,7 +53,7 @@ runs:
           const jiraApi = require('jira-client');
           
           const projectFields = await github.graphql(`
-            query issue($issueId: ID! $projectField: String! $fieldName: String!) {
+            query issue($issueId: ID! $projectField: String!) {
               node(id: $issueId) {
                 ... on Issue {
                   title
@@ -63,7 +63,7 @@ runs:
                       project {
                         id
                         title
-                        field(name: $fieldName) {
+                        field(name: $projectField) {
                           ... on ProjectV2Field {
                             id
                             name
@@ -81,7 +81,7 @@ runs:
               }
             }
             `,
-            { issueId: context.payload.issue.node_id, projectField: securityProjectJiraField, fieldName: securityProjectJiraField }
+            { issueId: context.payload.issue.node_id, projectField: securityProjectJiraField }
           )
           
           let securityTicket = ''
@@ -97,14 +97,19 @@ runs:
                   securityTicket = tickets[t]
                 }
               }
-              console.log('Security ticket found: ' + JSON.stringify(securityTicket))
+              core.info('Security ticket found: ' + JSON.stringify(securityTicket))
             }
             securityProjectItemID = securityProject.id
             securityProjectID = securityProject.project.id
             securityProjectJiraFieldID = securityProject.project.field.id
+          } else {
+            core.info('Unable to find the security project with name: ${securityProjectName}')
+            return
           }
           
           if (securityTicket === '') {
+            core.info('Unable to find any security ticket in field: ${securityProjectJiraField}. Let's create it.')
+
             // Initialize Jira connection
             const jira = new jiraApi({
               protocol: 'https',
