@@ -79,7 +79,7 @@ runs:
           core.debug(`Project number: ${projectNumber}`)
           core.debug(`Project owner type: ${ownerType}`)
 
-          const idResp = await github.graphql(
+          const projectIdResponse = await github.graphql(
             `query getProject($projectOwnerName: String!, $projectNumber: Int!) {
               ${ownerTypeQuery}(login: $projectOwnerName) {
                 projectV2(number: $projectNumber) {
@@ -92,7 +92,7 @@ runs:
               projectNumber,
             },
           )
-          const projectId = idResp[ownerTypeQuery]?.projectV2.id
+          const projectId = projectIdResponse[ownerTypeQuery]?.projectV2.id
           core.info(`Project ID: ${projectId}`)
 
           // Find if the issue is already attached to the current project
