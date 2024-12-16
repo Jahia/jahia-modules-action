@@ -60,3 +60,14 @@ jobs:
         with:   
           header: pr-title-lint-error
           delete: true
+
+  # When closing the PR, label it based on conventional commits
+  # https://github.com/marketplace/actions/conventionnal-commit-pr-labeler
+  label-release:
+    runs-on: ubuntu-latest
+    name: Apply label base on conventional commit
+    if: ${{ github.event.action == 'closed' }}    
+    steps:
+      - uses: stephdotnet/conventional-commit-pr-labels@v1
+        with:
+          token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
