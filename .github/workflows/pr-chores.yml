@@ -68,6 +68,6 @@ jobs:
     name: Apply label base on conventional commit
     if: ${{ github.event.action == 'closed' }}    
     steps:
-      - uses: stephdotnet/conventional-commit-pr-labels@v1
+      - uses: stephdotnet/conventional-commit-pr-labels@0.2.0
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
