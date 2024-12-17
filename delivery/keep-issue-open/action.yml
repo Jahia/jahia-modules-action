@@ -33,6 +33,10 @@ runs:
         script: |
           const { projectPrefix, projectField, projectFieldValue } = process.env
           const githubIssueId = context.payload.issue.node_id
+          const githubIssueTitle = context.payload.issue.title
+          const githubIssueNumber = context.payload.issue.number
+
+          try {
           const githubIssueNode = await github.graphql(`
             query issue($issueId: ID! $projectField: String!) {
               node(id: $issueId) {
@@ -65,6 +69,11 @@ runs:
             `,
             { issueId: githubIssueId, projectField: projectField }
           )
+          } catch (error) {
+            console.log("Request failed:", error.request);
+            console.log("Error '%s' while trying to find an issue with ID '%s' (Number: '%d' and Title: '%s')", error.message, ${githubIssueId}, ${githubIssueTitle}, ${githubIssueNumber});
+          }
+          
           if (githubIssueNode === undefined) {
             core.info(`Unable to find an issue with ID: ${githubIssueId}`)
             return
