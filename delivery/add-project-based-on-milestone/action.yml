@@ -23,6 +23,8 @@ runs:
         script: |
           const { projectUrl } = process.env
           const githubIssueId = context.payload.issue.node_id;
+          const githubIssueTitle = context.payload.issue.title
+          const githubIssueNumber = context.payload.issue.number
           const gitubIssueNode = await github.graphql(`
             query issue($issueId: ID!) {
               node(id: $issueId) {
@@ -47,7 +49,11 @@ runs:
             }
             `,
             { issueId: githubIssueId }
-          )
+          ).catch((error) => {
+            core.info("Request failed:", error.request);
+            core.info(`Error "${error.message}" while trying to find an issue with ID: ${githubIssueId} (Number: ${githubIssueNumber} and Title: ${githubIssueTitle})`);
+          })
+
           if (gitubIssueNode === undefined) {
             core.info(`Unable to find an issue with ID: ${githubIssueId}`)
             return
@@ -91,7 +97,10 @@ runs:
               projectOwnerName,
               projectNumber,
             },
-          )
+          ).catch((error) => {
+            core.info("Request failed:", error.request);
+            core.info(`Error "${error.message}" while trying to find a project with Number: ${projectNumber}`);
+          })
           const projectId = projectIdResponse[ownerTypeQuery]?.projectV2.id
           core.info(`Project ID: ${projectId}`)
 
@@ -114,7 +123,10 @@ runs:
               }
               `,
               { projectId: projectId, contentId: githubIssueId }
-            )
+            ).catch((error) => {
+              core.info("Request failed:", error.request);
+              core.info(`Error "${error.message}" while trying to create a project item in project ID: ${projectItem.project.id} for issue ID: ${contentId}`);
+            })
             core.info(`Created a project item in Project ID: ${projectId} for issue ID: ${contentId}`)
           } else if (projectItem !== undefined && gitubIssue.milestone === null) {
             // Issue is attached to a project but not attached to a milestone
@@ -130,7 +142,10 @@ runs:
               }
               `,
               { projectId: projectItem.project.id, itemId: projectItem.id }
-            )
+            ).catch((error) => {
+              core.info("Request failed:", error.request);
+              core.info(`Error "${error.message}" while trying to remove a project item with ID: ${projectItem.id} from project ID: ${projectItem.project.id}`);
+            })
             core.info(`Removed project item ID: ${projectItem.id} from project ID: ${projectItem.project.id}`)
           } else {
             core.info(`No action required for issue with ID: ${githubIssueId}`)
