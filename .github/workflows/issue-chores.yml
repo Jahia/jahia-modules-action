@@ -1,12 +1,24 @@
-# This workflow performs various tasks for cleanup, triage, ... on GitHub Issues
-name: Issues Chores
+# This workflow performs various tasks for cleanup, triage, ... on an individual GitHub Issue
+# It should be called based on issue events
+name: Issue Chores
 
 on:
   workflow_call:
 
 jobs:
-  projects:
-    name: Projects
+  general:
+    name: General Issue operations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Re-open issue closed and not in the Done column
+        uses: jahia/jahia-modules-action/delivery/keep-issue-open@v2
+        with:
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          project_prefix: "Team - "
+
+  projects-label:
+    name: Projects on Labels
+    if: ${{ github.event.action == 'labeled' }}
     runs-on: ubuntu-latest
     steps:
       # Issue type is not available by default, this makes it available for if conditions
@@ -19,7 +31,6 @@ jobs:
 
       # Using an official action from GitHub to attach issues to projects
       # https://github.com/marketplace/actions/add-to-github-projects
-
       - name: Attach needs-triage to the Bugs Triage project
         uses: actions/add-to-project@v1.0.2
         with:
@@ -37,7 +48,7 @@ jobs:
       # Add all tickets of Type "Epic" and label "Area:" to the global roadmap project
       - name: Attach all Epics to the Roadmap - Global project
         uses: actions/add-to-project@v1.0.2
-        if: ${{ steps.get-issue-type.outputs.result == 'Epic' }}
+        if: ${{ steps.get-issue-type.outputs.result == 'Epic'}}
         with:
           project-url: https://github.com/orgs/Jahia/projects/18
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
@@ -50,13 +61,6 @@ jobs:
           project-url: https://github.com/orgs/Jahia/projects/21
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:QA
-
-      - name: Attach all tickets with label Area:QA to the Security Roadmap Project
-        uses: actions/add-to-project@v1.0.2
-        with:
-          project-url: https://github.com/orgs/Jahia/projects/22
-          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
-          labeled: Area:Security
 
       - name: Attach all tickets with label Area:Tech to the Tech Roadmap Project
         uses: actions/add-to-project@v1.0.2
@@ -72,10 +76,52 @@ jobs:
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:Delivery
 
+      - name: Attach all tickets with label Area:Security and incident to the Security Roadmap Project
+        uses: actions/add-to-project@v1.0.2
+        id: new-security-incident
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/22
+          github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
+          labeled: Area:Security, incident
+          label-operator: AND
+
+      - name: Create a Security Jira ticket
+        uses: jahia/jahia-modules-action/delivery/create-security-ticket@v2
+        if: ${{ steps.new-security-incident.outputs.itemId != '' }}
+        with:
+          jira-host: 'jira.jahia.org'
+          jira-project: 'SECBACKLOG'
+          jira-username: ${{ secrets.JIRA_USERNAME }}
+          jira-password: ${{ secrets.JIRA_PASSWORD }}
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          github-security-project: 'Area - Security'
+          github-field: 'Jira tickets'
+
+      - name: Attach all tickets with label Area:QA to the Security Roadmap Project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/22
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          labeled: Area:Security
+
+  projects-milestone:
+    name: Projects on Milestones
+    if: ${{ github.event.action == 'milestoned' || github.event.action == 'demilestoned' }}
+    runs-on: ubuntu-latest
+    steps:
+      # Adds or removes the "Product Releases" project if a milestone is added
+      # or removed
+      - name: Attach Project based on the presence of a milestone
+        uses: jahia/jahia-modules-action/delivery/add-project-based-on-milestone@v2
+        with:
+          project_url: https://github.com/orgs/Jahia/projects/29
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+
   transfer:
     name: Transfer
     runs-on: ubuntu-latest
-    needs: projects
+    needs: [projects-label, projects-milestone]
+    if: always()
     steps:
       # Transfer issues with label "jahia-only" back to jahia-private
       - name: Transfer Issue & Create Stub
@@ -95,22 +141,27 @@ jobs:
               body: `@${ context.payload.issue.user.login } your issues was moved back to jahia/jahia-private since it contained the jahia-only label!`
             });
 
+      # If labeled with delete, the issue is transffered to a dedicated repository
+      - name: Transfer Issue for deletion
+        uses: lando/transfer-issue-action@v2
+        with:
+          token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}        
+          router: delete:deleted-issues     
+
       # Transfer issues between repositories of the Jahia org
-      # Note: Pending review/merge of this PR: https://github.com/lando/transfer-issue-action/pull/97
-      # Will update once PR is merged.
       - name: Transfer Issue & Create Stub
-        uses: Fgerthoffert/transfer-issue-action@v1.0.0
+        uses: Fgerthoffert/actions-transfer-issue@v1.0.0
+        if: ${{ github.event.action == 'labeled' }}
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
           router: "transfer:"
-          create_labels_if_missing: true
           allow_private_public_transfer: true
-          enable_custom_label_routing: true
 
   links:
     name: Links
     runs-on: ubuntu-latest
     needs: transfer
+    if: always()
     steps:
       # Create links in Jira to GitHub Issues
       # We still need to create a Jira User and update the server_host
@@ -121,4 +172,4 @@ jobs:
           jira_server_host: jira.jahia.org
           jira_server_username: ${{ secrets.JIRA_USERNAME }}
           jira_server_password: ${{ secrets.JIRA_PASSWORD }}
-          github_project_field: "Support tickets" 
+          github_project_field: "Jira tickets" 

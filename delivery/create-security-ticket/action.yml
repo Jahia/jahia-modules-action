@@ -1,0 +1,183 @@
+name: Create a Security ticket
+description: Create a Security Jira ticket from a Github issue
+
+inputs:
+  jira-host:
+    description: 'Jira host'
+    default: 'jira.jahia.org'
+    required: true
+  jira-project:
+    description: 'Jira project'
+    default: 'SECBACKLOG'
+    required: true
+  jira-username:
+    description: 'Jira username'
+    required: true
+  jira-password:
+    description: 'Jira password'
+    required: true
+  github-token:
+    description: 'Github token'
+    required: true
+  github-security-project:
+    description: 'Github security project name'
+    default: 'Area - Security'
+    required: false
+  github-field:
+    description: 'Github field name for Jira tickets'
+    default: 'Jira tickets'
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Jira client
+      shell: bash
+      run: npm install jira-client
+    
+    - name: Check if a Security Jira ticket is already linked, create it if not
+      uses: actions/github-script@v7
+      env:
+        jiraHost: ${{ inputs.jira-host }}
+        jiraUsername: ${{ inputs.jira-username }}
+        jiraPassword: ${{ inputs.jira-password }}
+        jiraProject: ${{ inputs.jira-project }}
+        securityProjectJiraField: ${{ inputs.github-field }}
+        securityProjectName: ${{ inputs.github-security-project }}
+      with:
+        github-token: ${{ inputs.github-token }}
+        result-encoding: string
+        retries: 3
+        script: |
+          const { jiraHost, jiraUsername, jiraPassword, jiraProject, securityProjectJiraField, securityProjectName } = process.env
+          const jiraApi = require('jira-client');
+
+          const githubIssueId = context.payload.issue.node_id
+          const githubIssueTitle = context.payload.issue.title
+          const githubIssueNumber = context.payload.issue.number
+          
+          const projectFields = await github.graphql(`
+            query issue($issueId: ID! $projectField: String!) {
+              node(id: $issueId) {
+                ... on Issue {
+                  title
+                  projectItems(first: 10) {
+                    nodes {
+                      id
+                      project {
+                        id
+                        title
+                        field(name: $projectField) {
+                          ... on ProjectV2Field {
+                            id
+                            name
+                          }
+                        }
+                      }
+                      fieldValueByName(name: $projectField) {
+                        ... on ProjectV2ItemFieldTextValue {
+                          text
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            `,
+            { issueId: githubIssueId, projectField: securityProjectJiraField }
+          ).catch((error) => {
+            core.info("Request failed:", error.request);
+            core.info(`Error "${error.message}" while trying to find the field: "${securityProjectJiraField}" for the issue with ID: ${githubIssueId} (Number: ${githubIssueNumber} and Title: ${githubIssueTitle})`);
+          })
+          
+          let securityTicket = ''
+          let securityProjectItemID = ''
+          let securityProjectID = ''
+          let securityProjectJiraFieldID = ''
+          const securityProject = projectFields.node.projectItems.nodes.find(pi => pi.project.title === securityProjectName)
+          if (securityProject !== undefined) {
+            if (securityProject.fieldValueByName !== null) {
+              const tickets = securityProject.fieldValueByName.text.split(',').map(key => key.trim())
+              for(let t = 0; t < tickets.length; t++){
+                if (tickets[t].startsWith(jiraProject)) {
+                  securityTicket = tickets[t]
+                }
+              }
+              core.info('Security ticket found: ' + JSON.stringify(securityTicket))
+            }
+            securityProjectItemID = securityProject.id
+            securityProjectID = securityProject.project.id
+            securityProjectJiraFieldID = securityProject.project.field.id
+          } else {
+            core.info('Unable to find the security project with name: ${securityProjectName}')
+            return
+          }
+          
+          if (securityTicket === '') {
+            core.info('Unable to find any security ticket in field: ${securityProjectJiraField}. Let's create it.')
+
+            // Initialize Jira connection
+            const jira = new jiraApi({
+              protocol: 'https',
+              host: jiraHost,
+              username: jiraUsername,
+              password: jiraPassword,
+              apiVersion: '2',
+              strictSSL: true
+            })
+
+            const issueSummary = '[Product] ' + "${{ github.event.issue.title }}" + ' (#' + "${{ github.event.issue.number }}" + ')'
+            const issueBody = "${{ github.event.issue.body }}";
+
+            // Remove the version when moving to the support Jira
+            const issue = await jira.addNewIssue({
+              fields: {
+                "project":
+                {
+                    "key": jiraProject
+                },
+                "summary": issueSummary,
+                "description": issueBody,
+                "versions": 
+                [
+                  {
+                    "name": "8.2.0.0"
+                  }
+                ],
+                "issuetype": 
+                {
+                    "name": "Bug"
+                }
+              }
+            });
+            
+            await github.graphql(`
+              mutation ($project: ID! $item: ID! $field: ID! $field_value: String!) {
+                updateProjectV2ItemFieldValue(input: {
+                  projectId: $project
+                  itemId: $item
+                  fieldId: $field
+                  value: {
+                    text: $field_value
+                  }
+                }) {
+                  projectV2Item {
+                    id
+                  }
+                }
+              }
+              `,
+              { project: securityProjectID, item: securityProjectItemID, field: securityProjectJiraFieldID, field_value: issue.key }
+            ).catch((error) => {
+              core.info("Request failed:", error.request);
+              core.info(`Error "${error.message}" while trying to update the field with ID: "${securityProjectJiraFieldID}" with value: "${issue.key}" for the project with ID: "${securityProjectID}"`);
+            })
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: "${{ github.repository_owner }}",
+              repo: "${{ github.event.repository.name }}",
+              body: `A copy of this ticket has been created: [${ issue.key }](https://${ jiraHost }/browse/${ issue.key }).`
+            });
+          }

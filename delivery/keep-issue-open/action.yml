@@ -1,0 +1,196 @@
+name: Keep issue open
+description: If an issue in closed but not in the Done column of the project, re-open the issue with a comment
+
+inputs:
+  project_prefix:
+    description: Prefix of projects to consider
+    required: true
+  project_field:
+    description: Name of the field to check
+    default: Status
+    required: false
+  project_field_value:
+    description: Value of the field to check
+    default: Done
+    required: false
+  github_token:
+    description: 'GitHub personal API token'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Re-open an issue if not in the right column
+      uses: actions/github-script@v7
+      env:
+        projectPrefix: ${{ inputs.project_prefix }}
+        projectField: ${{ inputs.project_field }}
+        projectFieldValue: ${{ inputs.project_field_value }}
+      with:
+        github-token: ${{ inputs.github_token }}
+        result-encoding: string
+        retries: 3
+        script: |
+          const { projectPrefix, projectField, projectFieldValue } = process.env
+          const githubIssueId = context.payload.issue.node_id
+          const githubIssueTitle = context.payload.issue.title
+          const githubIssueNumber = context.payload.issue.number
+          const githubIssueNode = await github.graphql(`
+            query issue($issueId: ID! $projectField: String!) {
+              node(id: $issueId) {
+                ... on Issue {
+                  id
+                  state
+                  title
+                  milestone {
+                    id
+                    title
+                  }
+                  projectItems(first:10) {
+                    nodes {
+                      id
+                      project {
+                        id                    
+                        url
+                        title
+                      }
+                      fieldValueByName(name: $projectField) {
+                        ... on ProjectV2ItemFieldSingleSelectValue {
+                          name
+                        }
+                      }                      
+                    }
+                  }                                  
+                }
+              }
+            }
+            `,
+            { issueId: githubIssueId, projectField: projectField }
+          ).catch((error) => {
+            core.info("Request failed:", error.request);
+            core.info(`Error "${error.message}" while trying to find an issue with ID: ${githubIssueId} (Number: ${githubIssueNumber} and Title: ${githubIssueTitle})`);
+          })
+          
+          if (githubIssueNode === undefined) {
+            core.info(`Unable to find an issue with ID: ${githubIssueId}`)
+            return
+          }
+
+          const githubIssue = githubIssueNode.node
+          core.info(`Issue with ID: ${githubIssueId} has status: ${githubIssue.state}`)
+
+          if (githubIssue.state === "OPEN") {
+            core.info(`Issue with ID: ${githubIssueId} is still open, no action needed`)
+            return
+          }
+          const projectItem = githubIssue.projectItems.nodes.find(item => item.project.title.startsWith(projectPrefix))
+
+          if (projectItem === undefined) {
+            core.info(`Issue with ID: ${githubIssueId} is not assigned to a project starting with: ${projectPrefix}, no action needed`)
+            return
+          }
+
+          core.info(`Issue contains a project item whose project starts with: ${projectPrefix}`)
+          console.log(JSON.stringify(projectItem))
+
+          if (projectItem.fieldValueByName.name === projectFieldValue) {
+            core.info(`Issue with ID: ${githubIssueId} is closed and has a ${projectField} of ${projectFieldValue}, no action needed`)
+            return
+          } 
+          
+          if (projectItem.fieldValueByName.text === null) {
+            core.warning(`Issue with ID: ${githubIssueId} value is null for field ${projectField}, the action may be misconfigured`)
+            return
+          } 
+
+          core.info(`Issue with ID: ${githubIssueId} is closed but should have a ${projectField} of ${projectFieldValue}, the issue will be Re-opened`)
+          await github.graphql(`
+            mutation ($issueId: ID!) {
+              reopenIssue(input: {
+                issueId: $issueId
+              }) {
+                issue {
+                  id
+                }
+              }
+            }
+            `,
+            { issueId: githubIssue.id }
+          ).catch((error) => {
+            core.info("Request failed:", error.request);
+            core.info(`Error "${error.message}" while trying to close issue with ID: ${githubIssueId}`);
+          })
+          
+          core.info(`Issue ID: ${githubIssue.id} was Re-Opened`)
+
+          // Code from: https://github.com/marocchino/sticky-pull-request-comment/blob/daa4a82a0a3f6c162c02b83fa44b3ab83946f7cb/src/comment.ts#L26
+          const findPreviousComment = async (issueId, searchCode) => {
+            let after = null
+            let hasNextPage = true
+            while (hasNextPage) {
+              core.info(`Paginating through comments in issue: ${issueId} after: ${after}`)
+              const githubIssueNodeComments = await github.graphql(`
+                query issue($issueId: ID! $after: String) {
+                  node(id: $issueId) {
+                    ... on Issue {
+                      id
+                      comments(first: 100 after: $after) {
+                        nodes {
+                          id
+                          author {
+                            login
+                          }
+                          isMinimized
+                          body
+                        }
+                        pageInfo {
+                          endCursor
+                          hasNextPage
+                        }                          
+                      }                                  
+                    }
+                  }
+                }
+                `,
+                { issueId: issueId, after: after }
+              )
+              const commentFound = githubIssueNodeComments.node.comments.nodes.find(n => n.body.includes(searchCode))
+              core.debug(JSON.stringify(commentFound))
+              if (commentFound) {
+                return commentFound
+              }
+              after = githubIssueNodeComments.node.comments.pageInfo.endCursor
+              hasNextPage = githubIssueNodeComments.node.comments.pageInfo.hasNextPage ?? false
+            }
+            return undefined
+          }
+
+          const errorCode = 'INCORRECT_GITHUB_PROJECT_STATUS'
+          const commentMsg = `If an issue is attached to a project starting with ${projectPrefix}, it can only be closed if its has a ${projectField} of ${projectFieldValue} \n\n code: ${errorCode}`
+
+          //  Search for the presence of an existing comment containing the error code
+          // Only posting the comment if there were no previous similar comment in the issue.
+          const previousComment = await findPreviousComment(githubIssue.id, errorCode)
+
+          core.info(`Previous comment: ${JSON.stringify(previousComment)}`)
+          if (previousComment === undefined) {
+            await github.graphql(`
+              mutation ($issueId: ID! $body: String!) {
+                addComment(input: {
+                  subjectId: $issueId
+                  body: $body
+                }) {
+                  clientMutationId
+                }
+              }
+              `,
+              { issueId: githubIssue.id, body: commentMsg }
+            ).catch((error) => {
+              core.info("Request failed:", error.request);
+              core.info(`Error "${error.message}" while trying to add a comment on issue with ID: ${githubIssue.id}`);
+            })
+            core.info(`Added a comment with error code: ${errorCode} in issue with ID: ${githubIssue.id}`)
+          } else {
+            core.info(`Found a previous comment with error code: ${errorCode} in issue with ID: ${githubIssue.id}`)
+          }
+

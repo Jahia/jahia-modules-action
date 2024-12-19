@@ -1,5 +1,6 @@
-# This workflow performs various tasks for cleanup, triage, ... on GitHub PRs
-name: PRs Chores
+# This workflow performs various tasks for cleanup, triage, ... on an individual GitHub PR
+# It should be called based on PR events
+name: PR Chores
 
 on:
   workflow_call:
@@ -12,6 +13,8 @@ jobs:
   lint-pr-title:
     name: Lint PR Title
     runs-on: ubuntu-latest
+    # It does not make sense to run that workflow when a PR is closed
+    if: ${{ github.event.action != 'closed' }}
     steps:
       - uses: amannn/action-semantic-pull-request@v5
         id: lint_pr_title
@@ -59,3 +62,14 @@ jobs:
         with:   
           header: pr-title-lint-error
           delete: true
+
+  # When closing the PR, label it based on conventional commits
+  # https://github.com/marketplace/actions/conventionnal-commit-pr-labeler
+  label-release:
+    runs-on: ubuntu-latest
+    name: Apply label base on conventional commit
+    if: ${{ github.event.action == 'closed' }}
+    steps:
+      - uses: stephdotnet/conventional-commit-pr-labels@0.2.0
+        with:
+          token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
