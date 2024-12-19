@@ -33,6 +33,8 @@ runs:
         script: |
           const { projectPrefix, projectField, projectFieldValue } = process.env
           const githubIssueId = context.payload.issue.node_id
+          const githubIssueTitle = context.payload.issue.title
+          const githubIssueNumber = context.payload.issue.number
           const githubIssueNode = await github.graphql(`
             query issue($issueId: ID! $projectField: String!) {
               node(id: $issueId) {
@@ -64,7 +66,11 @@ runs:
             }
             `,
             { issueId: githubIssueId, projectField: projectField }
-          )
+          ).catch((error) => {
+            core.info("Request failed:", error.request);
+            core.info(`Error "${error.message}" while trying to find an issue with ID: ${githubIssueId} (Number: ${githubIssueNumber} and Title: ${githubIssueTitle})`);
+          })
+          
           if (githubIssueNode === undefined) {
             core.info(`Unable to find an issue with ID: ${githubIssueId}`)
             return
@@ -99,18 +105,22 @@ runs:
 
           core.info(`Issue with ID: ${githubIssueId} is closed but should have a ${projectField} of ${projectFieldValue}, the issue will be Re-opened`)
           await github.graphql(`
-              mutation ($issueId: ID!) {
-                reopenIssue(input: {
-                  issueId: $issueId
-                }) {
-                  issue {
-                    id
-                  }
+            mutation ($issueId: ID!) {
+              reopenIssue(input: {
+                issueId: $issueId
+              }) {
+                issue {
+                  id
                 }
               }
-              `,
-              { issueId: githubIssue.id }
-            )
+            }
+            `,
+            { issueId: githubIssue.id }
+          ).catch((error) => {
+            core.info("Request failed:", error.request);
+            core.info(`Error "${error.message}" while trying to close issue with ID: ${githubIssueId}`);
+          })
+          
           core.info(`Issue ID: ${githubIssue.id} was Re-Opened`)
 
           // Code from: https://github.com/marocchino/sticky-pull-request-comment/blob/daa4a82a0a3f6c162c02b83fa44b3ab83946f7cb/src/comment.ts#L26
@@ -175,7 +185,10 @@ runs:
               }
               `,
               { issueId: githubIssue.id, body: commentMsg }
-            )
+            ).catch((error) => {
+              core.info("Request failed:", error.request);
+              core.info(`Error "${error.message}" while trying to add a comment on issue with ID: ${githubIssue.id}`);
+            })
             core.info(`Added a comment with error code: ${errorCode} in issue with ID: ${githubIssue.id}`)
           } else {
             core.info(`Found a previous comment with error code: ${errorCode} in issue with ID: ${githubIssue.id}`)

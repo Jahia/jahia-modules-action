@@ -51,6 +51,10 @@ runs:
         script: |
           const { jiraHost, jiraUsername, jiraPassword, jiraProject, securityProjectJiraField, securityProjectName } = process.env
           const jiraApi = require('jira-client');
+
+          const githubIssueId = context.payload.issue.node_id
+          const githubIssueTitle = context.payload.issue.title
+          const githubIssueNumber = context.payload.issue.number
           
           const projectFields = await github.graphql(`
             query issue($issueId: ID! $projectField: String!) {
@@ -81,8 +85,11 @@ runs:
               }
             }
             `,
-            { issueId: context.payload.issue.node_id, projectField: securityProjectJiraField }
-          )
+            { issueId: githubIssueId, projectField: securityProjectJiraField }
+          ).catch((error) => {
+            core.info("Request failed:", error.request);
+            core.info(`Error "${error.message}" while trying to find the field: "${securityProjectJiraField}" for the issue with ID: ${githubIssueId} (Number: ${githubIssueNumber} and Title: ${githubIssueTitle})`);
+          })
           
           let securityTicket = ''
           let securityProjectItemID = ''
@@ -162,7 +169,10 @@ runs:
               }
               `,
               { project: securityProjectID, item: securityProjectItemID, field: securityProjectJiraFieldID, field_value: issue.key }
-            )
+            ).catch((error) => {
+              core.info("Request failed:", error.request);
+              core.info(`Error "${error.message}" while trying to update the field with ID: "${securityProjectJiraFieldID}" with value: "${issue.key}" for the project with ID: "${securityProjectID}"`);
+            })
             
             await github.rest.issues.createComment({
               issue_number: context.issue.number,
