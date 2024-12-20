@@ -81,7 +81,7 @@ jobs:
         id: new-security-incident
         with:
           project-url: https://github.com/orgs/Jahia/projects/22
-          github-token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:Security, incident
           label-operator: AND
 
