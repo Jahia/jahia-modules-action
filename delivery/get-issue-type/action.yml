@@ -1,0 +1,49 @@
+name: Get issue type
+description: Returns the type of an issue
+
+inputs:
+  github_token:
+    description: 'GitHub personal API token'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check if an issue exists
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github_token }}
+        result-encoding: string
+        retries: 3
+        script: |
+          const githubIssueId = context.payload.issue.node_id
+          const githubIssueNode = await github.graphql(`
+            query issue($issueId: ID!) {
+              node(id: $issueId) {
+                ... on Issue {
+                  id
+                  issueType {
+                    id
+                    name
+                  }
+                }
+              }
+            }
+            `,
+            { issueId: githubIssueId}
+          ).catch(error => {
+            core.info(`Error "${error.message}" while trying to find the issue with ID: ${githubIssueId}`);          
+          })
+          
+          if (githubIssueNode === undefined) {
+            core.info(`Unable to find an issue with ID: ${githubIssueId}`)
+            return ""
+          } 
+          
+          if (githubIssueNode.issueType === null) {
+            core.info(`Unable to find an issue type for issue ID: ${githubIssueId}`)
+            return ""
+          } else {
+            core.info(`An issue with ID: ${githubIssueId} exists, type id: ${JSON.stringify(githubIssueNode.issueType)}`)
+            return githubIssueNode.issueType.name
+          }
