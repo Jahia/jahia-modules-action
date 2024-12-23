@@ -146,7 +146,7 @@ jobs:
       - name: Transfer Issue & Create Stub
         uses: lando/transfer-issue-action@v2
         with:
-          token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}        
+          token: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
           router: jahia-only:jahia-private      
       - name: Update Transferred Issue
         uses: actions/github-script@v7
@@ -164,7 +164,7 @@ jobs:
       - name: Transfer Issue for deletion
         uses: lando/transfer-issue-action@v2
         with:
-          token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}        
+          token: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
           router: delete:deleted-issues     
 
       # Transfer issues between repositories of the Jahia org
