@@ -1,3 +1,5 @@
+# See: https://github.com/orgs/community/discussions/139933
+
 name: Get issue type
 description: Returns the type of an issue
 
@@ -30,7 +32,10 @@ runs:
               }
             }
             `,
-            { issueId: githubIssueId}
+            { issueId: githubIssueId},
+            headers: {
+              GraphQL-Features: 'issue_types'
+            }
           ).catch(error => {
             core.info(`Error "${error.message}" while trying to find the issue with ID: ${githubIssueId}`);          
           })
