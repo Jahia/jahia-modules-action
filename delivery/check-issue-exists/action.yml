@@ -28,7 +28,9 @@ runs:
             }
             `,
             { issueId: githubIssueId}
-          )
+          ).catch(error => {
+            core.info(`Error "${error.message}" while trying to find the issue with ID: ${githubIssueId}`);          
+          })
           
           if (githubIssueNode === undefined) {
             core.info(`Unable to find an issue with ID: ${githubIssueId}`)
