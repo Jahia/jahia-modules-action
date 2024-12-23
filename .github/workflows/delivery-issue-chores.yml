@@ -39,7 +39,7 @@ jobs:
         with:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}      
 
-      - name: Get result
+      - name: Display issue type
         run: echo "${{steps.get-issue-type.outputs.result}}"
 
       # Using an official action from GitHub to attach issues to projects
