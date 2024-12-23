@@ -120,7 +120,7 @@ jobs:
       - name: Remove the refresh label
         uses: jahia/jahia-modules-action/delivery/delete-labels@improve-wf2
         with:
-          token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labels: refresh
 
   projects-milestone:
