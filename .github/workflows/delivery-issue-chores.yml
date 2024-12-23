@@ -20,6 +20,7 @@ jobs:
             core.info(`context.payload.issue.number: ${context.payload.issue.number}`)
             core.info(`context.payload.issue.html_url: ${context.payload.issue.html_url}`)
             core.info(`context.payload.sender.login: ${context.payload.sender.login}`)
+            core.info(`context.payload.issue.type.name: ${context.payload.issue.type.name}`)
             core.debug(context)    
       - name: Re-open issue closed and not in the Done column
         uses: jahia/jahia-modules-action/delivery/keep-issue-open@v2
