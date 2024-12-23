@@ -56,4 +56,5 @@ runs:
           core.info(`An issue with ID: ${githubIssueId} exists, type: ${JSON.stringify(githubIssueNode.node.issueType)}`)
           return githubIssueNode.node.issueType.name
     - name: Get result
+      shell: bash
       run: echo "${{steps.set-result.outputs.result}}"
