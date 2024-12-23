@@ -187,7 +187,7 @@ jobs:
       # If the issue was moved to a different repository it will not be possible to attach links
       # In that case skip the link creation, which will be handled next time an event happens on the issue
       - name: Check if the issue still exists in the repository
-        uses: jahia/jahia-modules-action/delivery/check-issue-exists@v2
+        uses: jahia/jahia-modules-action/delivery/check-issue-exists@improve-wf
         id: issue-exists
         with:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
