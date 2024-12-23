@@ -6,11 +6,17 @@ inputs:
     description: 'GitHub personal API token'
     required: true
 
+outputs:
+  result:
+    description: "Issue number"
+    value: ${{ steps.get-issue-number.outputs.result }}
+
 runs:
   using: 'composite'
   steps:
     - name: Check if an issue exists
       uses: actions/github-script@v7
+      id: get-issue-number
       with:
         github-token: ${{ inputs.github_token }}
         result-encoding: string
@@ -35,7 +41,11 @@ runs:
           if (githubIssueNode === undefined) {
             core.info(`Unable to find an issue with ID: ${githubIssueId}`)
             return ""
-          } else {
-            core.info(`An issue with ID: ${githubIssueId} exists`)
-            return githubIssueNode.node.number
           }
+
+          core.info(`An issue with ID: ${githubIssueId} exists`)
+          return githubIssueNode.node.number
+
+    - name: Display issue number
+      shell: bash
+      run: echo "${{ steps.get-issue-number.outputs.result }}"

@@ -62,4 +62,4 @@ runs:
           return githubIssueNode.node.issueType.name
     - name: Display issue type
       shell: bash
-      run: echo "${{steps.get-issue-type.outputs.result}}"
+      run: echo "${{ steps.get-issue-type.outputs.result }}"

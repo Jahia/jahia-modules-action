@@ -34,7 +34,7 @@ jobs:
     steps:
       # Issue type is not available by default, this makes it available for if conditions
       - name: Get Issue type
-        uses: jahia/jahia-modules-action/delivery/get-issue-type@2280-final-cleanup-on-the-issues-and-prs-chores-workflows
+        uses: jahia/jahia-modules-action/delivery/get-issue-type@v2
         id: get-issue-type
         with:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}      
@@ -196,7 +196,7 @@ jobs:
       # We still need to create a Jira User and update the server_host
       - name: Create links to GitHub in Jira issues
         uses: Fgerthoffert/actions-create-jira-link@v1.0.0
-        if: steps.transfer-issue.outputs.new_issue_number != ''
+        if: steps.issue-exists.outputs.result != ''
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           jira_server_host: jira.jahia.org
