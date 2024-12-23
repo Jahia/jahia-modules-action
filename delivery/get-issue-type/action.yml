@@ -57,4 +57,4 @@ runs:
           return githubIssueNode.node.issueType.name
     - name: Get result
       shell: bash
-      run: echo "${{steps.set-result.outputs.result}}"
+      run: echo "${{steps.get-issue-type.outputs.result}}"
