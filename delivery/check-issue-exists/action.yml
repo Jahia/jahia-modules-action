@@ -18,7 +18,7 @@ runs:
         script: |
           const githubIssueId = context.payload.issue.node_id
           const githubIssueNode = await github.graphql(`
-            query issue($issueId: ID! $projectField: String!) {
+            query issue($issueId: ID!) {
               node(id: $issueId) {
                 ... on Issue {
                   id
