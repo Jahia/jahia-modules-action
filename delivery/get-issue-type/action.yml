@@ -35,7 +35,7 @@ runs:
             { 
               issueId: githubIssueId, 
               headers: {
-                GraphQL-Features: 'issue_types'
+                'GraphQL-Features': 'issue_types'
               }
             }            
           ).catch(error => {
