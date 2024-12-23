@@ -10,6 +10,17 @@ jobs:
     name: General Issue operations
     runs-on: ubuntu-latest
     steps:
+      - name: Displays details about the event
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.info(`context.eventName: ${context.eventName}`)
+            core.info(`context.payload.action: ${context.payload.action}`)
+            core.info(`context.payload.issue.node_id: ${context.payload.issue.node_id}`)
+            core.info(`context.payload.issue.number: ${context.payload.issue.number}`)
+            core.info(`context.payload.issue.html_url: ${context.payload.issue.html_url}`)
+            core.info(`context.payload.sender.login: ${context.payload.sender.login}`)
+            core.debug(context)    
       - name: Re-open issue closed and not in the Done column
         uses: jahia/jahia-modules-action/delivery/keep-issue-open@v2
         with:
@@ -104,6 +115,14 @@ jobs:
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:Security
 
+      # The refresh label is useful to trigger this workflow
+      # It gets automatically removed
+      - name: Remove the refresh label
+        uses: jahia/jahia-modules-action/delivery/delete-labels@v2
+        with:
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          labels: refresh
+
   projects-milestone:
     name: Projects on Milestones
     if: ${{ github.event.action == 'milestoned' || github.event.action == 'demilestoned' }}
@@ -130,7 +149,7 @@ jobs:
           token: ${{ secrets.GH_JAHIACI_ISSUES_CHORES }}        
           router: jahia-only:jahia-private      
       - name: Update Transferred Issue
-        uses: actions/github-script@v5
+        uses: actions/github-script@v7
         if: steps.transfer-issue.outputs.new_issue_number != ''
         with:
           script: |
@@ -163,13 +182,22 @@ jobs:
     needs: transfer
     if: always()
     steps:
+      # If the issue was moved to a different repository it will not be possible to attach links
+      # In that case skip the link creation, which will be handled next time an event happens on the issue
+      - name: Check if the issue still exists in the repository
+        uses: jahia/jahia-modules-action/delivery/check-issue-exists@v2
+        id: issue-exists
+        with:
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+    
       # Create links in Jira to GitHub Issues
       # We still need to create a Jira User and update the server_host
       - name: Create links to GitHub in Jira issues
         uses: Fgerthoffert/actions-create-jira-link@v1.0.0
+        if: steps.transfer-issue.outputs.new_issue_number != ''
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           jira_server_host: jira.jahia.org
           jira_server_username: ${{ secrets.JIRA_USERNAME }}
           jira_server_password: ${{ secrets.JIRA_PASSWORD }}
-          github_project_field: "Jira tickets" 
+          github_project_field: "Jira tickets"

@@ -1,0 +1,70 @@
+name: Delete labels
+description: Delete labels from an issue
+
+inputs:
+  github_token:
+    description: 'GitHub personal API token'
+    required: true
+  labels:
+    description: 'Comma separated list of labels to delete'
+    default: ''
+    required: true    
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check if an issue exists
+      uses: actions/github-script@v7
+      env:
+        labels: ${{ inputs.labels }}      
+      with:
+        github-token: ${{ inputs.github_token }}
+        result-encoding: string
+        retries: 3
+        script: |
+          const { labels } = process.env
+          const labelsToDelete = labels.split(',').map(name => name.trim())
+          core.info(`The following label(s) should be deleted: ${JSON.stringify(labelsToDelete)}`)
+
+          const githubIssueId = context.payload.issue.node_id
+          const githubIssueNode = await github.graphql(`
+            query issue($issueId: ID!) {
+              node(id: $issueId) {
+                ... on Issue {
+                  id
+                  labels(first: 50) {
+                    nodes {
+                      id
+                      name
+                    }
+                  }
+                }
+              }
+            }
+            `,
+            { issueId: githubIssueId}
+          )
+          
+          if (githubIssueNode === undefined) {
+            core.warning(`Unable to find an issue with ID: ${githubIssueId}`)
+            return
+          }
+          const issueLabels = githubIssueNode.node.labels.nodes
+
+          core.info(`The issue contains the following labels: ${JSON.stringify(issueLabels)}`)
+          for (const issueLabel of issueLabels) {
+            if (labelsToDelete.includes(issueLabel.name)) {
+              core.info(`Deleting label Name: ${issueLabel.name} with ID: ${issueLabel.id} from issue ID: ${githubIssueId}`)
+              await github.graphql(`
+                  mutation ($labelsIds: [ID!]! $labelableId: ID!) {
+                    removeLabelsFromLabelable(input: {labelIds: $labelsIds, labelableId: $labelableId}) {
+                      clientMutationId
+                    }
+                  }
+                `,
+                { labelsIds: [issueLabel.id], labelableId: githubIssueId }
+              )
+            }
+          }
+
+
