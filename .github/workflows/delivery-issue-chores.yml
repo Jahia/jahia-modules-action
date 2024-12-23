@@ -118,7 +118,7 @@ jobs:
       # The refresh label is useful to trigger this workflow
       # It gets automatically removed
       - name: Remove the refresh label
-        uses: jahia/jahia-modules-action/delivery/delete-labels@improve-wf2
+        uses: jahia/jahia-modules-action/delivery/delete-labels@v2
         with:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labels: refresh
