@@ -1,4 +1,3 @@
-# See: https://github.com/orgs/community/discussions/139933
 
 name: Get issue type
 description: Returns the type of an issue
@@ -34,6 +33,7 @@ runs:
             `,
             { 
               issueId: githubIssueId, 
+              // See doc about issue types: https://github.com/orgs/community/discussions/139933
               headers: {
                 'GraphQL-Features': 'issue_types'
               }
@@ -49,10 +49,10 @@ runs:
             return ""
           } 
           
-          if (githubIssueNode.issueType === null) {
+          if (githubIssueNode.node.issueType === null) {
             core.info(`Unable to find an issue type for issue ID: ${githubIssueId}`)
             return ""
           } else {
-            core.info(`An issue with ID: ${githubIssueId} exists, type id: ${JSON.stringify(githubIssueNode.issueType)}`)
-            return githubIssueNode.issueType.name
+            core.info(`An issue with ID: ${githubIssueId} exists, type: ${JSON.stringify(githubIssueNode.node.issueType)}`)
+            return githubIssueNode.node.issueType.name
           }
