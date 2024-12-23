@@ -50,7 +50,8 @@ runs:
           if (githubIssueNode.node.issueType === null) {
             core.info(`Unable to find an issue type for issue ID: ${githubIssueId}`)
             return ""
-          } else {
-            core.info(`An issue with ID: ${githubIssueId} exists, type: ${JSON.stringify(githubIssueNode.node.issueType)}`)
-            return githubIssueNode.node.issueType.name
           }
+          
+          core.info(`An issue with ID: ${githubIssueId} exists, type: ${JSON.stringify(githubIssueNode.node.issueType)}`)
+          return githubIssueNode.node.issueType.name
+          
