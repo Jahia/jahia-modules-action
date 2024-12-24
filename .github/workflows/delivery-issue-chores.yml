@@ -39,12 +39,6 @@ jobs:
         with:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}      
 
-      - name: Display output from the previous step
-        shell: bash
-        run: |
-          echo "issueType: ${{ steps.get-issue.outputs.issue_type }}"
-          echo "issueNumber: ${{ steps.get-issue.outputs.issue_number }}"
-
       # Using an official action from GitHub to attach issues to projects
       # https://github.com/marketplace/actions/add-to-github-projects
       - name: Attach needs-triage to the Bugs Triage project
