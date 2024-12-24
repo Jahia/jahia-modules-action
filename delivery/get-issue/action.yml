@@ -13,7 +13,7 @@ outputs:
     value: ${{ steps.get-issue.outputs.issueNumber }}
   issue_type:
     description: "Issue type"
-    value: ${{ steps.get-issue.outputs.issueType }
+    value: ${{ steps.get-issue.outputs.issueType }}
 
 runs:
   using: 'composite'
