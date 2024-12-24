@@ -23,7 +23,6 @@ runs:
       id: get-issue
       with:
         github-token: ${{ inputs.github_token }}
-        result-encoding: string
         retries: 3
         script: |
           const githubIssueId = context.payload.issue.node_id
