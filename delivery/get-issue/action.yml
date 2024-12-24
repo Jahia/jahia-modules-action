@@ -10,10 +10,10 @@ inputs:
 outputs:
   issue_number:
     description: "Issue number"
-    value: ${{ fromJSON(steps.get-issue.outputs.result).issueType }}
+    value: ${{ fromJSON(steps.get-issue.outputs.result).issueNumber }}
   issue_type:
     description: "Issue type"
-    value: ${{ fromJSON(steps.get-issue.outputs.result).issueNumber }}
+    value: ${{ fromJSON(steps.get-issue.outputs.result).issueType }}
 
 runs:
   using: 'composite'
