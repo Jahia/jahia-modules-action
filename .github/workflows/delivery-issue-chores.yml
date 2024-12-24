@@ -29,7 +29,7 @@ jobs:
 
   projects-label:
     name: Projects on Labels
-    if: ${{ github.event.action == 'labeled' }}
+    if: ${{ github.event.action == 'labeled' || github.event.action == 'typed' }}
     runs-on: ubuntu-latest
     steps:
       # Issue type is not available by default, this makes it available for if conditions
@@ -167,12 +167,11 @@ jobs:
           router: delete:deleted-issues     
 
       # Transfer issues between repositories of the Jahia org
-      - name: Transfer Issue & Create Stub
+      - name: Transfer Issue to another repository
         uses: Fgerthoffert/actions-transfer-issue@v1.0.0
         if: ${{ github.event.action == 'labeled' }}
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
-          router: "transfer:"
           allow_private_public_transfer: true
 
   links:
