@@ -58,9 +58,9 @@ runs:
             issueType: githubIssueNode?.node?.issueType?.name ?? ''
           }
 
-    - name: Issue Type
+    - name: Display output from the previous step
       shell: bash
-      run: echo "issueType: ${{ steps.get-issue.outputs.issueType }}"
-    - name: Issue Number
-      shell: bash
-      run: echo "issueNumber: ${{ steps.get-issue.outputs.issueNumber }}"
+      run: |
+        echo "JSON Ouptut: ${{ steps.get-issue.outputs.result }}"
+        echo "issueType: ${{ steps.get-issue.outputs.issueType }}"
+        echo "issueNumber: ${{ steps.get-issue.outputs.issueNumber }}"
