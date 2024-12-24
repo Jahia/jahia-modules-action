@@ -60,7 +60,7 @@ runs:
 
     - name: Issue Type
       shell: bash
-      run: echo "${{ steps.get-issue.outputs.issueType }}"
+      run: echo "issueType: ${{ steps.get-issue.outputs.issueType }}"
     - name: Issue Number
       shell: bash
-      run: echo "${{ steps.get-issue.outputs.issueNumber }}"
+      run: echo "issueNumber: ${{ steps.get-issue.outputs.issueNumber }}"
