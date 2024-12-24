@@ -13,7 +13,7 @@ outputs:
     value: ${{ fromJSON(steps.get-issue.outputs.result).issueType }}
   issue_type:
     description: "Issue type"
-    value: ${{ fromJSON(steps.get-issue.outputsresult).issueNumber }}
+    value: ${{ fromJSON(steps.get-issue.outputs.result).issueNumber }}
 
 runs:
   using: 'composite'
@@ -63,4 +63,4 @@ runs:
       run: |
         echo "JSON Output: ${{ steps.get-issue.outputs.result }}"
         echo "issueType: ${{ fromJSON(steps.get-issue.outputs.result).issueType }}"
-        echo "issueNumber: ${{ fromJSON(steps.get-issue.outputsresult).issueNumber }}"
+        echo "issueNumber: ${{ fromJSON(steps.get-issue.outputs.result).issueNumber }}"
