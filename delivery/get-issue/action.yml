@@ -61,6 +61,7 @@ runs:
     - name: Display output from the previous step
       shell: bash
       run: |
-        echo "JSON Ouptut: ${{ steps.get-issue.outputs.result }}"
-        echo "issueType: ${{ steps.get-issue.outputs.issueType }}"
+        echo "JSON Output: ${{ steps.get-issue.outputs.result }}"
+        echo "issueType: ${{ fromJSON(steps.get-issue.outputs.result).issueType }}"
+        echo "issueType1: ${{ steps.get-issue.outputs.result.issueType }}"
         echo "issueNumber: ${{ steps.get-issue.outputs.issueNumber }}"
