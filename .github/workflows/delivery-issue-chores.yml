@@ -172,7 +172,6 @@ jobs:
         if: ${{ github.event.action == 'labeled' }}
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
-          router: "transfer:"
           allow_private_public_transfer: true
 
   links:
