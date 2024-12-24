@@ -1,6 +1,6 @@
 
-name: Get issue type
-description: Returns the type of an issue
+name: Get issue
+description: Returns details about an issue
 
 inputs:
   github_token:
@@ -8,16 +8,19 @@ inputs:
     required: true
 
 outputs:
-  result:
+  issue_number:
     description: "Issue type"
-    value: ${{ steps.get-issue-type.outputs.result }}
+    value: ${{ steps.get-issue.outputs.issueNumber }}
+  issue_type:
+    description: "Issue type"
+    value: ${{ steps.get-issue.outputs.issueType }
 
 runs:
   using: 'composite'
   steps:
     - name: Check if an issue exists
       uses: actions/github-script@v7
-      id: get-issue-type
+      id: get-issue
       with:
         github-token: ${{ inputs.github_token }}
         result-encoding: string
@@ -29,6 +32,7 @@ runs:
               node(id: $issueId) {
                 ... on Issue {
                   id
+                  number
                   issueType {
                     id
                     name
@@ -45,21 +49,20 @@ runs:
               }
             }            
           ).catch(error => {
-            core.info(`Error "${error.message}" while trying to find the issue with ID: ${githubIssueId}`);          
+            core.info(`Could not find the issue with ID: ${githubIssueId}, message: ${error.message}`);          
           })
           
-          if (githubIssueNode === undefined) {
-            core.info(`Unable to find an issue with ID: ${githubIssueId}`)
-            return ""
-          } 
-          
-          if (githubIssueNode.node.issueType === null) {
-            core.info(`Unable to find an issue type for issue ID: ${githubIssueId}`)
-            return ""
+          core.debug(JSON.stringify(githubIssueNode))
+
+          return {
+            issueNumber: githubIssueNode?.node?.number ?? ''
+            issueType: githubIssueNode?.node?.issueType?.name ?? ''
           }
 
-          core.info(`An issue with ID: ${githubIssueId} exists, type: ${JSON.stringify(githubIssueNode.node.issueType)}`)
-          return githubIssueNode.node.issueType.name
-    - name: Display issue type
+
+    - name: Issue Type
       shell: bash
-      run: echo "${{ steps.get-issue-type.outputs.result }}"
+      run: echo "${{ steps.get-issue.outputs.issueType }}"
+    - name: Issue Number
+      shell: bash
+      run: echo "${{ steps.get-issue.outputs.issueNumber }}"

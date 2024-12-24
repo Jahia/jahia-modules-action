@@ -34,13 +34,10 @@ jobs:
     steps:
       # Issue type is not available by default, this makes it available for if conditions
       - name: Get Issue type
-        uses: jahia/jahia-modules-action/delivery/get-issue-type@v2
-        id: get-issue-type
+        uses: jahia/jahia-modules-action/delivery/get-issue@2280-final-cleanup-on-the-issues-and-prs-chores-workflows
+        id: get-issue
         with:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}      
-
-      - name: Display issue type
-        run: echo "${{steps.get-issue-type.outputs.result}}"
 
       # Using an official action from GitHub to attach issues to projects
       # https://github.com/marketplace/actions/add-to-github-projects
@@ -61,7 +58,7 @@ jobs:
       # Add all tickets of Type "Epic" and label "Area:" to the global roadmap project
       - name: Attach all Epics to the Roadmap - Global project
         uses: actions/add-to-project@v1.0.2
-        if: ${{ steps.get-issue-type.outputs.result == 'Epic'}}
+        if: ${{ steps.get-issue.outputs.issue_type == 'Epic'}}
         with:
           project-url: https://github.com/orgs/Jahia/projects/18
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
@@ -187,7 +184,7 @@ jobs:
       # If the issue was moved to a different repository it will not be possible to attach links
       # In that case skip the link creation, which will be handled next time an event happens on the issue
       - name: Check if the issue still exists in the repository
-        uses: jahia/jahia-modules-action/delivery/check-issue-exists@v2
+        uses: jahia/jahia-modules-action/delivery/get-issue@2280-final-cleanup-on-the-issues-and-prs-chores-workflows
         id: issue-exists
         with:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
@@ -196,7 +193,7 @@ jobs:
       # We still need to create a Jira User and update the server_host
       - name: Create links to GitHub in Jira issues
         uses: Fgerthoffert/actions-create-jira-link@v1.0.0
-        if: steps.issue-exists.outputs.result != ''
+        if: steps.issue-exists.outputs.issue_number != ''
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           jira_server_host: jira.jahia.org
