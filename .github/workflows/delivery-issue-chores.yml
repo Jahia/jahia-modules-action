@@ -167,7 +167,7 @@ jobs:
           router: delete:deleted-issues     
 
       # Transfer issues between repositories of the Jahia org
-      - name: Transfer Issue & Create Stub
+      - name: Transfer Issue to another repository
         uses: Fgerthoffert/actions-transfer-issue@v1.0.0
         if: ${{ github.event.action == 'labeled' }}
         with:
