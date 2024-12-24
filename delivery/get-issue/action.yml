@@ -54,17 +54,9 @@ runs:
           core.debug(JSON.stringify(githubIssueNode))
 
           return {
-            issueNumber: '123'
-            issueType: 'Task'
-          }
-
-          /*
-          return {
-            issueNumber: githubIssueNode?.node?.number ?? ''
+            issueNumber: githubIssueNode?.node?.number ?? '',
             issueType: githubIssueNode?.node?.issueType?.name ?? ''
           }
-          */
-
 
     - name: Issue Type
       shell: bash
