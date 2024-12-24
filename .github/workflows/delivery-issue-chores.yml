@@ -110,7 +110,7 @@ jobs:
           github-security-project: 'Area - Security'
           github-field: 'Jira tickets'
 
-      - name: Attach all tickets with label Area:QA to the Security Roadmap Project
+      - name: Attach all tickets with label Area:Security to the Security Roadmap Project
         uses: actions/add-to-project@v1.0.2
         with:
           project-url: https://github.com/orgs/Jahia/projects/22
