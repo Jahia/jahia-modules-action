@@ -93,11 +93,12 @@ jobs:
           project-url: https://github.com/orgs/Jahia/projects/22
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:Security, incident
-          label-operator: AND
+          label-operator: OR
 
       - name: Create a Security Jira ticket
         uses: jahia/jahia-modules-action/delivery/create-security-ticket@v2
-        if: ${{ steps.new-security-incident.outputs.itemId != '' }}
+        if: ${{ contains(github.event.issue.labels.*.name, 'Area:Security') 
+             && contains(github.event.issue.labels.*.name, 'incident') }}
         with:
           jira-host: 'jira.jahia.org'
           jira-project: 'SECBACKLOG'
@@ -106,13 +107,6 @@ jobs:
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           github-security-project: 'Area - Security'
           github-field: 'Jira tickets'
-
-      - name: Attach all tickets with label Area:Security to the Security Roadmap Project
-        uses: actions/add-to-project@v1.0.2
-        with:
-          project-url: https://github.com/orgs/Jahia/projects/22
-          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
-          labeled: Area:Security
 
       # The refresh label is useful to trigger this workflow
       # It gets automatically removed
