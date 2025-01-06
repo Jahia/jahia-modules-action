@@ -97,8 +97,7 @@ jobs:
 
       - name: Create a Security Jira ticket
         uses: jahia/jahia-modules-action/delivery/create-security-ticket@v2
-        if: ${{ contains(github.event.issue.labels.*.name, 'Area:Security') 
-             && contains(github.event.issue.labels.*.name, 'incident') }}
+        if: ${{ contains(github.event.issue.labels.*.name, 'Area:Security') && contains(github.event.issue.labels.*.name, 'incident') }}
         with:
           jira-host: 'jira.jahia.org'
           jira-project: 'SECBACKLOG'
