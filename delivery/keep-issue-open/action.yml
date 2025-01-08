@@ -77,6 +77,13 @@ runs:
           }
 
           const githubIssue = githubIssueNode.node
+
+          if (githubIssue.state === undefined) {
+            core.info(`This does not appears to be a GitHub Issue`)
+            core.debug(JSON.stringify(githubIssue))
+            return
+          }
+
           core.info(`Issue with ID: ${githubIssueId} has status: ${githubIssue.state}`)
 
           if (githubIssue.state === "OPEN") {
