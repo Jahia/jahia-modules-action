@@ -1,5 +1,5 @@
 name: Release NPM
-description: Release a Jahia NPM module
+description: Release a Jahia Javascript module
 
 inputs:
   primary_release_branch:
