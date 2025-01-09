@@ -8,7 +8,6 @@ This is a regular typescript project, after checkout of the codebase:
 
 ```bash
 # Install all the dependencies
-yarn set version stable
 yarn
 ```
 
