@@ -248,8 +248,7 @@ async function run(): Promise<void> {
     // Publish to testrail into Jahia-CI project
     if (
       core.getInput('should_skip_testrail') === 'false' ||
-      core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH ||
-      core.getInput('should_skip_jahiaCIreporting') !== 'true'
+      core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
     ) {
       await core.group(
         `${timeSinceStart(startTime)} 🛠️ Publishing results to Testrail project: Jahia-CI}`,
