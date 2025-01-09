@@ -108,7 +108,7 @@ export async function publishToTestrail(
     command += ` --testrailCustomResultFields="${metadataFile}"`
     command += ` --linkRunFile="${testrailLinkFile}"`
   
-    await runShellCommands([command], 'artifacts/results/testrail.log', {printCmd: false})
+    await runShellCommands([command], null, {printCmd: false})
 
     if (fs.statSync(testrailLinkFile).isFile()) {
       const rawFile = fs.readFileSync(testrailLinkFile, 'utf8')
