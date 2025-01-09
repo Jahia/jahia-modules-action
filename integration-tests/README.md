@@ -28,7 +28,7 @@ NODE_OPTIONS=--openssl-legacy-provider yarn run package
 # Fix issue with child.spawn
 We are currently waiting for both https://github.com/actions/toolkit/issues/1534 and https://github.com/actions/toolkit/pull/1469 to be included into the action toolkit to support step cancellation.
 
-In the meantime, after building/packaging, modity the `dist/index.js` search for `_getSpawnOptions(options, toolPath)` and update it as follow (simply adding the signal option):
+In the meantime, after building/packaging, modify the `dist/index.js` search for `_getSpawnOptions(options, toolPath)` and update it as follow (simply adding the signal option):
 
 Before:
 ```
