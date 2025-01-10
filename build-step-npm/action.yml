@@ -1,5 +1,5 @@
 name: build-step-npm
-description: Build step for Jahia NPM module
+description: Build step for Jahia Javascript module
 
 inputs:
   github_artifact_name:
