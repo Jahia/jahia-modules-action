@@ -95,6 +95,13 @@ jobs:
           labeled: Area:Security, incident
           label-operator: OR
 
+      # If labeled with incident, the issue is transfered to a dedicated repository
+      - name: Transfer Issue for deletion
+        uses: lando/transfer-issue-action@v2
+        with:
+          token: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
+          router: incident:ISMS-Product
+
       - name: Create a Security Jira ticket
         uses: jahia/jahia-modules-action/delivery/create-security-ticket@v2
         if: ${{ contains(github.event.issue.labels.*.name, 'Area:Security') && contains(github.event.issue.labels.*.name, 'incident') }}
