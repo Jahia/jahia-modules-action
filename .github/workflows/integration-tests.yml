@@ -7,7 +7,7 @@ on:
         type: string
         required: false
         description: "Type of instances to run the job on (self hosted or ubuntu-latest)"
-        default: "self-hosted"    
+        default: "self-hosted"
       module_id:
         required: true
         type: string
@@ -62,7 +62,7 @@ on:
         default: false
       should_skip_testrail:
         type: boolean
-        default: false        
+        default: false
       test_report_name:
         type: string
         default: "Tests Report"
@@ -87,11 +87,11 @@ jobs:
       - uses: jahia/jahia-modules-action/helper@v2
       - uses: KengoTODA/actions-setup-docker-compose@main
         with:
-          version: '1.29.2'
+          version: "1.29.2"
       - uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
-      - uses: s4u/setup-maven-action@v1.15.0
+          node-version: "lts/*"
+      - uses: s4u/setup-maven-action@v1.18.0
         with:
           java-distribution: ${{ inputs.mvn_java_distribution }}
           java-version: ${{ inputs.mvn_java_version }}
@@ -117,7 +117,7 @@ jobs:
           github_artifact_name: ${{ inputs.artifact_prefix }}-${{ github.run_number }}
           jahia_artifact_name: ${{ inputs.artifact_prefix }}-${{ github.run_number }}
           tests_report_type: json
-          tests_report_path: 'artifacts/results/reports/report.json'
+          tests_report_path: "artifacts/results/reports/report.json"
           bastion_ssh_private_key: ${{ secrets.BASTION_SSH_PRIVATE_KEY_JAHIACI }}
           docker_username: ${{ secrets.DOCKERHUB_USERNAME }}
           docker_password: ${{ secrets.DOCKERHUB_PASSWORD }}
@@ -140,4 +140,4 @@ jobs:
           name: ${{ inputs.test_report_name }}
           path: tests/artifacts/results/xml_reports/**/*.xml
           reporter: java-junit
-          fail-on-error: 'false'
+          fail-on-error: "false"
