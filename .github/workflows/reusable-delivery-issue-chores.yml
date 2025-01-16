@@ -95,18 +95,6 @@ jobs:
           labeled: Area:Security, incident
           label-operator: OR
 
-      - name: Create a Security Jira ticket
-        uses: jahia/jahia-modules-action/delivery/create-security-ticket@v2
-        if: ${{ contains(github.event.issue.labels.*.name, 'Area:Security') && contains(github.event.issue.labels.*.name, 'incident') }}
-        with:
-          jira-host: 'jira.jahia.org'
-          jira-project: 'SECBACKLOG'
-          jira-username: ${{ secrets.JIRA_USERNAME }}
-          jira-password: ${{ secrets.JIRA_PASSWORD }}
-          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
-          github-security-project: 'Area - Security'
-          github-field: 'Jira tickets'
-
       # The refresh label is useful to trigger this workflow
       # It gets automatically removed
       - name: Remove the refresh label
@@ -166,6 +154,13 @@ jobs:
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
           allow_private_public_transfer: true
+
+      # If labeled with incident, the issue is transfered to a dedicated repository
+      - name: Transfer Issue tagged with incident
+        uses: lando/transfer-issue-action@v2
+        with:
+          token: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
+          router: incident:ISMS-Product
 
   links:
     name: Links
