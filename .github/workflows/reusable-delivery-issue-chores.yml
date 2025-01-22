@@ -187,6 +187,6 @@ jobs:
           jira_server_username: ${{ secrets.JIRA_SUPPORT_USERNAME }}
           jira_server_password: ${{ secrets.JIRA_SUPPORT_PASSWORD }}
           github_project_field: "Jira tickets"
-          jira_link_icon_open: https://support.jahia.com/images/icons/control_stop.png
+          jira_link_icon_open: https://support.jahia.com/images/icons/ico_task.png
           jira_link_icon_closed: https://support.jahia.com/images/icons/accept.png
           jira_link_icon_prefix: https://support.jahia.com/images/icons/tools_20.png
