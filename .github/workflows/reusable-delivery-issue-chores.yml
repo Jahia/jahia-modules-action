@@ -20,12 +20,21 @@ jobs:
             core.info(`context.payload.issue.number: ${context.payload.issue.number}`)
             core.info(`context.payload.issue.html_url: ${context.payload.issue.html_url}`)
             core.info(`context.payload.sender.login: ${context.payload.sender.login}`)
-            core.debug(context)    
-      - name: Re-open issue closed and not in the Done column
-        uses: jahia/jahia-modules-action/delivery/keep-issue-open@v2
-        with:
-          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
-          project_prefix: "Team - "
+            core.debug(context)
+
+      # https://github.com/orgs/community/discussions/17308
+      # Today, if a PR is attached to an issue, when that PR is closed, the issue gets closed
+      # The keep-issue-open action below was opened to counter-act this automation by re-opening it.
+      # But this is causing some usability issue when the action of closing is done by a user.
+      # In that case, the issue should really be closed.
+      # The events don't seem to make it possible to identify the source (both are identified as 
+      # an, action taken by the user)
+      # For the time being, disabling this action
+      # - name: Re-open issue closed and not in the Done column
+      #   uses: jahia/jahia-modules-action/delivery/keep-issue-open@v2
+      #   with:
+      #     github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+      #     project_prefix: "Team - "
 
   projects-label:
     name: Projects on Labels
