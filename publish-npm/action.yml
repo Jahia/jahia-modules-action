@@ -49,8 +49,13 @@ runs:
     - name: Publish to maven
       shell: bash
       run: |
+        if [ -e ${{ inputs.module_path }}/target/package.tgz ]; then
+          FILE_PARAM=${{ inputs.module_path }}${{ inputs.tests_module_path }}/target/package.tgz
+        else
+          FILE_PARAM=${{ inputs.module_path }}/target/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
+        fi
         # Run mvn deploy with parameters got from the package.json
-        mvn -s ${{ inputs.mvn_settings_filepath }} deploy:deploy-file -Dfile=${{ inputs.module_path }}/target/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz -DgroupId=${{ env.GROUP_ID }} -DartifactId=${{ env.MODULE_NAME }} -Dversion=${{ env.MODULE_VERSION }} -Dpackaging=tgz -Durl=${{ env.REPOSITORY_URL }} -DrepositoryId=${{ env.REPOSITORY_ID }}
+        mvn -s ${{ inputs.mvn_settings_filepath }} deploy:deploy-file -Dfile=$FILE_PARAM -DgroupId=${{ env.GROUP_ID }} -DartifactId=${{ env.MODULE_NAME }} -Dversion=${{ env.MODULE_VERSION }} -Dpackaging=tgz -Durl=${{ env.REPOSITORY_URL }} -DrepositoryId=${{ env.REPOSITORY_ID }}
 
     - name: Check if test module is present (Only NPM test module is supported)
       id: check_test_module_npm
@@ -70,5 +75,11 @@ runs:
       if: ${{ steps.check_test_module_npm.outputs.files_exists == 'true' }}
       shell: bash
       run: |
+        if [ -e ${{ inputs.module_path }}${{ inputs.tests_module_path }}/target/package.tgz ]; then
+          FILE_PARAM=${{ inputs.module_path }}${{ inputs.tests_module_path }}/target/package.tgz
+        else
+          FILE_PARAM=${{ inputs.module_path }}${{ inputs.tests_module_path }}/target/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
+        fi
+        echo "test file to deploy: $FILE_PARAM"
         # Run mvn deploy with parameters got from the package.json
-        mvn -s ${{ inputs.mvn_settings_filepath }} deploy:deploy-file -Dfile=${{ inputs.module_path }}${{ inputs.tests_module_path }}/target/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz -DgroupId=${{ env.GROUP_ID }} -DartifactId=${{ env.MODULE_NAME }} -Dversion=${{ env.MODULE_VERSION }} -Dpackaging=tgz -Durl=${{ env.REPOSITORY_URL }} -DrepositoryId=${{ env.REPOSITORY_ID }}
+        mvn -s ${{ inputs.mvn_settings_filepath }} deploy:deploy-file -Dfile=$FILE_PARAM -DgroupId=${{ env.GROUP_ID }} -DartifactId=${{ env.MODULE_NAME }} -Dversion=${{ env.MODULE_VERSION }} -Dpackaging=tgz -Durl=${{ env.REPOSITORY_URL }} -DrepositoryId=${{ env.REPOSITORY_ID }}
