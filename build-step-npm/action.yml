@@ -69,18 +69,15 @@ runs:
         cmd: build
         dir: ${{ inputs.module_path }}
 
-    - name: Package the module
-      uses: borales/actions-yarn@v5
-      with:
-        cmd: jahia-pack
-        dir: ${{ inputs.module_path }}
-
     - name: Rename build file if necessary and move to /target
       shell: bash
       run: |
         # We move the .tgz to /target to ease CI manipulation inherited from maven structure
         cd ${{ inputs.module_path }}
-        if [ -e dist/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz ]; then
+        if [ -e dist/package.tgz ]; then
+          mkdir -p target
+          mv dist/package.tgz target/
+        elif [ -e dist/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz ]; then
           mkdir -p target
           mv dist/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz target/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
         else
