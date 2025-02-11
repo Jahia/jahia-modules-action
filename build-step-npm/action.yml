@@ -75,8 +75,10 @@ runs:
         # We move the .tgz to /target to ease CI manipulation inherited from maven structure
         cd ${{ inputs.module_path }}
         if [ -e dist/package.tgz ]; then
+          # Rename and move the tgz to target/
           mkdir -p target
-          mv dist/package.tgz target/
+          mv dist/package.tgz target/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
+          # TODO: Once all modules are using the new structure, we can remove the lines below
         elif [ -e dist/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz ]; then
           mkdir -p target
           mv dist/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz target/${{ env.MODULE_NAME }}-v${{ env.MODULE_VERSION }}.tgz
