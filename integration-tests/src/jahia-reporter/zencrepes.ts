@@ -12,7 +12,7 @@ interface JahiaReporterZencrepes {
 export async function sendResultsToZencrepes(
   testsPath: string,
   testsResultsPath: string,
-  reportType: string,  
+  reportType: string,
   options: JahiaReporterZencrepes
 ): Promise<any> {
   const reportsPath = path.join(testsPath, testsResultsPath)
@@ -30,9 +30,11 @@ export async function sendResultsToZencrepes(
     command += ` --moduleFilepath="${moduleFilepath}"`
     command += ` --name="${options.service}"`
     command += ` --runUrl="${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`
-  
+
     await runShellCommands([command], null, {printCmd: false})
   } else {
-    core.info(`ERROR: The following path does not exist: ${reportsPath}, report will not be submitted to ZenCrepes`)
-  }  
+    core.info(
+      `ERROR: The following path does not exist: ${reportsPath}, report will not be submitted to ZenCrepes`
+    )
+  }
 }

@@ -3,8 +3,8 @@ import * as core from '@actions/core'
 import simpleGit from 'simple-git'
 
 import {runShellCommands} from '../utils/system'
-import path from "path";
-import fs from "fs";
+import path from 'path'
+import fs from 'fs'
 
 export async function buildDockerTestImage(
   testsFolder: string,
@@ -29,15 +29,15 @@ export async function buildDockerTestImage(
       `docker build -t ${testsImage} .`,
       `docker save -o tests_image.tar ${testsImage}`
     ]
-    await runShellCommands(runCommands,
-        'artifacts/build.log',
-        {cwd: testsFolder, ignoreReturnCode: true})
+    await runShellCommands(runCommands, 'artifacts/build.log', {
+      cwd: testsFolder,
+      ignoreReturnCode: true
+    })
   } else {
     core.info(`Building test image using script: ${buildScript}`)
-    await runShellCommands(
-        [`bash ${ciBuildScript}`],
-        'artifacts/build.log',
-        {cwd: testsFolder, ignoreReturnCode: true}
-    )
+    await runShellCommands([`bash ${ciBuildScript}`], 'artifacts/build.log', {
+      cwd: testsFolder,
+      ignoreReturnCode: true
+    })
   }
 }

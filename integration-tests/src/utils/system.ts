@@ -11,7 +11,7 @@ interface CustomOptions {
 
 // Adds a timeout mechanism to the exec using AbortController
 // Proper operation is dependant upon: https://github.com/actions/toolkit/pull/1469
-async function execWithTimeout (execCmd: any, execOptions: any): Promise<any> {
+async function execWithTimeout(execCmd: any, execOptions: any): Promise<any> {
   core.info(`Command starting at: ${JSON.stringify(new Date())}`)
   core.info(`Options: ${JSON.stringify(execOptions)}`)
   try {
@@ -19,9 +19,17 @@ async function execWithTimeout (execCmd: any, execOptions: any): Promise<any> {
     core.info(`Command completed at: ${JSON.stringify(new Date())}`)
   } catch (error: any) {
     if (error.name === 'AbortError') {
-      core.info(`Timeout reached at: ${JSON.stringify(new Date())}. The command was interrupted`)
+      core.info(
+        `Timeout reached at: ${JSON.stringify(
+          new Date()
+        )}. The command was interrupted`
+      )
     } else {
-      core.info(`There was an issue processing the command (${error.name}). It failed at: ${JSON.stringify(new Date())}`)
+      core.info(
+        `There was an issue processing the command (${
+          error.name
+        }). It failed at: ${JSON.stringify(new Date())}`
+      )
     }
   }
 }
@@ -33,7 +41,12 @@ export async function runShellCommands(
 ): Promise<any> {
   for (const cmd of commands) {
     let silent = false
-    if (options.silent !== undefined || options.silent === true || options.loggingMode === 'silent' || options.loggingMode === 'partial') {
+    if (
+      options.silent !== undefined ||
+      options.silent === true ||
+      options.loggingMode === 'silent' ||
+      options.loggingMode === 'partial'
+    ) {
       silent = true
     }
     if (options.printCmd === undefined || options.printCmd === true) {
@@ -51,7 +64,9 @@ export async function runShellCommands(
     let stdDebug = ''
 
     if (options.loggingMode === 'partial') {
-      core.notice(`Command output has been silenced, a portion of the logs will be displayed once job is complete`)
+      core.notice(
+        `Command output has been silenced, a portion of the logs will be displayed once job is complete`
+      )
     }
 
     options.listeners = {
@@ -63,19 +78,31 @@ export async function runShellCommands(
       },
       debug: (data: string) => {
         stdDebug += data.toString()
-      }      
+      }
     }
-
 
     // Default timeout is set to a very high value on purpose, in most cases a lower timeout value will be set in startDockerEnvironment
     const defaultTimeout = 360
-    core.info(`Timeout for the command is set to ${options.timeoutMinutes === undefined ? defaultTimeout : options.timeoutMinutes}mn`)
-    const timeoutDelay = options.timeoutMinutes === undefined ? defaultTimeout*60*1000 : options.timeoutMinutes*60*1000;
-    const signal = AbortSignal.timeout(timeoutDelay);
+    core.info(
+      `Timeout for the command is set to ${
+        options.timeoutMinutes === undefined
+          ? defaultTimeout
+          : options.timeoutMinutes
+      }mn`
+    )
+    const timeoutDelay =
+      options.timeoutMinutes === undefined
+        ? defaultTimeout * 60 * 1000
+        : options.timeoutMinutes * 60 * 1000
+    const signal = AbortSignal.timeout(timeoutDelay)
 
-    signal.addEventListener("abort", () => {
-      core.error(`Timeout reached at: ${JSON.stringify(new Date())}`)
-    }, { once: true });
+    signal.addEventListener(
+      'abort',
+      () => {
+        core.error(`Timeout reached at: ${JSON.stringify(new Date())}`)
+      },
+      {once: true}
+    )
 
     await execWithTimeout(cmd, {
       ...options,
@@ -100,12 +127,14 @@ export async function runShellCommands(
       if (options.loggingMode === 'partial') {
         const logs = stdOut.split('\n')
         if (logs.length > 500) {
-          logs.slice(0, 250).forEach((line) => core.info(line))
-          core.notice(`...... Partial output displayed, see: ${filepath} for full output ......`)
-          logs.slice(-250).forEach((line) => core.info(line))
+          logs.slice(0, 250).forEach(line => core.info(line))
+          core.notice(
+            `...... Partial output displayed, see: ${filepath} for full output ......`
+          )
+          logs.slice(-250).forEach(line => core.info(line))
         }
-      }      
-      
+      }
+
       const logFileStream = fs.createWriteStream(filepath, {flags: 'a+'})
       logFileStream.write(`Executing: ${cmd} \n`)
       logFileStream.write('\n ===== STDOUT ===== \n')
@@ -113,7 +142,7 @@ export async function runShellCommands(
       logFileStream.write('\n ===== STDERR ===== \n')
       logFileStream.write(stdErr)
       logFileStream.write('\n ===== DEBUG =====')
-      logFileStream.write(stdDebug)      
+      logFileStream.write(stdDebug)
       logFileStream.end()
       core.info(`Saved command output to: ${filepath}`)
     }

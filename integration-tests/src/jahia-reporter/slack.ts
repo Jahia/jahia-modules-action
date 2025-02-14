@@ -33,6 +33,8 @@ export async function sendSlackNotification(
 
     await runShellCommands([command], null, {printCmd: false})
   } else {
-    core.info(`ERROR: The following path does not exist: ${testsPath}, slack message will not be sent`)
-  }  
+    core.info(
+      `ERROR: The following path does not exist: ${testsPath}, slack message will not be sent`
+    )
+  }
 }

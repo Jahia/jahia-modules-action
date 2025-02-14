@@ -13,11 +13,11 @@ inputs:
     description: 'Nexus Password'
     required: true
   tests_module_path:
-    description: 'Path to a folder in the repository containing a tests module to be built (Both NPM and MVN test module supported)'
+    description: 'Path to a folder in the repository containing a tests module to be built (Both Javascript and MVN test module supported)'
     required: false
     default: 'tests/jahia-module/'
   tests_module_type:
-    description: 'Type of module for the tests module (mvn,npm)'
+    description: 'Type of module for the tests module (mvn,javascript)'
     required: false
     default: 'mvn'
   node_version:
@@ -69,16 +69,16 @@ runs:
         EXTRACTED_NEXUS_ARTIFACT_URL=`grep -e "Uploaded.*\.jar" mvnLogs.txt | grep -v sources | sed -e 's/.*\(https.*.jar\).*/\1/g'`
         echo "::notice title=Snapshot module location::Artifact has been uploaded to: $EXTRACTED_NEXUS_ARTIFACT_URL"
 
-    - name: Check if test module is present (NPM)
-      if: ${{ inputs.tests_module_type == 'npm' }}
-      id: check_test_module_npm
+    - name: Check if test module is present (Javascript)
+      if: ${{ inputs.tests_module_type == 'javascript' }}
+      id: check_test_module_javacript
       uses: andstor/file-existence-action@v2
       with:
         files: "${{ inputs.tests_module_path }}package.json"
 
-    - name: Publish tests package NPM
-      if: ${{ inputs.tests_module_type == 'npm' && steps.check_test_module_npm.outputs.files_exists == 'true' }}
-      uses: jahia/jahia-modules-action/publish-npm@v2
+    - name: Publish tests javascript module
+      if: ${{ inputs.tests_module_type == 'javascript' && steps.check_test_module_javascript.outputs.files_exists == 'true' }}
+      uses: jahia/jahia-modules-action/publish-javascript@chore/rename-npm-to-javascript
       with:
         mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
         nexus_username: ${{ inputs.nexus_username }}

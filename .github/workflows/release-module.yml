@@ -35,12 +35,12 @@ on:
         default: "" 
       tests_module_path:
         type: string
-        description: "Path to a folder in the repository containing a tests module to be built (Both NPM and MVN test module supported)"
+        description: "Path to a folder in the repository containing a tests module to be built (Both Javascript and MVN test module supported)"
         required: false
         default: "tests/jahia-module/"
       tests_module_type:
         type: string
-        description: "Type of module for the tests module (mvn,npm)"
+        description: "Type of module for the tests module (mvn,javascript)"
         required: false
         default: "mvn"          
       git_user_name:

@@ -18,7 +18,7 @@ export async function stopDockerEnvironment(
   await exec
     .getExecOutput('docker', ['ps', '-aq'], {
       ignoreReturnCode: true,
-      silent: true,
+      silent: true
     })
     .then(async res => {
       core.info(`Output of ps -aq ${JSON.stringify(res)}`)
@@ -26,25 +26,25 @@ export async function stopDockerEnvironment(
       for (const container of containers.filter(c => c.length > 5)) {
         core.info(`Stopping container: ${container}`)
         await exec
-        .getExecOutput('docker', ['stop', container], {
-          ignoreReturnCode: true,
-          silent: true,
-        })
-        .then(res => {
-          if (res.stderr.length > 0 && res.exitCode != 0) {
-            core.info(`Unable to stop container: ${container}`)            
-          }
-          core.info(`Container ${container} stopped`)
-        })
+          .getExecOutput('docker', ['stop', container], {
+            ignoreReturnCode: true,
+            silent: true
+          })
+          .then(res => {
+            if (res.stderr.length > 0 && res.exitCode != 0) {
+              core.info(`Unable to stop container: ${container}`)
+            }
+            core.info(`Container ${container} stopped`)
+          })
       }
-    })  
+    })
 
   core.info(`Prunning all images and containers`)
   await runShellCommands([`docker system prune -a -f`], 'artifacts/stop.log', {
     cwd: testsFolder,
     ignoreReturnCode: true,
     loggingMode
-  })  
+  })
 
   core.info(`Listing all containers running (if any)`)
   await runShellCommands([`docker ps`], 'artifacts/stop.log', {
@@ -52,5 +52,4 @@ export async function stopDockerEnvironment(
     ignoreReturnCode: true,
     loggingMode
   })
-
 }

@@ -1,5 +1,5 @@
-name: Release NPM
-description: Release a Jahia Javascript module
+name: Release javascript module on Maven repository
+description: Release a Javascript module on maven repository
 
 inputs:
   primary_release_branch:
@@ -148,7 +148,7 @@ runs:
         echo "MODULE_VERSION=$(jq '.version' package.json | cut -d\" -f2)" >> $GITHUB_ENV
 
     - name: Build package
-      uses: jahia/jahia-modules-action/build-step-npm@v2
+      uses: jahia/jahia-modules-action/build-step-javascript@chore/rename-npm-to-javascript
       with:
         module_path: ${{ inputs.module_path }}
         node_version: ${{ inputs.node_version }}

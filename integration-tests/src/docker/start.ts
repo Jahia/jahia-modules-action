@@ -24,7 +24,7 @@ export async function startDockerEnvironment(
       cwd: testsFolder,
       ignoreReturnCode: true,
       loggingMode,
-      timeoutMinutes      
+      timeoutMinutes
     })
   } else if (fs.existsSync(composeFile)) {
     core.info(`Starting environment using compose file: ${composeFile}`)
