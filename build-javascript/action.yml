@@ -22,7 +22,7 @@ runs:
   using: 'composite'
   steps:
     - name: Build package
-      uses: jahia/jahia-modules-action/build-step-javascript@chore/rename-npm-to-javascript
+      uses: jahia/jahia-modules-action/build-step-javascript@v2
       with:
         module_path: ${{ inputs.module_path }}
         node_version: ${{ inputs.node_version }}
@@ -36,7 +36,7 @@ runs:
 
     - name: Build tests package
       if: ${{ steps.check_test_module_javascript.outputs.files_exists == 'true' }}
-      uses: jahia/jahia-modules-action/build-step-javascript@chore/rename-npm-to-javascript
+      uses: jahia/jahia-modules-action/build-step-javascript@v2
       with:
         module_path: ${{ inputs.tests_module_path }}
         node_version: ${{ inputs.node_version }}

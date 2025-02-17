@@ -78,7 +78,7 @@ runs:
 
     - name: Publish tests javascript module
       if: ${{ inputs.tests_module_type == 'javascript' && steps.check_test_module_javascript.outputs.files_exists == 'true' }}
-      uses: jahia/jahia-modules-action/publish-javascript@chore/rename-npm-to-javascript
+      uses: jahia/jahia-modules-action/publish-javascript@v2
       with:
         mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
         nexus_username: ${{ inputs.nexus_username }}
