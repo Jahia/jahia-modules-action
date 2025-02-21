@@ -161,7 +161,7 @@ jobs:
         uses: lando/transfer-issue-action@v2
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
-          router: incident:ISMS-Product+
+          router: incident:ISMS-Product
 
   links:
     name: Links
