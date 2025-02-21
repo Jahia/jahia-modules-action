@@ -120,9 +120,14 @@ async function run(): Promise<void> {
       `${timeSinceStart(startTime)} 🛠️ Download previous build artifact`,
       async () => {
         const artifacts = await listArtifacts()
-        const allowedArtifacts = [core.getInput('build_artifacts'), core.getInput('build_artifacts_tests')]
-        for(const artifact of artifacts.filter(artifact => allowedArtifacts.includes(artifact.name))) {
-            await downloadArtifact(artifact.name)
+        const allowedArtifacts = [
+          core.getInput('build_artifacts'),
+          core.getInput('build_artifacts_tests')
+        ]
+        for (const artifact of artifacts.filter(artifact =>
+          allowedArtifacts.includes(artifact.name)
+        )) {
+          await downloadArtifact(artifact.name)
         }
       }
     )
@@ -167,7 +172,11 @@ async function run(): Promise<void> {
 
     // Spin-up the containers
     await core.group(
-      `${timeSinceStart(startTime)} 🐋 Starting the Docker environment (will timeout after: ${core.getInput('timeout_minutes')}mn)`,
+      `${timeSinceStart(
+        startTime
+      )} 🐋 Starting the Docker environment (will timeout after: ${core.getInput(
+        'timeout_minutes'
+      )}mn)`,
       async () => {
         await startDockerEnvironment(
           testsFolder,
@@ -208,15 +217,15 @@ async function run(): Promise<void> {
     await core.group(
       `${timeSinceStart(startTime)} 🐋 Stopping the Docker environment`,
       async () => {
-        await stopDockerEnvironment(
-          testsFolder,
-          core.getInput('logging_mode')
-        )
+        await stopDockerEnvironment(testsFolder, core.getInput('logging_mode'))
       }
     )
 
     // Display a short "console" report directly in the run output
-    await showTestsSummary(path.join(testsFolder, core.getInput('tests_report_path')), core.getInput('tests_report_type'))
+    await showTestsSummary(
+      path.join(testsFolder, core.getInput('tests_report_path')),
+      core.getInput('tests_report_type')
+    )
 
     // Publish results to testrail
     // Publish to testrail - into separate project
@@ -225,14 +234,21 @@ async function run(): Promise<void> {
       core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
     ) {
       await core.group(
-        `${timeSinceStart(startTime)} 🛠️ Publishing results to Testrail project: ${core.getInput('testrail_project')}`,
+        `${timeSinceStart(
+          startTime
+        )} 🛠️ Publishing results to Testrail project: ${core.getInput(
+          'testrail_project'
+        )}`,
         async () => {
-          await prepareTestrailMetadata(testsFolder, core.getInput('testrail_platformdata'))
+          await prepareTestrailMetadata(
+            testsFolder,
+            core.getInput('testrail_platformdata')
+          )
 
           await publishToTestrail(
-            testsFolder, 
-            core.getInput('tests_report_path'), 
-            core.getInput('tests_report_type'), 
+            testsFolder,
+            core.getInput('tests_report_path'),
+            core.getInput('tests_report_type'),
             {
               testrailUsername: core.getInput('testrail_username'),
               testrailPassword: core.getInput('testrail_password'),
@@ -251,14 +267,19 @@ async function run(): Promise<void> {
       core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
     ) {
       await core.group(
-        `${timeSinceStart(startTime)} 🛠️ Publishing results to Testrail project: Jahia-CI}`,
+        `${timeSinceStart(
+          startTime
+        )} 🛠️ Publishing results to Testrail project: Jahia-CI}`,
         async () => {
-          await prepareTestrailMetadata(testsFolder, core.getInput('testrail_platformdata'))
+          await prepareTestrailMetadata(
+            testsFolder,
+            core.getInput('testrail_platformdata')
+          )
 
           await publishToTestrail(
-            testsFolder, 
-            core.getInput('tests_report_path'), 
-            core.getInput('tests_report_type'), 
+            testsFolder,
+            core.getInput('tests_report_path'),
+            core.getInput('tests_report_type'),
             {
               testrailUsername: core.getInput('testrail_username'),
               testrailPassword: core.getInput('testrail_password'),
@@ -275,7 +296,9 @@ async function run(): Promise<void> {
     if (
       core.getInput('should_skip_pagerduty') === 'false' &&
       process.env.CURRENT_BRANCH !== undefined &&
-      ['master', 'main', core.getInput('primary_release_branch')].includes(process.env.CURRENT_BRANCH)
+      ['master', 'main', core.getInput('primary_release_branch')].includes(
+        process.env.CURRENT_BRANCH
+      )
     ) {
       await core.group(
         `${timeSinceStart(
@@ -283,13 +306,15 @@ async function run(): Promise<void> {
         )} 🛠️ Creating incident in Pagerduty (if applicable)`,
         async () => {
           await createPagerdutyIncident(
-            path.join(testsFolder, core.getInput('tests_report_path')), 
-            core.getInput('tests_report_type'), 
+            path.join(testsFolder, core.getInput('tests_report_path')),
+            core.getInput('tests_report_type'),
             {
               service:
                 core.getInput('incident_service') || core.getInput('module_id'),
               pdApiKey: core.getInput('incident_pagerduty_api_key'),
-              pdReporterEmail: core.getInput('incident_pagerduty_reporter_email'),
+              pdReporterEmail: core.getInput(
+                'incident_pagerduty_reporter_email'
+              ),
               pdReporterId: core.getInput('incident_pagerduty_reporter_id'),
               googleSpreadsheetId: core.getInput(
                 'incident_google_spreadsheet_id'
@@ -352,8 +377,8 @@ async function run(): Promise<void> {
         `${timeSinceStart(startTime)} 🛠️ Send notification to Slack`,
         async () => {
           await sendSlackNotification(
-            path.join(testsFolder, core.getInput('tests_report_path')), 
-            core.getInput('tests_report_type'), 
+            path.join(testsFolder, core.getInput('tests_report_path')),
+            core.getInput('tests_report_type'),
             {
               channelId: core.getInput('slack_channel_id_notifications'),
               channelAllId: core.getInput('slack_channel_id_notifications_all'),
@@ -373,9 +398,9 @@ async function run(): Promise<void> {
         `${timeSinceStart(startTime)} 🛠️ Send results to ZenCrepes`,
         async () => {
           await sendResultsToZencrepes(
-            testsFolder, 
-            core.getInput('tests_report_path'), 
-            core.getInput('tests_report_type'), 
+            testsFolder,
+            core.getInput('tests_report_path'),
+            core.getInput('tests_report_type'),
             {
               service: core.getInput('module_id'),
               webhookSecret: core.getInput('zencrepes_secret')

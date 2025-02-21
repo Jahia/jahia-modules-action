@@ -16,7 +16,7 @@ interface JahiaReporterPagerduty {
 
 export async function createPagerdutyIncident(
   testsPath: string,
-  reportType: string,  
+  reportType: string,
   options: JahiaReporterPagerduty
 ): Promise<any> {
   let command = 'jahia-reporter pagerduty:incident'
@@ -25,8 +25,11 @@ export async function createPagerdutyIncident(
     command += ` --sourcePath="${testsPath}"`
     command += ` --sourceType="${reportType}"`
   } else {
-    core.info(`ERROR: The following path does not exist: ${testsPath} pagerduty incident will not be based on test results`)
-    command += ' --incidentMessage="Unable to find test folder, the tests were likely interrupted"'
+    core.info(
+      `ERROR: The following path does not exist: ${testsPath} pagerduty incident will not be based on test results`
+    )
+    command +=
+      ' --incidentMessage="Unable to find test folder, the tests were likely interrupted"'
   }
   command += ` --pdApiKey="${options.pdApiKey}"`
   command += ` --pdReporterEmail="${options.pdReporterEmail}"`

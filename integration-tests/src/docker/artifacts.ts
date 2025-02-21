@@ -12,7 +12,7 @@ export async function copyRunArtifacts(
     [`docker cp ${containerName}:/home/jahians/results ${desinationPath}`],
     'artifacts/cypress-artifacts.log',
     {
-      ignoreReturnCode: true,
+      ignoreReturnCode: true
     }
   )
 
@@ -20,7 +20,7 @@ export async function copyRunArtifacts(
     [`docker stats --all --no-stream`],
     'artifacts/results/cypress-stats.log',
     {
-      ignoreReturnCode: true,
+      ignoreReturnCode: true
     }
   )
 
@@ -48,13 +48,16 @@ export async function copyRunArtifacts(
     }
   )
 
-  await runShellCommands([
-    `cp ${path.join(desinationPath, `docker.log`)} ${path.join(
-      desinationPath,
-      `results/docker.log`
-    )}`
-  ], 
-  null, {
-    ignoreReturnCode: true
-  })
+  await runShellCommands(
+    [
+      `cp ${path.join(desinationPath, `docker.log`)} ${path.join(
+        desinationPath,
+        `results/docker.log`
+      )}`
+    ],
+    null,
+    {
+      ignoreReturnCode: true
+    }
+  )
 }

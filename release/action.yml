@@ -17,11 +17,11 @@ inputs:
     description: 'Nexus Password'
     required: true
   tests_module_path:
-    description: 'Path to a folder in the repository containing a tests module to be built (Both NPM and MVN test module supported)'
+    description: 'Path to a folder in the repository containing a tests module to be built (Both Javascript and MVN test module supported)'
     required: false
     default: 'tests/jahia-module/'
   tests_module_type:
-    description: 'Type of module for the tests module (mvn,npm)'
+    description: 'Type of module for the tests module (mvn,javascript)'
     required: false
     default: 'mvn'    
   github_slug:
@@ -52,7 +52,7 @@ inputs:
     description: 'Secret webhook to send a notif on a QA channel'
     required: false
   npmjs_publish_token:
-    description: 'Token used to publish NPM packages to npmjs.com, typically used when the Maven release process delegates the package publication to npm'
+    description: 'Token used to publish javascript module (or any kind of npm package) to npmjs.com, typically used when the Maven release process delegates the package publication to npm'
     default: ''
     required: false
 
@@ -68,13 +68,13 @@ runs:
         echo "NEXUS_RELEASE_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
         echo "NEXUS_RELEASE_PASSWORD=${{ inputs.npmjs_publish_token }}" >> $GITHUB_ENV
 
-    - name: Set NPM environment variable from parameter
+    - name: Set npmjs.org auth token environment variable from parameter
       if: ${{ inputs.npmjs_publish_token != '' }}
       shell: bash
       run: |
         echo "NODE_AUTH_TOKEN=${{ inputs.npmjs_publish_token }}" >> $GITHUB_ENV
 
-    - name: Setup .npmrc file to publish to npm
+    - name: Setup .npmrc file to publish to npmjs.org
       if: ${{ inputs.npmjs_publish_token != '' }}
       uses: actions/setup-node@v4
       with:

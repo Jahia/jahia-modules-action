@@ -1,4 +1,4 @@
-name: build-step-npm
+name: build-step-javascript
 description: Build step for Jahia Javascript module
 
 inputs:
