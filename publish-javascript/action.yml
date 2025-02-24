@@ -1,4 +1,4 @@
-name: publish javascrip module to maven repository (nexus)
+name: publish JavaScript module to maven repository (nexus)
 
 inputs:
   mvn_settings_filepath:
