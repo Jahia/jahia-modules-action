@@ -184,6 +184,7 @@ jobs:
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           jira_server_host: support.jahia.com
+          jira_intermediate_path: /rest/api/2
           jira_server_username: ${{ secrets.JIRA_SUPPORT_USERNAME }}
           jira_server_password: ${{ secrets.JIRA_SUPPORT_PASSWORD }}
           github_project_field: "Jira tickets"
