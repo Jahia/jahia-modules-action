@@ -81,6 +81,12 @@ runs:
         node-version: 'lts/*'
         registry-url: 'https://registry.npmjs.org'
 
+    - name: Setup .yarnrc.yml file to allow publication to https://registry.npmjs.org with a 'yarn npm publish'
+      if: ${{ inputs.npmjs_publish_token != '' }}
+      shell: bash
+      run: |
+        echo "npmAuthToken: ${{ inputs.npmjs_publish_token }}" >> ~/.yarnrc.yml
+
     - name: Generate maven cache seed
       shell: bash
       run: |
