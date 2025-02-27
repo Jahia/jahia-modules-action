@@ -24,3 +24,4 @@ jobs:
         with:
           source-tag: ${{ env.TAG_NAME }}
           slack-webhook: ${{ secrets.SLACK_WEBHOOK_URL_RC_FOR_QA }}
+          token: ${{ secrets.GH_API_TOKEN }}
