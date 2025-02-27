@@ -130,7 +130,7 @@ runs:
           echo "Skipping OWASP for PR analysis"
         else
           echo "Executing an OWASP analysis on branch: ${{ inputs.primary_release_branch }}"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:10.0.3:aggregate \
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:12.1.0:aggregate \
             $SONAR_PARAMS
         fi
 
