@@ -36,15 +36,18 @@ For the dependencies checks, here's a blog post explaining how they've been buil
 
 ## Releasing the Action
 
-Since a large portion of our repositories are using the action, we're using a particular branch as an alias to the latest changes (`v1`, `v2`). Releasing consists in updating this branch with the changes you want to make available.
+IMPORTANT: Do not create `v2` branches anymore, this alias is now a Git tag, and is generated automatically
 
-To release changes, proceed as follow:
+To release the action, create a new release via the GitHub UI: https://github.com/Jahia/jahia-modules-action/releases
 
-- Create a tag, with your desired version (for example: `v2.1.0`).
-- Delete branch `v2`
-- Move into the tag `v2.1.0` and create a `v2` branch from that tag.
+Click on:
+- Draft a new release
+- Select a tag (please follow SemVer) using this pattern v2.5.6
+- Enter a title (the version number)
+- Select "Set as the latest release"
+- Click on Publish release
 
-Any runs triggered between the time the `v2` branch is deleted and re-created will FAIL. Deleting and creating a new branch shouldn't take more than a couple of seconds.
+If your version was v2.5.6, this will create two tags: v2.5.6 and v2
 
 ## Open-Source
 
