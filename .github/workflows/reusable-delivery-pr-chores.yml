@@ -1,5 +1,7 @@
 # This workflow performs various tasks for cleanup, triage, ... on an individual GitHub PR
 # It should be called based on PR events
+# Note: re-usable workflows must be in the .github/workflows folder, amongst other workflows dedicated
+# to the jahia-modules-action repository. Thus using "reusable-" prefix to easily identify them.
 name: PR Chores
 
 on:
