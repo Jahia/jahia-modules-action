@@ -4,12 +4,16 @@ description: Create a Security Jira ticket from a Github issue
 inputs:
   jira-host:
     description: 'Jira host'
-    default: 'jira.jahia.org'
+    default: 'support.jahia.com'
     required: true
   jira-project:
     description: 'Jira project'
-    default: 'SECBACKLOG'
+    default: 'SECURITY'
     required: true
+  jira-issuetype:
+    description: 'Jira issue type'
+    default: 'Vulnerability'
+    required: false
   jira-username:
     description: 'Jira username'
     required: true
@@ -42,6 +46,7 @@ runs:
         jiraUsername: ${{ inputs.jira-username }}
         jiraPassword: ${{ inputs.jira-password }}
         jiraProject: ${{ inputs.jira-project }}
+        jiraIssueType: ${{ inputs.jira-issuetype }}
         securityProjectJiraField: ${{ inputs.github-field }}
         securityProjectName: ${{ inputs.github-security-project }}
       with:
@@ -49,7 +54,7 @@ runs:
         result-encoding: string
         retries: 3
         script: |
-          const { jiraHost, jiraUsername, jiraPassword, jiraProject, securityProjectJiraField, securityProjectName } = process.env
+          const { jiraHost, jiraUsername, jiraPassword, jiraProject, jiraIssueType, securityProjectJiraField, securityProjectName } = process.env
           const jiraApi = require('jira-client');
 
           const githubIssueId = context.payload.issue.node_id
@@ -139,15 +144,9 @@ runs:
                 },
                 "summary": issueSummary,
                 "description": issueBody,
-                "versions": 
-                [
-                  {
-                    "name": "8.2.0.0"
-                  }
-                ],
                 "issuetype": 
                 {
-                    "name": "Bug"
+                    "name": jiraIssueType
                 }
               }
             });
