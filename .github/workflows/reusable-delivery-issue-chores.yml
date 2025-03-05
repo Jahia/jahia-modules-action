@@ -66,6 +66,18 @@ jobs:
           labeled: Area:Product, Area:Delivery, Area:Tech, Area:QA, Area:Security
           label-operator: OR
 
+      - name: Create a Security Jira ticket for every new Epic
+        uses: jahia/jahia-modules-action/delivery/create-security-ticket@v2
+        if: ${{ steps.get-issue.outputs.issue_type == 'Epic'}}
+        with:
+          jira-host: 'support.jahia.com'
+          jira-project: 'SECURITY'
+          jira-username: ${{ secrets.JIRA_USERNAME }}
+          jira-password: ${{ secrets.JIRA_PASSWORD }}
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          github-security-project: 'Product Team'
+          github-field: 'Jira tickets'
+
       - name: Attach all tickets with label Area:QA to the QA Roadmap Project
         uses: actions/add-to-project@v1.0.2
         with:
