@@ -1,7 +1,5 @@
-# DO NOT USE, THIS IS PRESENT FOR RETRO-COMPATIBILITY
-# PLEASE MIGRATE TO reusable-sonar-scan.yml INSTEAD
 # Note: re-usable workflows must be in the .github/workflows folder, amongst other workflows dedicated
-# to the jahia-modules-action repository. Thus using "reusable-" prefix to easily identify them
+# to the jahia-modules-action repository. Thus using "reusable-" prefix to easily identify them.
 name: Sonar Analysis
 
 on:
