@@ -28,7 +28,7 @@ jobs:
         uses: jahia/jahia-modules-action/delivery/keep-issue-open@v2
         with:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
-          project_prefix: "Team - "
+          project_prefix: "Product Team"
 
   projects-label:
     name: Projects on Labels
@@ -50,6 +50,13 @@ jobs:
           project-url: https://github.com/orgs/Jahia/projects/13
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: need-triage
+
+      - name: Attach all Sup tickets to the product team project
+        uses: actions/add-to-project@v1.0.2
+        if: ${{ steps.get-issue.outputs.issue_type == 'Sup' }}}
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/50
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
 
       - name: Attach customers tickets to the Product Team project
         uses: actions/add-to-project@v1.0.2
