@@ -51,10 +51,10 @@ jobs:
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: need-triage
 
-      - name: Attach customers to the Customers project
+      - name: Attach customers tickets to the Product Team project
         uses: actions/add-to-project@v1.0.2
         with:
-          project-url: https://github.com/orgs/Jahia/projects/24
+          project-url: https://github.com/orgs/Jahia/projects/50
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: customer
 
@@ -120,12 +120,12 @@ jobs:
     if: ${{ (github.event.action == 'milestoned' || github.event.action == 'demilestoned') && github.event.sender.login != 'jahia-ci' }}
     runs-on: ubuntu-latest
     steps:
-      # Adds or removes the "Product Releases" project if a milestone is added
+      # Adds or removes the "Product Team" project if a milestone is added
       # or removed
       - name: Attach Project based on the presence of a milestone
         uses: jahia/jahia-modules-action/delivery/add-project-based-on-milestone@v2
         with:
-          project_url: https://github.com/orgs/Jahia/projects/29
+          project_url: https://github.com/orgs/Jahia/projects/50
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
 
   transfer:
