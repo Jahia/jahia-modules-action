@@ -32,6 +32,10 @@ on:
         required: false
         type: string
         default: ""
+      cypress_browser:
+        required: false
+        type: string
+        default: "chrome"
       module_branch:
         required: false
         type: string
