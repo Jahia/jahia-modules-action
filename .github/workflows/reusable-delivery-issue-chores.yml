@@ -70,7 +70,7 @@ jobs:
 
       - name: Create a Security Jira ticket for every new Epic
         uses: jahia/jahia-modules-action/delivery/create-security-ticket@v2
-        if: ${{ steps.get-issue.outputs.issue_type == 'Epic' && context.payload.action == 'opened' }}
+        if: ${{ steps.get-issue.outputs.issue_type == 'Epic' && github.event.action == 'opened' }}
         with:
           jira-username: ${{ secrets.JIRA_USERNAME }}
           jira-password: ${{ secrets.JIRA_PASSWORD }}
