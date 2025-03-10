@@ -105,6 +105,8 @@ jobs:
         with:
           ref: ${{ inputs.module_branch }}
       - uses: jahia/jahia-modules-action/integration-tests@v2
+        env:
+          CYPRESS_BROWSER: ${{ inputs.cypress_browser }}
         with:
           module_id: ${{ inputs.module_id }}
           incident_service: ${{ inputs.pagerduty_incident_service }}
