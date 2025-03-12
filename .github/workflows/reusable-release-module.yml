@@ -124,6 +124,9 @@ jobs:
 
       - uses: jahia/jahia-modules-action/release@v2
         name: Release Module
+        env:
+          GH_PACKAGES_USERNAME: ${{ secrets.GH_PACKAGES_USERNAME }}
+          GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
         with:
           primary_release_branch: ${{ inputs.primary_release_branch }}
           mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
