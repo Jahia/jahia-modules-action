@@ -213,7 +213,7 @@ runs:
         #   echo "No test module found"          
         # fi
         # cd ${GITHUB_WORKSPACE}
-        mvn -B -s ${{ inputs.mvn_settings_filepath }} release:perform -Prelease-to-staging-repository
+        mvn -B -s ${{ inputs.mvn_settings_filepath }} release:perform
 
     - name: Set development version for the test module (if present)
       shell: bash
