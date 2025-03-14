@@ -124,7 +124,7 @@ jobs:
           echo "NEXUS_USERNAME=${{ steps.nexus-creds.outputs.NEXUS_USERNAME }}" 
           echo "GITHUB_SLUG=${{ steps.slug.outputs.GITHUB_SLUG }}"
 
-      - uses: jahia/jahia-modules-action/release@@3490-investigate-the-use-of-github-packages-as-a-nexus-alternative
+      - uses: jahia/jahia-modules-action/release@3490-investigate-the-use-of-github-packages-as-a-nexus-alternative
         name: Release Module
         with:
           primary_release_branch: ${{ inputs.primary_release_branch }}
