@@ -168,7 +168,7 @@ jobs:
 
       # Transfer issues between repositories of the Jahia org
       - name: Transfer Issue to another repository
-        uses: Fgerthoffert/actions-transfer-issue@v1.0.0
+        uses: Fgerthoffert/actions-transfer-issue@v1.1.0
         if: ${{ github.event.action == 'labeled' }}
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
