@@ -105,7 +105,7 @@ runs:
           core.info(`Project ID: ${projectId}`)
 
           // Find if the issue is already attached to the current project
-          const projectItem = gitubIssue.projectItems.nodes.find(item => item.project.id === projectId)
+          const projectItem = gitubIssue.projectItems !== undefined ? gitubIssue.projectItems.nodes.find(item => item.project.id === projectId) : undefined
           core.info(`Project Item ID: ${projectItem !== undefined ? projectItem.id : 'No Project Item found (a project item is a card on the board)'}`)
           if (projectItem === undefined && gitubIssue.milestone !== null) {
             // Issue is not attached to a project but is attached to a milestone
