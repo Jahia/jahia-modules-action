@@ -39,7 +39,7 @@ runs:
   using: 'composite'
   steps:
     - name: Build package
-      uses: jahia/jahia-modules-action/build-step-mvn@3562-implement-a-static-check-for-module-signature/integration-tests
+      uses: jahia/jahia-modules-action/build-step-mvn@3562-implement-a-static-check-for-module-signature
       with:
         mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
         nexus_username: ${{ inputs.nexus_username }}
