@@ -62,6 +62,7 @@ runs:
       shell: bash
       if: ${{ inputs.nexus_username != '' }}
       run: |
+        echo "Scanning pom file at location: ${{ inputs.pom_filepath }}"
         SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
         java -jar ${KEYMAKER_CLI_JAR} pom -f ${{ inputs.pom_filepath }}
         if [[ $? -eq 0 ]]; then
