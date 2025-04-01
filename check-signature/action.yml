@@ -1,0 +1,57 @@
+name: Check module Signature
+description: A simple check of the signature present in the pom.xml
+
+inputs:
+  mvn_settings_filepath:
+    description: Filepath to the settings.xml file
+    default: '.github/maven.settings.xml'
+    required: false
+  pom_filepath:
+    description: Filepath to the pom.xml file
+    default: 'pom.xml'
+    required: false
+  nexus_internal_releases_url:
+    description: Nexus Enterprise release URL
+    required: false
+    default: 'https://devtools.jahia.com/nexus/content/repositories/jahia-internal-releases'    
+  nexus_username:
+    description: 'Nexus Username'
+    required: false
+    default: ''
+  nexus_password:
+    description: 'Nexus Password'
+    required: false
+    default: ''
+  keymaker_location:
+    description: Location of the keymaker
+    required: false
+    default: 'org/jahia/keymaker/keymaker-cli'
+  keymaker_version:
+    description: Version of the keymaker
+    required: false
+    default: '2.0'
+  keymaker_name:
+    description: 'Name of the keymaker (id)'
+    required: false
+    default: 'keymaker-cli'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Prepare folder for signing artifact
+      shell: bash
+      run: |
+        mkdir keymaker
+        url="${{ inputs.nexus_internal_releases_url }}/${{ inputs.keymaker_location }}/${{ inputs.keymaker_version }}/${{ inputs.keymaker_name }}-${{ inputs.keymaker_version }}-jar-with-dependencies.jar"
+        curl --header "Authorization: Basic $(echo -n "${{ inputs.nexus_username }}:${{ inputs.nexus_password }}" | base64)" \
+            --url "${url}" \
+            --output "target/keymaker/${{ inputs.keymaker_name }}.jar"
+        KEYMAKER_CLI_JAR="$(pwd)/target/keymaker/${{ inputs.keymaker_name }}.jar"
+        echo "KEYMAKER_CLI_JAR=${KEYMAKER_CLI_JAR}" >> $GITHUB_ENV        
+        
+    - name: Execute the command 
+      shell: bash
+      run: |
+        SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+        java -jar $SCRIPT_DIR/target/keymaker-cli-2.1-SNAPSHOT-jar-with-dependencies.jar pom -f ${{ inputs.pom_filepath }}
+
