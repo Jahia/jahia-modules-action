@@ -2,10 +2,6 @@ name: Check module Signature
 description: A simple check of the signature present in the pom.xml
 
 inputs:
-  mvn_settings_filepath:
-    description: Filepath to the settings.xml file
-    default: '.github/maven.settings.xml'
-    required: false
   pom_filepath:
     description: Filepath to the pom.xml file
     default: 'pom.xml'
@@ -45,13 +41,16 @@ runs:
         url="${{ inputs.nexus_internal_releases_url }}/${{ inputs.keymaker_location }}/${{ inputs.keymaker_version }}/${{ inputs.keymaker_name }}-${{ inputs.keymaker_version }}-jar-with-dependencies.jar"
         curl --header "Authorization: Basic $(echo -n "${{ inputs.nexus_username }}:${{ inputs.nexus_password }}" | base64)" \
             --url "${url}" \
-            --output "target/keymaker/${{ inputs.keymaker_name }}.jar"
-        KEYMAKER_CLI_JAR="$(pwd)/target/keymaker/${{ inputs.keymaker_name }}.jar"
+            --output "keymaker/${{ inputs.keymaker_name }}.jar"
+        KEYMAKER_CLI_JAR="$(pwd)/keymaker/${{ inputs.keymaker_name }}.jar"
         echo "KEYMAKER_CLI_JAR=${KEYMAKER_CLI_JAR}" >> $GITHUB_ENV        
         
+    # Even though this command it meant as displaying the correct signature for the module
+    # It does include the right exit code if the signature needs to be updated
+    # It returns 0 if the signature is valid, another exit code otherwise
     - name: Execute the command 
       shell: bash
       run: |
         SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-        java -jar $SCRIPT_DIR/target/keymaker-cli-2.1-SNAPSHOT-jar-with-dependencies.jar pom -f ${{ inputs.pom_filepath }}
+        java -jar ${KEYMAKER_CLI_JAR} pom -f ${{ inputs.pom_filepath }}
 
