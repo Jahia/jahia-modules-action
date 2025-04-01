@@ -39,7 +39,7 @@ runs:
       run: |
         mkdir keymaker
         url="${{ inputs.nexus_internal_releases_url }}/${{ inputs.keymaker_location }}/${{ inputs.keymaker_version }}/${{ inputs.keymaker_name }}-${{ inputs.keymaker_version }}-jar-with-dependencies.jar"
-        curl -u ${{ inputs.nexus_username }}:${{ inputs.nexus_password }}
+        curl -u ${{ inputs.nexus_username }}:${{ inputs.nexus_password }} \
             --url "${url}" \
             --output "keymaker/${{ inputs.keymaker_name }}.jar"
         KEYMAKER_CLI_JAR="$(pwd)/keymaker/${{ inputs.keymaker_name }}.jar"
