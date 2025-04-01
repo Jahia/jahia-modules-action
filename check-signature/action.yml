@@ -34,14 +34,16 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Prepare env variables
+    - name: Check the present of environment variable
       shell: bash
       run: |
-        echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV        
-        echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV        
+        if [ -z "${{ inputs.nexus_username }}" ]; then
+          echo "::notice::Nexus credentials not provided to access keymaker, skipping module signature check.\n You can add these secrets via the build job in your workflow."
+        fi     
 
     - name: Prepare folder for signing artifact
       shell: bash
+      if: ${{ inputs.nexus_username != '' }}
       run: |
         mkdir keymaker
         echo " NEXUS_USERNAME: ${NEXUS_USERNAME:0:3}***${NEXUS_USERNAME:(-6)}"
@@ -58,7 +60,12 @@ runs:
     # It returns 0 if the signature is valid, another exit code otherwise
     - name: Execute the command 
       shell: bash
+      if: ${{ inputs.nexus_username != '' }}
       run: |
         SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
         java -jar ${KEYMAKER_CLI_JAR} pom -f ${{ inputs.pom_filepath }}
-
+        if [[ $? -eq 0 ]]; then
+          echo "No need to update signature, not failing the workflow"
+        else
+          echo "Received exit signal different than 0, failing the workflow"
+          exit 1
