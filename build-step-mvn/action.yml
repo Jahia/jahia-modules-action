@@ -77,8 +77,7 @@ runs:
       with:
         name: ${{ inputs.github_artifact_name }}
         path: |
-          ${{ inputs.module_path }}target/*
-          ${{ inputs.module_path }}*/target/*
+          ${{ inputs.module_path }}**/target/*
           **/*source-release.zip
         retention-days: ${{ inputs.github_artifact_retention }}
 
