@@ -69,3 +69,4 @@ runs:
         else
           echo "Received exit signal different than 0, failing the workflow"
           exit 1
+        fi
