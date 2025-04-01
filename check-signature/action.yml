@@ -34,10 +34,17 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Prepare env variables
+      shell: bash
+      run: |
+        echo "NEXUS_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV        
+        echo "NEXUS_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV        
+
     - name: Prepare folder for signing artifact
       shell: bash
       run: |
         mkdir keymaker
+        echo " NEXUS_USERNAME: ${NEXUS_USERNAME:0:3}***${NEXUS_USERNAME:(-6)}"
         url="${{ inputs.nexus_internal_releases_url }}/${{ inputs.keymaker_location }}/${{ inputs.keymaker_version }}/${{ inputs.keymaker_name }}-${{ inputs.keymaker_version }}-jar-with-dependencies.jar"
         curl -u ${{ inputs.nexus_username }}:${{ inputs.nexus_password }} \
             --url "${url}" \
