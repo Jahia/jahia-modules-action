@@ -44,7 +44,8 @@ runs:
             --output "keymaker/${{ inputs.keymaker_name }}.jar"
         KEYMAKER_CLI_JAR="$(pwd)/keymaker/${{ inputs.keymaker_name }}.jar"
         echo "KEYMAKER_CLI_JAR=${KEYMAKER_CLI_JAR}" >> $GITHUB_ENV        
-        
+        ls -lah keymaker/
+
     # Even though this command it meant as displaying the correct signature for the module
     # It does include the right exit code if the signature needs to be updated
     # It returns 0 if the signature is valid, another exit code otherwise
