@@ -1,0 +1,164 @@
+name: Reusable Workflow (On Code Change)
+on:
+  workflow_call:
+    inputs:
+        static_analysis_instance_type:
+            type: string
+            default: "ubuntu-latest"
+        build_instance_type:
+            type: string
+            default: "ubuntu-latest"
+        sonar_analysis_instance_type:
+            type: string
+            default: "ubuntu-latest"
+        integration_tests_instance_type:
+            type: string
+            default: "self-hosted"
+        tests_standalone:
+            type: boolean
+            default: false
+        tests_cluster:
+            type: boolean
+            default: false
+        node_version:
+            type: number
+            default: 18
+        mvn_settings_filepath:
+            type: string
+            default: ".github/maven.settings.xml"
+        static_analysis_auditci_level:
+            type: string
+            default: "moderate"
+        module_id:
+            type: string
+            required: true
+        testrail_project:
+            type: string
+            default: ""
+        pagerduty_skip_notification:
+            type: boolean
+            default: false
+        provisioning_manifest:
+            type: string
+            required: true
+        should_use_build_artifacts:
+            type: boolean
+            default: false
+        artifact_prefix:
+            type: string
+            default: "tests"
+        jahia_image:
+            type: string
+            required: true
+        pagerduty_incident_service:
+            type: string
+            default: ""
+        timeout_tests:
+            type: number
+            default: 65
+        timeout_tests_step:
+            type: number
+            default: 50
+        tests_profile:
+            type: string
+            default: ""
+        elasticsearch_image:
+            type: string
+            default: ""
+        jcustomer_image:
+            type: string
+            default: ""
+        should_skip_testrail:
+            type: boolean
+            default: false
+        should_skip_pagerduty:
+            type: boolean
+            default: false
+        
+
+jobs:
+    static-analysis:
+      runs-on: ${{ inputs.static_analysis_instance_type }}
+      steps:
+        - uses: actions/checkout@v4
+        - uses: jahia/jahia-modules-action/static-analysis@v2
+          with:
+            node_version: ${{ inputs.node_version }}
+            auditci_level: ${{ inputs.static_analysis_auditci_level }}
+    
+    build:
+        runs-on: ${{ inputs.build_instance_type }}
+        env:
+            NEXUS_INTERNAL_URL: ${{ secrets.NEXUS_INTERNAL_URL }}
+        container:
+            image: jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node
+            credentials:
+                username: ${{ secrets.DOCKERHUB_USERNAME }}
+                password: ${{ secrets.DOCKERHUB_PASSWORD }}
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jahia/jahia-modules-action/build@v2
+              with:
+                mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
+                nexus_username: ${{ secrets.NEXUS_USERNAME }}
+                nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+
+    sonar-analysis:
+        runs-on: ${{ inputs.sonar_analysis_instance_type }}
+        needs: build
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jahia/jahia-modules-action/sonar-analysis@v2
+              with:
+                primary_release_branch: ${{ github.head_ref }}
+                github_pr_id: ${{github.event.number}}
+                sonar_url: ${{ secrets.SONAR_URL }}
+                sonar_token: ${{ secrets.SONAR_TOKEN }}
+                mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
+
+    integration-tests-standalone:
+        if: ${{ inputs.tests_standalone }}
+        needs: build
+        uses: Jahia/jahia-modules-action/.github/workflows/reusable-integration-tests.yml@v2
+        with:
+            instance_type: ${{ inputs.integration_tests_instance_type }}
+            module_id: ${{ inputs.module_id }}
+            testrail_project: ${{ inputs.testrail_project }}
+            jahia_image: ${{ inputs.jahia_image }}
+            pagerduty_skip_notification: ${{ inputs.pagerduty_skip_notification }}
+            provisioning_manifest: ${{ inputs.provisioning_manifest }}
+            should_use_build_artifacts: ${{ inputs.should_use_build_artifacts }}
+            artifact_prefix: standalone-${{ inputs.artifact_prefix }}
+            module_branch: ${{ github.head_ref }}
+            timeout_job: ${{ inputs.timeout_tests }}
+            timeout_step: ${{ inputs.timeout_tests_step }}
+            tests_profile: ${{ inputs.tests_profile }}
+            elasticsearch_image: ${{ inputs.elasticsearch_image }}
+            jcustomer_image: ${{ inputs.jcustomer_image }}
+            should_skip_testrail: ${{ inputs.should_skip_testrail }}
+            pagerduty_incident_service: ${{ inputs.pagerduty_incident_service }}
+            jahia_cluster_enabled: false
+
+    integration-tests-cluster:
+        if: ${{ inputs.tests_cluster }}
+        needs: build
+        uses: Jahia/jahia-modules-action/.github/workflows/reusable-integration-tests.yml@v2
+        with:
+            instance_type: ${{ inputs.integration_tests_instance_type }}
+            module_id: ${{ inputs.module_id }}
+            testrail_project: ${{ inputs.testrail_project }}
+            jahia_image: ${{ inputs.jahia_image }}
+            pagerduty_skip_notification: ${{ inputs.pagerduty_skip_notification }}
+            provisioning_manifest: ${{ inputs.provisioning_manifest }}
+            should_use_build_artifacts: ${{ inputs.should_use_build_artifacts }}
+            artifact_prefix: cluster-${{ inputs.artifact_prefix }}
+            module_branch: ${{ github.head_ref }}
+            timeout_job: ${{ inputs.timeout_tests }}
+            timeout_step: ${{ inputs.timeout_tests_step }}
+            tests_profile: ${{ inputs.tests_profile }}
+            elasticsearch_image: ${{ inputs.elasticsearch_image }}
+            jcustomer_image: ${{ inputs.jcustomer_image }}
+            should_skip_testrail: ${{ inputs.should_skip_testrail }}
+            pagerduty_incident_service: ${{ inputs.pagerduty_incident_service }}
+            jahia_cluster_enabled: true
+    
