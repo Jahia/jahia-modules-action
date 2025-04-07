@@ -131,6 +131,7 @@ jobs:
     integration-tests-standalone:
         if: ${{ inputs.tests_standalone }}
         needs: build
+        secrets: inherit
         uses: Jahia/jahia-modules-action/.github/workflows/reusable-integration-tests.yml@v2
         with:
             instance_type: ${{ inputs.integration_tests_instance_type }}
@@ -154,6 +155,7 @@ jobs:
     integration-tests-cluster:
         if: ${{ inputs.tests_cluster }}
         needs: build
+        secrets: inherit
         uses: Jahia/jahia-modules-action/.github/workflows/reusable-integration-tests.yml@v2
         with:
             instance_type: ${{ inputs.integration_tests_instance_type }}
