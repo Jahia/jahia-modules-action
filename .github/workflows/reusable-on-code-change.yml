@@ -80,6 +80,9 @@ on:
         module_branch:
             required: true
             type: string
+        container_image:
+            type: string
+            default: "jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node"
         
 
 jobs:
@@ -99,7 +102,7 @@ jobs:
         env:
             NEXUS_INTERNAL_URL: ${{ secrets.NEXUS_INTERNAL_URL }}
         container:
-            image: jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node
+            image: ${{ inputs.container_image }}
             credentials:
                 username: ${{ secrets.DOCKERHUB_USERNAME }}
                 password: ${{ secrets.DOCKERHUB_PASSWORD }}
