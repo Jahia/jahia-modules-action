@@ -60,6 +60,18 @@ on:
         description: "Time during which artifact are kept in Github infrastructure"
         required: false
         default: "2"
+      gpg_key:
+        type: string
+        description: 'GPG Key'
+        required: true
+      gpg_key_id:
+        type: string
+        description: 'GPG Key ID'
+        required: true
+      gpg_key_passphrase:
+        type: string
+        description: 'GPG Key Passphrase'
+        required: true
 
 jobs:
   release-module:
@@ -139,6 +151,9 @@ jobs:
           github_api_token: ${{ secrets.GH_API_TOKEN }}
           github_artifact_retention: ${{ inputs.github_artifact_retention }}
           slack-webhook-qa: ${{ secrets.SLACK_WEBHOOK_URL_RC_FOR_QA }}
+          gpg_key: ${{ inputs.gpg_key }}
+          gpg_key_id: ${{ inputs.gpg_key_id }}
+          gpg_key_passphrase: ${{ inputs.gpg_key_passphrase }}
 
       - uses: jahia/jahia-modules-action/update-signature@v2
         with:
