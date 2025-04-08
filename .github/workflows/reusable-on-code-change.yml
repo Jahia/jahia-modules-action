@@ -83,9 +83,26 @@ on:
         container_image:
             type: string
             default: "jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node"
+        update_signature:
+            type: boolean
+            default: false
         
 
 jobs:
+    update-signature:
+        name: Update module signature
+        runs-on: ubuntu-latest
+        if: ${{ inputs.update_signature }}
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                ref: ${{ inputs.module_branch }}
+            - uses: jahia/jahia-modules-action/update-signature@v2
+              with:
+                nexus_internal_releases_url: ${{ secrets.NEXUS_INTERNAL_RELEASES_URL }}
+                nexus_username: ${{ secrets.NEXUS_USERNAME }}
+                nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+
     static-analysis:
       runs-on: ${{ inputs.static_analysis_instance_type }}
       steps:
