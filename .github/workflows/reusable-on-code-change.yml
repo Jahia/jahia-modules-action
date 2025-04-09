@@ -14,13 +14,13 @@ on:
         integration_tests_instance_type:
             type: string
             default: "self-hosted"
-        tests_standalone:
+        integration_tests_standalone_execute:
             type: boolean
             default: false
-        tests_cluster:
+        integration_tests_cluster_execute:
             type: boolean
             default: false
-        node_version:
+        static_analysis_node_version:
             type: number
             default: 18
         mvn_settings_filepath:
@@ -32,58 +32,58 @@ on:
         module_id:
             type: string
             required: true
-        testrail_project:
+        integration_tests_testrail_project:
             type: string
             default: ""
-        pagerduty_skip_notification:
+        integration_tests_pagerduty_skip_notification:
             type: boolean
             default: false
-        provisioning_manifest:
+        integration_tests_provisioning_manifest:
             type: string
             required: true
-        should_use_build_artifacts:
+        integration_tests_should_use_build_artifacts:
             type: boolean
             default: false
-        artifact_prefix:
+        integration_tests_artifact_prefix:
             type: string
             default: "tests"
-        jahia_image:
+        integration_tests_jahia_image:
             type: string
             required: true
-        pagerduty_incident_service:
+        integration_tests_pagerduty_incident_service:
             type: string
             default: ""
-        timeout_tests:
+        integration_tests_timeout:
             type: number
             default: 65
-        timeout_tests_step:
+        integration_tests_timeout_step:
             type: number
             default: 50
-        tests_profile:
+        integration_tests_profile:
             type: string
             default: ""
-        elasticsearch_image:
+        integration_tests_elasticsearch_image:
             type: string
             default: ""
-        jcustomer_image:
+        integration_tests_jcustomer_image:
             type: string
             default: ""
-        should_skip_testrail:
+        integration_tests_should_skip_testrail:
             type: boolean
             default: false
-        should_skip_pagerduty:
+        integration_tests_should_skip_pagerduty:
             type: boolean
             default: false
-        primary_release_branch:
+        sonar_analysis_primary_release_branch:
             type: string
             default: "master"
         module_branch:
             required: true
             type: string
-        container_image:
+        build_container_image:
             type: string
             default: "jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node"
-        update_signature:
+        update_signature_execute:
             type: boolean
             default: false
         
@@ -92,7 +92,7 @@ jobs:
     update-signature:
         name: Update module signature
         runs-on: ubuntu-latest
-        if: ${{ inputs.update_signature }}
+        if: ${{ inputs.update_signature_execute }}
         steps:
             - uses: actions/checkout@v4
               with:
@@ -111,7 +111,7 @@ jobs:
             ref: ${{ inputs.module_branch }}
         - uses: jahia/jahia-modules-action/static-analysis@v2
           with:
-            node_version: ${{ inputs.node_version }}
+            node_version: ${{ inputs.static_analysis_node_version }}
             auditci_level: ${{ inputs.static_analysis_auditci_level }}
     
     build:
@@ -119,7 +119,7 @@ jobs:
         env:
             NEXUS_INTERNAL_URL: ${{ secrets.NEXUS_INTERNAL_URL }}
         container:
-            image: ${{ inputs.container_image }}
+            image: ${{ inputs.build_container_image }}
             credentials:
                 username: ${{ secrets.DOCKERHUB_USERNAME }}
                 password: ${{ secrets.DOCKERHUB_PASSWORD }}
@@ -142,57 +142,57 @@ jobs:
                 ref: ${{ inputs.module_branch }}
             - uses: jahia/jahia-modules-action/sonar-analysis@v2
               with:
-                primary_release_branch: ${{ inputs.primary_release_branch }}
+                primary_release_branch: ${{ inputs.sonar_analysis_primary_release_branch }}
                 github_pr_id: ${{github.event.number}}
                 sonar_url: ${{ secrets.SONAR_URL }}
                 sonar_token: ${{ secrets.SONAR_TOKEN }}
                 mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
 
     integration-tests-standalone:
-        if: ${{ inputs.tests_standalone }}
+        if: ${{ inputs.integration_tests_standalone_execute }}
         needs: build
         secrets: inherit
         uses: Jahia/jahia-modules-action/.github/workflows/reusable-integration-tests.yml@v2
         with:
             instance_type: ${{ inputs.integration_tests_instance_type }}
             module_id: ${{ inputs.module_id }}
-            testrail_project: ${{ inputs.testrail_project }}
-            jahia_image: ${{ inputs.jahia_image }}
-            pagerduty_skip_notification: ${{ inputs.pagerduty_skip_notification }}
-            provisioning_manifest: ${{ inputs.provisioning_manifest }}
-            should_use_build_artifacts: ${{ inputs.should_use_build_artifacts }}
-            artifact_prefix: standalone-${{ inputs.artifact_prefix }}
+            testrail_project: ${{ inputs.integration_tests_testrail_project }}
+            jahia_image: ${{ inputs.integration_tests_jahia_image }}
+            pagerduty_skip_notification: ${{ inputs.integration_tests_pagerduty_skip_notification }}
+            provisioning_manifest: ${{ inputs.integration_tests_provisioning_manifest }}
+            should_use_build_artifacts: ${{ inputs.integration_tests_should_use_build_artifacts }}
+            artifact_prefix: standalone-${{ inputs.integration_tests_artifact_prefix }}
             module_branch: ${{ inputs.module_branch }}
-            timeout_job: ${{ inputs.timeout_tests }}
-            timeout_step: ${{ inputs.timeout_tests_step }}
-            tests_profile: ${{ inputs.tests_profile }}
-            elasticsearch_image: ${{ inputs.elasticsearch_image }}
-            jcustomer_image: ${{ inputs.jcustomer_image }}
-            should_skip_testrail: ${{ inputs.should_skip_testrail }}
-            pagerduty_incident_service: ${{ inputs.pagerduty_incident_service }}
+            timeout_job: ${{ inputs.integration_tests_timeout }}
+            timeout_step: ${{ inputs.integration_tests_timeout_step }}
+            tests_profile: ${{ inputs.integration_tests_profile }}
+            elasticsearch_image: ${{ inputs.integration_tests_elasticsearch_image }}
+            jcustomer_image: ${{ inputs.integration_tests_jcustomer_image }}
+            should_skip_testrail: ${{ inputs.integration_tests_should_skip_testrail }}
+            pagerduty_incident_service: ${{ inputs.integration_tests_pagerduty_incident_service }}
             jahia_cluster_enabled: false
 
     integration-tests-cluster:
-        if: ${{ inputs.tests_cluster }}
+        if: ${{ inputs.integration_tests_cluster_execute }}
         needs: build
         secrets: inherit
         uses: Jahia/jahia-modules-action/.github/workflows/reusable-integration-tests.yml@v2
         with:
             instance_type: ${{ inputs.integration_tests_instance_type }}
             module_id: ${{ inputs.module_id }}
-            testrail_project: ${{ inputs.testrail_project }}
-            jahia_image: ${{ inputs.jahia_image }}
-            pagerduty_skip_notification: ${{ inputs.pagerduty_skip_notification }}
-            provisioning_manifest: ${{ inputs.provisioning_manifest }}
-            should_use_build_artifacts: ${{ inputs.should_use_build_artifacts }}
-            artifact_prefix: cluster-${{ inputs.artifact_prefix }}
+            testrail_project: ${{ inputs.integration_tests_testrail_project }}
+            jahia_image: ${{ inputs.integration_tests_jahia_image }}
+            pagerduty_skip_notification: ${{ inputs.integration_tests_pagerduty_skip_notification }}
+            provisioning_manifest: ${{ inputs.integration_tests_provisioning_manifest }}
+            should_use_build_artifacts: ${{ inputs.integration_tests_should_use_build_artifacts }}
+            artifact_prefix: cluster-${{ inputs.integration_tests_artifact_prefix }}
             module_branch: ${{ inputs.module_branch }}
-            timeout_job: ${{ inputs.timeout_tests }}
-            timeout_step: ${{ inputs.timeout_tests_step }}
-            tests_profile: ${{ inputs.tests_profile }}
-            elasticsearch_image: ${{ inputs.elasticsearch_image }}
-            jcustomer_image: ${{ inputs.jcustomer_image }}
-            should_skip_testrail: ${{ inputs.should_skip_testrail }}
-            pagerduty_incident_service: ${{ inputs.pagerduty_incident_service }}
+            timeout_job: ${{ inputs.integration_tests_timeout }}
+            timeout_step: ${{ inputs.integration_tests_timeout_step }}
+            tests_profile: ${{ inputs.integration_tests_profile }}
+            elasticsearch_image: ${{ inputs.integration_tests_elasticsearch_image }}
+            jcustomer_image: ${{ inputs.integration_tests_jcustomer_image }}
+            should_skip_testrail: ${{ inputs.integration_tests_should_skip_testrail }}
+            pagerduty_incident_service: ${{ inputs.integration_tests_pagerduty_incident_service }}
             jahia_cluster_enabled: true
     
