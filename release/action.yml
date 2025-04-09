@@ -76,6 +76,7 @@ runs:
         echo "NEXUS_RELEASE_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
         echo "NEXUS_RELEASE_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
         echo "NEXUS_RELEASE_PASSWORD=${{ inputs.npmjs_publish_token }}" >> $GITHUB_ENV
+        # It is important that this environment variable always reflects the output of the tty command for all shell invocations (gpg-agent doc)
         echo "GPG_TTY=$(tty)" >> $GITHUB_ENV
 
     - name: Set npmjs.org auth token environment variable from parameter
