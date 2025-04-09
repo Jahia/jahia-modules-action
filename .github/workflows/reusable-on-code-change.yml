@@ -37,7 +37,7 @@ on:
             default: ""
         integration_tests_pagerduty_skip_notification:
             type: boolean
-            default: false
+            default: true
         integration_tests_provisioning_manifest:
             type: string
             required: true
