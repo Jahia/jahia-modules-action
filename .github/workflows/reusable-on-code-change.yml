@@ -40,7 +40,7 @@ on:
             default: true
         integration_tests_provisioning_manifest:
             type: string
-            required: true
+            default: ""
         integration_tests_should_use_build_artifacts:
             type: boolean
             default: false
@@ -49,7 +49,7 @@ on:
             default: "tests"
         integration_tests_jahia_image:
             type: string
-            required: true
+            default: ""
         integration_tests_pagerduty_incident_service:
             type: string
             default: ""
