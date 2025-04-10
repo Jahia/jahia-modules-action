@@ -21,6 +21,10 @@ on:
         type: string
         required: false
         default: "main"
+      github_slug:
+        type: string
+        description: 'GitHub SLUG of the module (for example: jahia/sandbox)'
+        required: true
       java_distribution:
         type: string
         required: false
@@ -34,7 +38,7 @@ on:
         required: false
         default: "mvn"
       incident_service:
-        type: string      
+        type: string
         description: 'Service subject to the incident. If empty, will default to the value of module_id'
         required: false
         default: ''
@@ -65,7 +69,7 @@ jobs:
           tests_module_type: ${{ inputs.tests_module_type }}
           mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
-          nexus_password: ${{ secrets.NEXUS_PASSWORD }}  
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
       - uses: jahia/jahia-modules-action/sonar-analysis@v2
         with:
           primary_release_branch: ${{ inputs.git_branch }}
@@ -77,6 +81,7 @@ jobs:
           mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+          github_slug: ${{ inputs.github_slug }}
       - id: status
         name: Prepare the status message for pagerduty
         if: always()

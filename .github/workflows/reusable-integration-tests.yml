@@ -59,9 +59,12 @@ on:
       artifact_prefix:
         type: string
         default: "tests"
+      # deprecated
       should_use_build_artifacts:
         type: boolean
+        required: false
         default: false
+        description: 'Should the job attempt to download previously built artifacts'
       should_skip_testrail:
         type: boolean
         default: false
@@ -113,7 +116,6 @@ jobs:
           jahia_cluster_enabled: ${{ inputs.jahia_cluster_enabled }}
           elasticsearch_image: ${{ inputs.elasticsearch_image }}
           jcustomer_image: ${{ inputs.jcustomer_image }}
-          should_use_build_artifacts: ${{ inputs.should_use_build_artifacts }}
           should_skip_testrail: ${{ inputs.should_skip_testrail }}
           should_skip_pagerduty: ${{ inputs.pagerduty_skip_notification }}
           github_artifact_name: ${{ inputs.artifact_prefix }}-${{ github.run_number }}
