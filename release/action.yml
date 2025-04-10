@@ -55,6 +55,15 @@ inputs:
     description: 'Token used to publish javascript module (or any kind of npm package) to npmjs.com, typically used when the Maven release process delegates the package publication to npm'
     default: ''
     required: false
+  gpg_key:
+    description: 'GPG Key'
+    required: true
+  gpg_key_id:
+    description: 'GPG Key ID'
+    required: true
+  gpg_key_passphrase:
+    description: 'GPG Key Passphrase'
+    required: true
 
 runs:
   using: 'composite'
@@ -67,6 +76,8 @@ runs:
         echo "NEXUS_RELEASE_USERNAME=${{ inputs.nexus_username }}" >> $GITHUB_ENV
         echo "NEXUS_RELEASE_PASSWORD=${{ inputs.nexus_password }}" >> $GITHUB_ENV
         echo "NEXUS_RELEASE_PASSWORD=${{ inputs.npmjs_publish_token }}" >> $GITHUB_ENV
+        # It is important that this environment variable always reflects the output of the tty command for all shell invocations (gpg-agent doc)
+        echo "GPG_TTY=$(tty)" >> $GITHUB_ENV
 
     - name: Set npmjs.org auth token environment variable from parameter
       if: ${{ inputs.npmjs_publish_token != '' }}
@@ -100,17 +111,37 @@ runs:
         restore-keys: |
           v1-maven-dependencies-${{ hashFiles('**/maven_cache_seed') }}
 
+    - name: Prepare GPG
+      shell: bash
+      run: |
+        echo $GPG_KEY | base64 --decode | gpg --batch --allow-secret-key-import --import
+        rm -rf /tmp/gpg.sh
+        echo '#!/bin/bash' >> /tmp/gpg.sh
+        echo 'gpg --batch --pinentry-mode=loopback --passphrase $GPG_KEY_PASSPHRASE $@' >> /tmp/gpg.sh
+        chmod +x /tmp/gpg.sh
+      env:
+        GPG_KEY: ${{ inputs.gpg_key }}
+
     - name: Getting latest changes from the remote branch
       shell: bash
       run: |
         git fetch --all
         git pull origin ${{ inputs.primary_release_branch }} --quiet
 
-    - name: Delete github tag ${{ inputs.release_version }}
+    - name: Setup git
       shell: bash
       run: |
         git config user.email ${{ inputs.git_user_email }}
         git config user.name ${{ inputs.git_user_name }}
+        git config commit.gpgsign true
+        git config user.signingkey $GPG_KEY_ID
+        git config gpg.program /tmp/gpg.sh
+      env:
+        GPG_KEY_ID: ${{ inputs.gpg_key_id }}
+
+    - name: Delete github tag ${{ inputs.release_version }}
+      shell: bash
+      run: |
         git tag --delete ${{ inputs.release_version }}
         git push origin :refs/tags/${{ inputs.release_version }}
 
@@ -172,6 +203,7 @@ runs:
           mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} versions:set -DnewVersion="${{ steps.versions.outputs.final_release_version }}"
           git add .
           git commit -m "[skip ci] [Test module] Update version of the test module to the release"
+          git verify-commit $( git rev-parse HEAD )
           git push
           mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} deploy
         else
@@ -179,6 +211,8 @@ runs:
         fi
         cd ${GITHUB_WORKSPACE}
         mvn -B -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=${{ steps.versions.outputs.tag_version }} release:prepare -DreleaseVersion="${{ steps.versions.outputs.final_release_version }}" -DdevelopmentVersion="${{ steps.versions.outputs.next_development_version }}" -DscmCommentPrefix="[skip ci] [maven-release-plugin]"
+      env:
+        GPG_KEY_PASSPHRASE: ${{ inputs.gpg_key_passphrase }}
 
     - name: Cache local Maven repository
       uses: actions/cache@v4
@@ -214,6 +248,8 @@ runs:
         # fi
         # cd ${GITHUB_WORKSPACE}
         mvn -B -s ${{ inputs.mvn_settings_filepath }} release:perform -Prelease-to-staging-repository
+      env:
+        GPG_KEY_PASSPHRASE: ${{ inputs.gpg_key_passphrase }}
 
     - name: Set development version for the test module (if present)
       shell: bash
@@ -223,10 +259,13 @@ runs:
           mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} versions:set -DnewVersion="${{ steps.versions.outputs.next_development_version }}"
           git add .
           git commit -m "[skip ci] [Test module] Update version of the test module to the next development version"
+          git verify-commit $( git rev-parse HEAD )
           git push
         else
           echo "No test module found to set development version"
         fi
+      env:
+        GPG_KEY_PASSPHRASE: ${{ inputs.gpg_key_passphrase }}
 
     - name: Copy artifacts
       shell: bash
