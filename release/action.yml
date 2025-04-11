@@ -55,6 +55,10 @@ inputs:
     description: 'Token used to publish javascript module (or any kind of npm package) to npmjs.com, typically used when the Maven release process delegates the package publication to npm'
     default: ''
     required: false
+  sign_commits:
+    description: 'Indicates if the release commits should be signed'
+    default: 'false'
+    required: true
   gpg_key:
     description: 'GPG Key'
     default: ''
@@ -115,15 +119,14 @@ runs:
           v1-maven-dependencies-${{ hashFiles('**/maven_cache_seed') }}
 
     - name: Prepare GPG
+      if: ${{ inputs.sign_commits != '' }}
       shell: bash
       run: |
-        if [[ $GPG_KEY != "" ]]; then
-          echo $GPG_KEY | base64 --decode | gpg --batch --allow-secret-key-import --import
-          rm -rf /tmp/gpg.sh
-          echo '#!/bin/bash' >> /tmp/gpg.sh
-          echo 'gpg --batch --pinentry-mode=loopback --passphrase $GPG_KEY_PASSPHRASE $@' >> /tmp/gpg.sh
-          chmod +x /tmp/gpg.sh
-        fi
+        echo $GPG_KEY | base64 --decode | gpg --batch --allow-secret-key-import --import
+        rm -rf /tmp/gpg.sh
+        echo '#!/bin/bash' >> /tmp/gpg.sh
+        echo 'gpg --batch --pinentry-mode=loopback --passphrase $GPG_KEY_PASSPHRASE $@' >> /tmp/gpg.sh
+        chmod +x /tmp/gpg.sh
       env:
         GPG_KEY: ${{ inputs.gpg_key }}
 
@@ -138,7 +141,7 @@ runs:
       run: |
         git config user.email ${{ inputs.git_user_email }}
         git config user.name ${{ inputs.git_user_name }}
-        if [[ $GPG_KEY_ID != "" ]]; then
+        if [[ ${{ inputs.sign_commits }} != "" ]]; then
           git config commit.gpgsign true
           git config user.signingkey $GPG_KEY_ID
           git config gpg.program /tmp/gpg.sh
@@ -210,7 +213,9 @@ runs:
           mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} versions:set -DnewVersion="${{ steps.versions.outputs.final_release_version }}"
           git add .
           git commit -m "[skip ci] [Test module] Update version of the test module to the release"
-          git verify-commit $( git rev-parse HEAD )
+          if [[ ${{ inputs.sign_commits }} == 'true' ]]; then
+            git verify-commit $( git rev-parse HEAD )
+          fi
           git push
           mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} deploy
         else
@@ -266,7 +271,9 @@ runs:
           mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} versions:set -DnewVersion="${{ steps.versions.outputs.next_development_version }}"
           git add .
           git commit -m "[skip ci] [Test module] Update version of the test module to the next development version"
-          git verify-commit $( git rev-parse HEAD )
+          if [[ ${{ inputs.sign_commits }} == 'true' ]]; then
+            git verify-commit $( git rev-parse HEAD )
+          fi
           git push
         else
           echo "No test module found to set development version"
