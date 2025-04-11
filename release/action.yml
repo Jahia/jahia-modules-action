@@ -117,7 +117,7 @@ runs:
     - name: Prepare GPG
       shell: bash
       run: |
-        if [[ $GPG_KEY != "" ]] then
+        if [[ $GPG_KEY != "" ]]; then
           echo $GPG_KEY | base64 --decode | gpg --batch --allow-secret-key-import --import
           rm -rf /tmp/gpg.sh
           echo '#!/bin/bash' >> /tmp/gpg.sh
