@@ -141,7 +141,7 @@ runs:
       run: |
         git config user.email ${{ inputs.git_user_email }}
         git config user.name ${{ inputs.git_user_name }}
-        if [[ ${{ inputs.sign_commits }} != "" ]]; then
+        if [[ ${{ inputs.sign_commits }} == "true" ]]; then
           git config commit.gpgsign true
           git config user.signingkey $GPG_KEY_ID
           git config gpg.program /tmp/gpg.sh
