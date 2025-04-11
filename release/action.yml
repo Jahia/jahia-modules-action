@@ -57,13 +57,16 @@ inputs:
     required: false
   gpg_key:
     description: 'GPG Key'
-    required: true
+    default: ''
+    required: false
   gpg_key_id:
     description: 'GPG Key ID'
-    required: true
+    default: ''
+    required: false
   gpg_key_passphrase:
     description: 'GPG Key Passphrase'
-    required: true
+    default: ''
+    required: false
 
 runs:
   using: 'composite'
@@ -114,11 +117,13 @@ runs:
     - name: Prepare GPG
       shell: bash
       run: |
-        echo $GPG_KEY | base64 --decode | gpg --batch --allow-secret-key-import --import
-        rm -rf /tmp/gpg.sh
-        echo '#!/bin/bash' >> /tmp/gpg.sh
-        echo 'gpg --batch --pinentry-mode=loopback --passphrase $GPG_KEY_PASSPHRASE $@' >> /tmp/gpg.sh
-        chmod +x /tmp/gpg.sh
+        if [[ $GPG_KEY != "" ]] then
+          echo $GPG_KEY | base64 --decode | gpg --batch --allow-secret-key-import --import
+          rm -rf /tmp/gpg.sh
+          echo '#!/bin/bash' >> /tmp/gpg.sh
+          echo 'gpg --batch --pinentry-mode=loopback --passphrase $GPG_KEY_PASSPHRASE $@' >> /tmp/gpg.sh
+          chmod +x /tmp/gpg.sh
+        fi
       env:
         GPG_KEY: ${{ inputs.gpg_key }}
 
@@ -133,9 +138,11 @@ runs:
       run: |
         git config user.email ${{ inputs.git_user_email }}
         git config user.name ${{ inputs.git_user_name }}
-        git config commit.gpgsign true
-        git config user.signingkey $GPG_KEY_ID
-        git config gpg.program /tmp/gpg.sh
+        if [[ $GPG_KEY_ID != "" ]] then
+          git config commit.gpgsign true
+          git config user.signingkey $GPG_KEY_ID
+          git config gpg.program /tmp/gpg.sh
+        fi
       env:
         GPG_KEY_ID: ${{ inputs.gpg_key_id }}
 
