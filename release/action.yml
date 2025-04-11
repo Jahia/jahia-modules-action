@@ -119,7 +119,7 @@ runs:
           v1-maven-dependencies-${{ hashFiles('**/maven_cache_seed') }}
 
     - name: Prepare GPG
-      if: ${{ inputs.sign_commits != '' }}
+      if: ${{ inputs.sign_commits == 'true' }}
       shell: bash
       run: |
         echo $GPG_KEY | base64 --decode | gpg --batch --allow-secret-key-import --import
