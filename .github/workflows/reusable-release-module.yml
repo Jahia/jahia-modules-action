@@ -139,6 +139,7 @@ jobs:
           github_api_token: ${{ secrets.GH_API_TOKEN }}
           github_artifact_retention: ${{ inputs.github_artifact_retention }}
           slack-webhook-qa: ${{ secrets.SLACK_WEBHOOK_URL_RC_FOR_QA }}
+          sign_commits: "true"
           gpg_key: ${{ secrets.GPG_KEY }}
           gpg_key_id: ${{ secrets.GPG_KEY_ID }}
           gpg_key_passphrase: ${{ secrets.GPG_KEY_PASSPHRASE }}
