@@ -113,7 +113,9 @@ runs:
     - name: Cache local Maven repository
       uses: actions/cache@v4
       with:
-        path: ~/.m2/repository
+        path: |
+          ~/.m2/repository
+          /root/.m2/repository
         key: v1-maven-dependencies-${{ hashFiles('**/maven_cache_seed') }}
         restore-keys: |
           v1-maven-dependencies-${{ hashFiles('**/maven_cache_seed') }}
