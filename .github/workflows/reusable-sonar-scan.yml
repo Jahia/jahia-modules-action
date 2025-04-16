@@ -24,7 +24,6 @@ on:
       github_slug:
         type: string
         description: 'GitHub SLUG of the module (for example: jahia/sandbox)'
-        required: true
       java_distribution:
         type: string
         required: false
@@ -70,6 +69,9 @@ jobs:
           mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+      - name: Set default values
+        id: vars
+        run: echo "github_repo=${{ github.repository }}" >> $GITHUB_OUTPUT
       - uses: jahia/jahia-modules-action/sonar-analysis@v2
         with:
           primary_release_branch: ${{ inputs.git_branch }}
@@ -81,7 +83,7 @@ jobs:
           mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
-          github_slug: ${{ inputs.github_slug }}
+          github_slug: ${{ inputs.github_slug || steps.vars.outputs.github_repo }}
       - id: status
         name: Prepare the status message for pagerduty
         if: always()
