@@ -72,7 +72,7 @@ jobs:
       - name: Set default values
         id: vars
         run: |
-          echo "Github repo slug: ${{ github.repository }}"
+          echo "GitHub repo slug: ${{ github.repository }}"
           echo "github_repo=${{ github.repository }}" >> $GITHUB_OUTPUT
       - uses: jahia/jahia-modules-action/sonar-analysis@v2
         with:
