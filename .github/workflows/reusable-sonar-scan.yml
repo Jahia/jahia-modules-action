@@ -71,7 +71,9 @@ jobs:
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
       - name: Set default values
         id: vars
-        run: echo "github_repo=${{ github.repository }}" >> $GITHUB_OUTPUT
+        run: |
+          echo "Github repo slug: ${{ github.repository }}"
+          echo "github_repo=${{ github.repository }}" >> $GITHUB_OUTPUT
       - uses: jahia/jahia-modules-action/sonar-analysis@v2
         with:
           primary_release_branch: ${{ inputs.git_branch }}
