@@ -8,7 +8,6 @@ inputs:
     default: main
   github_slug:
     description: 'GitHub SLUG of the module (for example: jahia/sandbox)'
-    required: true
   sonar_url:
     description: 'URL to the SONAR server'
     required: true
@@ -99,15 +98,18 @@ runs:
         restore-keys: |
           v3-sonar-owasp-dependencies-{{ checksum "is_pr" }}
 
-    - name: Extract branch name
-      shell: bash
-      run: echo "branch=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_OUTPUT
-      id: extract_branch
-
-    - name: Display branch name
+    - name: Setup Sonar env variables
       shell: bash
       run: |
-        echo "BRANCH: ${{ steps.extract_branch.outputs.branch }}"
+        echo "branch=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_OUTPUT
+        echo "github_slug=${{ inputs.github_slug || github.repository }}" >> $GITHUB_OUTPUT
+      id: vars
+
+    - name: Display variable values
+      shell: bash
+      run: |
+        echo "BRANCH: ${{ steps.vars.outputs.branch }}"
+        echo "GITHUB_SLUG: ${{ steps.vars.outputs.github_slug }}"
         echo "GITHUB_REF: ${GITHUB_REF}"
 
     - name: Set common Sonar parameters
@@ -145,8 +147,8 @@ runs:
               -Dsonar.pullrequest.branch=$GITHUB_REF \
               -Dsonar.pullrequest.key=${{ inputs.github_pr_id }} \
               -Dsonar.pullrequest.base=${{ inputs.primary_release_branch }} \
-              -Dsonar.pullrequest.github.repository=${{ inputs.github_slug }}
-        elif [[ ${{ steps.extract_branch.outputs.branch }} == ${{ inputs.primary_release_branch }} ]]; then
+              -Dsonar.pullrequest.github.repository=${{ steps.vars.outputs.github_slug }}
+        elif [[ ${{ steps.vars.outputs.branch }} == ${{ inputs.primary_release_branch }} ]]; then
           echo "Executing an analysis on the main branch"
           mvn -B -s ${{ inputs.mvn_settings_filepath }} sonar:sonar \
             $SONAR_PARAMS
