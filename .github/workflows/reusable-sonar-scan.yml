@@ -24,7 +24,6 @@ on:
       github_slug:
         type: string
         description: 'GitHub SLUG of the module (for example: jahia/sandbox)'
-        required: true
       java_distribution:
         type: string
         required: false
