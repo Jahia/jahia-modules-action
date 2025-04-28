@@ -8,9 +8,9 @@ on:
   workflow_call:
 
 jobs:
-  general:
-    name: General Issue operations
-    if: ${{ github.event.sender.login != 'jahia-ci' }}
+  projects-label:
+    name: Projects on Labels
+    if: ${{ (github.event.action == 'labeled' || github.event.action == 'typed') && github.event.sender.login != 'jahia-ci' }}
     runs-on: ubuntu-latest
     steps:
       - name: Displays details about the event
@@ -23,18 +23,8 @@ jobs:
             core.info(`context.payload.issue.number: ${context.payload.issue.number}`)
             core.info(`context.payload.issue.html_url: ${context.payload.issue.html_url}`)
             core.info(`context.payload.sender.login: ${context.payload.sender.login}`)
-            core.debug(context)    
-      - name: Re-open issue closed and not in the Done column
-        uses: jahia/jahia-modules-action/delivery/keep-issue-open@v2
-        with:
-          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
-          project_prefix: "Product Team"
-
-  projects-label:
-    name: Projects on Labels
-    if: ${{ (github.event.action == 'labeled' || github.event.action == 'typed') && github.event.sender.login != 'jahia-ci' }}
-    runs-on: ubuntu-latest
-    steps:
+            core.debug(context)  
+    
       # Issue type is not available by default, this makes it available for if conditions
       - name: Get Issue type
         uses: jahia/jahia-modules-action/delivery/get-issue@v2
