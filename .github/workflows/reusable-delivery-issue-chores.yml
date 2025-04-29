@@ -30,6 +30,27 @@ jobs:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           project_prefix: "Product Team"
 
+  new-epic:
+    name: Actions on new Epic
+    if: ${{ github.event.action == 'opened' && github.event.sender.login != 'jahia-ci' }}
+    runs-on: ubuntu-latest
+    steps:
+      # Issue type is not available by default, this makes it available for if conditions
+      - name: Get Issue type
+        uses: jahia/jahia-modules-action/delivery/get-issue@v2
+        id: get-issue
+        with:
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}      
+
+      - name: Create a Security Jira ticket for every new Epic
+        uses: jahia/jahia-modules-action/delivery/create-security-ticket@v2
+        if: ${{ steps.get-issue.outputs.issue_type == 'Epic' }}
+        with:
+          jira-username: ${{ secrets.JIRA_USERNAME }}
+          jira-password: ${{ secrets.JIRA_PASSWORD }}
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          github-security-project: 'Product Team'
+          
   projects-label:
     name: Projects on Labels
     if: ${{ (github.event.action == 'labeled' || github.event.action == 'typed') && github.event.sender.login != 'jahia-ci' }}
@@ -74,15 +95,6 @@ jobs:
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:Product, Area:Delivery, Area:Tech, Area:QA, Area:Security
           label-operator: OR
-
-      - name: Create a Security Jira ticket for every new Epic
-        uses: jahia/jahia-modules-action/delivery/create-security-ticket@v2
-        if: ${{ steps.get-issue.outputs.issue_type == 'Epic' && github.event.action == 'opened' }}
-        with:
-          jira-username: ${{ secrets.JIRA_USERNAME }}
-          jira-password: ${{ secrets.JIRA_PASSWORD }}
-          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
-          github-security-project: 'Product Team'
 
       - name: Attach all tickets with label Area:QA to the QA Roadmap Project
         uses: actions/add-to-project@v1.0.2
