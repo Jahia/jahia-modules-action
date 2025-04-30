@@ -2,12 +2,36 @@ name: Reusable Workflow (On Code Change)
 on:
   workflow_call:
     inputs:
+        module_id:
+            type: string
+            required: true
+        mvn_settings_filepath:
+            type: string
+            default: ".github/maven.settings.xml"
+        module_branch:
+            required: true
+            type: string
+        update_signature_execute:
+            type: boolean
+            default: false
         static_analysis_instance_type:
             type: string
             default: "ubuntu-latest"
+        static_analysis_auditci_level:
+            type: string
+            default: "moderate"
+        static_analysis_node_version:
+            type: number
+            default: 18
         build_instance_type:
             type: string
             default: "ubuntu-latest"
+        build_container_image:
+            type: string
+            default: "jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node"
+        sonar_analysis_primary_release_branch:
+            type: string
+            default: "master"
         sonar_analysis_instance_type:
             type: string
             default: "ubuntu-latest"
@@ -20,18 +44,6 @@ on:
         integration_tests_cluster_execute:
             type: boolean
             default: false
-        static_analysis_node_version:
-            type: number
-            default: 18
-        mvn_settings_filepath:
-            type: string
-            default: ".github/maven.settings.xml"
-        static_analysis_auditci_level:
-            type: string
-            default: "moderate"
-        module_id:
-            type: string
-            required: true
         integration_tests_testrail_project:
             type: string
             default: ""
@@ -74,18 +86,24 @@ on:
         integration_tests_should_skip_pagerduty:
             type: boolean
             default: false
-        sonar_analysis_primary_release_branch:
-            type: string
-            default: "master"
-        module_branch:
-            required: true
-            type: string
-        build_container_image:
-            type: string
-            default: "jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node"
-        update_signature_execute:
+        sbom_execute:
             type: boolean
             default: false
+        sbom_container_image:
+            type: string
+            default: "cyclonedx/cyclonedx-cli:0.24.2"
+        sbom_hostname:
+            type: string
+            default: ""
+        sbom_artifacts:
+            type: string
+            default: "build-artifacts"
+        publish_execute:
+            type: boolean
+            default: false
+        publish_container_image:
+            type: string
+            default: "jahia/cimg-mvn-cache:ga_cimg_openjdk_8.0.312-node"
         
 
 jobs:
@@ -195,4 +213,33 @@ jobs:
             should_skip_testrail: ${{ inputs.integration_tests_should_skip_testrail }}
             pagerduty_incident_service: ${{ inputs.integration_tests_pagerduty_incident_service }}
             jahia_cluster_enabled: true
+    sbom:
+        name: SBOM processing
+        needs: build
+        if: ${{ inputs.sbom_execute}}
+        runs-on: ubuntu-latest
+        container:
+            image: ${{ inputs.sbom_container_image }}
+        steps:
+            - uses: jahia/jahia-modules-action/sbom-processing@v2
+              with:
+                dependencytrack_hostname: ${{ inputs.sbom_hostname }}
+                dependencytrack_apikey: ${{ secrets.DEPENDENCYTRACK_APIKEY }}
+                sbom_artifacts: ${{ inputs.sbom_artifacts }}
+    publish:
+        name: Publish module
+        needs: [build]
+        if: ${{ inputs.publish_execute }}
+        runs-on: ubuntu-latest
+        container:
+            image: ${{ inputs.publish_container_image}}
+            credentials:
+                username: ${{ secrets.DOCKERHUB_USERNAME }}
+                password: ${{ secrets.DOCKERHUB_PASSWORD }}
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jahia/jahia-modules-action/publish@v2
+              with:
+                nexus_username: ${{ secrets.NEXUS_USERNAME }}
+                nexus_password: ${{ secrets.NEXUS_PASSWORD }}
     
