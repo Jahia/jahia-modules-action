@@ -68,7 +68,7 @@ runs:
     - name: Direct link location of the Artifact
       shell: bash
       run: |
-        EXTRACTED_NEXUS_ARTIFACT_URL=`grep -e "Uploaded.*\.jar" mvnLogs.txt | grep -v sources | sed -e 's/.*\(https.*.jar\).*/\1/g'`
+        EXTRACTED_NEXUS_ARTIFACT_URL=`grep --text -e "Uploaded.*\.jar" mvnLogs.txt | grep -v sources | sed -e 's/.*\(https.*.jar\).*/\1/g'`
         echo "::notice title=Snapshot module location::Artifact has been uploaded to: $EXTRACTED_NEXUS_ARTIFACT_URL"
 
     - name: Check if test module is present (Javascript)
