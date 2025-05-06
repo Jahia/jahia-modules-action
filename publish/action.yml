@@ -50,6 +50,12 @@ runs:
       shell: bash
       run: mvn -B -s ${{ inputs.mvn_settings_filepath }} clean deploy -DskipTests -Dmaven.resolver.transport=wagon | tee mvnLogs.txt
 
+    - name: Direct link location of the Artifact
+      shell: bash
+      run: |
+        EXTRACTED_NEXUS_ARTIFACT_URL=`grep --text -e "Uploaded.*\.jar" mvnLogs.txt | grep -v sources | sed -e 's/.*\(https.*.jar\).*/\1/g'`
+        echo "::notice title=Snapshot module location::Artifact has been uploaded to: $EXTRACTED_NEXUS_ARTIFACT_URL"
+
     - name: Check if test module is present (MVN)
       if: ${{ inputs.tests_module_type == 'mvn' }}
       id: check_test_module_mvn
@@ -64,12 +70,6 @@ runs:
         ROOT_PATH=$(pwd)
         cd ${{ inputs.tests_module_path }}
         mvn -B -U -ntp -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} clean deploy -DskipTests -Dmaven.resolver.transport=wagon
-
-    - name: Direct link location of the Artifact
-      shell: bash
-      run: |
-        EXTRACTED_NEXUS_ARTIFACT_URL=`grep --text -e "Uploaded.*\.jar" mvnLogs.txt | grep -v sources | sed -e 's/.*\(https.*.jar\).*/\1/g'`
-        echo "::notice title=Snapshot module location::Artifact has been uploaded to: $EXTRACTED_NEXUS_ARTIFACT_URL"
 
     - name: Check if test module is present (Javascript)
       if: ${{ inputs.tests_module_type == 'javascript' }}
