@@ -12,7 +12,7 @@ inputs:
     description: A file, directory or wildcard pattern that describes what to upload
     required: true
   retention-days:
-    description: Duration after which artifact will expire in days.
+    description: Duration after which artifact will expire in days. Use "unlimited" to prevent deletion, this can be useful to regularly update the same artifacts.
     required: true
   ssh-key:
     description: 'Private key necessary to send the document via rsync (jahia only)'
@@ -34,14 +34,24 @@ runs:
       shell: bash
       if: ${{ inputs.destination == 'jahia' }}
       run: |
-        DST_EXPIRY=$(date -d "+${{ inputs.retention-days }} days" +%Y-%m-%d)
-        DST_PATH=delete-on-${DST_EXPIRY}_$(echo $GITHUB_REPOSITORY|sed 's#/#_#g')_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}/
-        DST_FILEPATH=/temp-artifacts/${DST_PATH}
-        DST_URL=https://qa.jahia.com/artifacts-ci/${DST_PATH}
-        echo "Will be uploading artifact to: ${DST_FILEPATH}"
-        echo "Artifacts will be available at: ${DST_URL}"
-        echo "RSYNC_FOLDER=${DST_FILEPATH}" >> $GITHUB_ENV
-        echo "DOWNLOAD_URL=${DST_URL}" >> $GITHUB_ENV
+        if [ "${{ inputs.retention-days }}" == "unlimited" ]; then
+          DST_PATH=$(echo $GITHUB_REPOSITORY|sed 's#/#_#g')/
+          DST_FILEPATH=/temp-artifacts/${DST_PATH}
+          DST_URL=https://qa.jahia.com/artifacts-ci/${DST_PATH}
+          echo "Will be uploading artifact to: ${DST_FILEPATH}"
+          echo "Artifacts will be available at: ${DST_URL}"
+          echo "RSYNC_FOLDER=${DST_FILEPATH}" >> $GITHUB_ENV
+          echo "DOWNLOAD_URL=${DST_URL}" >> $GITHUB_ENV
+        else
+          DST_EXPIRY=$(date -d "+${{ inputs.retention-days }} days" +%Y-%m-%d)
+          DST_PATH=delete-on-${DST_EXPIRY}_$(echo $GITHUB_REPOSITORY|sed 's#/#_#g')_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}/
+          DST_FILEPATH=/temp-artifacts/${DST_PATH}
+          DST_URL=https://qa.jahia.com/artifacts-ci/${DST_PATH}
+          echo "Will be uploading artifact to: ${DST_FILEPATH}"
+          echo "Artifacts will be available at: ${DST_URL}"
+          echo "RSYNC_FOLDER=${DST_FILEPATH}" >> $GITHUB_ENV
+          echo "DOWNLOAD_URL=${DST_URL}" >> $GITHUB_ENV
+        fi       
 
     - uses: webfactory/ssh-agent@v0.7.0
       if: ${{ inputs.destination == 'jahia' }}
