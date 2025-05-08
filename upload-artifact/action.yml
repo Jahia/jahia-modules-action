@@ -35,7 +35,7 @@ runs:
       if: ${{ inputs.destination == 'jahia' }}
       run: |
         if [ "${{ inputs.retention-days }}" == "unlimited" ]; then
-          DST_PATH=$(echo $GITHUB_REPOSITORY|sed 's#/#_#g')/
+          DST_PATH=$(echo $GITHUB_REPOSITORY|sed 's#/#_#g')_${{ inputs.name }}/
           DST_FILEPATH=/temp-artifacts/${DST_PATH}
           DST_URL=https://qa.jahia.com/artifacts-ci/${DST_PATH}
           echo "Will be uploading artifact to: ${DST_FILEPATH}"
