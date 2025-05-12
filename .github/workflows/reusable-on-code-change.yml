@@ -1,0 +1,245 @@
+name: Reusable Workflow (On Code Change)
+on:
+  workflow_call:
+    inputs:
+        module_id:
+            type: string
+            required: true
+        mvn_settings_filepath:
+            type: string
+            default: ".github/maven.settings.xml"
+        module_branch:
+            required: true
+            type: string
+        update_signature_execute:
+            type: boolean
+            default: false
+        static_analysis_instance_type:
+            type: string
+            default: "ubuntu-latest"
+        static_analysis_auditci_level:
+            type: string
+            default: "moderate"
+        static_analysis_node_version:
+            type: number
+            default: 18
+        build_instance_type:
+            type: string
+            default: "ubuntu-latest"
+        build_container_image:
+            type: string
+            default: "jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node"
+        sonar_analysis_primary_release_branch:
+            type: string
+            default: "master"
+        sonar_analysis_instance_type:
+            type: string
+            default: "ubuntu-latest"
+        integration_tests_instance_type:
+            type: string
+            default: "self-hosted"
+        integration_tests_standalone_execute:
+            type: boolean
+            default: false
+        integration_tests_cluster_execute:
+            type: boolean
+            default: false
+        integration_tests_testrail_project:
+            type: string
+            default: ""
+        integration_tests_pagerduty_skip_notification:
+            type: boolean
+            default: true
+        integration_tests_provisioning_manifest:
+            type: string
+            default: ""
+        integration_tests_should_use_build_artifacts:
+            type: boolean
+            default: false
+        integration_tests_artifact_prefix:
+            type: string
+            default: "tests"
+        integration_tests_jahia_image:
+            type: string
+            default: ""
+        integration_tests_pagerduty_incident_service:
+            type: string
+            default: ""
+        integration_tests_timeout:
+            type: number
+            default: 65
+        integration_tests_timeout_step:
+            type: number
+            default: 50
+        integration_tests_profile:
+            type: string
+            default: ""
+        integration_tests_elasticsearch_image:
+            type: string
+            default: ""
+        integration_tests_jcustomer_image:
+            type: string
+            default: ""
+        integration_tests_should_skip_testrail:
+            type: boolean
+            default: false
+        integration_tests_should_skip_pagerduty:
+            type: boolean
+            default: false
+        sbom_execute:
+            type: boolean
+            default: false
+        sbom_container_image:
+            type: string
+            default: "cyclonedx/cyclonedx-cli:0.24.2"
+        sbom_hostname:
+            type: string
+            default: ""
+        sbom_artifacts:
+            type: string
+            default: "build-artifacts"
+        publish_execute:
+            type: boolean
+            default: false
+        publish_container_image:
+            type: string
+            default: "jahia/cimg-mvn-cache:ga_cimg_openjdk_8.0.312-node"
+        
+
+jobs:
+    update-signature:
+        name: Update module signature
+        runs-on: ubuntu-latest
+        if: ${{ inputs.update_signature_execute }}
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                ref: ${{ inputs.module_branch }}
+            - uses: jahia/jahia-modules-action/update-signature@v2
+              with:
+                nexus_internal_releases_url: ${{ secrets.NEXUS_INTERNAL_RELEASES_URL }}
+                nexus_username: ${{ secrets.NEXUS_USERNAME }}
+                nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+
+    static-analysis:
+      runs-on: ${{ inputs.static_analysis_instance_type }}
+      steps:
+        - uses: actions/checkout@v4
+          with:
+            ref: ${{ inputs.module_branch }}
+        - uses: jahia/jahia-modules-action/static-analysis@v2
+          with:
+            node_version: ${{ inputs.static_analysis_node_version }}
+            auditci_level: ${{ inputs.static_analysis_auditci_level }}
+    
+    build:
+        runs-on: ${{ inputs.build_instance_type }}
+        env:
+            NEXUS_INTERNAL_URL: ${{ secrets.NEXUS_INTERNAL_URL }}
+        container:
+            image: ${{ inputs.build_container_image }}
+            credentials:
+                username: ${{ secrets.DOCKERHUB_USERNAME }}
+                password: ${{ secrets.DOCKERHUB_PASSWORD }}
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                ref: ${{ inputs.module_branch }}
+            - uses: jahia/jahia-modules-action/build@v2
+              with:
+                mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
+                nexus_username: ${{ secrets.NEXUS_USERNAME }}
+                nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+
+    sonar-analysis:
+        runs-on: ${{ inputs.sonar_analysis_instance_type }}
+        needs: build
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                ref: ${{ inputs.module_branch }}
+            - uses: jahia/jahia-modules-action/sonar-analysis@v2
+              with:
+                primary_release_branch: ${{ inputs.sonar_analysis_primary_release_branch }}
+                github_pr_id: ${{github.event.number}}
+                sonar_url: ${{ secrets.SONAR_URL }}
+                sonar_token: ${{ secrets.SONAR_TOKEN }}
+                mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
+
+    integration-tests-standalone:
+        if: ${{ inputs.integration_tests_standalone_execute }}
+        needs: build
+        secrets: inherit
+        uses: Jahia/jahia-modules-action/.github/workflows/reusable-integration-tests.yml@v2
+        with:
+            instance_type: ${{ inputs.integration_tests_instance_type }}
+            module_id: ${{ inputs.module_id }}
+            testrail_project: ${{ inputs.integration_tests_testrail_project }}
+            jahia_image: ${{ inputs.integration_tests_jahia_image }}
+            pagerduty_skip_notification: ${{ inputs.integration_tests_pagerduty_skip_notification }}
+            provisioning_manifest: ${{ inputs.integration_tests_provisioning_manifest }}
+            should_use_build_artifacts: ${{ inputs.integration_tests_should_use_build_artifacts }}
+            artifact_prefix: standalone-${{ inputs.integration_tests_artifact_prefix }}
+            module_branch: ${{ inputs.module_branch }}
+            timeout_job: ${{ inputs.integration_tests_timeout }}
+            timeout_step: ${{ inputs.integration_tests_timeout_step }}
+            tests_profile: ${{ inputs.integration_tests_profile }}
+            elasticsearch_image: ${{ inputs.integration_tests_elasticsearch_image }}
+            jcustomer_image: ${{ inputs.integration_tests_jcustomer_image }}
+            should_skip_testrail: ${{ inputs.integration_tests_should_skip_testrail }}
+            pagerduty_incident_service: ${{ inputs.integration_tests_pagerduty_incident_service }}
+            jahia_cluster_enabled: false
+
+    integration-tests-cluster:
+        if: ${{ inputs.integration_tests_cluster_execute }}
+        needs: build
+        secrets: inherit
+        uses: Jahia/jahia-modules-action/.github/workflows/reusable-integration-tests.yml@v2
+        with:
+            instance_type: ${{ inputs.integration_tests_instance_type }}
+            module_id: ${{ inputs.module_id }}
+            testrail_project: ${{ inputs.integration_tests_testrail_project }}
+            jahia_image: ${{ inputs.integration_tests_jahia_image }}
+            pagerduty_skip_notification: ${{ inputs.integration_tests_pagerduty_skip_notification }}
+            provisioning_manifest: ${{ inputs.integration_tests_provisioning_manifest }}
+            should_use_build_artifacts: ${{ inputs.integration_tests_should_use_build_artifacts }}
+            artifact_prefix: cluster-${{ inputs.integration_tests_artifact_prefix }}
+            module_branch: ${{ inputs.module_branch }}
+            timeout_job: ${{ inputs.integration_tests_timeout }}
+            timeout_step: ${{ inputs.integration_tests_timeout_step }}
+            tests_profile: ${{ inputs.integration_tests_profile }}
+            elasticsearch_image: ${{ inputs.integration_tests_elasticsearch_image }}
+            jcustomer_image: ${{ inputs.integration_tests_jcustomer_image }}
+            should_skip_testrail: ${{ inputs.integration_tests_should_skip_testrail }}
+            pagerduty_incident_service: ${{ inputs.integration_tests_pagerduty_incident_service }}
+            jahia_cluster_enabled: true
+    sbom:
+        name: SBOM processing
+        needs: build
+        if: ${{ inputs.sbom_execute}}
+        runs-on: ubuntu-latest
+        container:
+            image: ${{ inputs.sbom_container_image }}
+        steps:
+            - uses: jahia/jahia-modules-action/sbom-processing@v2
+              with:
+                dependencytrack_hostname: ${{ inputs.sbom_hostname }}
+                dependencytrack_apikey: ${{ secrets.DEPENDENCYTRACK_APIKEY }}
+                sbom_artifacts: ${{ inputs.sbom_artifacts }}
+    publish:
+        name: Publish module
+        needs: [build]
+        if: ${{ inputs.publish_execute }}
+        runs-on: ubuntu-latest
+        container:
+            image: ${{ inputs.publish_container_image}}
+            credentials:
+                username: ${{ secrets.DOCKERHUB_USERNAME }}
+                password: ${{ secrets.DOCKERHUB_PASSWORD }}
+        steps:
+            - uses: actions/checkout@v4
+            - uses: jahia/jahia-modules-action/publish@v2
+              with:
+                nexus_username: ${{ secrets.NEXUS_USERNAME }}
+                nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+    
