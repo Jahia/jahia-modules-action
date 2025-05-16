@@ -240,6 +240,7 @@ runs:
       shell: bash
       run: |
         echo "Update github release for id ${{ inputs.release_id }}"
+        curl --version
         curl -X PATCH \
         -H "Accept:application/vnd.github.v3+json" \
         -d "{\"tag_name\":\"${{ inputs.release_version }}\", \"prerelease\": false, \"draft\": false}" -u \
