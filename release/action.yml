@@ -236,21 +236,6 @@ runs:
           release.properties
         key: v1-rollback-${{ inputs.release_id }}
 
-    - name: Update github release for id ${{ inputs.release_id }}
-      shell: bash
-      run: |
-        echo "Update github release for id ${{ inputs.release_id }}"
-        curl --version
-        curl -X PATCH \
-        -H "Accept:application/vnd.github.v3+json" \
-        -d "{\"tag_name\":\"${{ inputs.release_version }}\", \"prerelease\": false, \"draft\": false}" -u \
-        jahia-ci:${{ inputs.github_api_token }} https://api.github.com/repos/${{ inputs.github_slug }}/releases/${{ inputs.release_id }}
-        curl \
-        -H "Content-Type: $(file -b --mime-type CHANGELOG.md)" \
-        -u jahia-ci:${{ inputs.github_api_token }}  \
-        --data-binary @CHANGELOG.md \
-        "https://uploads.github.com/repos/${{ inputs.github_slug }}/releases/${{ inputs.release_id }}/assets?name=$(basename CHANGELOG.md)"
-
     - name: Perform release
       shell: bash
       run: | 
