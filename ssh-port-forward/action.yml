@@ -1,0 +1,78 @@
+name: 'SSH port forwarding action'
+description: 'Forward a connection over SSH in the background'
+
+branding:
+  icon: 'corner-up-right'
+  color: 'red'
+
+inputs:
+  ssh-key:
+    description: 'SSH private key'
+    required: true
+  ssh-host:
+    description: 'SSH host'
+    required: true
+  ssh-port:
+    description: 'SSH port'
+    required: false
+    default: '22'
+  ssh-user:
+    description: 'SSH user'
+    required: true
+  remote-host:
+    description: 'Remote host'
+    required: true
+  remote-port:
+    description: 'Remote port'
+    required: true
+  local-port:
+    description: 'Local port'
+    required: true
+  run-in-container:
+    description: 'Set to true if the action will run inside a container using GitHub container parameter'
+    default: 'false'
+    required: true    
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Start SSH port forwarding
+      shell: bash
+      run: |
+        # Add SSH key
+        mkdir -p ~/.ssh
+        printf "%s" "${{ inputs.ssh-key }}" | tee user_key
+        chmod 400 user_key
+        
+        # Start SSH forwarder
+        ssh -i user_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -N -L ${{ inputs.local-port }}:${{ inputs.remote-host }}:${{ inputs.remote-port }} -p ${{ inputs.ssh-port }} ${{ inputs.ssh-user }}@${{ inputs.ssh-host }} &
+
+        # wait until connections are accepted
+        sleep 3
+        isready=0
+
+        waitScriptPath="${{ github.action_path }}"
+        if [[ "${{ inputs.run-in-container }}" -eq "true" ]]; then
+          waitScriptPath="/__w/_actions/jahia/jahia-modules-action/ssh-port-forward/ssh-port-forward"
+        fi
+
+        for i in {1..10}; do
+          echo "Wait for connections to be ready ... $i/10"
+          (${waitScriptPath}/wait-for-it.sh --quiet --timeout=3 --host=127.0.0.1 --port=${{ inputs.local-port }} || exit $?) && true # escape bash's pipefail
+          isready=$?
+          if [[ $isready -eq 0 ]]; then
+            break
+          fi
+          sleep 2
+        done
+
+        # exit with error code if we couldn't connect
+        if [[ $isready -ne 0 ]]; then
+          exit $isready 
+        fi
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ssh-port-forward
+        path: user_key
