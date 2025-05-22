@@ -27,6 +27,42 @@ The original action was not compatible with establishing the tunnel from inside 
 
 A new parameter was added `run-in-container` to indicate if the action is expected to run within a docker container/
 
+## Sample usage
+
+```yaml
+name: SSH Tunnel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ssh-tunnel:
+    runs-on: ubuntu-latest
+    container:
+      image: jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node
+      credentials:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}    
+    steps:
+      - uses: jahia/jahia-modules-action/ssh-port-forward@ssh-port-forward
+        with:
+          ssh-key: ${{ secrets.BASTION_SSH_PRIVATE_KEY_JAHIACI }}
+          ssh-host: circleci-bastion-prod.jahia.com
+          ssh-port: 220
+          ssh-user: jahia-ci
+          local-port: 8443
+          remote-host: app.dev.j.jahia.com
+          remote-port: 443     
+          run-in-container: true     
+
+      - name: Add entry to /etc/hosts
+        run: |
+          echo "127.0.0.1 app.dev.j.jahia.com" | sudo tee -a /etc/hosts
+
+      - run: 'curl -v -k https://app.dev.j.jahia.com:8443'
+```
+
+
 
 # SSH port forwarding action
 
