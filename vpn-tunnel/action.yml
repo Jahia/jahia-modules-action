@@ -67,7 +67,6 @@ runs:
 
           if [ $curl_exit_code -ne 0 ]; then
             echo "⚠️ curl failed with exit code $curl_exit_code"
-            response_code="curl_error"
           fi
 
           echo "Attempt $((attempts+1)): Received status code: $response_code"
