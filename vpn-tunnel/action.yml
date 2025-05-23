@@ -58,7 +58,6 @@ runs:
           # Make the HTTP request and get the status code
           echo "Attempt $((attempts+1)): Calling URL: ${{ inputs.canary-url }}"
 
-          response_code=$(curl -s -o /dev/null -w "%{http_code}" "${{ inputs.canary-url }}")
           response_code=$(curl -s -w "%{http_code}" "${{ inputs.url }}" -o "$content_file" 2>"$error_file") || true
           curl_exit_code=$?
 
