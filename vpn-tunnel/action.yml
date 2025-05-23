@@ -24,8 +24,7 @@ runs:
     - name: Install Wireguard
       shell: bash
       run: |
-        sudo apt install resolvconf
-        sudo apt install wireguard
+        sudo apt install -y resolvconf wireguard
 
     - name: Create configuration file
       shell: bash
@@ -60,8 +59,7 @@ runs:
 
 
           set +e
-          # Make the HTTP request and get the status code
-          response_code=$(curl -o /dev/null -w "%{http_code}" "${{ inputs.canary-url }}")
+          response_code=$(curl -L -o /dev/null -w "%{http_code}" "${{ inputs.canary-url }}")
           curl_exit_code=$?
           echo $response_code    
           # Re-enable exit on error
