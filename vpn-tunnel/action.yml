@@ -73,9 +73,7 @@ runs:
             echo "✅ Success: Status code matches expected value ($response_code)"
             exit 0
           else
-            attempts=$((attempts+1))
-            
-            ls -lah 
+            attempts=$((attempts+1))            
             if [ $attempts -lt $max_attempts ]; then
               if [ "$response_code" = "curl_error" ]; then
                 echo "⚠️ curl error occurred. Error message:"
