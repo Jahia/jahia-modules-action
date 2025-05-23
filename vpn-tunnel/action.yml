@@ -24,7 +24,7 @@ runs:
     - name: Install Wireguard
       shell: bash
       run: |
-        sudo apt-update
+        sudo apt update -y
         sudo apt install -y resolvconf wireguard
 
     - name: Create configuration file
