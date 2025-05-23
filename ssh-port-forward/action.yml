@@ -52,7 +52,7 @@ runs:
         isready=0
 
         waitScriptPath="${{ github.action_path }}"
-        if [[ "${{ inputs.run-in-container }}" -eq "true" ]]; then
+        if [[ "${{ inputs.run-in-container }}" == "true" ]]; then
           waitScriptPath="/__w/_actions/jahia/jahia-modules-action/ssh-port-forward/ssh-port-forward"
           echo "The action is running inside a container, path configured to: ${waitScriptPath}"
           echo "Folder content:"
