@@ -41,7 +41,7 @@ runs:
 
         echo "Checking URL: ${{ inputs.canary-url }}"
         echo "Expected status code: ${{ inputs.canary-http-response }}"
-        echo "Max retry attempts: ${{ inputs.canary-retries }}}"
+        echo "Max retry attempts: ${{ inputs.canary-retries }}"
         echo "Retry interval: $retry_interval seconds"
         
         # Initialize retry counter
