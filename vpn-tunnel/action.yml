@@ -58,7 +58,7 @@ runs:
           # Make the HTTP request and get the status code
           echo "Attempt $((attempts+1)): Calling URL: ${{ inputs.canary-url }}"
 
-          response_code=$(curl -s -w "%{http_code}" "${{ inputs.url }}" -o "$content_file" 2>"$error_file") || true
+          response_code=$(curl -s -w "%{http_code}" "${{ inputs.url }}" -o "$temp_file") || true
           curl_exit_code=$?
 
           if [ $curl_exit_code -ne 0 ]; then
@@ -87,15 +87,8 @@ runs:
               sleep $retry_interval
             else
               echo "❌ Error: Failed to get expected status code ${{ inputs.canary-http-response }} after $max_attempts attempts"
-              if [ "$response_code" = "curl_error" ]; then
-                echo "---- curl Error Message ----"
-                cat "$error_file"
-                echo "--------------------------"
-              else
-                echo "---- HTTP Response Content ----"
-                cat "$content_file"
-                echo "------------------------------"
-              fi
+              echo "Performing one extra CURL request to retrieve the content from: ${{ inputs.canary-url }} for debug purposes"
+              curl -v -k ${{ inputs.canary-url }}
               exit 1
             fi
           fi
