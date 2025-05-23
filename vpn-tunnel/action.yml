@@ -60,7 +60,7 @@ runs:
 
           set +e
           # Make the HTTP request and get the status code
-          response_code=$(curl -s -w "%{http_code}" "${{ inputs.url }}")
+          response_code=$(curl -s -o /dev/null -w "%{http_code}" "${{ inputs.url }}")
           curl_exit_code=$?          
           # Re-enable exit on error
           set -e
