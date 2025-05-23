@@ -43,7 +43,13 @@ runs:
         echo "Expected status code: ${{ inputs.canary-http-response }}"
         echo "Max retry attempts: ${{ inputs.canary-retries }}"
         echo "Retry interval: $retry_interval seconds"
-        
+
+        # Check if URL is empty
+        if [ -z "${{ inputs.url }}" ]; then
+          echo "URL is empty, skipping check"
+          exit 0
+        fi
+
         # Initialize retry counter
         attempts=0
         max_attempts=${{ inputs.canary-retries }}
@@ -53,7 +59,14 @@ runs:
           echo "Attempt $((attempts+1)): Calling URL: ${{ inputs.canary-url }}"
 
           response_code=$(curl -s -o /dev/null -w "%{http_code}" "${{ inputs.canary-url }}")
-          
+          response_code=$(curl -s -w "%{http_code}" "${{ inputs.url }}" -o "$content_file" 2>"$error_file") || true
+          curl_exit_code=$?
+
+          if [ $curl_exit_code -ne 0 ]; then
+            echo "⚠️ curl failed with exit code $curl_exit_code"
+            response_code="curl_error"
+          fi
+
           echo "Attempt $((attempts+1)): Received status code: $response_code"
           
           # Compare the response code with the expected code
@@ -64,12 +77,25 @@ runs:
             attempts=$((attempts+1))
             
             if [ $attempts -lt $max_attempts ]; then
-              echo "⚠️ Expected status code ${{ inputs.canary-http-response }} but got $response_code. Retrying in ${retry_interval}s... (Attempt $attempts/$max_attempts)"
+              if [ "$response_code" = "curl_error" ]; then
+                echo "⚠️ curl error occurred. Error message:"
+                cat "$error_file"
+              else
+                echo "⚠️ Expected status code ${{ inputs.canary-http-response }} but got $response_code."
+              fi            
+              echo "Retrying in ${retry_interval}s... (Attempt $attempts/$max_attempts)"
               sleep $retry_interval
             else
-              echo "❌ Error: Expected status code ${{ inputs.canary-http-response }} but got $response_code after $max_attempts attempts"
-              echo "Retrieving and displaying page content once more..."
-              curl -v -k ${{ inputs.canary-url }}
+              echo "❌ Error: Failed to get expected status code ${{ inputs.canary-http-response }} after $max_attempts attempts"
+              if [ "$response_code" = "curl_error" ]; then
+                echo "---- curl Error Message ----"
+                cat "$error_file"
+                echo "--------------------------"
+              else
+                echo "---- HTTP Response Content ----"
+                cat "$content_file"
+                echo "------------------------------"
+              fi
               exit 1
             fi
           fi
