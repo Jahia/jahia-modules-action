@@ -75,6 +75,7 @@ runs:
           else
             attempts=$((attempts+1))
             
+            ls -lah 
             if [ $attempts -lt $max_attempts ]; then
               if [ "$response_code" = "curl_error" ]; then
                 echo "⚠️ curl error occurred. Error message:"
