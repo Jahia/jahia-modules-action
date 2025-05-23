@@ -58,12 +58,14 @@ runs:
           # Make the HTTP request and get the status code
           echo "Attempt $((attempts+1)): Calling URL: ${{ inputs.canary-url }}"
 
-          set +e
+
           # Make the HTTP request and get the status code
           response_code=$(curl -s -o /dev/null -w "%{http_code}" "${{ inputs.url }}")
+
           curl_exit_code=$?
           echo $response_code    
           # Re-enable exit on error
+          set +e
           set -e
 
           if [ $curl_exit_code -ne 0 ]; then
