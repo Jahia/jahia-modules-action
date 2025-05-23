@@ -56,8 +56,8 @@ runs:
           waitScriptPath="/__w/_actions/jahia/jahia-modules-action/ssh-port-forward/ssh-port-forward"
           echo "The action is running inside a container, path configured to: ${waitScriptPath}"
           echo "Folder content:"
-          ls -lah ${waitScriptPath}
         fi
+        ls -lah ${waitScriptPath}
 
         for i in {1..10}; do
           echo "Wait for connections to be ready ... $i/10"
