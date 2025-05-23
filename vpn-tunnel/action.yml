@@ -45,7 +45,7 @@ runs:
         echo "Retry interval: $retry_interval seconds"
 
         # Check if URL is empty
-        if [ -z "${{ inputs.url }}" ]; then
+        if [ -z "${{ inputs.canary-url }}" ]; then
           echo "URL is empty, skipping check"
           exit 0
         fi
