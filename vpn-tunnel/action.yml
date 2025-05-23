@@ -1,0 +1,92 @@
+name: Wireguard VPN Tunnel
+description: Establish a Wireguard tunnel using the provided configuration
+
+inputs:
+  config-base64:
+    description: A base64 encoded string of the configuration. Can be generated using "base64 -i wg0.conf -o -"
+    required: true
+  canary-url: 
+    description: A URL to validate the connection with. Will fail if the HTTP response code does not match the value specified in `canary-http-response`. 
+    required: false  
+    default: ''
+  canary-http-response: 
+    description: The expected HTTP response code when calling the canary-url
+    required: false  
+    default: 200
+  canary-retries: 
+    description: Number of retry attempts if check fails
+    required: false  
+    default: 5    
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Wireguard
+      shell: bash
+      run: |
+        sudo apt update -y
+        sudo apt install -y resolvconf wireguard
+
+    - name: Create configuration file
+      shell: bash
+      run: |
+          echo "${{ inputs.config-base64 }}" |base64 -d > wg0.conf
+          sudo chmod 600 wg0.conf
+          sudo wg-quick up ./wg0.conf
+
+    - name: Validate connection using the provided canary URL
+      shell: bash
+      run: |
+        retry_interval=2
+
+        echo "Checking URL: ${{ inputs.canary-url }}"
+        echo "Expected status code: ${{ inputs.canary-http-response }}"
+        echo "Max retry attempts: ${{ inputs.canary-retries }}"
+        echo "Retry interval: $retry_interval seconds"
+
+        # Check if URL is empty
+        if [ -z "${{ inputs.canary-url }}" ]; then
+          echo "URL is empty, skipping check"
+          exit 0
+        fi
+
+        # Initialize retry counter
+        attempts=0
+        max_attempts=${{ inputs.canary-retries }}
+        
+        while [ $attempts -lt $max_attempts ]; do
+          # Make the HTTP request and get the status code
+          echo "Attempt $((attempts+1)): Calling URL: ${{ inputs.canary-url }}"
+
+
+          set +e
+          response_code=$(curl -L -o /dev/null -w "%{http_code}" "${{ inputs.canary-url }}")
+          curl_exit_code=$?
+          echo $response_code    
+          # Re-enable exit on error
+          set -e
+
+          if [ $curl_exit_code -ne 0 ]; then
+            echo "⚠️ curl failed with exit code $curl_exit_code"
+          fi
+
+          echo "Attempt $((attempts+1)): Received status code: $response_code"
+          
+          # Compare the response code with the expected code
+          if [ "$response_code" = "${{ inputs.canary-http-response }}" ]; then
+            echo "✅ Success: Status code matches expected value ($response_code)"
+            exit 0
+          else
+            attempts=$((attempts+1))            
+            if [ $attempts -lt $max_attempts ]; then
+              echo "⚠️ Expected status code ${{ inputs.canary-http-response }} but got $response_code."         
+              echo "Retrying in ${retry_interval}s... (Attempt $attempts/$max_attempts)"
+              sleep $retry_interval
+            else
+              echo "❌ Error: Failed to get expected status code ${{ inputs.canary-http-response }} after $max_attempts attempts"
+              echo "Performing one extra CURL request to retrieve the content from: ${{ inputs.canary-url }} for debug purposes"
+              curl -v -k "${{ inputs.canary-url }}"
+              exit 1
+            fi
+          fi
+        done
