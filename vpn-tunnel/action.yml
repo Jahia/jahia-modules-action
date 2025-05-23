@@ -50,6 +50,8 @@ runs:
         
         while [ $attempts -lt $max_attempts ]; do
           # Make the HTTP request and get the status code
+          echo "Attempt $((attempts+1)): Calling URL: ${{ inputs.canary-url }}"
+
           response_code=$(curl -s -o /dev/null -w "%{http_code}" "${{ inputs.canary-url }}")
           
           echo "Attempt $((attempts+1)): Received status code: $response_code"
