@@ -6,7 +6,7 @@ inputs:
     description: A base64 encoded string of the configuration. Can be generated using "base64 -i wg0.conf -o -"
     required: true
   canary-url: 
-    description: A URL to validate the connection with. Will fail if the return code is 
+    description: A URL to validate the connection with. Will fail if the HTTP response code does not match the value specified in `canary-http-response`. 
     required: false  
     default: ''
   canary-http-response: 
@@ -24,6 +24,7 @@ runs:
     - name: Install Wireguard
       shell: bash
       run: |
+        sudo apt-update
         sudo apt install -y resolvconf wireguard
 
     - name: Create configuration file
@@ -78,9 +79,6 @@ runs:
           else
             attempts=$((attempts+1))            
             if [ $attempts -lt $max_attempts ]; then
-              if [ "$response_code" = "curl_error" ]; then
-                echo "⚠️ curl error occurred. Error message:"
-              else
                 echo "⚠️ Expected status code ${{ inputs.canary-http-response }} but got $response_code."
               fi            
               echo "Retrying in ${retry_interval}s... (Attempt $attempts/$max_attempts)"
@@ -88,7 +86,7 @@ runs:
             else
               echo "❌ Error: Failed to get expected status code ${{ inputs.canary-http-response }} after $max_attempts attempts"
               echo "Performing one extra CURL request to retrieve the content from: ${{ inputs.canary-url }} for debug purposes"
-              curl -v -k ${{ inputs.canary-url }}
+              curl -v -k "${{ inputs.canary-url }}"
               exit 1
             fi
           fi
