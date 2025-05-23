@@ -27,12 +27,12 @@ runs:
         sudo apt install resolvconf
         sudo apt install wireguard
 
-    # - name: Create configuration file
-    #   shell: bash
-    #   run: |
-    #       echo "${{ inputs.config-base64 }}" |base64 -d > wg0.conf
-    #       sudo chmod 600 wg0.conf
-    #       sudo wg-quick up ./wg0.conf
+    - name: Create configuration file
+      shell: bash
+      run: |
+          echo "${{ inputs.config-base64 }}" |base64 -d > wg0.conf
+          sudo chmod 600 wg0.conf
+          sudo wg-quick up ./wg0.conf
 
     - name: Validate connection using the provided canary URL
       shell: bash
@@ -61,7 +61,7 @@ runs:
 
           set +e
           # Make the HTTP request and get the status code
-          response_code=$(curl -o /dev/null -w "%{http_code}" "${{ inputs.url }}")
+          response_code=$(curl -o /dev/null -w "%{http_code}" "${{ inputs.canary-url }}")
           curl_exit_code=$?
           echo $response_code    
           # Re-enable exit on error
