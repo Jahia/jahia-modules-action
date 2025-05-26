@@ -21,11 +21,38 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Install Wireguard
+    - name: Update ubuntu
       shell: bash
       run: |
         sudo apt update -y
-        sudo apt install -y resolvconf wireguard
+
+    - name: Update build tools
+      shell: bash
+      run: |
+        sudo apt-get install libelf-dev linux-headers-$(uname -r) build-essential pkg-config
+
+    - name: Fetch repo
+      shell: bash
+      run: |
+        git clone https://git.zx2c4.com/wireguard-linux-compat
+        git clone https://git.zx2c4.com/wireguard-tools
+
+    - name: Compile and install wireguard
+      shell: bash
+      run: |
+        make -C wireguard-linux-compat/src -j$(nproc)
+        sudo make -C wireguard-linux-compat/src install
+
+    - name: Compile and install wireguard tools
+      shell: bash
+      run: |
+        make -C wireguard-tools/src -j$(nproc)
+        sudo make -C wireguard-tools/src install
+
+    # - name: Install Wireguard
+    #   shell: bash
+    #   run: |
+    #     sudo apt install -y resolvconf wireguard
 
     - name: Create configuration file
       shell: bash
