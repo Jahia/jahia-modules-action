@@ -28,11 +28,11 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Setup java
-      uses: actions/setup-java@v4
+    - name: Setup Maven Action
+      uses: s4u/setup-maven-action@v1.18.0
       with:
-        distribution: ${{ inputs.java-distribution }}
         java-version: ${{ inputs.java-version }}
+        java-distribution: ${{ inputs.java-distribution }}      
 
     - name: Set Maven repository path
       shell: bash
