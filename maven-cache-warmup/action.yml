@@ -15,7 +15,7 @@ runs:
   using: "composite"
   steps:
     - name: Set Maven repository path
-      id: set-maven-path
+      shell: bash
       run: |
         if [ -z "${{ inputs.maven_repo_path }}" ]; then
           echo "MAVEN_REPO_PATH=$HOME/.m2" >> $GITHUB_ENV
@@ -26,15 +26,19 @@ runs:
         fi
 
     - name: Pull Docker image with Maven cache
+      shell: bash
       run: docker pull ${{ inputs.docker-image }}
     
     - name: Create container from image
+      shell: bash
       run: docker create --name maven-cache-container ${{ inputs.docker-image }}
     
     - name: Create local Maven directory if it doesn't exist
+      shell: bash
       run: mkdir -p ${{ env.MAVEN_REPO_PATH }}/
 
     - name: Display Maven cache info
+      shell: bash
       run: |
         echo "Maven cache size:"
         du -h -d 1 ${{ env.MAVEN_REPO_PATH }}
@@ -42,6 +46,7 @@ runs:
         find ${{ env.MAVEN_REPO_PATH }} -type f | wc -l
 
     - name: Copy Maven cache from container
+      shell: bash
       run: |
         # Create a temporary directory for the container's .m2 folder
         mkdir -p /tmp/container-m2
@@ -54,9 +59,11 @@ runs:
         cp -rn /tmp/container-m2/. ${{ env.MAVEN_REPO_PATH }}
     
     - name: Clean up container
+      shell: bash
       run: docker rm maven-cache-container
 
     - name: Display Maven cache info
+      shell: bash
       run: |
         echo "Maven cache size:"
         du -h -d 1 ${{ env.MAVEN_REPO_PATH }}
