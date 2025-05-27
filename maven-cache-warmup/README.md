@@ -1,4 +1,4 @@
-This action is provided as an alternative to running maven commands within the `jahia/cimg-mvn-cache` images.
+This action is provided as an alternative to running maven commands within the `jahia/cimg-mvn-cache` [images](https://github.com/Jahia/cimg-mvn-cache).
 
 The primary purposes of such images was to preload a maven cache with the most common dependencies used when building Jahia modules.
 
