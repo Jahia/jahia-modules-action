@@ -1,0 +1,64 @@
+name: Maven Cache Warmup
+description: Retrieve the .m2 cache from the cache Docker container
+
+inputs:
+  docker-image:
+    description: The docker image (such as jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node)
+    required: true
+    default: 'jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node'
+  m2-path: 
+    description: Path on the local instance for the .m2 folder
+    required: false  
+    default: ''
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set Maven repository path
+      id: set-maven-path
+      run: |
+        if [ -z "${{ inputs.maven_repo_path }}" ]; then
+          echo "MAVEN_REPO_PATH=$HOME/.m2" >> $GITHUB_ENV
+          echo "Using default Maven repository path: $HOME/.m2"
+        else
+          echo "MAVEN_REPO_PATH=${{ inputs.m2-path }}" >> $GITHUB_ENV
+          echo "Using custom Maven repository path: ${{ inputs.m2-path }}"
+        fi
+
+    - name: Pull Docker image with Maven cache
+      run: docker pull ${{ inputs.docker-image }}
+    
+    - name: Create container from image
+      run: docker create --name maven-cache-container ${{ inputs.docker-image }}
+    
+    - name: Create local Maven directory if it doesn't exist
+      run: mkdir -p ${{ env.MAVEN_REPO_PATH }}/
+
+    - name: Display Maven cache info
+      run: |
+        echo "Maven cache size:"
+        du -h -d 1 ${{ env.MAVEN_REPO_PATH }}
+        echo "Number of files in Maven cache:"
+        find ${{ env.MAVEN_REPO_PATH }} -type f | wc -l
+
+    - name: Copy Maven cache from container
+      run: |
+        # Create a temporary directory for the container's .m2 folder
+        mkdir -p /tmp/container-m2
+        
+        # Copy .m2 directory from container to temp directory
+        docker cp maven-cache-container:/home/circleci/.m2/. /tmp/container-m2/
+        
+        # Merge the container's .m2 content with the runner's .m2
+        # Using cp with the -n flag to avoid overwriting existing files
+        cp -rn /tmp/container-m2/. ${{ env.MAVEN_REPO_PATH }}
+    
+    - name: Clean up container
+      run: docker rm maven-cache-container
+
+    - name: Display Maven cache info
+      run: |
+        echo "Maven cache size:"
+        du -h -d 1 ${{ env.MAVEN_REPO_PATH }}
+        echo "Number of files in Maven cache:"
+        find ${{ env.MAVEN_REPO_PATH }} -type f | wc -l
