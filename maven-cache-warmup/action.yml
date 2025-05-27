@@ -6,6 +6,12 @@ inputs:
     description: The docker image (such as jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node)
     required: true
     default: 'jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node'
+  docker-username:
+    description: 'Docker login username'
+    required: true
+  docker-password:
+    description: 'Docker login password'
+    required: true    
   m2-path: 
     description: Path on the local instance for the .m2 folder
     required: false  
@@ -24,6 +30,12 @@ runs:
           echo "MAVEN_REPO_PATH=${{ inputs.m2-path }}" >> $GITHUB_ENV
           echo "Using custom Maven repository path: ${{ inputs.m2-path }}"
         fi
+
+    - name: Docker login
+      uses: docker/login-action@v3.4.0
+      with:
+        username: ${{ inputs.docker-username }}
+        password: ${{ inputs.docker-password }}
 
     - name: Pull Docker image with Maven cache
       shell: bash
