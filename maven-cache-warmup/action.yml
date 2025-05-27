@@ -64,7 +64,7 @@ runs:
         mkdir -p /tmp/container-m2
         
         # Copy .m2 directory from container to temp directory
-        docker cp maven-cache-container:/home/circleci/.m2/. /tmp/container-m2/
+        docker cp maven-cache-container:/root/.m2/. /tmp/container-m2/
         
         # Merge the container's .m2 content with the runner's .m2
         # Using cp with the -n flag to avoid overwriting existing files
