@@ -16,10 +16,24 @@ inputs:
     description: Path on the local instance for the .m2 folder
     required: false  
     default: ''
+  java-version:
+    description: Version of Java to install in the environment
+    required: false
+    default: '11'
+  java-distribution:
+    description: Distribution Java to install in the environment
+    required: false  
+    default: 'temurin'
 
 runs:
   using: "composite"
   steps:
+    - name: Setup java
+      uses: actions/setup-java@v4
+      with:
+        distribution: ${{ input.java-distribution }}
+        java-version: ${{ input.java-version }}
+
     - name: Set Maven repository path
       shell: bash
       run: |
