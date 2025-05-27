@@ -56,6 +56,13 @@ runs:
         restore-keys: |
           ${{ runner.os }}-maven-
 
+    - name: Check module signature before build
+      uses: jahia/jahia-modules-action/check-signature@3562-implement-a-static-check-for-module-signature
+      with:
+        pom_filepath: ${{ inputs.module_path }}/pom.xml
+        nexus_username: ${{ inputs.nexus_username }}
+        nexus_password: ${{ inputs.nexus_password }}
+
     - name: Build package
       shell: bash
       run: |
