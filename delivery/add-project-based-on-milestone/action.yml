@@ -125,9 +125,9 @@ runs:
               { projectId: projectId, contentId: githubIssueId }
             ).catch((error) => {
               core.info("Request failed:", error.request);
-              core.info(`Error "${error.message}" while trying to create a project item in project ID: ${projectItem.project.id} for issue ID: ${contentId}`);
+              core.info(`Error "${error.message}" while trying to create a project item in project ID: ${projectItem.project.id} for issue ID: ${githubIssueId}`);
             })
-            core.info(`Created a project item in Project ID: ${projectId} for issue ID: ${contentId}`)
+            core.info(`Created a project item in Project ID: ${projectId} for issue ID: ${githubIssueId}`)
           } else if (projectItem !== undefined && gitubIssue.milestone === null) {
             // Issue is attached to a project but not attached to a milestone
             // We need to remove it from the project
