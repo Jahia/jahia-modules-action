@@ -65,6 +65,13 @@ jobs:
           labeled: Area:Product, Area:Delivery, Area:Tech, Area:QA, Area:Security
           label-operator: OR
 
+      - name: Attach the Ideas issues to Project XYZ
+        uses: actions/add-to-project@v1.0.2
+        if: ${{ steps.get-issue.outputs.issue_type == 'Idea' && github.event.action == 'opened' }}
+        with:
+          project-url: https://github.com/orgs/Jahia/projects/XYZ
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+
       - name: Create a Security Jira ticket for every new Epic
         uses: jahia/jahia-modules-action/delivery/create-security-ticket@v2
         if: ${{ steps.get-issue.outputs.issue_type == 'Epic' && github.event.action == 'opened' }}
