@@ -12,8 +12,8 @@ permissions:
   contents: read
 
 jobs:
-  lint-pr-title:
-    name: Lint PR Title
+  lint-pr-title-changelog:
+    name: Lint PR Title and check Changelog
     runs-on: ubuntu-latest
     # It does not make sense to run that workflow when a PR is closed
     if: ${{ github.event.action != 'closed' }}
