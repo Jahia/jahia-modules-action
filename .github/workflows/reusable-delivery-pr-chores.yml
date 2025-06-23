@@ -9,11 +9,11 @@ on:
 
 permissions:
   pull-requests: write
-  contents: write
+  contents: read
 
 jobs:
-  lint-pr-title-changelog:
-    name: Lint PR Title and check Changelog
+  lint-pr-title:
+    name: Lint PR Title
     runs-on: ubuntu-latest
     # It does not make sense to run that workflow when a PR is closed
     if: ${{ github.event.action != 'closed' }}
@@ -64,12 +64,6 @@ jobs:
         with:
           header: pr-title-lint-error
           delete: true
-
-      - uses: actions/checkout@v4
-      # Chachalog
-      - run: npx chachalog@0.4.1 comment-pr
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
 
   # When closing the PR, label it based on conventional commits
   # https://github.com/marketplace/actions/conventionnal-commit-pr-labeler
