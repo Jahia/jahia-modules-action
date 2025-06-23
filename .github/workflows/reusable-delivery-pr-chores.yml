@@ -69,7 +69,7 @@ jobs:
       # Chachalog
       - run: npx chachalog@0.4.1 comment-pr
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
 
   # When closing the PR, label it based on conventional commits
   # https://github.com/marketplace/actions/conventionnal-commit-pr-labeler
