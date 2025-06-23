@@ -24,20 +24,20 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
 
       # When the previous steps fails, the workflow would stop. By adding this
-      # condition you can continue the execution with the populated error message.          
+      # condition you can continue the execution with the populated error message.
       - uses: marocchino/sticky-pull-request-comment@v2
         if: always() && (steps.lint_pr_title.outputs.error_message != null)
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
+          GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
         with:
           header: pr-title-lint-error
           message: |
             Hey there and thank you for opening this pull request! 👋🏼
-            
+
             We require pull request titles to follow the [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/) and it looks like your proposed title needs to be adjusted.
 
             Details:
-            
+
             ```
             ${{ steps.lint_pr_title.outputs.error_message }}
             ```
@@ -60,10 +60,15 @@ jobs:
       - if: ${{ steps.lint_pr_title.outputs.error_message == null }}
         uses: marocchino/sticky-pull-request-comment@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
-        with:   
+          GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+        with:
           header: pr-title-lint-error
           delete: true
+
+      # Chachalog
+      - run: npx chachalog@0.4.1 comment-pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # When closing the PR, label it based on conventional commits
   # https://github.com/marketplace/actions/conventionnal-commit-pr-labeler
