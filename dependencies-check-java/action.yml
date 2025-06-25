@@ -56,7 +56,7 @@ runs:
       shell: bash
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       run: |
-        mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${BASE_REPO_DIR}/${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DexcludeTransitive=true -DoutputFile=base-deps.txt --no-transfer-progress
+        mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${BASE_REPO_DIR}/${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DexcludeTransitive=true -DoutputFile=base-deps.txt --no-transfer-progress --batch-mode
         cat ${BASE_REPO_DIR}/${{ inputs.root_folder }}/base-deps.txt
 
     - name: Restore dependencies from cache
@@ -70,7 +70,7 @@ runs:
       shell: bash
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       run: |
-        mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DexcludeTransitive=true -DoutputFile=deps.txt --no-transfer-progress
+        mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DexcludeTransitive=true -DoutputFile=deps.txt --no-transfer-progress --batch-mode
         cat ${{ inputs.root_folder }}/deps.txt
 
     - name: Get POM differences and push a comment
