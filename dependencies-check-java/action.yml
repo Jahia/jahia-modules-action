@@ -23,31 +23,41 @@ runs:
         echo "MVN_LOCAL_REPO=$(echo ~/.m2/repository)" >> $GITHUB_ENV
         echo "Base local mvn repo set to: $MVN_LOCAL_REPO"
 
+    - name: Clone base branch repository
+      shell: bash
+      run: |
+        BASE_REPO_DIR="/tmp/base-repo"
+        mkdir -p "${BASE_REPO_DIR}"
+        echo "BASE_REPO_DIR=${BASE_REPO_DIR}" >> $GITHUB_ENV
+        echo "Using ${BASE_REPO_DIR} as base repository directory"
+        git clone --depth 1 https://x-access-token:${{ inputs.github_token }}@github.com/${{ github.repository }}.git ${BASE_REPO_DIR}
+        echo "Commit hash of base branch:"
+        git rev-parse HEAD
+
     - name: Get base POM
       shell: bash
       run: |
-        curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${{ inputs.github_token }}" https://api.github.com/repos/${{ github.repository }}/contents/${{ inputs.root_folder }}/pom.xml | jq -r ".content" > base64_file
-        grep "null" base64_file || status=$?
-        if [ $status -eq 0 ]; then
+        if [ -f "${BASE_REPO_DIR}/${{ inputs.root_folder }}/pom.xml" ]; then
+          echo "BASE_POM_NOT_FOUND=0" >> $GITHUB_ENV
+          echo "Base POM found"
+        else
           echo "BASE_POM_NOT_FOUND=1" >> $GITHUB_ENV
           echo "Base POM not found"
-        else
-          echo "BASE_POM_NOT_FOUND=0" >> $GITHUB_ENV
-          cat base64_file | base64 -di > ${{ inputs.root_folder }}/base-pom.xml
         fi
 
     - name: Restore base dependencies from cache
       uses: actions/cache/restore@v4
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       with:
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/base-pom.xml') }}
+        key: ${{ runner.os }}-maven-${{ hashFiles('/tmp/base-repo/**/pom.xml') }}
         path: ~/.m2/repository
 
     - name: Get dependencies from base POM
       shell: bash
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       run: |
-        mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${{ inputs.root_folder }}/base-pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DexcludeTransitive=true -DoutputFile=base-deps.txt --no-transfer-progress
+        mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${BASE_REPO_DIR}/${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DexcludeTransitive=true -DoutputFile=base-deps.txt --no-transfer-progress --batch-mode
+        cat ${BASE_REPO_DIR}/${{ inputs.root_folder }}/base-deps.txt
 
     - name: Restore dependencies from cache
       uses: actions/cache/restore@v4
@@ -60,7 +70,8 @@ runs:
       shell: bash
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       run: |
-        mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DexcludeTransitive=true -DoutputFile=deps.txt --no-transfer-progress
+        mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DexcludeTransitive=true -DoutputFile=deps.txt --no-transfer-progress --batch-mode
+        cat ${{ inputs.root_folder }}/deps.txt
 
     - name: Get POM differences and push a comment
       shell: bash
@@ -73,10 +84,11 @@ runs:
         REPLACEMENT_FOR_ADDED_LINE: '\?| \[\1\/\2\]\(https:\/\/mvnrepository.com\/artifact\/\1\/\2\) (Added) | | \3 | \[Snyk vulnerability DB\]\(https:\/\/security.snyk.io\/package\/maven\/\1:\2\/\3\) and \[Sonatype OSS Index\]\(https:\/\/ossindex.sonatype.org\/component\/pkg:maven\/\1\/\2@\3\) |'
         REPLACEMENT_FOR_DELETED_LINE: '\?| \[\1\/\2\]\(https:\/\/mvnrepository.com\/artifact\/\1\/\2\) (Removed) | \3 | | \[Snyk vulnerability DB\]\(https:\/\/security.snyk.io\/package\/maven\/\1:\2\/\3\) and \[Sonatype OSS Index\]\(https:\/\/ossindex.sonatype.org\/component\/pkg:maven\/\1\/\2@\3\) |'
       run: |
-        cmp --quiet ${{ inputs.root_folder }}/base-deps.txt ${{ inputs.root_folder }}/deps.txt || status=$?
+        cmp --quiet ${BASE_REPO_DIR}/${{ inputs.root_folder }}/base-deps.txt ${{ inputs.root_folder }}/deps.txt || status=$?
         echo "DIFF_STATUS=${status}" >> $GITHUB_ENV
         if [ $status -eq 1 ]; then
-          diff ${{ inputs.root_folder }}/base-deps.txt ${{ inputs.root_folder }}/deps.txt >> pom.diff || true
+          diff ${BASE_REPO_DIR}/${{ inputs.root_folder }}/base-deps.txt ${{ inputs.root_folder }}/deps.txt >> pom.diff || true
+          cat pom.diff
           sed -i -r 's/^[0-9]+a[0-9]+$/Added/' pom.diff
           sed -i -r 's/^[0-9,]+c[0-9,]+$/Updated/' pom.diff
           sed -i -r 's/^[0-9]+d[0-9]+$/Removed/' pom.diff
