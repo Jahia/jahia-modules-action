@@ -96,24 +96,20 @@ jobs:
             core.setOutput('skip_changelog', hasSkipLabel);
             return hasSkipLabel;
 
-      - name: Install chachalog
-        if: steps.check_skip_label.outputs.skip_changelog != 'true'
-        run: npm install -g chachalog
-
       - name: Check for changelog entries
         id: check_changelog
         if: steps.check_skip_label.outputs.skip_changelog != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
         run: |
-          # Check if there are any changelog entry files (excluding intro.md)
-          changelog_files=$(ls .chachalog/*.md 2>/dev/null | grep -v "intro.md" | head -1)
-          if [ -n "$changelog_files" ]; then
+          # Check if there are changelog files added/modified in this PR (excluding intro.md)
+          changelog_changes=$(git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- '.chachalog/*.md' | grep -v "intro.md" || true)
+          if [ -n "$changelog_changes" ]; then
             echo "changelog_exists=true" >> $GITHUB_OUTPUT
-            echo "Changelog entries found"
+            echo "Changelog entries found in PR: $changelog_changes"
           else
             echo "changelog_exists=false" >> $GITHUB_OUTPUT
-            echo "No changelog entries found"
+            echo "No changelog entries found in PR"
           fi
 
       - name: Add changelog comment for missing entry
@@ -121,21 +117,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
         run: |
-          chachalog comment-pr
+          npx chachalog@latest comment-pr
 
       - name: Remove changelog comment when entry exists
         if: steps.check_skip_label.outputs.skip_changelog != 'true' && steps.check_changelog.outputs.changelog_exists == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
         run: |
-          chachalog delete-pr-comment || true
+          npx chachalog@latest delete-pr-comment || true
 
       - name: Remove changelog comment when skipping
         if: steps.check_skip_label.outputs.skip_changelog == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
         run: |
-          chachalog delete-pr-comment || true
+          npx chachalog@latest delete-pr-comment || true
 
       - name: Fail if changelog required but missing
         if: steps.check_skip_label.outputs.skip_changelog != 'true' && steps.check_changelog.outputs.changelog_exists != 'true'
