@@ -65,6 +65,84 @@ jobs:
           header: pr-title-lint-error
           delete: true
 
+  # Check for changelog entries using chachalog
+  changelog-validation:
+    name: Validate Changelog
+    runs-on: ubuntu-latest
+    # It does not make sense to run that workflow when a PR is closed
+    if: ${{ github.event.action != 'closed' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Check for skip-changelog label
+        id: check_skip_label
+        uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+        with:
+          script: |
+            const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const hasSkipLabel = labels.some(label => label.name === 'skip-changelog');
+            core.setOutput('skip_changelog', hasSkipLabel);
+            return hasSkipLabel;
+
+      - name: Install chachalog
+        if: steps.check_skip_label.outputs.skip_changelog != 'true'
+        run: npm install -g chachalog
+
+      - name: Check for changelog entries
+        id: check_changelog
+        if: steps.check_skip_label.outputs.skip_changelog != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+        run: |
+          # Check if there are any changelog entry files (excluding intro.md)
+          changelog_files=$(ls .chachalog/*.md 2>/dev/null | grep -v "intro.md" | head -1)
+          if [ -n "$changelog_files" ]; then
+            echo "changelog_exists=true" >> $GITHUB_OUTPUT
+            echo "Changelog entries found"
+          else
+            echo "changelog_exists=false" >> $GITHUB_OUTPUT
+            echo "No changelog entries found"
+          fi
+
+      - name: Add changelog comment for missing entry
+        if: steps.check_skip_label.outputs.skip_changelog != 'true' && steps.check_changelog.outputs.changelog_exists != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+        run: |
+          chachalog comment-pr
+
+      - name: Remove changelog comment when entry exists
+        if: steps.check_skip_label.outputs.skip_changelog != 'true' && steps.check_changelog.outputs.changelog_exists == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+        run: |
+          chachalog delete-pr-comment || true
+
+      - name: Remove changelog comment when skipping
+        if: steps.check_skip_label.outputs.skip_changelog == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+        run: |
+          chachalog delete-pr-comment || true
+
+      - name: Fail if changelog required but missing
+        if: steps.check_skip_label.outputs.skip_changelog != 'true' && steps.check_changelog.outputs.changelog_exists != 'true'
+        run: |
+          echo "::error::Changelog entry is required for this PR. Please add a changelog entry or add the 'skip-changelog' label."
+          exit 1
+
   # When closing the PR, label it based on conventional commits
   # https://github.com/marketplace/actions/conventionnal-commit-pr-labeler
   label-release:
