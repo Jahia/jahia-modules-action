@@ -18,7 +18,7 @@ jobs:
         uses: jahia/jahia-modules-action/delivery/get-issue@v2
         id: get-issue
         with:
-          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}      
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
 
       - name: Displays details about the event and issue
         uses: actions/github-script@v7
