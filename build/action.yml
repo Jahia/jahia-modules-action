@@ -44,6 +44,7 @@ runs:
         mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
         nexus_username: ${{ inputs.nexus_username }}
         nexus_password: ${{ inputs.nexus_password }}
+        github_artifact_name: build-artifacts-${{ github.ref_name }}
         github_artifact_retention: ${{ inputs.github_artifact_retention }}
 
     - name: Check if test module is present (MVN)
