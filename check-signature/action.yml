@@ -1,0 +1,73 @@
+name: Check module Signature
+description: A simple check of the signature present in the pom.xml
+
+inputs:
+  pom_filepath:
+    description: Filepath to the pom.xml file
+    default: 'pom.xml'
+    required: false
+  nexus_internal_releases_url:
+    description: Nexus Enterprise release URL
+    required: false
+    default: 'https://devtools.jahia.com/nexus/content/repositories/jahia-internal-releases'    
+  nexus_username:
+    description: 'Nexus Username'
+    required: false
+    default: ''
+  nexus_password:
+    description: 'Nexus Password'
+    required: false
+    default: ''
+  keymaker_location:
+    description: Location of the keymaker
+    required: false
+    default: 'org/jahia/keymaker/keymaker-cli'
+  keymaker_version:
+    description: Version of the keymaker
+    required: false
+    default: '2.0'
+  keymaker_name:
+    description: 'Name of the keymaker (id)'
+    required: false
+    default: 'keymaker-cli'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check the present of environment variable
+      shell: bash
+      run: |
+        if [ -z "${{ inputs.nexus_username }}" ]; then
+          echo "::notice::Nexus credentials not provided to access keymaker, skipping module signature check.\n You can add these secrets via the build job in your workflow."
+        fi     
+
+    - name: Prepare folder for signing artifact
+      shell: bash
+      if: ${{ inputs.nexus_username != '' }}
+      run: |
+        mkdir keymaker
+        echo " NEXUS_USERNAME: ${NEXUS_USERNAME:0:3}***${NEXUS_USERNAME:(-6)}"
+        url="${{ inputs.nexus_internal_releases_url }}/${{ inputs.keymaker_location }}/${{ inputs.keymaker_version }}/${{ inputs.keymaker_name }}-${{ inputs.keymaker_version }}-jar-with-dependencies.jar"
+        curl -u ${{ inputs.nexus_username }}:${{ inputs.nexus_password }} \
+            --url "${url}" \
+            --output "keymaker/${{ inputs.keymaker_name }}.jar"
+        KEYMAKER_CLI_JAR="$(pwd)/keymaker/${{ inputs.keymaker_name }}.jar"
+        echo "KEYMAKER_CLI_JAR=${KEYMAKER_CLI_JAR}" >> $GITHUB_ENV        
+        ls -lah keymaker/
+
+    # Even though this command it meant as displaying the correct signature for the module
+    # It does include the right exit code if the signature needs to be updated
+    # It returns 0 if the signature is valid, another exit code otherwise
+    - name: Execute the command 
+      shell: bash
+      if: ${{ inputs.nexus_username != '' }}
+      run: |
+        echo "Scanning pom file at location: ${{ inputs.pom_filepath }}"
+        SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+        java -jar ${KEYMAKER_CLI_JAR} pom -f ${{ inputs.pom_filepath }}
+        if [[ $? -eq 0 ]]; then
+          echo "No need to update signature, not failing the workflow"
+        else
+          echo "Received exit signal different than 0, failing the workflow"
+          exit 1
+        fi
