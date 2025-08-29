@@ -13,6 +13,9 @@ export async function login(
   password: string,
   registry?: string
 ): Promise<void> {
+  const registryName = registry || 'Docker Hub'
+  core.info(`Logging into ${registryName} as ${username}...`)
+
   if (!username || !password) {
     throw new Error('Username and password required')
   }
@@ -24,9 +27,6 @@ export async function login(
   if (registry) {
     loginArgs.push(registry)
   }
-
-  const registryName = registry || 'Docker Hub'
-  core.info(`Logging into ${registryName}...`)
 
   await exec
     .getExecOutput('docker', loginArgs, {

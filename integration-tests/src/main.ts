@@ -133,16 +133,13 @@ async function run(): Promise<void> {
           const registriesInput = core.getInput('docker_registries')
           let registries: DockerRegistry[] = []
 
-          if (registriesInput) {
-            try {
-              registries = JSON.parse(registriesInput)
-            } catch (error) {
-              core.setFailed(
-                `Invalid JSON in docker-registries input: ${error}`
-              )
-              return
-            }
+          try {
+            registries = JSON.parse(registriesInput)
+          } catch (error) {
+            core.setFailed(`Invalid JSON in docker-registries input: ${error}`)
+            return
           }
+
           await loginToMultipleRegistries(registries)
         }
       )
