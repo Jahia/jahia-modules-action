@@ -24,10 +24,12 @@ inputs:
     required: true
   docker_username:
     description: 'Docker login username'
-    required: true
+    default: ''
+    required: false
   docker_password:
     description: 'Docker login password'
-    required: true
+    default: ''
+    required: false
   docker_registries:
     description: 'JSON array of Docker registries with credentials'
     default: '[]'
