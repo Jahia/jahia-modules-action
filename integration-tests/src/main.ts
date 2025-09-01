@@ -16,6 +16,8 @@ import {
   copyRunArtifacts,
   executePostrunScript,
   login,
+  loginToMultipleRegistries,
+  DockerRegistry,
   pullDockerImages,
   startDockerEnvironment,
   stopDockerEnvironment
@@ -104,16 +106,48 @@ async function run(): Promise<void> {
       }
     )
 
-    // Docker login
-    await core.group(
-      `${timeSinceStart(startTime)} 🐋 Docker Login`,
-      async () => {
-        await login(
-          core.getInput('docker_username'),
-          core.getInput('docker_password')
-        )
-      }
-    )
+    // In terms of Docker authentication, supporting both "regular" login via username/password and via an array of registries
+    //   is done for retro-compatibility (to avoid requiring a major version bump and smooth migration)
+
+    // Docker login (if docker credentials are provided )
+    if (
+      core.getInput('docker_username') !== '' &&
+      core.getInput('docker_password') !== ''
+    ) {
+      await core.group(
+        `${timeSinceStart(startTime)} 🐋 Docker Login`,
+        async () => {
+          await login(
+            core.getInput('docker_username'),
+            core.getInput('docker_password')
+          )
+        }
+      )
+    }
+
+    // Docker login when multiple registries are provided
+    if (core.getInput('docker_registries') !== '[]') {
+      await core.group(
+        `${timeSinceStart(startTime)} 🐋 Docker Login to multiple registries`,
+        async () => {
+          const registriesInput = core.getInput('docker_registries')
+          let registries: DockerRegistry[] = []
+
+          if (registriesInput) {
+            try {
+              registries = JSON.parse(registriesInput)
+            } catch (error) {
+              core.setFailed(
+                `Invalid JSON in docker-registries input: ${error}`
+              )
+              return
+            }
+          }
+
+          await loginToMultipleRegistries(registries)
+        }
+      )
+    }
 
     // Download the build artifact
     await core.group(
