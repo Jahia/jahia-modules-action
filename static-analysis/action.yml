@@ -53,6 +53,25 @@ runs:
       with:
         node-version: ${{ inputs.node_version }}
 
+    # Java projects
+    - name: Restore Maven repository cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.m2/repository
+          /root/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+    - name: Checkstyle (Maven)
+      shell: bash
+      run: |
+        if [[ -e "${{ inputs.module_path }}pom.xml" ]]; then
+          echo "Running Maven Checkstyle"
+          cd ${{ inputs.module_path }}
+        mvn checkstyle:check -Dcheckstyle.config.location=https://raw.githubusercontent.com/Jahia/jahia-modules-action/add-checkstyle-to-static-analysis/static-analysis/checkstyle_configuration.xml
+        fi
+
     # Install node dependencies
     - name: Run yarn if package.json exists in module folder
       shell: bash
