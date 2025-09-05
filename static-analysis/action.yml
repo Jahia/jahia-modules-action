@@ -45,6 +45,10 @@ inputs:
     description: skip Audit-ci for tests when set to true
     type: boolean
     default: true
+  github_token:
+    description: 'GitHub personal API token'
+    required: false
+    default: ''
 
 runs:
   using: "composite"
@@ -52,6 +56,17 @@ runs:
     - uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node_version }}
+
+    # Maven (Java) projects
+    - uses: dbelyaev/action-checkstyle@v2
+      if: ${{ inputs.github_token != '' }}
+      with:
+        github_token: ${{ inputs.github_token }}
+        reporter: github-pr-review
+        level: error
+        fail_level: error
+        # TODO here we should use main
+        checkstyle_config: https://raw.githubusercontent.com/Jahia/jahia-modules-action/refs/heads/add-checkstyle-to-static-analysis-github-action/static-analysis/checkstyle.xml
 
     # Install node dependencies
     - name: Run yarn if package.json exists in module folder
