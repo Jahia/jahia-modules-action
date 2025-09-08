@@ -35,7 +35,7 @@ on:
       module_branch:
         required: false
         type: string
-        default: "master"
+        default: "main"
       provisioning_manifest:
         required: true
         type: string
