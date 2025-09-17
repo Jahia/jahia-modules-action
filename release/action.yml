@@ -224,7 +224,11 @@ runs:
           echo "No test module found"
         fi
         cd ${GITHUB_WORKSPACE}
-        mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} versions:set -DnewVersion="${{ steps.versions.outputs.final_release_version }}"
+        # Append -SNAPSHOT to the version so the Maven Release Plugin can be used
+        echo "Setting version to ${{ steps.versions.outputs.final_release_version }}-SNAPSHOT"
+        mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} versions:set -DnewVersion="${{ steps.versions.outputs.final_release_version }}-SNAPSHOT"
+        # Only add POM files
+        git add **/pom.xml
       env:
         GPG_KEY_PASSPHRASE: ${{ inputs.gpg_key_passphrase }}
 
