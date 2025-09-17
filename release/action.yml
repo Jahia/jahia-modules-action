@@ -233,8 +233,8 @@ runs:
     - name: Update signature
       uses: jahia/jahia-modules-action/update-signature@v2
       with:
-        nexus_username: ${{ secrets.NEXUS_USERNAME }}
-        nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+        nexus_username: ${{ inputs.nexus_username }}
+        nexus_password: ${{ inputs.nexus_password }}
         force_signature: true
 
     - name: Cache local Maven repository
