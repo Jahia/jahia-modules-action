@@ -122,7 +122,7 @@ jobs:
           echo "NEXUS_USERNAME=${{ steps.nexus-creds.outputs.NEXUS_USERNAME }}" 
           echo "GITHUB_SLUG=${{ steps.slug.outputs.GITHUB_SLUG }}"
 
-      - uses: jahia/jahia-modules-action/release@fix-root-pom-not-added-when-signing
+      - uses: jahia/jahia-modules-action/release@v2
         name: Release Module
         with:
           primary_release_branch: ${{ inputs.primary_release_branch }}
