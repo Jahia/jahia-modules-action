@@ -228,7 +228,7 @@ runs:
         echo "Setting version to ${{ steps.versions.outputs.final_release_version }}-SNAPSHOT"
         mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} versions:set -DnewVersion="${{ steps.versions.outputs.final_release_version }}-SNAPSHOT"
         # Only add POM files
-        git add **/pom.xml
+        find . -name pom.xml -exec git add {} \;
       env:
         GPG_KEY_PASSPHRASE: ${{ inputs.gpg_key_passphrase }}
 
