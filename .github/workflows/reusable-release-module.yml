@@ -18,7 +18,7 @@ on:
       job_container:
         type: string
         required: false
-        default: "jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node"
+        default: "ghcr.io/jahia/jahia-docker-mvn-cache:11-jdk-noble-mvn-loaded"
       primary_release_branch:
         type: string
         required: false
@@ -68,8 +68,8 @@ jobs:
     container:
       image: ${{ inputs.job_container }}
       credentials:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+        username: ${{ secrets.GH_PACKAGES_USERNAME }}
+        password: ${{ secrets.GH_PACKAGES_TOKEN }}
     steps:
       - name: Add safe directory
         shell: bash
