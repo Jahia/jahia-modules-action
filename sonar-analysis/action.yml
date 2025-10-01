@@ -37,7 +37,7 @@ inputs:
   java_distribution:
     description: 'Name of the Java distribution to load and use'
     required: false
-    default: 'temurin'    
+    default: 'temurin'
   java_version:
     description: 'Version of Java to load and use for the analysis'
     required: false
@@ -132,7 +132,7 @@ runs:
           echo "Skipping OWASP for PR analysis"
         else
           echo "Executing an OWASP analysis on branch: ${{ inputs.primary_release_branch }}"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:12.1.3:aggregate \
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:12.1.6:aggregate \
             $SONAR_PARAMS
         fi
 
