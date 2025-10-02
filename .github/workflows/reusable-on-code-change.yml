@@ -8,7 +8,7 @@ on:
         mvn_settings_filepath:
             type: string
             default: ".github/maven.settings.xml"
-        module_branch:
+        module_branch: # not needed, replaced by ${{ github.sha }}
             required: true
             type: string
         update_signature_execute:
@@ -104,7 +104,6 @@ on:
         publish_container_image:
             type: string
             default: "ghcr.io/jahia/jahia-docker-mvn-cache:8-jdk-noble-mvn-loaded"
-        
 
 jobs:
     update-signature:
@@ -131,7 +130,7 @@ jobs:
           with:
             node_version: ${{ inputs.static_analysis_node_version }}
             auditci_level: ${{ inputs.static_analysis_auditci_level }}
-    
+
     build:
         runs-on: ${{ inputs.build_instance_type }}
         env:
@@ -242,4 +241,3 @@ jobs:
               with:
                 nexus_username: ${{ secrets.NEXUS_USERNAME }}
                 nexus_password: ${{ secrets.NEXUS_PASSWORD }}
-    
