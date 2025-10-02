@@ -3,9 +3,9 @@ description: Retrieve the .m2 cache from the cache Docker container
 
 inputs:
   docker-image:
-    description: The docker image (such as jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node)
+    description: The docker image (such as ghcr.io/jahia/jahia-docker-mvn-cache:11-jdk-noble-mvn-loaded)
     required: true
-    default: 'jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node'
+    default: 'ghcr.io/jahia/jahia-docker-mvn-cache:8-jdk-noble-mvn-loaded'
   docker-username:
     description: 'Docker login username'
     required: true

@@ -28,7 +28,7 @@ on:
             default: "ubuntu-latest"
         build_container_image:
             type: string
-            default: "jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node"
+            default: "ghcr.io/jahia/jahia-docker-mvn-cache:11-jdk-noble-mvn-loaded"
         sonar_analysis_primary_release_branch:
             type: string
             default: "master"
@@ -103,7 +103,7 @@ on:
             default: false
         publish_container_image:
             type: string
-            default: "jahia/cimg-mvn-cache:ga_cimg_openjdk_8.0.312-node"
+            default: "ghcr.io/jahia/jahia-docker-mvn-cache:8-jdk-noble-mvn-loaded"
         
 
 jobs:
@@ -139,8 +139,8 @@ jobs:
         container:
             image: ${{ inputs.build_container_image }}
             credentials:
-                username: ${{ secrets.DOCKERHUB_USERNAME }}
-                password: ${{ secrets.DOCKERHUB_PASSWORD }}
+                username: ${{ secrets.GH_PACKAGES_USERNAME }}
+                password: ${{ secrets.GH_PACKAGES_TOKEN }}
         steps:
             - uses: actions/checkout@v4
               with:
@@ -234,8 +234,8 @@ jobs:
         container:
             image: ${{ inputs.publish_container_image}}
             credentials:
-                username: ${{ secrets.DOCKERHUB_USERNAME }}
-                password: ${{ secrets.DOCKERHUB_PASSWORD }}
+                username: ${{ secrets.GH_PACKAGES_USERNAME }}
+                password: ${{ secrets.GH_PACKAGES_TOKEN }}
         steps:
             - uses: actions/checkout@v4
             - uses: jahia/jahia-modules-action/publish@v2
