@@ -235,8 +235,7 @@ runs:
     # The POM file(s) may have an invalid signature if the release version differs from the version specified in the POM
     # (for example, releasing version 1.2.3 when the POM has a signature for a 1.3.0-SNAPSHOT version).
     - name: Update signature
-      # TODO temporary change the branch for testing purpose
-      uses: jahia/jahia-modules-action/update-signature@feat-support-gpg-in-update-signature-action
+      uses: jahia/jahia-modules-action/update-signature@v2
       with:
         nexus_username: ${{ inputs.nexus_username }}
         nexus_password: ${{ inputs.nexus_password }}
