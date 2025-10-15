@@ -46,7 +46,7 @@ inputs:
     required: false
     default: 'keymaker-cli'
   sign_commits:
-    description: 'Indicates if the release commits should be signed'
+    description: 'Indicates if the update signature commits should be signed'
     default: 'false'
   gpg_key:
     description: 'GPG Key'
