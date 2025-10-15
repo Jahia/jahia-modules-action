@@ -45,15 +45,49 @@ inputs:
     description: 'Name of the keymaker (id)'
     required: false
     default: 'keymaker-cli'
+  sign_commits:
+    description: 'Indicates if the release commits should be signed'
+    default: 'false'
+  gpg_key:
+    description: 'GPG Key'
+    default: ''
+    required: false
+  gpg_key_id:
+    description: 'GPG Key ID'
+    default: ''
+    required: false
+  gpg_key_passphrase:
+    description: 'GPG Key Passphrase'
+    default: ''
+    required: false
 
 runs:
   using: "composite"
   steps:
-    - name: Setting up github configuration
+    - name: Prepare GPG
+      if: ${{ inputs.sign_commits == 'true' }}
+      shell: bash
+      run: |
+        echo $GPG_KEY | base64 --decode | gpg --batch --allow-secret-key-import --import
+        rm -rf /tmp/gpg.sh
+        echo '#!/bin/bash' >> /tmp/gpg.sh
+        echo 'gpg --batch --pinentry-mode=loopback --passphrase $GPG_KEY_PASSPHRASE $@' >> /tmp/gpg.sh
+        chmod +x /tmp/gpg.sh
+      env:
+        GPG_KEY: ${{ inputs.gpg_key }}
+
+    - name: Setup git
       shell: bash
       run: |
         git config user.email ${{ inputs.git_user_email }}
         git config user.name ${{ inputs.git_user_name }}
+        if [[ ${{ inputs.sign_commits }} == "true" ]]; then
+          git config commit.gpgsign true
+          git config user.signingkey $GPG_KEY_ID
+          git config gpg.program /tmp/gpg.sh
+        fi
+      env:
+        GPG_KEY_ID: ${{ inputs.gpg_key_id }}
 
     - name: Verifying if signature needs to be updated
       shell: bash
@@ -112,6 +146,9 @@ runs:
                       echo "No signatures were updated, thus nothing to commit"
                     else
                       git commit -m "[ci skip] Updated signature for ${project_name}"
+                      if [[ ${{ inputs.sign_commits }} == 'true' ]]; then
+                        git verify-commit $( git rev-parse HEAD )
+                      fi
                       git push
                     fi
                   else
@@ -129,6 +166,8 @@ runs:
         else
           echo "There are no submodules in this project"
         fi
+      env:
+        GPG_KEY_PASSPHRASE: ${{ inputs.gpg_key_passphrase }}
 
     - name: Handling signature for a single module
       shell: bash
@@ -155,6 +194,9 @@ runs:
                 echo "No signatures were updated, thus nothing to commit"
               else
                 git commit -m "[ci skip] Updated signature for ${project_name}"
+                if [[ ${{ inputs.sign_commits }} == 'true' ]]; then
+                  git verify-commit $( git rev-parse HEAD )
+                fi
                 git push
               fi
             fi
@@ -162,6 +204,8 @@ runs:
         else
           echo "There are submodule(s) in this projects"
         fi
+      env:
+        GPG_KEY_PASSPHRASE: ${{ inputs.gpg_key_passphrase }}
 
     # # https://github.com/marketplace/actions/add-commit
     # - name: Committed changed files back to the repository

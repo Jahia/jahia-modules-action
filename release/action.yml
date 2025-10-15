@@ -240,6 +240,10 @@ runs:
         nexus_username: ${{ inputs.nexus_username }}
         nexus_password: ${{ inputs.nexus_password }}
         force_signature: true
+        sign_commits: true
+        gpg_key: ${{ inputs.gpg_key }}
+        gpg_key_id: ${{ inputs.gpg_key_id }}
+        gpg_key_passphrase: ${{ inputs.gpg_key_passphrase }}
 
     - name: Release prepare version for ${{ inputs.release_version }}
       shell: bash
