@@ -149,6 +149,10 @@ jobs:
           nexus_username: ${{ env.NEXUS_USERNAME }}
           nexus_password: ${{ env.NEXUS_PASSWORD }}
           force_signature: true
+          sign_commits: true
+          gpg_key: ${{ secrets.GPG_KEY }}
+          gpg_key_id: ${{ secrets.GPG_KEY_ID }}
+          gpg_key_passphrase: ${{ secrets.GPG_KEY_PASSPHRASE }}
 
   sbom:
     name: SBOM processing
