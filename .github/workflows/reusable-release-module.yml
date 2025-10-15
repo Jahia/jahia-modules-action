@@ -122,7 +122,8 @@ jobs:
           echo "NEXUS_USERNAME=${{ steps.nexus-creds.outputs.NEXUS_USERNAME }}" 
           echo "GITHUB_SLUG=${{ steps.slug.outputs.GITHUB_SLUG }}"
 
-      - uses: jahia/jahia-modules-action/release@v2
+      # TODO temporary change the branch for testing purpose
+      - uses: jahia/jahia-modules-action/release@feat-support-gpg-in-update-signature-action
         name: Release Module
         with:
           primary_release_branch: ${{ inputs.primary_release_branch }}
@@ -144,7 +145,8 @@ jobs:
           gpg_key_id: ${{ secrets.GPG_KEY_ID }}
           gpg_key_passphrase: ${{ secrets.GPG_KEY_PASSPHRASE }}
 
-      - uses: jahia/jahia-modules-action/update-signature@v2
+      # TODO temporary change the branch for testing purpose
+      - uses: jahia/jahia-modules-action/update-signature@feat-support-gpg-in-update-signature-action
         with:
           nexus_username: ${{ env.NEXUS_USERNAME }}
           nexus_password: ${{ env.NEXUS_PASSWORD }}
