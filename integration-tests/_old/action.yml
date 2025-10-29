@@ -37,7 +37,7 @@ inputs:
   jahia_image:
     description: 'Full name of a Jahia image (org/repo:tag)'
     required: false
-    default: 'jahia/jahia-discovery-dev:8-SNAPSHOT'
+    default: 'ghcr.io/jahia/jahia-discovery-dev:8-SNAPSHOT'
   jahia_superuser_password:
     description: 'Jahia root password'
     required: false

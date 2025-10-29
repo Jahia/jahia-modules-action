@@ -24,10 +24,16 @@ inputs:
     required: true
   docker_username:
     description: 'Docker login username'
-    required: true
+    default: ''
+    required: false
   docker_password:
     description: 'Docker login password'
-    required: true
+    default: ''
+    required: false
+  docker_registries:
+    description: 'JSON array of Docker registries with credentials'
+    default: '[]'
+    required: false
   docker_compose_file:
     description: 'Filename for docker-compose yaml file'
     required: false
@@ -43,14 +49,14 @@ inputs:
   timeout_minutes:
     description: 'The maximum number of minutes to run the tests before killing the process.'
     required: false
-    default: '60'    
+    default: '60'
   tests_manifest:
     description: 'Manifest contraining the provisioning script'
     required: true
   jahia_image:
     description: 'Full name of a Jahia image (org/repo:tag)'
     required: false
-    default: 'jahia/jahia-ee-dev:8-SNAPSHOT'
+    default: 'ghcr.io/jahia/jahia-ee-dev:8-SNAPSHOT'
   jahia_superuser_password:
     description: 'Jahia root password'
     required: false
@@ -110,7 +116,7 @@ inputs:
   should_skip_pagerduty:
     description: 'Should pagerduty notifications be skipped ?'
     required: false
-    default: 'false'    
+    default: 'false'
   slack_channel_id_notifications:
     description: 'Channel id to be used for failure notifications'
     required: false
@@ -143,7 +149,7 @@ inputs:
   build_artifacts_tests:
     description: 'Name of the artifacts to download from previous job (tests modules)'
     required: false
-    default: 'build-artifacts-tests'    
+    default: 'build-artifacts-tests'
   should_skip_zencrepes:
     description: 'Should zencrepes notifications be skipped ?'
     required: false
@@ -203,7 +209,7 @@ inputs:
   testrail_platformdata:
     description: 'Name of the file containing platform data to be sent to testrail as tests metadata'
     required: false
-    default: 'installed-jahia-modules.json'    
+    default: 'installed-jahia-modules.json'
   ci_startup_script:
     description: 'Startup script to use in-lieu of docker-compose up'
     required: false

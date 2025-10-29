@@ -9,7 +9,7 @@ on:
         type: string
         required: false
         description: "Type of instances to run the job on (self hosted or ubuntu-latest)"
-        default: "ubuntu-latest"    
+        default: "ubuntu-latest"
       mvn_settings_filepath:
         type: string
         description: Filepath to the settings.xml file
@@ -18,7 +18,7 @@ on:
       job_container:
         type: string
         required: false
-        default: "jahia/cimg-mvn-cache:ga_cimg_openjdk_11.0.20-node"
+        default: "ghcr.io/jahia/jahia-docker-mvn-cache:11-jdk-noble-mvn-loaded"
       primary_release_branch:
         type: string
         required: false
@@ -30,11 +30,11 @@ on:
       nexus_username:
         type: string
         required: false
-        default: ""        
+        default: ""
       nexus_password:
         type: string
         required: false
-        default: "" 
+        default: ""
       tests_module_path:
         type: string
         description: "Path to a folder in the repository containing a tests module to be built (Both Javascript and MVN test module supported)"
@@ -44,7 +44,7 @@ on:
         type: string
         description: "Type of module for the tests module (mvn,javascript)"
         required: false
-        default: "mvn"          
+        default: "mvn"
       git_user_name:
         type: string
         description: Git user name
@@ -68,8 +68,8 @@ jobs:
     container:
       image: ${{ inputs.job_container }}
       credentials:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+        username: ${{ secrets.GH_PACKAGES_USERNAME }}
+        password: ${{ secrets.GH_PACKAGES_TOKEN }}
     steps:
       - name: Add safe directory
         shell: bash
@@ -89,7 +89,7 @@ jobs:
           ssh-private-key: ${{ secrets.GH_SSH_PRIVATE_KEY_JAHIACI }}
 
       # Note: https://docs.github.com/en/actions/sharing-automations/reusing-workflows#limitations
-      # Reusable workflows are called directly within a job, and not from within a job step. 
+      # Reusable workflows are called directly within a job, and not from within a job step.
       # You cannot, therefore, use GITHUB_ENV to pass values to job steps in the caller workflow.
       # Thus using an id and step outputs
       - name: Configure github_slug
@@ -116,7 +116,7 @@ jobs:
             echo "NEXUS_PASSWORD=${{ secrets.NEXUS_PASSWORD }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Displaing defined variables
+      - name: Displaying defined variables
         shell: bash
         run: |
           echo "NEXUS_USERNAME=${{ steps.nexus-creds.outputs.NEXUS_USERNAME }}" 
@@ -149,13 +149,17 @@ jobs:
           nexus_username: ${{ env.NEXUS_USERNAME }}
           nexus_password: ${{ env.NEXUS_PASSWORD }}
           force_signature: true
+          sign_commits: true
+          gpg_key: ${{ secrets.GPG_KEY }}
+          gpg_key_id: ${{ secrets.GPG_KEY_ID }}
+          gpg_key_passphrase: ${{ secrets.GPG_KEY_PASSPHRASE }}
 
   sbom:
     name: SBOM processing
     needs: release-module
     runs-on: ubuntu-latest
     container:
-      image: cyclonedx/cyclonedx-cli:0.24.2   
+      image: cyclonedx/cyclonedx-cli:0.24.2
     steps:
       - uses: jahia/jahia-modules-action/sbom-processing@v2
         with:

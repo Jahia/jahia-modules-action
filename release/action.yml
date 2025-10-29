@@ -23,7 +23,7 @@ inputs:
   tests_module_type:
     description: 'Type of module for the tests module (mvn,javascript)'
     required: false
-    default: 'mvn'    
+    default: 'mvn'
   github_slug:
     description: 'GitHub SLUG of the module (for example: jahia/sandbox)'
     required: true
@@ -201,7 +201,7 @@ runs:
         echo "final_release_version=${FINAL_RELEASE_VERSION}" >> $GITHUB_OUTPUT
         echo "tag_version=${TAG_VERSION}" >> $GITHUB_OUTPUT
 
-    - name: Release prepare version for ${{ inputs.release_version }}
+    - name: Set version in pom file(s) for ${{ inputs.release_version }}
       shell: bash
       run: |
         echo "FINAL_RELEASE_VERSION=${{ steps.versions.outputs.final_release_version }}"
@@ -223,6 +223,31 @@ runs:
         else
           echo "No test module found"
         fi
+        cd ${GITHUB_WORKSPACE}
+        # Append -SNAPSHOT to the version so the Maven Release Plugin can be used
+        echo "Setting version to ${{ steps.versions.outputs.final_release_version }}-SNAPSHOT"
+        mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} versions:set -DnewVersion="${{ steps.versions.outputs.final_release_version }}-SNAPSHOT"
+        # Only add POM files
+        find . -name pom.xml -exec git add {} \;
+      env:
+        GPG_KEY_PASSPHRASE: ${{ inputs.gpg_key_passphrase }}
+
+    # The POM file(s) may have an invalid signature if the release version differs from the version specified in the POM
+    # (for example, releasing version 1.2.3 when the POM has a signature for a 1.3.0-SNAPSHOT version).
+    - name: Update signature
+      uses: jahia/jahia-modules-action/update-signature@v2
+      with:
+        nexus_username: ${{ inputs.nexus_username }}
+        nexus_password: ${{ inputs.nexus_password }}
+        force_signature: true
+        sign_commits: ${{ inputs.sign_commits }}
+        gpg_key: ${{ inputs.gpg_key }}
+        gpg_key_id: ${{ inputs.gpg_key_id }}
+        gpg_key_passphrase: ${{ inputs.gpg_key_passphrase }}
+
+    - name: Release prepare version for ${{ inputs.release_version }}
+      shell: bash
+      run: |
         cd ${GITHUB_WORKSPACE}
         mvn -B -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=${{ steps.versions.outputs.tag_version }} release:prepare -DreleaseVersion="${{ steps.versions.outputs.final_release_version }}" -DdevelopmentVersion="${{ steps.versions.outputs.next_development_version }}" -DscmCommentPrefix="[skip ci] [maven-release-plugin]"
       env:
