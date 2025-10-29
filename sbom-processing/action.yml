@@ -16,6 +16,10 @@ inputs:
     description: 'Version of the project in Dependency Track'
     required: false
     default: ${{ github.ref_name }}
+  sbom_artifacts:
+    description: 'Name of the artifact target folder that was saved from build stage (using upload-artifact)'
+    required: false
+    default: 'sbom-artifacts'    
 
 runs:
   using: 'composite'
@@ -28,8 +32,9 @@ runs:
         
     - name: Download sbom artifacts
       uses: actions/download-artifact@v4
+      if: ${{ inputs.sbom_artifacts != '' }}
       with:
-        name: build-artifacts-${{ github.ref_name }}
+        name: ${{ inputs.sbom_artifacts }}
 
     - name: Merge sbom
       shell: bash

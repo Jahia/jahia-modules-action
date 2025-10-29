@@ -30,6 +30,10 @@ inputs:
     description: 'Nexus Password'
     required: false
     default: ''
+  build_artifacts:
+    description: 'Name of the artifact target folder that was saved from build stage (using upload-artifact)'
+    required: false
+    default: 'build-artifacts'
   java_distribution:
     description: 'Name of the Java distribution to load and use'
     required: false
@@ -59,8 +63,9 @@ runs:
 
     - name: Download build artifacts
       uses: actions/download-artifact@v4
+      if: ${{ inputs.build_artifacts != '' }}
       with:
-        name: build-artifacts-${{ github.ref_name }}
+        name: ${{ inputs.build_artifacts }}
 
     - name: Generate Cache Key Seeds
       shell: bash
