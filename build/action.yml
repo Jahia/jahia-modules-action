@@ -22,6 +22,10 @@ inputs:
     description: 'Time during which artifact are kept in Github infrastructure'
     required: false
     default: '2'
+  github_artifact_suffix:
+    description: "Suffix to append to build artifacts (e.g. branch name or build variant)"
+    required: false
+    default: ''
   tests_module_path:
     description: 'Path to a folder in the repository containing a tests module to be built (Both Javascript and MVN test module supported)'
     required: false
@@ -44,6 +48,7 @@ runs:
         mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
         nexus_username: ${{ inputs.nexus_username }}
         nexus_password: ${{ inputs.nexus_password }}
+        github_artifact_name: build-artifacts${{ inputs.github_artifact_suffix }}
         github_artifact_retention: ${{ inputs.github_artifact_retention }}
 
     - name: Check if test module is present (MVN)
@@ -64,7 +69,7 @@ runs:
         nexus_username: ${{ inputs.nexus_username }}
         nexus_password: ${{ inputs.nexus_password }}
         github_artifact_retention: ${{ inputs.github_artifact_retention }}
-        github_artifact_name: build-artifacts-tests
+        github_artifact_name: build-artifacts-tests${{ inputs.github_artifact_suffix }}
 
     - name: Check if test module is present (Javascript)
       if: ${{ inputs.tests_module_type == 'javascript' }}
@@ -80,7 +85,7 @@ runs:
         module_path: ${{ inputs.tests_module_path }}
         node_version: ${{ inputs.node_version }}
         github_artifact_retention: ${{ inputs.github_artifact_retention }}
-        github_artifact_name: build-artifacts-tests
+        github_artifact_name: build-artifacts-tests${{ inputs.github_artifact_suffix }}
 
     - name: Keep session opened if /tmp/debug file is present
       shell: bash
