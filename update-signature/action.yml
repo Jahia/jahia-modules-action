@@ -173,7 +173,7 @@ runs:
       shell: bash
       if: env.PERFORM_SIGNATURE == 'true'
       run: |
-        packaging_type=$(mvn help:evaluate -Dexpression=project.packaging -q -DforceStdout | xargs)
+        packaging_type=$(mvn help:evaluate -Dexpression=project.packaging -q -DforceStdout -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
         echo "Packing type: ${packaging_type}"
         if [[ ${packaging_type} == "bundle" ]]; then
           group_id=$(mvn help:evaluate -Dexpression=project.groupId -q -DforceStdout | xargs)
