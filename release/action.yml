@@ -237,7 +237,7 @@ runs:
     - name: Update signature
       uses: jahia/jahia-modules-action/update-signature@v2
       with:
-        mvn_settings_filepath: ${{ mvn_settings_filepath }}
+        mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
         nexus_username: ${{ inputs.nexus_username }}
         nexus_password: ${{ inputs.nexus_password }}
         force_signature: true
