@@ -6,6 +6,10 @@ description: >
    - Sign modules without sub modules
 
 inputs:
+  mvn_settings_filepath:
+    description: Filepath to the settings.xml file
+    default: '.github/maven.settings.xml'
+    required: false
   except_folders:
     description: Regular expression of folders to not analyze when looking for module to sign
     required: false
@@ -124,17 +128,17 @@ runs:
       if: env.PERFORM_SIGNATURE == 'true'
       run: |
         root_dir=$(pwd)
-        packaging_type=$(mvn help:evaluate -Dexpression=project.packaging -q -DforceStdout | xargs)
+        packaging_type=$(mvn help:evaluate -Dexpression=project.packaging -q -DforceStdout-s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
         if [[ ${packaging_type} == "pom" ]]; then
-          mvn install
-          project_modules=($(mvn -q --also-make exec:exec -Dexec.executable="pwd"))
+          mvn -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} install
+          project_modules=($(mvn -q --also-make exec:exec -Dexec.executable="pwd"-s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }}))
           for module in ${project_modules[@]:1}; do
             if [[ ${module} != ${root_dir} ]]; then
               cd $module
-              group_id=$(mvn help:evaluate -Dexpression=project.groupId -q -DforceStdout | xargs)
-              parent_group_id=$(mvn help:evaluate -Dexpression=project.parent.groupId -q -DforceStdout | xargs)
-              project_name=$(mvn help:evaluate -Dexpression=project.name -q -DforceStdout | xargs)
-              packaging_type=$(mvn help:evaluate -Dexpression=project.packaging -q -DforceStdout | xargs | xargs)
+              group_id=$(mvn help:evaluate -Dexpression=project.groupId -q -DforceStdout-s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
+              parent_group_id=$(mvn help:evaluate -Dexpression=project.parent.groupId -q -DforceStdout-s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
+              project_name=$(mvn help:evaluate -Dexpression=project.name -q -DforceStdout-s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
+              packaging_type=$(mvn help:evaluate -Dexpression=project.packaging -q -DforceStdout-s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs | xargs)
               if [[ ${packaging_type} == "bundle" ]]; then
                 KEYMAKER_CLI_OUTPUT=`java -jar ${KEYMAKER_CLI_JAR} pom -f pom.xml -s`
                 if [[ ${group_id} == "org.jahia.modules" || ${parent_group_id} == "org.jahia.modules" ]]; then
@@ -173,12 +177,12 @@ runs:
       shell: bash
       if: env.PERFORM_SIGNATURE == 'true'
       run: |
-        packaging_type=$(mvn help:evaluate -Dexpression=project.packaging -q -DforceStdout | xargs)
+        packaging_type=$(mvn help:evaluate -Dexpression=project.packaging -q -DforceStdout -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
         echo "Packing type: ${packaging_type}"
         if [[ ${packaging_type} == "bundle" ]]; then
-          group_id=$(mvn help:evaluate -Dexpression=project.groupId -q -DforceStdout | xargs)
-          parent_group_id=$(mvn help:evaluate -Dexpression=project.parent.groupId -q -DforceStdout | xargs)
-          project_name=$(mvn help:evaluate -Dexpression=project.name -q -DforceStdout | xargs)
+          group_id=$(mvn help:evaluate -Dexpression=project.groupId -q -DforceStdout-s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
+          parent_group_id=$(mvn help:evaluate -Dexpression=project.parent.groupId -q -DforceStdout-s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
+          project_name=$(mvn help:evaluate -Dexpression=project.name -q -DforceStdout-s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
           if [[ ${group_id} != "org.jahia.modules" && ${parent_group_id} != "org.jahia.modules" ]]; then
             echo "Project is not a Jahia modules"
           else
