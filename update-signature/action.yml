@@ -6,6 +6,10 @@ description: >
    - Sign modules without sub modules
 
 inputs:
+  mvn_settings_filepath:
+    description: Filepath to the settings.xml file
+    default: '.github/maven.settings.xml'
+    required: false
   except_folders:
     description: Regular expression of folders to not analyze when looking for module to sign
     required: false
