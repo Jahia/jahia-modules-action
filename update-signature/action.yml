@@ -128,20 +128,25 @@ runs:
       if: env.PERFORM_SIGNATURE == 'true'
       run: |
         root_dir=$(pwd)
-        packaging_type=$(mvn help:evaluate -Dexpression=project.packaging -q -DforceStdout-s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
+        echo "Evaluating packaging type of the project"
+        packaging_type=$(mvn help:evaluate -Dexpression=project.packaging -q -DforceStdout -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
         if [[ ${packaging_type} == "pom" ]]; then
+          echo "Fetching all project modules to sign"
           mvn -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} install
-          project_modules=($(mvn -q --also-make exec:exec -Dexec.executable="pwd"-s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }}))
+          project_modules=($(mvn -q --also-make exec:exec -Dexec.executable="pwd" -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }}))
           for module in ${project_modules[@]:1}; do
             if [[ ${module} != ${root_dir} ]]; then
               cd $module
-              group_id=$(mvn help:evaluate -Dexpression=project.groupId -q -DforceStdout-s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
-              parent_group_id=$(mvn help:evaluate -Dexpression=project.parent.groupId -q -DforceStdout-s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
-              project_name=$(mvn help:evaluate -Dexpression=project.name -q -DforceStdout-s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
-              packaging_type=$(mvn help:evaluate -Dexpression=project.packaging -q -DforceStdout-s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs | xargs)
+              echo "Processing module at location: ${module}"
+              group_id=$(mvn help:evaluate -Dexpression=project.groupId -q -DforceStdout -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
+              parent_group_id=$(mvn help:evaluate -Dexpression=project.parent.groupId -q -DforceStdout -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
+              project_name=$(mvn help:evaluate -Dexpression=project.name -q -DforceStdout -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
+              packaging_type=$(mvn help:evaluate -Dexpression=project.packaging -q -DforceStdout -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs | xargs)
               if [[ ${packaging_type} == "bundle" ]]; then
+                echo "Running keymaker for module ${project_name} with packaging type ${packaging_type}"
                 KEYMAKER_CLI_OUTPUT=`java -jar ${KEYMAKER_CLI_JAR} pom -f pom.xml -s`
                 if [[ ${group_id} == "org.jahia.modules" || ${parent_group_id} == "org.jahia.modules" ]]; then
+                  echo "Module ${project_name} is a Jahia module"
                   if [[ $(echo $KEYMAKER_CLI_OUTPUT | grep -w "Signature valid" | wc -l) != "1" ]]; then
                     sed -i -e "s%<\(.*\)Jahia-Signature>.*</%<\1Jahia-Signature>${KEYMAKER_CLI_OUTPUT}</%" pom.xml
                     sed -i -e "s%<\(.*\)jahia-module-signature>.*</%<\1jahia-module-signature>${KEYMAKER_CLI_OUTPUT}</%" pom.xml
@@ -149,6 +154,7 @@ runs:
                     if [ -z "$(git diff --cached --exit-code)" ]; then
                       echo "No signatures were updated, thus nothing to commit"
                     else
+                      echo "Committing updated signature for ${project_name}"
                       git commit -m "[ci skip] Updated signature for ${project_name}"
                       if [[ ${{ inputs.sign_commits }} == 'true' ]]; then
                         git verify-commit $( git rev-parse HEAD )
@@ -177,15 +183,18 @@ runs:
       shell: bash
       if: env.PERFORM_SIGNATURE == 'true'
       run: |
+        echo "Evaluating packaging type of the project"
         packaging_type=$(mvn help:evaluate -Dexpression=project.packaging -q -DforceStdout -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
         echo "Packing type: ${packaging_type}"
         if [[ ${packaging_type} == "bundle" ]]; then
-          group_id=$(mvn help:evaluate -Dexpression=project.groupId -q -DforceStdout-s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
-          parent_group_id=$(mvn help:evaluate -Dexpression=project.parent.groupId -q -DforceStdout-s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
-          project_name=$(mvn help:evaluate -Dexpression=project.name -q -DforceStdout-s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
+          echo "Processing bundle"
+          group_id=$(mvn help:evaluate -Dexpression=project.groupId -q -DforceStdout -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
+          parent_group_id=$(mvn help:evaluate -Dexpression=project.parent.groupId -q -DforceStdout -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
+          project_name=$(mvn help:evaluate -Dexpression=project.name -q -DforceStdout -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} | xargs)
           if [[ ${group_id} != "org.jahia.modules" && ${parent_group_id} != "org.jahia.modules" ]]; then
             echo "Project is not a Jahia modules"
           else
+            echo "Running keymaker for module ${project_name}"
             KEYMAKER_CLI_OUTPUT=`java -jar ${KEYMAKER_CLI_JAR} pom -f pom.xml -s`
             if [[ $(echo $KEYMAKER_CLI_OUTPUT | grep -w "Signature valid" | wc -l) == "1" ]]; then
               echo "Signature is already up-to-date"
@@ -197,6 +206,7 @@ runs:
               if [ -z "$(git diff --cached --exit-code)" ]; then
                 echo "No signatures were updated, thus nothing to commit"
               else
+                echo "Committing updated signature for ${project_name}"
                 git commit -m "[ci skip] Updated signature for ${project_name}"
                 if [[ ${{ inputs.sign_commits }} == 'true' ]]; then
                   git verify-commit $( git rev-parse HEAD )
