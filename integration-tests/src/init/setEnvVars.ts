@@ -23,6 +23,9 @@ export async function setEnvironmentVariables(): Promise<any> {
   core.exportVariable('DOCKER_USERNAME', core.getInput('docker_username'))
   core.exportVariable('TESTS_PATH', core.getInput('tests_path'))
   core.exportVariable('TESTS_PROFILE', core.getInput('tests_profile'))
+  const contextPath = core.getInput('catalina_context')
+  core.exportVariable('CATALINA_CONTEXT', contextPath)
+  core.exportVariable('CONTEXT_PATH', contextPath ? `/${contextPath}` : '')
 
   if (process.env.GITHUB_REF) {
     const branchName = process.env.GITHUB_REF.split('/')
