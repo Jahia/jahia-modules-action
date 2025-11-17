@@ -262,6 +262,9 @@ inputs:
     description: 'Set the desired logging behavior (full, silent, partial)'
     required: false
     default: 'full'
+  catalina_context:
+    default: ''
+    description: "Context path to use for the catalina server (e.g. 'my-context'). Use an empty string for root context (default)."
 runs:
   using: 'node20'
   main: 'dist/index.js'

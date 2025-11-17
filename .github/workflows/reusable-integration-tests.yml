@@ -80,6 +80,10 @@ on:
       mvn_java_version:
         type: string
         default: 11
+      catalina_context:
+        type: string
+        default: ""
+        description: "Context path to use for the catalina server (e.g. 'my-context'). Use an empty string for root context (default)."
 
 jobs:
   integration-tests:
@@ -103,7 +107,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.module_branch }}
-      - uses: jahia/jahia-modules-action/integration-tests@v2
+          # TODO temp use custom branch for testing
+      - uses: jahia/jahia-modules-action/integration-tests@feat-pass-catalina-context-as-env-variable
         with:
           module_id: ${{ inputs.module_id }}
           incident_service: ${{ inputs.pagerduty_incident_service }}
@@ -134,7 +139,7 @@ jobs:
                 "username": "${{ secrets.DOCKERHUB_USERNAME }}",
                 "password": "${{ secrets.DOCKERHUB_PASSWORD }}"
               }
-            ]          
+            ]
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
           testrail_username: ${{ secrets.TESTRAIL_USERNAME }}
@@ -146,6 +151,7 @@ jobs:
           incident_google_client_email: ${{ secrets.INCIDENT_GOOGLE_CLIENT_EMAIL }}
           incident_google_api_key_base64: ${{ secrets.INCIDENT_GOOGLE_PRIVATE_KEY_BASE64 }}
           zencrepes_secret: ${{ secrets.ZENCREPES_WEBHOOK_SECRET }}
+          catalina_context: ${{ inputs.catalina_context }}
 
       - name: Test Report
         uses: dorny/test-reporter@v1
