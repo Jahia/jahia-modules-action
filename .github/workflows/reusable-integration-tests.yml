@@ -107,8 +107,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.module_branch }}
-          # TODO temp use custom branch for testing
-      - uses: jahia/jahia-modules-action/integration-tests@feat-pass-catalina-context-as-env-variable
+      - uses: jahia/jahia-modules-action/integration-tests@v2
         with:
           module_id: ${{ inputs.module_id }}
           incident_service: ${{ inputs.pagerduty_incident_service }}
