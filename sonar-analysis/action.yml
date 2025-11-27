@@ -115,13 +115,29 @@ runs:
     - name: Set common Sonar parameters
       shell: bash
       run: |
-        export SONAR_PARAMS="-DfailBuildOnCVSS=7 -DskipProvidedScope=true -DskipTestScope=true -DskipSystemScope=true -Dformats=HTML,JSON \
+        SONAR_PARAMS="-DfailBuildOnCVSS=7 -DskipProvidedScope=true -DskipTestScope=true -DskipSystemScope=true -Dformats=HTML,JSON \
           -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
           -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
           -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DnodeAuditSkipDevDependencies=true \
-          -DsuppressionFiles=https://raw.githubusercontent.com/Jahia/jahia/master/.owasp/suppressions.xml \
-          -DyarnAuditAnalyzerEnabled=false \
-          -DdataDirectory=~/.owasp/dependency-check-data ${{ (inputs.nvd_apikey != '' && '-DnvdApiKey=') || '' }}${{ inputs.nvd_apikey }}"
+          -DyarnAuditAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data"^
+          
+        DEFAULT_SUPP="https://raw.githubusercontent.com/Jahia/jahia/master/.owasp/suppressions.xml"
+        supps=("$DEFAULT_SUPP")
+
+        CUSTOM_FILE="./.owasp/custom-suppressions.xml"
+        if [[ -f "$CUSTOM_FILE" ]]; then
+          supps+=("$(pwd)/${CUSTOM_FILE#./}")
+        fi
+
+        SUPPRESSION_LIST="$(IFS=','; echo "${supps[*]}")"  
+          
+        SONAR_PARAMS+=" -DsuppressionFiles=${SUPPRESSION_LIST}"  
+          
+        # Optional NVD API key (only add if provided)
+        if [[ -n "${{ inputs.nvd_apikey }}" ]]; then
+          SONAR_PARAMS+=" -DnvdApiKey=${{ inputs.nvd_apikey }}"
+        fi  
+        
         echo "SONAR_PARAMS=${SONAR_PARAMS}" >> $GITHUB_ENV
 
     - name: Sonar OWASP
@@ -132,7 +148,7 @@ runs:
           echo "Skipping OWASP for PR analysis"
         else
           echo "Executing an OWASP analysis on branch: ${{ inputs.primary_release_branch }}"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:12.1.6:aggregate \
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:12.1.9:aggregate \
             $SONAR_PARAMS
         fi
 
@@ -143,18 +159,18 @@ runs:
         echo "Pull request number: ${{ inputs.github_pr_id }}"
         if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
           echo "Executing a PR based analysis"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.2.0.4988:sonar \
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.3.0.6276:sonar \
               -Dsonar.pullrequest.branch=$GITHUB_REF \
               -Dsonar.pullrequest.key=${{ inputs.github_pr_id }} \
               -Dsonar.pullrequest.base=${{ inputs.primary_release_branch }} \
               -Dsonar.pullrequest.github.repository=${{ steps.vars.outputs.github_slug }}
         elif [[ ${{ steps.vars.outputs.branch }} == ${{ inputs.primary_release_branch }} ]]; then
           echo "Executing an analysis on the main branch"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.2.0.4988:sonar \
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.3.0.6276:sonar \
             $SONAR_PARAMS
         else
           echo "Executing an analysis on branch: ${{ inputs.primary_release_branch }}"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.2.0.4988:sonar \
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.3.0.6276:sonar \
             -Dsonar.branch.name=${{ inputs.primary_release_branch }} \
             $SONAR_PARAMS
         fi
