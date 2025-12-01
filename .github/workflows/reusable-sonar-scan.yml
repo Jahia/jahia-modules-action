@@ -69,7 +69,7 @@ jobs:
           mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
-      - uses: jahia/jahia-modules-action/sonar-analysis@custom_suppressions
+      - uses: jahia/jahia-modules-action/sonar-analysis@v2
         with:
           primary_release_branch: ${{ inputs.git_branch }}
           build_artifacts: ''
