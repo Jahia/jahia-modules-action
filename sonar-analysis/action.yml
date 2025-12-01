@@ -119,14 +119,17 @@ runs:
           -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
           -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
           -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DnodeAuditSkipDevDependencies=true \
-          -DyarnAuditAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data"^
+          -DyarnAuditAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data"
           
         DEFAULT_SUPP="https://raw.githubusercontent.com/Jahia/jahia/master/.owasp/suppressions.xml"
         supps=("$DEFAULT_SUPP")
 
-        CUSTOM_FILE="./.owasp/custom-suppressions.xml"
+        CUSTOM_FILE=".owasp/custom-suppressions.xml"
         if [[ -f "$CUSTOM_FILE" ]]; then
-          supps+=("$(pwd)/${CUSTOM_FILE#./}")
+          supps+=("$(pwd)/$CUSTOM_FILE")
+          echo "Custom suppression file found: $(pwd)/$CUSTOM_FILE"
+        else
+          echo "Custom suppression file not found at: $(pwd)/$CUSTOM_FILE"
         fi
 
         SUPPRESSION_LIST="$(IFS=','; echo "${supps[*]}")"  
@@ -147,7 +150,7 @@ runs:
         if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
           echo "Skipping OWASP for PR analysis"
         else
-          echo "Executing an OWASP analysis on branch: ${{ inputs.primary_release_branch }}"
+          echo "Executing an OWASP analysis on branch: ${{ steps.vars.outputs.branch }}"
           mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:12.1.9:aggregate \
             $SONAR_PARAMS
         fi
