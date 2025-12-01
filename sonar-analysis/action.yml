@@ -125,10 +125,6 @@ runs:
         supps=("$DEFAULT_SUPP")
 
         CUSTOM_FILE=".owasp/custom-suppressions.xml"
-        echo "Current directory: $(pwd)"
-        echo "Checking for custom suppression file at: $CUSTOM_FILE"
-        ls -la .owasp/ 2>/dev/null || echo ".owasp directory does not exist"
-        
         if [[ -f "$CUSTOM_FILE" ]]; then
           supps+=("$(pwd)/$CUSTOM_FILE")
           echo "Custom suppression file found: $(pwd)/$CUSTOM_FILE"
