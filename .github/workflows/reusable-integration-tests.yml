@@ -153,7 +153,7 @@ jobs:
           catalina_context: ${{ inputs.catalina_context }}
 
       - name: Test Report
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v2.3.0
         if: success() || failure()
         with:
           name: ${{ inputs.test_report_name }}
