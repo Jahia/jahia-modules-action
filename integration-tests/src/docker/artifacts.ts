@@ -1,7 +1,8 @@
 import * as core from '@actions/core'
+import * as exec from '@actions/exec'
 import path from 'path/posix'
 
-import {runShellCommands} from '../utils/system'
+import {runShellCommands} from '../utils'
 
 export async function copyRunArtifacts(
   containerName: string,
@@ -34,19 +35,32 @@ export async function copyRunArtifacts(
     }
   )
 
-  await runShellCommands([`docker logs jahia`], 'artifacts/results/jahia.log', {
-    ignoreReturnCode: true,
-    silent: true
-  })
+    async function getRunningContainerNames(): Promise<string[]> {
+        const output: string = await core.group('List Docker containers', async () => {
+            return await exec.getExecOutput('docker', ['ps', '-a', '--format', '{{.Names}}'], {
+                ignoreReturnCode: true,
+                silent: true
+            }).then((r: exec.ExecOutput) => r.stdout ?? '')
+        })
 
-  await runShellCommands(
-    [`docker logs ${containerName}`],
-    `artifacts/results/${containerName}.log`,
-    {
-      ignoreReturnCode: true,
-      silent: true
+        return output
+            .split('\n')
+            .map(s => s.trim())
+            .filter(Boolean)
     }
-  )
+
+    const containerNames = await getRunningContainerNames()
+
+    for (const name of containerNames) {
+        await runShellCommands(
+            [`docker logs ${name}`],
+            `artifacts/results/${name}.log`,
+            {
+                ignoreReturnCode: true,
+                silent: true
+            }
+        )
+    }
 
   await runShellCommands(
     [
