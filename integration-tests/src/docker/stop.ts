@@ -7,7 +7,7 @@ export async function stopDockerEnvironment(
   testsFolder: string,
   loggingMode: string
 ): Promise<void> {
-  core.info(`Listing all containers at the end of the test`)
+  core.info(`Listing all containers at the end of the tests`)
   await runShellCommands([`docker ps -a`], 'artifacts/stop.log', {
     cwd: testsFolder,
     ignoreReturnCode: true,
