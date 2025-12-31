@@ -1,14 +1,14 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 
-import {runShellCommands} from '../utils/system'
+import {runShellCommands} from '../utils'
 
 export async function stopDockerEnvironment(
   testsFolder: string,
   loggingMode: string
 ): Promise<void> {
-  core.info(`Listing all containers that are still running`)
-  await runShellCommands([`docker ps`], 'artifacts/stop.log', {
+  core.info(`Listing all containers at the end of the tests`)
+  await runShellCommands([`docker ps -a`], 'artifacts/stop.log', {
     cwd: testsFolder,
     ignoreReturnCode: true,
     loggingMode
