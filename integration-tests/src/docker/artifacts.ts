@@ -7,11 +7,13 @@ const silent = {silent: true};
 
 export async function copyRunArtifacts(
     containerName: string,
-    desinationPath: string,
-    testsFolder: string
+    destinationPath: string,
+    testsFolder: string,
+    dockerComposeFile: string,
 ): Promise<void> {
+    const composeFile = path.join(testsFolder, dockerComposeFile)
     await runShellCommands(
-        [`docker cp ${containerName}:/home/jahians/results ${desinationPath}`],
+        [`docker cp ${containerName}:/home/jahians/results ${destinationPath}`],
         'artifacts/cypress-artifacts.log',
         {
             ignoreReturnCode: true
@@ -27,7 +29,7 @@ export async function copyRunArtifacts(
     )
 
     await runShellCommands(
-        [`docker-compose logs -t --tail="all" `],
+        [`docker-compose -f ${composeFile} logs -t --tail="all" `],
         'artifacts/results/all-containers.log',
         {
             cwd: testsFolder,
@@ -48,8 +50,8 @@ export async function copyRunArtifacts(
 
     await runShellCommands(
         [
-            `cp ${path.join(desinationPath, `docker.log`)} ${path.join(
-                desinationPath,
+            `cp ${path.join(destinationPath, 'docker.log')} ${path.join(
+                destinationPath,
                 `results/docker.log`
             )}`
         ],
