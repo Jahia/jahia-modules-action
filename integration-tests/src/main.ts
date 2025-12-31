@@ -231,7 +231,8 @@ async function run(): Promise<void> {
         await copyRunArtifacts(
           core.getInput('tests_container_name'),
           artifactsFolder,
-          testsFolder
+          testsFolder,
+          core.getInput('docker_compose_file'),
         )
       }
     )

@@ -84,6 +84,10 @@ on:
         type: string
         default: ""
         description: "Context path to use for the catalina server (e.g. 'my-context'). Use an empty string for root context (default)."
+      docker_compose_file:
+        type: string
+        default: "docker-compose.yml"
+        description: "Location of the Docker Compose configuration file to use, relative to the ./tests/ folder."
 
 jobs:
   integration-tests:
@@ -107,7 +111,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.module_branch }}
-      - uses: jahia/jahia-modules-action/integration-tests@v2
+      # TODO use custom branch temp for testing
+      - uses: jahia/jahia-modules-action/integration-tests@support-custom-docker-compose-file
         with:
           module_id: ${{ inputs.module_id }}
           incident_service: ${{ inputs.pagerduty_incident_service }}
@@ -151,6 +156,7 @@ jobs:
           incident_google_api_key_base64: ${{ secrets.INCIDENT_GOOGLE_PRIVATE_KEY_BASE64 }}
           zencrepes_secret: ${{ secrets.ZENCREPES_WEBHOOK_SECRET }}
           catalina_context: ${{ inputs.catalina_context }}
+          docker_compose_file: ${{ inputs.docker_compose_file }}
 
       - name: Test Report
         uses: dorny/test-reporter@v2.3.0
