@@ -84,6 +84,10 @@ on:
         type: string
         default: ""
         description: "Context path to use for the catalina server (e.g. 'my-context'). Use an empty string for root context (default)."
+      docker_compose_file:
+        type: string
+        default: "docker-compose.yml"
+        description: "Location of the Docker Compose configuration file to use, relative to the ./tests/ folder."
 
 jobs:
   integration-tests:
@@ -151,6 +155,7 @@ jobs:
           incident_google_api_key_base64: ${{ secrets.INCIDENT_GOOGLE_PRIVATE_KEY_BASE64 }}
           zencrepes_secret: ${{ secrets.ZENCREPES_WEBHOOK_SECRET }}
           catalina_context: ${{ inputs.catalina_context }}
+          docker_compose_file: ${{ inputs.docker_compose_file }}
 
       - name: Test Report
         uses: dorny/test-reporter@v2.3.0

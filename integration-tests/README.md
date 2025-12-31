@@ -44,6 +44,13 @@ result.signal = options.signal;
 result.env = options.env;
 ```
 
+On a Mac, you can use:
+```bash
+sed -i '' '/result\.cwd = options\.cwd;/a\
+result.signal = options.signal;
+' dist/index.js
+```
+
 # Add, commit and push the changes
 ```bash
 git add .
