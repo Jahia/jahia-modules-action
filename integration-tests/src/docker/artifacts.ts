@@ -36,12 +36,16 @@ export async function copyRunArtifacts(
         }
     )
 
-    await exec.getExecOutput('docker', ['ps', '-a', '--format', '{{.Names}}']).then((r: exec.ExecOutput) => {
+
+    await exec.getExecOutput('docker', ['ps', '-a', '--format', '{{.Names}}']).then(async (r: exec.ExecOutput) => {
         const output = r.stdout ?? "";
-        output.split('\n')
-            .map(s => s.trim())
-            .filter(Boolean).forEach(name => runShellCommands([`docker logs ${name}`], `artifacts/results/${name}.log`, silent))
+        const containers = output.split('\n').map(s => s.trim()).filter(Boolean);
+
+        for (const container of containers) {
+            await runShellCommands([`docker logs ${container}`], `artifacts/results/${container}.log`, silent)
+        }
     })
+
     await runShellCommands(
         [
             `cp ${path.join(desinationPath, `docker.log`)} ${path.join(
