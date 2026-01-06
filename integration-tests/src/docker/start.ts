@@ -28,7 +28,7 @@ export async function startDockerEnvironment(
         loggingMode,
         timeoutMinutes,
         // pass the docker compose file to the startup script
-        env: {DOCKER_COMPOSE_FILE: composeFile}
+        env: {...process.env, DOCKER_COMPOSE_FILE: composeFile}
       })
     } catch (error) {
       core.error(`Failed to execute startup script: ${error}`)
