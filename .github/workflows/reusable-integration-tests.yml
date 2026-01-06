@@ -111,7 +111,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.module_branch }}
-      - uses: jahia/jahia-modules-action/integration-tests@v2
+      # TODO use custom branch temp for testing
+      - uses: jahia/jahia-modules-action/integration-tests@support-custom-docker-compose-file
         with:
           module_id: ${{ inputs.module_id }}
           incident_service: ${{ inputs.pagerduty_incident_service }}
