@@ -20,19 +20,32 @@ export async function startDockerEnvironment(
 
   if (fs.existsSync(startupFile)) {
     core.info(`Starting environment using startup script: ${startupFile}`)
-    await runShellCommands([`bash ${startupFile}`], 'artifacts/startup.log', {
-      cwd: testsFolder,
-      ignoreReturnCode: true,
-      loggingMode,
-      timeoutMinutes
-    })
+
+    try {
+      await runShellCommands([`bash ${startupFile}`], 'artifacts/startup.log', {
+        cwd: testsFolder,
+        ignoreReturnCode: true,
+        loggingMode,
+        timeoutMinutes,
+        // pass the docker compose file to the startup script
+        env: {...process.env, DOCKER_COMPOSE_FILE: composeFile}
+      })
+    } catch (error) {
+      core.error(`Failed to execute startup script: ${error}`)
+      throw error
+    }
   } else if (fs.existsSync(composeFile)) {
     core.info(`Starting environment using compose file: ${composeFile}`)
-    await runShellCommands(
-      [`docker-compose -f ${composeFile} up --abort-on-container-exit`],
-      'artifacts/startup.log',
-      {cwd: testsFolder, ignoreReturnCode: true, loggingMode, timeoutMinutes}
-    )
+    try {
+      await runShellCommands(
+        [`docker-compose -f ${composeFile} up --abort-on-container-exit`],
+        'artifacts/startup.log',
+        {cwd: testsFolder, ignoreReturnCode: true, loggingMode, timeoutMinutes}
+      )
+    } catch (error) {
+      core.error(`Failed to execute Docker Compose command: ${error}`)
+      throw error
+    }
   } else {
     core.setFailed(
       `Unable to find environment startup instructions. Could not find startup script (${startupFile}) NOR compose file ${composeFile}`
