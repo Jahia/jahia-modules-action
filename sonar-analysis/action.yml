@@ -46,6 +46,14 @@ inputs:
     description: 'NVD API Key to download vulnerability database'
     required: false
     default: ''
+  oss_username:
+    description: 'OSS Index (Sonatype) account email address'
+    required: false
+    default: ''
+  oss_apitoken:
+    description: 'OSS Index (Sonatype) API token or password to download their vulnerability database'
+    required: false
+    default: ''
 
 runs:
   using: 'composite'
@@ -141,8 +149,8 @@ runs:
           SONAR_PARAMS+=" -DnvdApiKey=${{ inputs.nvd_apikey }}"
         fi  
         
-        if [[ -n "${{ secrets.OSS_USERNAME }}" && -n "${{ secrets.OSS_API_TOKEN }}" ]]; then
-          SONAR_PARAMS+=" -DossIndexUsername=${{ secrets.OSS_USERNAME }} -DossIndexPassword=${{ secrets.OSS_API_TOKEN }}"
+        if [[ -n "${{ inputs.oss_username }}" && -n "${{ inputs.oss_apitoken }}" ]]; then
+          SONAR_PARAMS+=" -DossIndexUsername=${{ inputs.oss_username }} -DossIndexPassword=${{ inputs.oss_apitoken }}"
         fi  
         
         echo "SONAR_PARAMS=${SONAR_PARAMS}" >> $GITHUB_ENV
