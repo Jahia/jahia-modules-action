@@ -141,6 +141,10 @@ runs:
           SONAR_PARAMS+=" -DnvdApiKey=${{ inputs.nvd_apikey }}"
         fi  
         
+        if [[ -n "${{ secrets.OSS_USERNAME }}" && -n "${{ secrets.OSS_API_TOKEN }}" ]]; then
+          SONAR_PARAMS+=" -DossIndexUsername=${{ secrets.OSS_USERNAME }} -DossIndexPassword=${{ secrets.OSS_API_TOKEN }}"
+        fi  
+        
         echo "SONAR_PARAMS=${SONAR_PARAMS}" >> $GITHUB_ENV
 
     - name: Sonar OWASP
