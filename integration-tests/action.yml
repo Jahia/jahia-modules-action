@@ -109,10 +109,15 @@ inputs:
     description: 'Should the submission to Testrail be skipped ?'
     required: false
     default: 'true'
+  should_skip_failure_notifications:
+    description: 'Should notifications be skipped ?'
+    required: false
+    default: 'true'
   should_skip_notifications:
     description: 'Should notifications be skipped ?'
     required: false
     default: 'true'
+    deprecationMessage: 'This input is deprecated, use should_skip_failure_notifications instead.'
   should_skip_pagerduty:
     description: 'Should pagerduty notifications be skipped ?'
     required: false

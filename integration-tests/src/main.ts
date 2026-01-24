@@ -329,7 +329,7 @@ async function run(): Promise<void> {
     // Notify user/team about a tests failure
     if (
       (core.getInput('should_skip_pagerduty') === 'false' ||
-        core.getInput('should_skip_notifications') === 'false') &&
+        core.getInput('should_skip_failure_notifications') === 'false') &&
       process.env.CURRENT_BRANCH !== undefined &&
       ['master', 'main', core.getInput('primary_release_branch')].includes(
         process.env.CURRENT_BRANCH
