@@ -303,7 +303,7 @@ async function run(): Promise<void> {
       await core.group(
         `${timeSinceStart(
           startTime
-        )} 🛠️ Publishing results to Testrail project: Jahia-CI}`,
+        )} 🛠️ Publishing results to Testrail project: Jahia-CI`,
         async () => {
           await prepareTestrailMetadata(
             testsFolder,
