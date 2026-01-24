@@ -30,8 +30,7 @@ import {
 } from './init'
 import {
   publishToTestrail,
-  createPagerdutyIncident,
-  sendSlackNotification,
+  createGitHubIncident,
   sendResultsToZencrepes,
   showTestsSummary,
   prepareTestrailMetadata
@@ -232,7 +231,7 @@ async function run(): Promise<void> {
           core.getInput('tests_container_name'),
           artifactsFolder,
           testsFolder,
-          core.getInput('docker_compose_file'),
+          core.getInput('docker_compose_file')
         )
       }
     )
@@ -327,39 +326,47 @@ async function run(): Promise<void> {
       )
     }
 
-    // Create incident in PagerDuty
+    // Notify user/team about a tests failure
     if (
-      core.getInput('should_skip_pagerduty') === 'false' &&
+      (core.getInput('should_skip_pagerduty') === 'false' ||
+        core.getInput('should_skip_notifications') === 'false') &&
       process.env.CURRENT_BRANCH !== undefined &&
       ['master', 'main', core.getInput('primary_release_branch')].includes(
         process.env.CURRENT_BRANCH
       )
     ) {
-      await core.group(
-        `${timeSinceStart(
-          startTime
-        )} 🛠️ Creating incident in Pagerduty (if applicable)`,
-        async () => {
-          await createPagerdutyIncident(
-            path.join(testsFolder, core.getInput('tests_report_path')),
-            core.getInput('tests_report_type'),
-            {
-              service:
-                core.getInput('incident_service') || core.getInput('module_id'),
-              pdApiKey: core.getInput('incident_pagerduty_api_key'),
-              pdReporterEmail: core.getInput(
-                'incident_pagerduty_reporter_email'
-              ),
-              pdReporterId: core.getInput('incident_pagerduty_reporter_id'),
-              googleSpreadsheetId: core.getInput(
-                'incident_google_spreadsheet_id'
-              ),
-              googleClientEmail: core.getInput('incident_google_client_email'),
-              googleApiKey: core.getInput('incident_google_api_key_base64')
-            }
-          )
-        }
-      )
+      // If the GitHub token is absent, display a warning in the log, but do not
+      // generate failure, this should make the transition smoother
+      if (core.getInput('github_token') === '') {
+        core.warning(
+          '⚠️ The github_token input is empty, until one is provided, notifications will be skipped.'
+        )
+      } else {
+        await core.group(
+          `${timeSinceStart(
+            startTime
+          )} 🛠️ Notifying the team about an incident during test execution`,
+          async () => {
+            await createGitHubIncident(
+              path.join(testsFolder, core.getInput('tests_report_path')),
+              core.getInput('tests_report_type'),
+              {
+                service:
+                  core.getInput('incident_service') ||
+                  core.getInput('module_id'),
+                githubToken: core.getInput('github_token'),
+                googleSpreadsheetId: core.getInput(
+                  'incident_google_spreadsheet_id'
+                ),
+                googleClientEmail: core.getInput(
+                  'incident_google_client_email'
+                ),
+                googleApiKey: core.getInput('incident_google_api_key_base64')
+              }
+            )
+          }
+        )
+      }
     }
 
     // Upload the artifacts to GitHub infrastructure
@@ -399,27 +406,6 @@ async function run(): Promise<void> {
               process.env.GITHUB_RUN_ATTEMPT
             )
           }
-        }
-      )
-    }
-
-    // Send notifications to slack
-    if (
-      core.getInput('should_skip_notifications') === 'false' ||
-      core.getInput('primary_release_branch') === process.env.CURRENT_BRANCH
-    ) {
-      await core.group(
-        `${timeSinceStart(startTime)} 🛠️ Send notification to Slack`,
-        async () => {
-          await sendSlackNotification(
-            path.join(testsFolder, core.getInput('tests_report_path')),
-            core.getInput('tests_report_type'),
-            {
-              channelId: core.getInput('slack_channel_id_notifications'),
-              channelAllId: core.getInput('slack_channel_id_notifications_all'),
-              token: core.getInput('slack_client_token')
-            }
-          )
         }
       )
     }
