@@ -34,7 +34,7 @@ export async function createGitHubIncident(
   command += ` --googleApiKey="${options.googleApiKey}"`
   command += ` --googleUpdateState`
 
-  command += ` --githubToken=""${options.githubToken}"`
+  command += ` --githubToken="${options.githubToken}"`
   command += ` --githubRepository="${process.env.GITHUB_REPOSITORY}"`
 
   command += ` --incidentService="${options.service}"`
