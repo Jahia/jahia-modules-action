@@ -331,12 +331,9 @@ async function run(): Promise<void> {
       (core.getInput('should_skip_pagerduty') === 'false' ||
         core.getInput('should_skip_failure_notifications') === 'false') &&
       process.env.CURRENT_BRANCH !== undefined &&
-      [
-        'master',
-        'main',
-        '304-setup-github-issues-for-test-failures-notifications',
-        core.getInput('primary_release_branch')
-      ].includes(process.env.CURRENT_BRANCH)
+      ['master', 'main', core.getInput('primary_release_branch')].includes(
+        process.env.CURRENT_BRANCH
+      )
     ) {
       // If the GitHub token is absent, display a warning in the log, but do not
       // generate failure, this should make the transition smoother
