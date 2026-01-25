@@ -124,7 +124,7 @@ jobs:
           fi          
           echo "INCIDENT_SERVICE=${INCIDENT_SERVICE}" >> $GITHUB_ENV
 
-      - name: Install jahia-reporter and report to Pagerduty
+      - name: Install jahia-reporter and report using GitHub Issues
         shell: bash
         run: |
           echo "JR_FORCE_SUCCESS=${{ env.JR_FORCE_SUCCESS}}"
