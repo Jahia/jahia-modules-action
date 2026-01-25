@@ -348,7 +348,7 @@ async function run(): Promise<void> {
         await core.group(
           `${timeSinceStart(
             startTime
-          )} 🛠️ Notifying the team about an incident during test execution`,
+          )} 🛠️ Updating execution status and notifying about failure (if applicable)`,
           async () => {
             await createGitHubIncident(
               path.join(testsFolder, core.getInput('tests_report_path')),
