@@ -11,7 +11,7 @@ jobs:
   projects-label:
     name: Projects on Labels
     if: ${{ (github.event.action == 'labeled' || github.event.action == 'typed') && github.event.sender.login != 'jahia-ci' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:   
       # Issue type is not available by default, this makes it available for if conditions
       - name: Get Issue type
@@ -131,7 +131,7 @@ jobs:
   projects-milestone:
     name: Projects on Milestones
     if: ${{ (github.event.action == 'milestoned' || github.event.action == 'demilestoned') && github.event.sender.login != 'jahia-ci' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
       # Adds or removes the "Product Team" project if a milestone is added
       # or removed
@@ -143,7 +143,7 @@ jobs:
 
   transfer:
     name: Transfer
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     needs: [projects-label, projects-milestone]
     if: always() && github.event.sender.login != 'jahia-ci'
     steps:
@@ -189,7 +189,7 @@ jobs:
 
   links:
     name: Links
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     needs: transfer
     if: always() && github.event.sender.login != 'jahia-ci'
     steps:
