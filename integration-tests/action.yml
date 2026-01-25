@@ -109,34 +109,45 @@ inputs:
     description: 'Should the submission to Testrail be skipped ?'
     required: false
     default: 'true'
-  should_skip_notifications:
-    description: 'Should slack notifications be skipped ?'
+  should_skip_failure_notifications:
+    description: 'Should notifications be skipped ?'
     required: false
     default: 'true'
+  should_skip_notifications:
+    description: 'Should notifications be skipped ?'
+    required: false
+    default: 'true'
+    deprecationMessage: 'This input is deprecated, use should_skip_failure_notifications instead.'
   should_skip_pagerduty:
     description: 'Should pagerduty notifications be skipped ?'
     required: false
     default: 'false'
+    deprecationMessage: 'This input is deprecated as pagerduty is being removed, use should_skip_failure_notifications instead.'
   slack_channel_id_notifications:
     description: 'Channel id to be used for failure notifications'
     required: false
     default: ''
+    deprecationMessage: 'This input is deprecated. There are no slack notifications submitted anymore.'
   slack_channel_id_notifications_all:
     description: 'Channel id to be used for all notifications (failure and success)'
     required: false
     default: ''
+    deprecationMessage: 'This input is deprecated. There are no slack notifications submitted anymore.'
   slack_client_token:
     description: 'The slack token used to post the messages'
     required: false
     default: ''
+    deprecationMessage: 'This input is deprecated. There are no slack notifications submitted anymore.'
   slack_webhook_notifications:
     description: 'Webhook to be used for failure notifications'
     required: false
     default: ''
+    deprecationMessage: 'This input is deprecated. There are no slack notifications submitted anymore.'
   slack_webhook_notifications_all:
     description: 'Webhook to be used for all notifications (failure and success)'
     required: false
     default: ''
+    deprecationMessage: 'This input is deprecated. There are no slack notifications submitted anymore.'
   should_use_build_artifacts:
     description: 'Should the job attempt to download previously built artifacts'
     required: false
@@ -230,6 +241,10 @@ inputs:
     description: 'In seconds, timeout in seconds before terminating the session'
     required: false
     default: '7200'
+  github_token:
+    description: 'GitHub Token used to create issues about test failures'
+    required: false
+    default: ''
   github_artifact_enable:
     description: 'Enable saving of artifacts on GitHub infra'
     required: false

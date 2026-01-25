@@ -64,7 +64,7 @@ on:
         type: boolean
         required: false
         default: false
-        description: 'Should the job attempt to download previously built artifacts'
+        description: "Should the job attempt to download previously built artifacts"
       should_skip_testrail:
         type: boolean
         default: false
@@ -126,6 +126,7 @@ jobs:
           jcustomer_image: ${{ inputs.jcustomer_image }}
           should_skip_testrail: ${{ inputs.should_skip_testrail }}
           should_skip_pagerduty: ${{ inputs.pagerduty_skip_notification }}
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           github_artifact_name: ${{ inputs.artifact_prefix }}-${{ github.run_number }}
           jahia_artifact_name: ${{ inputs.artifact_prefix }}-${{ github.run_number }}
           tests_report_type: json
