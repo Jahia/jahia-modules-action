@@ -11,7 +11,7 @@ on:
       mvn_settings_filepath:
         type: string
         description: Filepath to the settings.xml file
-        default: '.github/maven.settings.xml'
+        default: ".github/maven.settings.xml"
         required: false
       job_container:
         type: string
@@ -23,7 +23,7 @@ on:
         default: "main"
       github_slug:
         type: string
-        description: 'GitHub SLUG of the module (for example: jahia/sandbox)'
+        description: "GitHub SLUG of the module (for example: jahia/sandbox)"
       java_distribution:
         type: string
         required: false
@@ -38,9 +38,9 @@ on:
         default: "mvn"
       incident_service:
         type: string
-        description: 'Service subject to the incident. If empty, will default to the value of module_id'
+        description: "Service subject to the incident. If empty, will default to the value of module_id"
         required: false
-        default: ''
+        default: ""
 
 jobs:
   sonar-analysis:
@@ -72,7 +72,7 @@ jobs:
       - uses: jahia/jahia-modules-action/sonar-analysis@v2
         with:
           primary_release_branch: ${{ inputs.git_branch }}
-          build_artifacts: ''
+          build_artifacts: ""
           github_pr_id: ${{github.event.number}}
           sonar_url: ${{ secrets.SONAR_URL }}
           sonar_token: ${{ secrets.SONAR_TOKEN }}
@@ -94,10 +94,10 @@ jobs:
           fi        
           echo "status=${JR_STATUS}" >> $GITHUB_OUTPUT
 
-  # Always use the pagerduty job, either to:
+  # Always use the notification job, either to:
   # - report on success and don't send a notification
   # - report on failure and send a notification
-  pagerduty:
+  notification:
     runs-on: ubuntu-latest
     needs: [sonar-analysis]
     if: always()
@@ -130,16 +130,14 @@ jobs:
           echo "JR_FORCE_SUCCESS=${{ env.JR_FORCE_SUCCESS}}"
           echo "JR_MESSAGE=${{ env.JR_MESSAGE}}"
           npm install -g @jahia/jahia-reporter@latest
-          jahia-reporter pagerduty:incident \
+          jahia-reporter github:incident \
             --incidentMessage="${{ env.JR_MESSAGE}}" \
             ${{ env.JR_FORCE_SUCCESS}} \
-            --pdApiKey=${{ secrets.INCIDENT_PAGERDUTY_API_KEY }} \
-            --pdReporterEmail=${{ secrets.INCIDENT_PAGERDUTY_REPORTER_EMAIL }} \
-            --pdReporterId=${{ secrets.INCIDENT_PAGERDUTY_REPORTER_ID }} \
-            --pdTwoStepsAssign \
+            --githubToken=${{ secrets.GH_ISSUES_PRS_CHORES }} \
+            --githubRepository=${{ env.GITHUB_REPOSITORY }} \
             --googleSpreadsheetId=${{ secrets.INCIDENT_GOOGLE_SPREADSHEET_ID }} \
             --googleClientEmail=${{ secrets.INCIDENT_GOOGLE_CLIENT_EMAIL }} \
             --googleApiKey=${{ secrets.INCIDENT_GOOGLE_PRIVATE_KEY_BASE64 }} \
             --googleUpdateState \
-            --service=${{ env.INCIDENT_SERVICE}} \
+            --incidentService=${{ env.INCIDENT_SERVICE}} \
             --sourceUrl=${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}/actions/runs/${{ env.GITHUB_RUN_ID }}
