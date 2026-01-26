@@ -1,0 +1,16 @@
+name: Chachalog / Prepare Changelog
+
+on:
+  workflow_call:
+
+jobs:
+  prepare-changelog:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+      - run: npx chachalog@^0.4.4 prepare-next-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
