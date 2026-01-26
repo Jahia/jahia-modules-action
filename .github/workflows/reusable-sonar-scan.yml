@@ -133,11 +133,11 @@ jobs:
           jahia-reporter github:incident \
             --incidentMessage="${{ env.JR_MESSAGE}}" \
             ${{ env.JR_FORCE_SUCCESS}} \
-            --githubToken=${{ secrets.GH_ISSUES_PRS_CHORES }} \
-            --githubRepository=${{ env.GITHUB_REPOSITORY }} \
-            --googleSpreadsheetId=${{ secrets.INCIDENT_GOOGLE_SPREADSHEET_ID }} \
-            --googleClientEmail=${{ secrets.INCIDENT_GOOGLE_CLIENT_EMAIL }} \
-            --googleApiKey=${{ secrets.INCIDENT_GOOGLE_PRIVATE_KEY_BASE64 }} \
+            --githubToken="${{ secrets.GH_ISSUES_PRS_CHORES }}" \
+            --githubRepository="${{ github.repository }}" \
+            --googleSpreadsheetId="${{ secrets.INCIDENT_GOOGLE_SPREADSHEET_ID }}" \
+            --googleClientEmail="${{ secrets.INCIDENT_GOOGLE_CLIENT_EMAIL }}" \
+            --googleApiKey="${{ secrets.INCIDENT_GOOGLE_PRIVATE_KEY_BASE64 }}" \
             --googleUpdateState \
-            --incidentService=${{ env.INCIDENT_SERVICE}} \
-            --sourceUrl=${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}/actions/runs/${{ env.GITHUB_RUN_ID }}
+            --incidentService="${{ env.INCIDENT_SERVICE}}" \
+            --sourceUrl="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
