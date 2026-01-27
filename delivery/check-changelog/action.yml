@@ -21,9 +21,10 @@ runs:
       with:
         script: |
           const labels = context.payload.issue.labels.map(label => label.name);
-          return labels.includes(${{ inputs.no-changelog-label }});
+          return labels.includes("${{ inputs.no-changelog-label }}");
 
     - name: Check if repository is in repository-whitelist
+      id: check-repo-whitelist
       if: steps.check-no-changelog.outputs.result == 'false'
       uses: actions/github-script@v7
       with:
