@@ -11,6 +11,9 @@ inputs:
   repository-whitelist:
     description: A list of repositories allowed to skip changelog updates
     default: '[]'
+  repository-whitelist-prefix:
+    description: A prefix to match against repository names in the whitelist
+    default: 'Jahia/'
 
 runs:
   using: composite
@@ -30,7 +33,6 @@ runs:
       with:
         script: |
           const repo = context.payload.repository.full_name;
-          console.log(repo);
           const whitelist = ${{ inputs.repository-whitelist }};
           return whitelist.includes(repo);
 
