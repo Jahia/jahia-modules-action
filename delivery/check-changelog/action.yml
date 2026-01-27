@@ -20,7 +20,7 @@ runs:
       id: check-no-changelog
       with:
         script: |
-          const labels = context.payload.issue.labels.map(label => label.name);
+          const labels = context.payload.pull_request.labels.map(label => label.name);
           return labels.includes("${{ inputs.no-changelog-label }}");
 
     - name: Check if repository is in repository-whitelist
