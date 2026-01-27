@@ -30,6 +30,7 @@ runs:
       with:
         script: |
           const repo = context.payload.repository.full_name;
+          console.log(repo);
           const whitelist = ${{ inputs.repository-whitelist }};
           return whitelist.includes(repo);
 
