@@ -4,7 +4,7 @@ description: Checks changelog has been updated
 inputs:
   changelog-directory:
     description: The path to the changelog directory
-    default: '.changelog'
+    default: '.chachalog'
   no-changelog-label:
     description: The name of the "no-changelog" label
     default: '🗒️ no-changelog'
