@@ -6,7 +6,7 @@ inputs:
     description: The path to the changelog directory
     default: '.chachalog'
   no-changelog-label:
-    description: The name of the "no-changelog" label
+    description: The name of the "no-changelog" label, indicating that a changelog is not expected in this PR
     default: '🗒️ no-changelog'
   repository-whitelist:
     description: A list of repositories allowed to skip changelog updates
