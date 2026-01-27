@@ -11,9 +11,6 @@ inputs:
   repository-whitelist:
     description: A list of repositories allowed to skip changelog updates
     default: '[]'
-  repository-whitelist-prefix:
-    description: A prefix to match against repository names in the whitelist
-    default: 'Jahia/'
 
 runs:
   using: composite
@@ -34,7 +31,7 @@ runs:
         script: |
           const repo = context.payload.repository.full_name;
           const whitelist = ${{ inputs.repository-whitelist }};
-          return whitelist.map(item => "${{inputs.repository-whitelist-prefix}}" + item).includes(repo);
+          return whitelist.includes(repo);
 
     - name: Check if changelog has been updated in the PR
       if: steps.check-no-changelog.outputs.result == 'false' && steps.check-repo-whitelist.outputs.result == 'false'
