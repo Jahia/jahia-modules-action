@@ -34,7 +34,7 @@ runs:
         script: |
           const repo = context.payload.repository.full_name;
           const whitelist = ${{ inputs.repository-whitelist }};
-          return whitelist.includes(${{inputs.repository-whitelist-prefix}} + repo);
+          return whitelist.includes("${{inputs.repository-whitelist-prefix}}" + repo);
 
     - name: Check if changelog has been updated in the PR
       if: steps.check-no-changelog.outputs.result == 'false' && steps.check-repo-whitelist.outputs.result == 'false'
