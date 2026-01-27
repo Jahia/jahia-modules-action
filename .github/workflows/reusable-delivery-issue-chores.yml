@@ -216,3 +216,10 @@ jobs:
           jira_link_icon_open: https://support.jahia.com/images/icons/ico_task.png
           jira_link_icon_closed: https://support.jahia.com/images/icons/accept.png
           jira_link_icon_prefix: https://support.jahia.com/images/icons/tools_20.png
+
+  changelog:
+    name: Changelog
+    runs-on: ubuntu-slim
+    needs: projects-label
+    steps:
+      - uses: jahia/jahia-modules-action/delivery/check-changelog@v2
