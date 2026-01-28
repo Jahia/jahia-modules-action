@@ -143,7 +143,7 @@ jobs:
 
   transfer:
     name: Transfer
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     needs: [projects-label, projects-milestone]
     if: always() && github.event.sender.login != 'jahia-ci'
     steps:
