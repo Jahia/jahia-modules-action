@@ -68,6 +68,10 @@ on:
       should_skip_testrail:
         type: boolean
         default: false
+      tests_path:
+        description: 'Folder containing the docker-compose.yml'
+        required: false
+        default: 'tests/'        
       test_report_name:
         type: string
         default: "Tests Report"
@@ -129,6 +133,7 @@ jobs:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           github_artifact_name: ${{ inputs.artifact_prefix }}-${{ github.run_number }}
           jahia_artifact_name: ${{ inputs.artifact_prefix }}-${{ github.run_number }}
+          tests_path: ${{ inputs.tests_path }}
           tests_report_type: json
           tests_report_path: "artifacts/results/reports/report.json"
           bastion_ssh_private_key: ${{ secrets.BASTION_SSH_PRIVATE_KEY_JAHIACI }}
