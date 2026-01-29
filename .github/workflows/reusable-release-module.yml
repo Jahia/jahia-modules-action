@@ -60,11 +60,6 @@ on:
         description: "Time during which artifact are kept in Github infrastructure"
         required: false
         default: "2"
-      npmjs_publish_token:
-        type: string
-        description: 'Token used to publish javascript module (or any kind of npm package) to npmjs.com, typically used when the Maven release process delegates the package publication to npm'
-        default: ''
-        required: false
 
 jobs:
   release-module:
@@ -148,7 +143,7 @@ jobs:
           gpg_key: ${{ secrets.GPG_KEY }}
           gpg_key_id: ${{ secrets.GPG_KEY_ID }}
           gpg_key_passphrase: ${{ secrets.GPG_KEY_PASSPHRASE }}
-          npmjs_publish_token: ${{ inputs.npmjs_publish_token }}
+          npmjs_publish_token: ${{ secrets.NPMJS_PUBLISH_TOKEN }}
 
       - uses: jahia/jahia-modules-action/update-signature@v2
         with:
