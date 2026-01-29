@@ -143,7 +143,6 @@ jobs:
           gpg_key: ${{ secrets.GPG_KEY }}
           gpg_key_id: ${{ secrets.GPG_KEY_ID }}
           gpg_key_passphrase: ${{ secrets.GPG_KEY_PASSPHRASE }}
-          npmjs_publish_token: ${{ secrets.NPMJS_PUBLISH_TOKEN }}
 
       - uses: jahia/jahia-modules-action/update-signature@v2
         with:
