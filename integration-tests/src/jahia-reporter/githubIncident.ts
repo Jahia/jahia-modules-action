@@ -27,7 +27,7 @@ export async function createGitHubIncident(
       `ERROR: The following path does not exist: ${testsPath} the github issue will not be based on test results`
     )
     command +=
-      ' --incidentMessage="Unable to find test folder, the tests were likely interrupted"'
+      ' --incidentMessage="Unable to find test results, the tests were likely interrupted"'
   }
   command += ` --googleSpreadsheetId="${options.googleSpreadsheetId}"`
   command += ` --googleClientEmail="${options.googleClientEmail}"`
