@@ -1,5 +1,5 @@
-name: Academy Publish
-description: Publish documentation to Jahia Academy
+name: Academy Documentation Push
+description: Push documentation to Jahia Academy (update or publish)
 
 inputs:
   docs_path:
