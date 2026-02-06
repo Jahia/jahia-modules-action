@@ -30,6 +30,6 @@ jobs:
         uses: jahia/jahia-modules-action/academy-publish@v2
         with:
           docs_path: ${{ inputs.docs_path }}
-          graphql_endpoint: ${{ inputs.graphql_endpoint }}
+          graphql_endpoint: ${{ secrets.ACADEMY_ENDPOINT }}
           graphql_authorization: ${{ secrets.ACADEMY_AUTHORIZATION }}
           publish: 'true'
