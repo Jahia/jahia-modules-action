@@ -10,6 +10,11 @@ on:
         description: 'Path to the documentation folder'
         required: false
         default: 'docs/'
+      git_branch:
+        type: string
+        description: 'Git branch to checkout'
+        required: false
+        default: ''
 
 jobs:
   publish-academy-documentation:
@@ -18,6 +23,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_branch }}
 
       - name: Publish documentation on Academy
         uses: jahia/jahia-modules-action/academy-publish@v2
