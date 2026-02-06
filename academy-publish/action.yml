@@ -1,0 +1,42 @@
+name: Academy Publish
+description: Publish documentation to Jahia Academy
+
+inputs:
+  docs_path:
+    description: 'Path to the documentation folder'
+    required: false
+    default: 'docs/'
+  graphql_endpoint:
+    description: 'GraphQL endpoint for the Academy'
+    required: true
+  graphql_authorization:
+    description: 'Authorization token for the Academy'
+    required: true
+  publish:
+    description: 'Whether to publish the documentation (true/false)'
+    required: false
+    default: 'false'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check if documentation folder exists
+      id: check_docs
+      shell: bash
+      run: |
+        if [ -d "${{ inputs.docs_path }}" ]; then
+          echo "docs_exist=true" >> $GITHUB_OUTPUT
+          echo "::notice title=Documentation Found::Documentation folder found at ${{ inputs.docs_path }}"
+        else
+          echo "docs_exist=false" >> $GITHUB_OUTPUT
+          echo "::notice title=No Documentation::No documentation folder found at ${{ inputs.docs_path }}"
+        fi
+
+    - name: Push documentation to Academy
+      if: steps.check_docs.outputs.docs_exist == 'true'
+      uses: Jahia/github-to-academy@v1
+      with:
+        files: ${{ inputs.docs_path }}**/*.md
+        graphql-endpoint: ${{ inputs.graphql_endpoint }}
+        graphql-authorization: ${{ inputs.graphql_authorization }}
+        publish: ${{ inputs.publish }}
