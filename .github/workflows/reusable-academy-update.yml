@@ -1,0 +1,35 @@
+# Note: re-usable workflows must be in the .github/workflows folder, amongst other workflows dedicated
+# to the jahia-modules-action repository. Thus using "reusable-" prefix to easily identify them.
+name: Academy Documentation Update
+
+on:
+  workflow_call:
+    inputs:
+      docs_path:
+        type: string
+        description: 'Path to the documentation folder'
+        required: false
+        default: 'docs/'
+      git_branch:
+        type: string
+        description: 'Git branch to checkout'
+        required: false
+        default: ''
+
+jobs:
+  update-academy-documentation:
+    name: Update Academy Documentation
+    runs-on: ubuntu-slim
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_branch }}
+
+      - name: Update documentation on Academy (not published)
+        uses: jahia/jahia-modules-action/academy-publish@v2
+        with:
+          docs_path: ${{ inputs.docs_path }}
+          graphql_endpoint: ${{ inputs.graphql_endpoint }}
+          graphql_authorization: ${{ secrets.ACADEMY_AUTHORIZATION }}
+          publish: 'false'
