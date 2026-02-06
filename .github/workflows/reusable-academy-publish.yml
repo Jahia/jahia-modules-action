@@ -10,15 +10,6 @@ on:
         description: 'Path to the documentation folder'
         required: false
         default: 'docs/'
-      graphql_endpoint:
-        type: string
-        description: 'GraphQL endpoint for the Academy'
-        required: false
-        default: 'https://academy.jahia.com/graphql'
-    secrets:
-      ACADEMY_AUTHORIZATION:
-        description: 'Authorization token for the Academy'
-        required: true
 
 jobs:
   publish-academy-documentation:
