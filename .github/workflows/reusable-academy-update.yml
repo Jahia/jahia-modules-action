@@ -26,20 +26,7 @@ jobs:
         with:
           ref: ${{ inputs.git_branch }}
 
-      - name: Check if documentation folder exists
-        id: check_docs
-        shell: bash
-        run: |
-          if [ -d "${{ inputs.docs_path }}" ]; then
-            echo "docs_exist=true" >> $GITHUB_OUTPUT
-            echo "::notice title=Documentation Found::Documentation folder found at ${{ inputs.docs_path }}"
-          else
-            echo "docs_exist=false" >> $GITHUB_OUTPUT
-            echo "::notice title=No Documentation::No documentation folder found at ${{ inputs.docs_path }}"
-          fi
-
       - name: Update documentation on Academy (not published)
-        if: steps.check_docs.outputs.docs_exist == 'true'
         uses: jahia/jahia-modules-action/academy-publish@v2
         with:
           docs_path: ${{ inputs.docs_path }}
