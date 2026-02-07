@@ -1,0 +1,15 @@
+name: Chachalog / Comment PR
+
+on:
+  workflow_call:
+
+jobs:
+  comment-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+      - run: npx chachalog@^0.4.4 comment-pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
