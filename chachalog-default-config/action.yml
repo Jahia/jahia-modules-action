@@ -14,11 +14,11 @@ inputs:
     description: "Base branch to use in Chachalog github() platform config. Defaults to repo default branch."
     required: false
     default: ""
-  version-file:
+  config-file-version:
     description: "Path to version file used by config."
     required: false
     default: ".chachalog/.version"
-  config-path:
+  config-file:
     description: "Path to chachalog config file."
     required: false
     default: ".chachalog/config.mjs"
@@ -36,7 +36,7 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        version_file="${{ inputs.version-file }}"
+        version_file="${{ inputs.config-file-version }}"
         if [ ! -f "$version_file" ]; then
           mkdir -p "$(dirname "$version_file")"
           echo "0.0.0" > "$version_file"
@@ -76,8 +76,8 @@ runs:
     - name: Ensure config file exists (rendered via github-script)
       uses: actions/github-script@v8
       env:
-        CONFIG_PATH: ${{ inputs.config-path }}
-        VERSION_FILE: ${{ inputs.version-file }}
+        CONFIG_PATH: ${{ inputs.config-file }}
+        VERSION_FILE: ${{ inputs.config-file-version }}
         PACKAGE_NAME: ${{ steps.defaults.outputs.package_name }}
         BASE_BRANCH: ${{ steps.defaults.outputs.base_branch }}
       with:
@@ -140,7 +140,7 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        echo "=== Chachalog config ==="
-        cat .chachalog/config.mjs
-        echo "=== Chachalog version ==="
-        cat .chachalog/.version
+        echo "=== Displaying Chachalog config at: ${{ inputs.config-file }} ==="
+        cat ${{ inputs.config-file }}
+        echo "=== Displaying Chachalog version at: ${{ inputs.config-file-version }}==="
+        cat ${{ inputs.config-file-version }}
