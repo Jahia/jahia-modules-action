@@ -11,6 +11,10 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          token: ${{ github.token }}
+
 
       # If the repo does not contain a Chachalog config, this action
       # handles the creation of a default configuration, that should be 
