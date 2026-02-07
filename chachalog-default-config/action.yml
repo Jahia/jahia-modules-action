@@ -1,0 +1,146 @@
+name: Apply Chachalog default config
+description: If the repository does not contain chachalog config files, this actions takes care of creating a default config
+
+# Note that the configuration is not persisted (this is done on purpose)
+# We can assume the configuration to become progressively added as changelog are being
+# progressively added to repositories
+
+inputs:
+  package-name:
+    description: "Package name to use in Chachalog config. Defaults to repository name."
+    required: false
+    default: ""
+  base-branch:
+    description: "Base branch to use in Chachalog github() platform config. Defaults to repo default branch."
+    required: false
+    default: ""
+  version-file:
+    description: "Path to version file used by config."
+    required: false
+    default: ".chachalog/.version"
+  config-path:
+    description: "Path to chachalog config file."
+    required: false
+    default: ".chachalog/config.mjs"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Create chachalog directory if absent
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p .chachalog
+
+    - name: Create version file if absent
+      shell: bash
+      run: |
+        set -euo pipefail
+        version_file="${{ inputs.version-file }}"
+        if [ ! -f "$version_file" ]; then
+          mkdir -p "$(dirname "$version_file")"
+          echo "0.0.0" > "$version_file"
+          echo "Created $version_file with 0.0.0"
+        else
+          echo "$version_file already exists"
+        fi
+
+    - name: Resolve defaults (package-name, base-branch)
+      id: defaults
+      shell: bash
+      env:
+        INPUT_PACKAGE_NAME: ${{ inputs.package-name }}
+        INPUT_BASE_BRANCH: ${{ inputs.base-branch }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_EVENT_REPOSITORY_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      run: |
+        set -euo pipefail
+
+        # Default package name: repo name (part after "org/")
+        if [ -n "${INPUT_PACKAGE_NAME}" ]; then
+          pkg="${INPUT_PACKAGE_NAME}"
+        else
+          pkg="${GITHUB_REPOSITORY#*/}"
+        fi
+
+        # Default base branch: repository default branch from event payload
+        if [ -n "${INPUT_BASE_BRANCH}" ]; then
+          base="${INPUT_BASE_BRANCH}"
+        else
+          base="${GITHUB_EVENT_REPOSITORY_DEFAULT_BRANCH}"
+        fi
+
+        echo "package_name=$pkg" >> "$GITHUB_OUTPUT"
+        echo "base_branch=$base" >> "$GITHUB_OUTPUT"
+
+    - name: Ensure config file exists (rendered via github-script)
+      uses: actions/github-script@v8
+      env:
+        CONFIG_PATH: ${{ inputs.config-path }}
+        VERSION_FILE: ${{ inputs.version-file }}
+        PACKAGE_NAME: ${{ steps.defaults.outputs.package_name }}
+        BASE_BRANCH: ${{ steps.defaults.outputs.base_branch }}
+      with:
+        script: |
+          const fs = require('node:fs');
+          const path = require('node:path');
+
+          const configPath = process.env.CONFIG_PATH;
+          const versionFile = process.env.VERSION_FILE;
+          const packageName = process.env.PACKAGE_NAME;
+          const baseBranch = process.env.BASE_BRANCH;
+
+          if (!configPath) throw new Error('CONFIG_PATH is required');
+          if (!versionFile) throw new Error('VERSION_FILE is required');
+          if (!packageName) throw new Error('PACKAGE_NAME is required');
+          if (!baseBranch) throw new Error('BASE_BRANCH is required');
+
+          if (fs.existsSync(configPath)) {
+            core.info(`${configPath} already exists`);
+            return;
+          }
+
+          fs.mkdirSync(path.dirname(configPath), { recursive: true });
+
+          // Use JSON.stringify to produce a safe JS string literal (handles quotes/backslashes/newlines).
+          const baseLit = JSON.stringify(baseBranch);
+          const pkgLit = JSON.stringify(packageName);
+          const versionFileLit = JSON.stringify(versionFile);
+
+          const content =
+          `/// @ts-check
+          /// <reference types="@chachalog/types" />
+          import fs from "node:fs";
+          import { defineConfig } from "chachalog";
+          import github from "chachalog/github";
+
+          export default defineConfig(() => ({
+          	allowedBumps: ["patch", "minor", "major"],
+          	platform: github({
+          		base: ${baseLit}
+          	}),
+          	managers: {
+          		packages: {
+          			name: ${pkgLit},
+          			path: process.cwd(),
+          			version: fs.readFileSync(${versionFileLit}, "utf-8").trim(),
+          		},
+          		setVersion(_pkg, version) {
+          			fs.writeFileSync(${versionFileLit}, version);
+          			return true;
+          		},
+          	},
+          }));
+          `;
+
+          fs.writeFileSync(configPath, content, 'utf8');
+          core.info(`Created ${configPath} since the repository did not contain a config file.`);
+
+    - name: Diplay Chachalog config
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "=== Chachalog config ==="
+        cat .chachalog/config.mjs
+        echo "=== Chachalog version ==="
+        cat .chachalog/.version

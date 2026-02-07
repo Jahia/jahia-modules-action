@@ -11,6 +11,12 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v6
+
+      # If the repo does not contain a Chachalog config, this action
+      # handles the creation of a default configuration, that should be 
+      # sufficient to get started
+      - uses: jahia/jahia-modules-action/chachalog-default-config@default-chachalog-config
+
       - run: npx chachalog@^0.4.4 prepare-next-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
