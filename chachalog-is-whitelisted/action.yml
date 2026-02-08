@@ -65,7 +65,6 @@ runs:
             'Jahia/qa-mf-unomi-tracker-site',
             'Jahia/QA-Modules',
             'Jahia/sdk-jahia',
-            'Jahia/sandbox',
             'Jahia/selenium',
             'Jahia/trivy-db',
           ];
