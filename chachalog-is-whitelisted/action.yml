@@ -16,10 +16,12 @@ runs:
   steps:
     - name: Check repository against whitelist
       id: check
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
+      env:
+        INPUT_REPOSITORY: ${{ inputs.repository }}      
       with:
         script: |
-          const inputRepo = core.getInput('repository', { required: true }).trim();
+          const inputRepo = process.env.INPUT_REPOSITORY?.trim();
 
           // Static whitelist (edit as needed)
           const whitelist = [
