@@ -81,8 +81,7 @@ jobs:
             docs:
               - 'docs/**'
 
-      # When the previous steps fails, the workflow would stop. By adding this
-      # condition you can continue the execution with the populated error message.          
+      # If changes are present in the docs/ folder, add a comment PR         
       - uses: marocchino/sticky-pull-request-comment@v2
         if: ${{ steps.changes.outputs.docs == 'true'}}
         env:
@@ -100,7 +99,7 @@ jobs:
             _This comment is posted automatically when changes are detected in the `docs/` folder._
             
 
-      # Delete a previous comment when the issue has been resolved
+      # Delete a previous comment if there are no changes in docs/
       - uses: marocchino/sticky-pull-request-comment@v2
         if: ${{ steps.changes.outputs.docs == 'false'}}
         env:
