@@ -65,6 +65,22 @@ jobs:
           header: pr-title-lint-error
           delete: true
 
+  # Post documentation guidelines when docs/ folder is modified
+  docs-comment:
+    runs-on: ubuntu-slim
+    name: Post documentation guidelines
+    if: ${{ github.event.action != 'closed' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+      
+      - uses: ./delivery/docs-comment
+        with:
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          docs-folder: 'docs/'
+
   # When closing the PR, label it based on conventional commits
   # https://github.com/marketplace/actions/conventionnal-commit-pr-labeler
   label-release:
