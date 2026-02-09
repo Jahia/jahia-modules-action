@@ -71,7 +71,7 @@ jobs:
     name: Post documentation guidelines
     if: ${{ github.event.action != 'closed' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # Check if changes took place in the docs/ folder
       - uses: dorny/paths-filter@v3
