@@ -57,12 +57,55 @@ jobs:
             _This message will be deleted once the PR title conforms with the convention._
 
       # Delete a previous comment when the issue has been resolved
-      - if: ${{ steps.lint_pr_title.outputs.error_message == null }}
-        uses: marocchino/sticky-pull-request-comment@v2
+      - uses: marocchino/sticky-pull-request-comment@v2
+        if: ${{ steps.lint_pr_title.outputs.error_message == null }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
         with:   
           header: pr-title-lint-error
+          delete: true
+
+  # Add a comment with documentation guidelines when docs/ folder is modified
+  docs-comment:
+    runs-on: ubuntu-slim
+    name: Post documentation guidelines
+    if: ${{ github.event.action != 'closed' }}
+    steps:
+      - uses: actions/checkout@v6
+
+      # Check if changes took place in the docs/ folder
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            docs:
+              - 'docs/**'
+
+      # If changes are present in the docs/ folder, add a comment PR         
+      - uses: marocchino/sticky-pull-request-comment@v2
+        if: ${{ steps.changes.outputs.docs == 'true'}}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
+        with:
+          header: doc-instructions
+          message: |
+            ## 📝 Documentation Guidelines
+            
+            Thank you for contributing to our documentation! To ensure your contributions meet our standards, please review these resources:
+            
+            - **[How to push markdown documents to the Academy](https://jahia-confluence.atlassian.net/wiki/spaces/PR/pages/634159106/Documentation+in+the+codebases)** - Learn the process for publishing documentation
+            - **[Documentation style guide and writing guidelines](https://jahia-confluence.atlassian.net/wiki/spaces/PR/pages/2065360/Documentation+style+guide)** - Follow our style conventions
+            
+            _This comment is posted automatically when changes are detected in the `docs/` folder._
+            
+
+      # Delete a previous comment if there are no changes in docs/
+      - uses: marocchino/sticky-pull-request-comment@v2
+        if: ${{ steps.changes.outputs.docs == 'false'}}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
+        with:   
+          header: doc-instructions
           delete: true
 
   # When closing the PR, label it based on conventional commits
