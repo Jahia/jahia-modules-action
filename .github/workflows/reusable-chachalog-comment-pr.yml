@@ -17,7 +17,7 @@ jobs:
 
       - name: Is repo whitelisted?
         id: wl
-        uses: jahia/jahia-modules-action/chachalog-is-whitelistedv2
+        uses: jahia/jahia-modules-action/chachalog-is-whitelisted@v2
         with:
           repository: ${{ github.repository }}
 
