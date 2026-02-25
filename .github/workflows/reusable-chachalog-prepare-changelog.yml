@@ -5,7 +5,7 @@ on:
 
 jobs:
   prepare-changelog:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     permissions:
       contents: write
       pull-requests: write
@@ -17,17 +17,17 @@ jobs:
 
       - name: Is repo whitelisted?
         id: wl
-        uses: jahia/jahia-modules-action/chachalog-is-whitelisted@default-chachalog-config
+        uses: jahia/jahia-modules-action/chachalog-is-whitelisted@v2
         with:
           repository: ${{ github.repository }}
 
       # If the repo does not contain a Chachalog config, this action
-      # handles the creation of a default configuration, that should be 
+      # handles the creation of a default configuration, that should be
       # sufficient to get started
-      - uses: jahia/jahia-modules-action/chachalog-default-config@default-chachalog-config
-        if: ${{ steps.wl.outputs.whitelisted != 'true' }}      
+      - uses: jahia/jahia-modules-action/chachalog-default-config@v2
+        if: ${{ steps.wl.outputs.whitelisted != 'true' }}
 
-      - run: npx chachalog@^0.4.4 prepare-next-release
+      - run: npx chachalog@^0.5 prepare-next-release
         if: ${{ steps.wl.outputs.whitelisted != 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
