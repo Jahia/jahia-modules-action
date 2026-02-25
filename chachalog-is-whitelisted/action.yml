@@ -1,0 +1,75 @@
+name: Is repository whitelisted for Chachalog
+description: Check if the provided repository is in the list of repositories to be whitelisted from chachalog usage
+
+inputs:
+  repository:
+    description: "Repository to check, using the format org/repo"
+    required: true
+    default: ""
+outputs:
+  whitelisted:
+    description: '"true" if the repository is in the whitelist, otherwise "false".'
+    value: ${{ steps.check.outputs.whitelisted }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check repository against whitelist
+      id: check
+      uses: actions/github-script@v8
+      env:
+        INPUT_REPOSITORY: ${{ inputs.repository }}      
+      with:
+        script: |
+          const inputRepo = process.env.INPUT_REPOSITORY?.trim();
+
+          // Static whitelist (edit as needed)
+          const whitelist = [
+            'Jahia/atmosphere',
+            'Jahia/cimg-mvn-cache',
+            'Jahia/cla-assistant',
+            'Jahia/ckeditor',
+            'Jahia/core-perf-test',
+            'Jahia/core-perf-test-JMeter-WebSocketSampler',
+            'Jahia/core-perf-test-terraform',
+            'Jahia/deleted-issues',
+            'Jahia/delivery',
+            'Jahia/dependency-track-exporter',
+            'Jahia/df-tests-api',
+            'Jahia/docker-elasticsearch',
+            'Jahia/docker-openldap',
+            'Jahia/dx-tests-specs',
+            'Jahia/forms-core-tests',
+            'Jahia/forms-elasticsearch-storage-tests',
+            'Jahia/jahia-docker-mvn-cache',
+            'Jahia/jahia-modules-action',
+            'Jahia/jahia-oauth',
+            'Jahia/jahia-qa',
+            'Jahia/jahia-qa-data',
+            'Jahia/jahia-reporter',
+            'Jahia/JahiaReleaseTool',
+            'Jahia/jcustomer-perf',
+            'Jahia/jira-archives',
+            'Jahia/keymaker',
+            'Jahia/news-qamf',
+            'Jahia/npm-jsx-templates-web-blue',
+            'Jahia/npm-solid-react-templateset-example',
+            'Jahia/open-source',
+            'Jahia/opencode',
+            'Jahia/preview-cloud',
+            'Jahia/preview-env',
+            'Jahia/qa-mf-common-utils',
+            'Jahia/qa-mf-referrer-site',
+            'Jahia/qa-mf-selenium',
+            'Jahia/qa-mf-unomi-api',
+            'Jahia/qa-mf-unomi-tracker-site',
+            'Jahia/QA-Modules',
+            'Jahia/sdk-jahia',
+            'Jahia/selenium',
+            'Jahia/trivy-db',
+          ];
+
+          const whitelisted = whitelist.map(r => String(r).trim().toLowerCase()).includes(inputRepo.toLowerCase());
+
+          core.info(`Repository "${inputRepo}" whitelisted: ${whitelisted}`);
+          core.setOutput('whitelisted', String(whitelisted));
