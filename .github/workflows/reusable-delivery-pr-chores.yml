@@ -118,3 +118,9 @@ jobs:
       - uses: stephdotnet/conventional-commit-pr-labels@0.2.0
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+
+  changelog:
+    name: Changelog
+    runs-on: ubuntu-slim
+    steps:
+      - uses: jahia/jahia-modules-action/delivery/check-changelog@v2
