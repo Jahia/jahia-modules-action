@@ -21,7 +21,7 @@ runs:
           return labels.includes("${{ inputs.no-changelog-label }}");
 
     - name: Is repo whitelisted?
-      id: wl
+      id: check-repo-whitelist
       if: steps.check-no-changelog.outputs.result == 'false'
       uses: jahia/jahia-modules-action/chachalog-is-whitelisted@v2
       with:
