@@ -37,7 +37,9 @@ runs:
       run: |
         set -euo pipefail
         version_file="${{ inputs.config-file-version }}"
-        if [ ! -f "$version_file" ]; then
+        config_file="${{ inputs.config-file }}"
+        # If the config file exists, we assume the version file (if needed) exists
+        if [ ! -f "$config_file" ]; then
           mkdir -p "$(dirname "$version_file")"
           echo "0.0.0" > "$version_file"
           echo "Created $version_file with 0.0.0"
