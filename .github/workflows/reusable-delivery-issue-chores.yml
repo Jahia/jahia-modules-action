@@ -238,19 +238,16 @@ jobs:
           BODY_JSON: ${{ steps.src.outputs.body_json }}
         run: |
           set -euo pipefail
-
-          # BODY_JSON is a JSON string; convert back to raw text for regex matching
           body="$(echo "$BODY_JSON" | jq -r '.')"
-
-          # Extract mentions, drop '@', unique them
+      
           mentions_json="$(
             printf '%s' "$body" \
-            | grep -oE '@[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?' \
+            | grep -oP '@[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?' \
             | sed 's/^@//' \
             | sort -u \
             | jq -R -s -c 'split("\n") | map(select(length>0))'
           )"
-
+      
           echo "mentions=$mentions_json" >> "$GITHUB_OUTPUT"
 
       - name: DM mentioned users on Slack (GitHub login -> Slack user id mapping)
