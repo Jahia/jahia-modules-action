@@ -257,9 +257,7 @@ jobs:
           SLACK_TO_GITHUB_ID_MAP: ${{ secrets.SLACK_TO_GITHUB_ID_MAP }}
           MENTIONS: ${{ steps.mentions.outputs.mentions }}
           REPO: ${{ github.repository }}
-          ISSUE_URL: ${{ github.event.issue.html_url }}
           COMMENT_URL: ${{ github.event.comment.html_url }}
-          EVENT_NAME: ${{ github.event_name }}
           ACTOR: ${{ github.actor }}
         run: |
           set -euo pipefail
@@ -272,21 +270,12 @@ jobs:
               continue
             fi
 
-            # Link to the relevant place
-            if [ "$EVENT_NAME" = "issue_comment" ] && [ -n "${COMMENT_URL:-}" ] && [ "$COMMENT_URL" != "null" ]; then
-              link="$COMMENT_URL"
-              link_label="View comment"
-            else
-              link="$ISSUE_URL"
-              link_label="View issue"
-            fi
-
             payload="$(jq -n \
               --arg channel "$slack_id" \
               --arg repo "$REPO" \
               --arg actor "$ACTOR" \
-              --arg link "$link" \
-              --arg link_label "$link_label" \
+              --arg link "$COMMENT_URL" \
+              --arg link_label "View comment" \
               '{
                 channel: $channel,
                 text: ($repo + ": you were mentioned by @" + $actor),
