@@ -131,7 +131,7 @@ jobs:
           CHECKSUM=$(find "${{ inputs.tests_path }}" -type f -exec sha256sum {} \; | sort | sha256sum | cut -d' ' -f1)
           echo "checksum=$CHECKSUM" >> $GITHUB_OUTPUT
           echo "Tests directory checksum: $CHECKSUM"
-      - uses: jahia/jahia-modules-action/integration-tests@v2
+      - uses: jahia/jahia-modules-action/integration-tests@use-cache-for-integration-tests-TEMP_FOR_TESTING
         with:
           module_id: ${{ inputs.module_id }}
           incident_service: ${{ inputs.pagerduty_incident_service }}
