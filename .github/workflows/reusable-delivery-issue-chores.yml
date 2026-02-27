@@ -216,3 +216,101 @@ jobs:
           jira_link_icon_open: https://support.jahia.com/images/icons/ico_task.png
           jira_link_icon_closed: https://support.jahia.com/images/icons/accept.png
           jira_link_icon_prefix: https://support.jahia.com/images/icons/tools_20.png
+
+  user_mentions:
+    name: Mentions
+    runs-on: ubuntu-slim
+    needs: links
+    if: ${{ github.event.sender.login != 'jahia-ci' && github.event_name == 'issue_comment' }}
+    steps:
+      - name: Parse issue comment body
+        id: src
+        run: |
+          set -euo pipefail
+
+          # Put into output as a JSON string (safe for jq later)
+          body_json="$(printf '%s' "${{ github.event.comment.body }}" | jq -Rs '.')"
+          echo "body_json=$body_json" >> "$GITHUB_OUTPUT"
+
+      - name: Extract GitHub @mentions
+        id: mentions
+        env:
+          BODY_JSON: ${{ steps.src.outputs.body_json }}
+        run: |
+          set -euo pipefail
+
+          # BODY_JSON is a JSON string; convert back to raw text for regex matching
+          body="$(echo "$BODY_JSON" | jq -r '.')"
+
+          # Extract mentions, drop '@', unique them
+          mentions_json="$(
+            printf '%s' "$body" \
+            | grep -oE '@[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?' \
+            | sed 's/^@//' \
+            | sort -u \
+            | jq -R -s -c 'split("\n") | map(select(length>0))'
+          )"
+
+          echo "mentions=$mentions_json" >> "$GITHUB_OUTPUT"
+
+      - name: DM mentioned users on Slack (GitHub login -> Slack user id mapping)
+        if: ${{ steps.mentions.outputs.mentions != '[]' }}
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_GITHUB_TO_ID_MAP: ${{ secrets.SLACK_GITHUB_TO_ID_MAP }}
+          MENTIONS: ${{ steps.mentions.outputs.mentions }}
+          REPO: ${{ github.repository }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          COMMENT_URL: ${{ github.event.comment.html_url }}
+          EVENT_NAME: ${{ github.event_name }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+
+          echo "$MENTIONS" | jq -r '.[]' | while read -r login; do
+            slack_id="$(echo "$SLACK_GITHUB_TO_ID_MAP" | jq -r --arg login "$login" '.[$login] // empty')"
+
+            if [ -z "$slack_id" ] || [ "$slack_id" = "null" ]; then
+              echo "No Slack mapping for GitHub user @$login; skipping"
+              continue
+            fi
+
+            # Link to the relevant place
+            if [ "$EVENT_NAME" = "issue_comment" ] && [ -n "${COMMENT_URL:-}" ] && [ "$COMMENT_URL" != "null" ]; then
+              link="$COMMENT_URL"
+              link_label="View comment"
+            else
+              link="$ISSUE_URL"
+              link_label="View issue"
+            fi
+
+            payload="$(jq -n \
+              --arg channel "$slack_id" \
+              --arg repo "$REPO" \
+              --arg actor "$ACTOR" \
+              --arg link "$link" \
+              --arg link_label "$link_label" \
+              '{
+                channel: $channel,
+                text: ($repo + ": you were mentioned by @" + $actor),
+                blocks: [
+                  {
+                    type: "section",
+                    text: { type: "mrkdwn", text: ("*You were mentioned*\nRepository: *" + $repo + "*\nBy: @" + $actor + "\n<" + $link + "|" + $link_label + ">") }
+                  }
+                ]
+              }'
+            )"
+
+            resp="$(curl -sS -X POST "https://slack.com/api/chat.postMessage" \
+              -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+              -H "Content-type: application/json; charset=utf-8" \
+              --data "$payload"
+            )"
+
+            if [ "$(echo "$resp" | jq -r '.ok')" != "true" ]; then
+              echo "Failed to DM @$login ($slack_id): $(echo "$resp" | jq -c '.')"
+            else
+              echo "DM sent to @$login ($slack_id)"
+            fi
+          done
