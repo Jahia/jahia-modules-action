@@ -257,7 +257,7 @@ jobs:
         if: ${{ steps.mentions.outputs.mentions != '[]' }}
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-          SLACK_GITHUB_TO_ID_MAP: ${{ secrets.SLACK_GITHUB_TO_ID_MAP }}
+          SLACK_TO_GITHUB_ID_MAP: ${{ secrets.SLACK_TO_GITHUB_ID_MAP }}
           MENTIONS: ${{ steps.mentions.outputs.mentions }}
           REPO: ${{ github.repository }}
           ISSUE_URL: ${{ github.event.issue.html_url }}
@@ -268,7 +268,7 @@ jobs:
           set -euo pipefail
 
           echo "$MENTIONS" | jq -r '.[]' | while read -r login; do
-            slack_id="$(echo "$SLACK_GITHUB_TO_ID_MAP" | jq -r --arg login "$login" '.[$login] // empty')"
+            slack_id="$(echo "$SLACK_TO_GITHUB_ID_MAP" | jq -r --arg login "$login" '.[$login] // empty')"
 
             if [ -z "$slack_id" ] || [ "$slack_id" = "null" ]; then
               echo "No Slack mapping for GitHub user @$login; skipping"
