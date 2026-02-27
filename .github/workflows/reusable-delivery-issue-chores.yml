@@ -221,7 +221,7 @@ jobs:
     name: Mentions
     runs-on: ubuntu-slim
     needs: links
-    if: ${{ github.event.sender.login != 'jahia-ci' && github.event_name == 'issue_comment' }}
+    if: always() && github.event.sender.login != 'jahia-ci' && github.event_name == 'issue_comment'
     steps:
       - name: Parse issue comment body
         id: src
