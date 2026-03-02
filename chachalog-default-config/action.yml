@@ -145,4 +145,4 @@ runs:
         echo "=== Displaying Chachalog config at: ${{ inputs.config-file }} ==="
         cat ${{ inputs.config-file }}
         echo "=== Displaying Chachalog version at: ${{ inputs.config-file-version }}==="
-        cat ${{ inputs.config-file-version }}
+        cat ${{ inputs.config-file-version }} || echo "Version file not found"
