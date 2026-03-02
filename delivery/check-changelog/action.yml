@@ -5,9 +5,6 @@ inputs:
   changelog-directory:
     description: The path to the changelog directory
     default: '.chachalog'
-  no-changelog-label:
-    description: The name of the "no-changelog" label, indicating that a changelog is not expected in this PR
-    default: '🗒️ no-changelog'
 
 runs:
   using: composite
@@ -20,7 +17,13 @@ runs:
           const labels = context.payload.pull_request.labels.map(label => label.name);
           core.debug('Labels attached to the PR:')
           core.debug(JSON.stringify(labels, null, 2))
-          return labels.includes("${{ inputs.no-changelog-label }}");
+
+          const hasNoChangelogLabel = labels.some((label) => {
+            const lcLabel = String(label).toLowerCase();
+            return lcLabel.includes('no') && lcLabel.includes('changelog');
+          });
+
+          return hasNoChangelogLabel;
 
     - name: Is repo whitelisted?
       id: check-repo-whitelist
