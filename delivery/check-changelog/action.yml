@@ -18,6 +18,8 @@ runs:
       with:
         script: |
           const labels = context.payload.pull_request.labels.map(label => label.name);
+          core.debug('Labels attached to the PR:')
+          core.debug(JSON.stringify(labels, null, 2))
           return labels.includes("${{ inputs.no-changelog-label }}");
 
     - name: Is repo whitelisted?
