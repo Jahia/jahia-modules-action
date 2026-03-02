@@ -25,6 +25,7 @@ runs:
 
           // Static whitelist (edit as needed)
           const whitelist = [
+            'Jahia/.github',
             'Jahia/atmosphere',
             'Jahia/cimg-mvn-cache',
             'Jahia/cla-assistant',
