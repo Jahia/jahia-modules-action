@@ -59,6 +59,7 @@ runs:
             'Jahia/opencode',
             'Jahia/preview-cloud',
             'Jahia/preview-env',
+            'Jahia/provisioning-tutorials',
             'Jahia/qa-mf-common-utils',
             'Jahia/qa-mf-referrer-site',
             'Jahia/qa-mf-selenium',
