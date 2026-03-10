@@ -24,7 +24,7 @@ export async function buildDockerTestImage(
   }
 
   const cacheEnabled = core.getInput('docker_build_cache_enabled') === 'true'
-  const cacheScope = core.getInput('docker_build_cache_scope') || 'docker-build'
+  const cacheScope = core.getInput('docker_build_cache_scope') || 'default'
 
   // Set environment variables for cache configuration
   // These can be used by build scripts (in particular ci.build.sh from jahia-cypress)
