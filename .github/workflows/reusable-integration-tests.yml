@@ -72,7 +72,7 @@ on:
         type: string
         description: 'Folder containing the docker-compose.yml'
         required: false
-        default: 'tests/'        
+        default: 'tests/'
       test_report_name:
         type: string
         default: "Tests Report"
@@ -93,6 +93,10 @@ on:
         type: string
         default: "docker-compose.yml"
         description: "Location of the Docker Compose configuration file to use, relative to the ./tests/ folder."
+      docker_build_cache_enabled:
+        type: boolean
+        default: false
+        description: "Enable Docker build cache using GitHub Actions cache to speed up Docker image builds"
 
 jobs:
   integration-tests:
@@ -163,6 +167,9 @@ jobs:
           zencrepes_secret: ${{ secrets.ZENCREPES_WEBHOOK_SECRET }}
           catalina_context: ${{ inputs.catalina_context }}
           docker_compose_file: ${{ inputs.docker_compose_file }}
+          docker_build_cache_enabled: ${{ inputs.docker_build_cache_enabled }}
+          # the cache will be shared by all workflows using this reusable workflow in a given repository
+          docker_build_cache_scope: "integration-tests"
 
       - name: Test Report
         uses: dorny/test-reporter@v2.3.0
