@@ -39,14 +39,24 @@ on:
       provisioning_manifest:
         required: true
         type: string
+      incident_service:
+        required: false
+        type: string
+        default: ""
+      skip_notifications:
+        required: false
+        type: boolean
+        default: false        
       pagerduty_incident_service:
         required: false
         type: string
         default: ""
+        description: "This input is deprecated, please use incident_service instead."
       pagerduty_skip_notification:
         required: false
         type: boolean
         default: false
+        description: "This input is deprecated, please use skip_notifications instead."
       timeout_job:
         type: number
         default: 65
@@ -106,6 +116,26 @@ jobs:
       fail-fast: false
     timeout-minutes: ${{ inputs.timeout_job }}
     steps:
+      # Handle deprecated inputs
+      - name: Resolve deprecated workflow inputs
+        id: deprecated_inputs
+        run: |
+          if [ -n "${{ inputs.incident_service }}" ]; then
+            echo "incident_service=${{ inputs.incident_service }}" >> $GITHUB_OUTPUT
+          else
+            echo "incident_service=${{ inputs.pagerduty_incident_service }}" >> $GITHUB_OUTPUT
+            echo "::warning::The 'pagerduty_incident_service' input is deprecated. Please use 'incident_service' instead."
+          fi
+
+          if [ "${{ inputs.skip_notification }}" = "true" ]; then
+            echo "skip_notification=true" >> $GITHUB_OUTPUT
+          elif [ "${{ inputs.pagerduty_skip_notification }}" = "true" ]; then
+            echo "skip_notification=true" >> $GITHUB_OUTPUT
+            echo "::warning::The 'pagerduty_skip_notification' input is deprecated. Please use 'skip_notification' instead."          
+          else
+            echo "skip_notification=false" >> $GITHUB_OUTPUT
+          fi       
+
       - uses: jahia/jahia-modules-action/helper@v2
       - uses: KengoTODA/actions-setup-docker-compose@main
         with:
@@ -123,7 +153,8 @@ jobs:
       - uses: jahia/jahia-modules-action/integration-tests@v2
         with:
           module_id: ${{ inputs.module_id }}
-          incident_service: ${{ inputs.pagerduty_incident_service }}
+          incident_service: ${{ steps.deprecated_inputs.outputs.incident_service }}
+          should_skip_pagerduty: ${{ steps.deprecated_inputs.outputs.skip_notification }}
           testrail_project: ${{ inputs.testrail_project }}
           timeout_minutes: ${{ inputs.timeout_step }}
           tests_manifest: ${{ inputs.provisioning_manifest }}
@@ -134,7 +165,6 @@ jobs:
           elasticsearch_image: ${{ inputs.elasticsearch_image }}
           jcustomer_image: ${{ inputs.jcustomer_image }}
           should_skip_testrail: ${{ inputs.should_skip_testrail }}
-          should_skip_pagerduty: ${{ inputs.pagerduty_skip_notification }}
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           github_artifact_name: ${{ inputs.artifact_prefix }}-${{ github.run_number }}
           jahia_artifact_name: ${{ inputs.artifact_prefix }}-${{ github.run_number }}
