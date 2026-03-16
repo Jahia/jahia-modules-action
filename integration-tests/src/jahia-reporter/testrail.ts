@@ -10,6 +10,7 @@ interface JahiaReporterTestrail {
   testrailParentSection: string
   testrailProject: string
   testrailMilestone: string
+  testrailProfile: string
 }
 
 interface TestrailMetadata {
