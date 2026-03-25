@@ -129,7 +129,7 @@ runs:
           -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DnodeAuditSkipDevDependencies=true \
           -DyarnAuditAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data"
           
-        DEFAULT_SUPP="https://raw.githubusercontent.com/Jahia/jahia/master/.owasp/suppressions.xml"
+        DEFAULT_SUPP="https://raw.githubusercontent.com/Jahia/jahia/main/.owasp/suppressions.xml"
         supps=("$DEFAULT_SUPP")
 
         CUSTOM_FILE=".owasp/custom-suppressions.xml"

@@ -406,7 +406,7 @@ runs:
       if: failure()
       run: |
         echo "Current branch is: $CURRENT_BRANCH"
-        if [ ${{ inputs.primary_release_branch }} == $CURRENT_BRANCH ] || [ master == $CURRENT_BRANCH ]; then
+        if [ ${{ inputs.primary_release_branch }} == $CURRENT_BRANCH ] || [ main == $CURRENT_BRANCH ]; then
           echo "::group::Create incident in PagerDuty"
           cd ${{ inputs.tests_path }}
           jahia-reporter pagerduty:incident \
