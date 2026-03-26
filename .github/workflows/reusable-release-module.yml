@@ -60,6 +60,11 @@ on:
         description: "Time during which artifact are kept in Github infrastructure"
         required: false
         default: "2"
+      skip_staging:
+        type: boolean
+        description: 'Skip staging repository (e.g. for Jahia Cloud releases)'
+        default: false
+        required: false
 
 jobs:
   release-module:
@@ -119,7 +124,7 @@ jobs:
       - name: Displaying defined variables
         shell: bash
         run: |
-          echo "NEXUS_USERNAME=${{ steps.nexus-creds.outputs.NEXUS_USERNAME }}" 
+          echo "NEXUS_USERNAME=${{ steps.nexus-creds.outputs.NEXUS_USERNAME }}"
           echo "GITHUB_SLUG=${{ steps.slug.outputs.GITHUB_SLUG }}"
 
       - uses: jahia/jahia-modules-action/release@v2
@@ -143,6 +148,7 @@ jobs:
           gpg_key: ${{ secrets.GPG_KEY }}
           gpg_key_id: ${{ secrets.GPG_KEY_ID }}
           gpg_key_passphrase: ${{ secrets.GPG_KEY_PASSPHRASE }}
+          skip_staging: ${{ inputs.skip_staging }}
 
       - uses: jahia/jahia-modules-action/update-signature@v2
         with:

@@ -71,6 +71,10 @@ inputs:
     description: 'GPG Key Passphrase'
     default: ''
     required: false
+  skip_staging:
+    description: 'Skip staging repository (e.g. for Jahia Cloud releases)'
+    default: false
+    required: false
 
 runs:
   using: 'composite'
@@ -264,22 +268,26 @@ runs:
 
     - name: Perform release
       shell: bash
-      run: | 
+      run: |
         # if [[ "${{ inputs.tests_module_type }}" == "mvn"  &&  "${{ steps.check_test_module_mvn.outputs.files_exists }}" == "true" ]]; then
         #   echo "Perform release for test module"
         #   cd ${{ inputs.tests_module_path }}
         #   mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} release:perform -Prelease-to-staging-repository
         # else
-        #   echo "No test module found"          
+        #   echo "No test module found"
         # fi
         # cd ${GITHUB_WORKSPACE}
-        mvn -B -s ${{ inputs.mvn_settings_filepath }} release:perform -Prelease-to-staging-repository
+        staging="-Prelease-to-staging-repository"
+        if [[ "${{ inputs.skip_staging }}" == "true" ]]; then
+          staging=""
+        fi
+        mvn -B -s ${{ inputs.mvn_settings_filepath }} release:perform $staging
       env:
         GPG_KEY_PASSPHRASE: ${{ inputs.gpg_key_passphrase }}
 
     - name: Set development version for the test module (if present)
       shell: bash
-      run: | 
+      run: |
         if [[ "${{ inputs.tests_module_type }}" == "mvn" && "${{ steps.check_test_module_mvn.outputs.files_exists }}" == "true" ]]; then
           cd ${{ inputs.tests_module_path }}
           mvn -B -s ${GITHUB_WORKSPACE}/${{ inputs.mvn_settings_filepath }} versions:set -DnewVersion="${{ steps.versions.outputs.next_development_version }}"
