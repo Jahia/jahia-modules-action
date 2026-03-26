@@ -288,7 +288,8 @@ async function run(): Promise<void> {
               testrailPassword: core.getInput('testrail_password'),
               testrailParentSection: '',
               testrailProject: core.getInput('testrail_project'),
-              testrailMilestone: core.getInput('testrail_milestone')
+              testrailMilestone: core.getInput('testrail_milestone'),
+              profile: core.getInput('incident_service')
             }
           )
         }
@@ -319,7 +320,8 @@ async function run(): Promise<void> {
               testrailPassword: core.getInput('testrail_password'),
               testrailParentSection: core.getInput('testrail_project'),
               testrailProject: 'JahiaCI',
-              testrailMilestone: core.getInput('testrail_milestone')
+              testrailMilestone: core.getInput('testrail_milestone'),
+              profile: core.getInput('incident_service')
             }
           )
         }
