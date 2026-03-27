@@ -31,7 +31,7 @@ on:
             default: "ghcr.io/jahia/jahia-docker-mvn-cache:11-jdk-noble-mvn-loaded"
         sonar_analysis_primary_release_branch:
             type: string
-            default: "master"
+            default: "main"
         sonar_analysis_instance_type:
             type: string
             default: "ubuntu-latest"
