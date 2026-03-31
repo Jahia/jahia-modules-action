@@ -59,7 +59,7 @@ runs:
 
     - name: Create an issue with the Maven report
       if: always()
-      uses: dacbd/create-issue-action@v1.2.0
+      uses: dacbd/create-issue-action@cdb57ab6ff8862aa09fee2be6ba77a59581921c2 # v2.0.0
       with:
         token: ${{ inputs.github_token }}
         title: Maven dependency report (new versions available) - ${{ env.TODAY }}

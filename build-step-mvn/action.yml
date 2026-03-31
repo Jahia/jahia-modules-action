@@ -73,7 +73,7 @@ runs:
 
     - name: Archive build artifacts
       if: ${{ inputs.archive_only_jars == 'false' }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: ${{ inputs.github_artifact_name }}
         path: |
@@ -83,7 +83,7 @@ runs:
 
     - name: Archive build artifacts (.jars)
       if: ${{ inputs.archive_only_jars == 'true' }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: ${{ inputs.github_artifact_name }}
         path: |

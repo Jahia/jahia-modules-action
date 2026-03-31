@@ -98,7 +98,7 @@ runs:
 
     - name: Setup .npmrc file to publish to npmjs.org
       if: ${{ inputs.npmjs_publish_token != '' }}
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
       with:
         node-version: 'lts/*'
         registry-url: 'https://registry.npmjs.org'
@@ -312,7 +312,7 @@ runs:
 
     - name: Release Artifacts
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: release-artifacts
         path: |
@@ -321,7 +321,7 @@ runs:
 
     - name: Archive SBOM artifacts
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: sbom-artifacts
         path: |
@@ -333,7 +333,7 @@ runs:
 
     - name: Post to a Slack channel
       if: ${{ inputs.slack-webhook-qa }}
-      uses: slackapi/slack-github-action@v1.23.0
+      uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95 #v3.0.1
       with:
         payload: |
           {
