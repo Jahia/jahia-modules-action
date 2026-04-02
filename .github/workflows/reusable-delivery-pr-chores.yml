@@ -18,14 +18,14 @@ jobs:
     # It does not make sense to run that workflow when a PR is closed
     if: ${{ github.event.action != 'closed' }}
     steps:
-      - uses: amannn/action-semantic-pull-request@v5
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
         id: lint_pr_title
         env:
           GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}
 
       # When the previous steps fails, the workflow would stop. By adding this
       # condition you can continue the execution with the populated error message.          
-      - uses: marocchino/sticky-pull-request-comment@v2
+      - uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 #v3.0.2
         if: always() && (steps.lint_pr_title.outputs.error_message != null)
         env:
           GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
@@ -57,7 +57,7 @@ jobs:
             _This message will be deleted once the PR title conforms with the convention._
 
       # Delete a previous comment when the issue has been resolved
-      - uses: marocchino/sticky-pull-request-comment@v2
+      - uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 #v3.0.2
         if: ${{ steps.lint_pr_title.outputs.error_message == null }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
@@ -71,10 +71,10 @@ jobs:
     name: Post documentation guidelines
     if: ${{ github.event.action != 'closed' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
 
       # Check if changes took place in the docs/ folder
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d #v4.0.1
         id: changes
         with:
           filters: |
@@ -82,7 +82,7 @@ jobs:
               - 'docs/**'
 
       # If changes are present in the docs/ folder, add a comment PR         
-      - uses: marocchino/sticky-pull-request-comment@v2
+      - uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 #v3.0.2
         if: ${{ steps.changes.outputs.docs == 'true'}}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
@@ -100,7 +100,7 @@ jobs:
             
 
       # Delete a previous comment if there are no changes in docs/
-      - uses: marocchino/sticky-pull-request-comment@v2
+      - uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 #v3.0.2
         if: ${{ steps.changes.outputs.docs == 'false'}}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
@@ -115,7 +115,7 @@ jobs:
     name: Apply label base on conventional commit
     if: ${{ github.event.action == 'closed' }}
     steps:
-      - uses: stephdotnet/conventional-commit-pr-labels@0.2.0
+      - uses: stephdotnet/conventional-commit-pr-labels@9ad1ff1e001d7789e1b9b2e042376d285d574d55 #v0.2.0
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
 

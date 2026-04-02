@@ -46,7 +46,7 @@ runs:
         fi
 
     - name: Restore base dependencies from cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       with:
         key: ${{ runner.os }}-maven-${{ hashFiles('/tmp/base-repo/**/pom.xml') }}
@@ -60,7 +60,7 @@ runs:
         cat ${BASE_REPO_DIR}/${{ inputs.root_folder }}/base-deps.txt
 
     - name: Restore dependencies from cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       with:
         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
@@ -112,7 +112,7 @@ runs:
         fi
 
     - name: Add/Update lib comment
-      uses: NejcZdovc/comment-pr@v1.1.1
+      uses: NejcZdovc/comment-pr@a423635d183a8259308e80593c96fecf31539c26 #v2.1.0
       if: ${{ env.DIFF_STATUS == 1 }}
       with:
         identifier: ${{ github.workflow }}-updates
@@ -147,7 +147,7 @@ runs:
         fi
 
     - name: Add/Update licenses comment
-      uses: NejcZdovc/comment-pr@v1.1.1
+      uses: NejcZdovc/comment-pr@a423635d183a8259308e80593c96fecf31539c26 #v2.1.0
       if: ${{ env.LICENSE_DIFF_STATUS == 1 }}
       with:
         identifier: ${{ github.workflow }}-licenses

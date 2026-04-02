@@ -30,7 +30,7 @@ runs:
 
     - name: Check if test module is present (Only Javascript test module is supported)
       id: check_test_module_javascript
-      uses: andstor/file-existence-action@v2
+      uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6 # v3.0.0
       with:
         files: "${{ inputs.tests_module_path }}package.json"
 

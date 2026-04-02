@@ -98,7 +98,7 @@ runs:
 
     - name: Setup .npmrc file to publish to npmjs.org
       if: ${{ inputs.npmjs_publish_token != '' }}
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
       with:
         node-version: 'lts/*'
         registry-url: 'https://registry.npmjs.org'
@@ -115,7 +115,7 @@ runs:
         find . -name 'pom.xml' | sort | xargs cat > ./maven_cache_seed
 
     - name: Cache local Maven repository
-      uses: actions/cache@v4
+      uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
       with:
         path: |
           ~/.m2/repository
@@ -179,7 +179,7 @@ runs:
     - name: Check if test module is present (MVN)
       if: ${{ inputs.tests_module_type == 'mvn' }}
       id: check_test_module_mvn
-      uses: andstor/file-existence-action@v2
+      uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6 # v3.0.0
       with:
         files: "${{ inputs.tests_module_path }}pom.xml"
 
@@ -259,7 +259,7 @@ runs:
         GPG_KEY_PASSPHRASE: ${{ inputs.gpg_key_passphrase }}
 
     - name: Cache local Maven repository
-      uses: actions/cache@v4
+      uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
       with:
         path: |
           pom.xml.releaseBackup
@@ -312,7 +312,7 @@ runs:
 
     - name: Release Artifacts
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: release-artifacts
         path: |
@@ -321,7 +321,7 @@ runs:
 
     - name: Archive SBOM artifacts
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: sbom-artifacts
         path: |
@@ -333,7 +333,7 @@ runs:
 
     - name: Post to a Slack channel
       if: ${{ inputs.slack-webhook-qa }}
-      uses: slackapi/slack-github-action@v1.23.0
+      uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95 #v3.0.1
       with:
         payload: |
           {
