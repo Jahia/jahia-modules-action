@@ -10,6 +10,7 @@ interface JahiaReporterTestrail {
   testrailParentSection: string
   testrailProject: string
   testrailMilestone: string
+  profile: string
 }
 
 interface TestrailMetadata {
@@ -140,6 +141,7 @@ export async function publishToTestrail(
     command += ` --defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`
     command += ` --testrailCustomResultFields="${metadataFile}"`
     command += ` --linkRunFile="${testrailLinkFile}"`
+    command += ` --profile="${options.profile}"` 
 
     await runShellCommands([command], null, {printCmd: false})
 
