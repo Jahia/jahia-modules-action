@@ -52,7 +52,7 @@ runs:
           echo "LICENSE_DIFF_STATUS=0" >> $GITHUB_ENV
         fi
 
-    - uses: NejcZdovc/comment-pr@v1.1.1
+    - uses: NejcZdovc/comment-pr@a423635d183a8259308e80593c96fecf31539c26 #v2.1.0
       if: ${{ env.LICENSE_JS_DIFF_STATUS == 1 }}
       with:
         identifier: ${{ github.workflow }}-js-licenses

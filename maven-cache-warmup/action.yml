@@ -29,7 +29,7 @@ runs:
   using: "composite"
   steps:
     - name: Setup Maven Action
-      uses: s4u/setup-maven-action@v1.18.0
+      uses: s4u/setup-maven-action@6c4e9964d4ecb8f1026310cd8618791fd51a8016 #v1.19.0
       with:
         java-version: ${{ inputs.java-version }}
         java-distribution: ${{ inputs.java-distribution }}      
@@ -46,7 +46,7 @@ runs:
         fi
 
     - name: Docker login
-      uses: docker/login-action@v3.4.0
+      uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
       with:
         username: ${{ inputs.docker-username }}
         password: ${{ inputs.docker-password }}

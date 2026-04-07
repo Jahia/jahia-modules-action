@@ -76,7 +76,7 @@ runs:
         echo "base_branch=$base" >> "$GITHUB_OUTPUT"
 
     - name: Ensure config file exists (rendered via github-script)
-      uses: actions/github-script@v8
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       env:
         CONFIG_PATH: ${{ inputs.config-file }}
         VERSION_FILE: ${{ inputs.config-file-version }}

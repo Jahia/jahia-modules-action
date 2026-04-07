@@ -21,7 +21,7 @@ jobs:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
 
       - name: Displays details about the event and issue
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
             core.info(`context.eventName: ${context.eventName}`)
@@ -38,35 +38,35 @@ jobs:
       # https://github.com/marketplace/actions/add-to-github-projects
       - name: Attach needs-triage label to the Bugs Triage project
         if: ${{ (github.repository != 'Jahia/pm') }}  # exclude pm repository since we don't want to add all issues to the triage project
-        uses: actions/add-to-project@v1.0.2
+        uses: actions/add-to-project@244f685bbc3b7adfa8466e08b698b5577571133e # v1.0.2
         with:
           project-url: https://github.com/orgs/Jahia/projects/13
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: need-triage
 
       - name: Attach design label to the design project
-        uses: actions/add-to-project@v1.0.2
+        uses: actions/add-to-project@244f685bbc3b7adfa8466e08b698b5577571133e # v1.0.2
         with:
           project-url: https://github.com/orgs/Jahia/projects/45
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: design
 
       - name: Attach all Sup tickets to the product team project
-        uses: actions/add-to-project@v1.0.2
+        uses: actions/add-to-project@244f685bbc3b7adfa8466e08b698b5577571133e # v1.0.2
         if: ${{ steps.get-issue.outputs.issue_type == 'Sup' }}
         with:
           project-url: https://github.com/orgs/Jahia/projects/50
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
 
       - name: Attach all Idea tickets to the PM board
-        uses: actions/add-to-project@v1.0.2
+        uses: actions/add-to-project@244f685bbc3b7adfa8466e08b698b5577571133e # v1.0.2
         if: ${{ steps.get-issue.outputs.issue_type == 'Idea' }}
         with:
           project-url: https://github.com/orgs/Jahia/projects/59
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
 
       - name: Attach customers tickets to the Product Team project
-        uses: actions/add-to-project@v1.0.2
+        uses: actions/add-to-project@244f685bbc3b7adfa8466e08b698b5577571133e # v1.0.2
         with:
           project-url: https://github.com/orgs/Jahia/projects/50
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
@@ -74,7 +74,7 @@ jobs:
 
       # Add all tickets of Type "Epic" and label "Area:" to the global roadmap project
       - name: Attach all Epics to the Roadmap - Global project
-        uses: actions/add-to-project@v1.0.2
+        uses: actions/add-to-project@244f685bbc3b7adfa8466e08b698b5577571133e # v1.0.2
         if: ${{ steps.get-issue.outputs.issue_type == 'Epic' }}
         with:
           project-url: https://github.com/orgs/Jahia/projects/18
@@ -92,28 +92,28 @@ jobs:
           github-security-project: 'Product Team'
 
       - name: Attach all tickets with label Area:QA to the QA Roadmap Project
-        uses: actions/add-to-project@v1.0.2
+        uses: actions/add-to-project@244f685bbc3b7adfa8466e08b698b5577571133e # v1.0.2
         with:
           project-url: https://github.com/orgs/Jahia/projects/21
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:QA
 
       - name: Attach all tickets with label Area:Tech to the Tech Roadmap Project
-        uses: actions/add-to-project@v1.0.2
+        uses: actions/add-to-project@244f685bbc3b7adfa8466e08b698b5577571133e # v1.0.2
         with:
           project-url: https://github.com/orgs/Jahia/projects/23
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:Tech
 
       - name: Attach all tickets with label Area:Delivery to the Delivery Roadmap Project
-        uses: actions/add-to-project@v1.0.2
+        uses: actions/add-to-project@244f685bbc3b7adfa8466e08b698b5577571133e # v1.0.2
         with:
           project-url: https://github.com/orgs/Jahia/projects/12
           github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labeled: Area:Delivery
 
       - name: Attach all tickets with label Area:Security and incident to the Security Roadmap Project
-        uses: actions/add-to-project@v1.0.2
+        uses: actions/add-to-project@244f685bbc3b7adfa8466e08b698b5577571133e # v1.0.2
         id: new-security-incident
         with:
           project-url: https://github.com/orgs/Jahia/projects/22
@@ -150,12 +150,12 @@ jobs:
     steps:
       # Transfer issues with label "jahia-only" back to jahia-private
       - name: Transfer Issue & Create Stub
-        uses: lando/transfer-issue-action@v2
+        uses: lando/transfer-issue-action@6cf14bfdd14bae08711cd96787826dfa037c0186 # v2.1.0
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
           router: jahia-only:jahia-private      
       - name: Update Transferred Issue
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         if: steps.transfer-issue.outputs.new_issue_number != ''
         with:
           script: |
@@ -168,14 +168,14 @@ jobs:
 
       # If labeled with delete, the issue is transffered to a dedicated repository
       - name: Transfer Issue for deletion
-        uses: lando/transfer-issue-action@v2
+        uses: lando/transfer-issue-action@6cf14bfdd14bae08711cd96787826dfa037c0186 # v2.1.0
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
           router: delete:deleted-issues     
 
       # Transfer issues between repositories of the Jahia org
       - name: Transfer Issue to another repository
-        uses: Fgerthoffert/actions-transfer-issue@v1.3.0
+        uses: Fgerthoffert/actions-transfer-issue@325dc2a1f7ef13f1912e48180a808be02d35766a # v1.3.0
         if: ${{ github.event.action == 'labeled' }}
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
@@ -183,7 +183,7 @@ jobs:
 
       # If labeled with incident, the issue is transfered to a dedicated repository
       - name: Transfer Issue tagged with incident
-        uses: lando/transfer-issue-action@v2
+        uses: lando/transfer-issue-action@6cf14bfdd14bae08711cd96787826dfa037c0186 # v2.1.0
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}        
           router: incident:ISMS-Product
@@ -205,7 +205,7 @@ jobs:
       # Create links in Jira to GitHub Issues
       # We still need to create a Jira User and update the server_host
       - name: Create links to GitHub in Jira issues
-        uses: Fgerthoffert/actions-create-jira-link@v1.3.0
+        uses: Fgerthoffert/actions-create-jira-link@bdaa256fae2b62062ad6399779b4f62b26deea0f # v1.3.0
         if: steps.issue-exists.outputs.issue_number != ''
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}

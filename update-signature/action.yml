@@ -220,13 +220,3 @@ runs:
         fi
       env:
         GPG_KEY_PASSPHRASE: ${{ inputs.gpg_key_passphrase }}
-
-    # # https://github.com/marketplace/actions/add-commit
-    # - name: Committed changed files back to the repository
-    #   if: env.PERFORM_SIGNATURE == 'true'
-    #   uses: EndBug/add-and-commit@v7
-    #   with:
-    #     add: pom.xml
-    #     author_name: Jahia CI
-    #     author_email: jahia-ci@jahia.com
-    #     message: '[ci skip] Updated signature for ${project_name}'
