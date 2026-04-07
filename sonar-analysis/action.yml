@@ -150,7 +150,10 @@ runs:
         fi  
         
         if [[ -n "${{ inputs.oss_username }}" && -n "${{ inputs.oss_apitoken }}" ]]; then
-          SONAR_PARAMS+=" -DossIndexUsername=${{ inputs.oss_username }} -DossIndexPassword=${{ inputs.oss_apitoken }}"
+          SONAR_PARAMS+=" -DossIndexUsername=${{ inputs.oss_username }} -DossIndexPassword=${{ inputs.oss_apitoken }} \
+            -DossIndexAnalyzerUrl=https://api.guide.sonatype.com -DossIndexAnalyzerUseCache=false"
+        else    
+          SONAR_PARAMS+=" -DossindexAnalyzerEnabled=false"
         fi  
         
         echo "SONAR_PARAMS=${SONAR_PARAMS}" >> $GITHUB_ENV
