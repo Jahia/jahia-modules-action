@@ -141,13 +141,20 @@ export async function publishToTestrail(
     command += ` --defaultRunDescription="This test was executed on Github Actions, ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}"`
     command += ` --testrailCustomResultFields="${metadataFile}"`
     command += ` --linkRunFile="${testrailLinkFile}"`
-    command += ` --profile="${options.profile}"` 
+    command += ` --profile="${options.profile}"`
 
     await runShellCommands([command], null, {printCmd: false})
 
-    if (fs.statSync(testrailLinkFile).isFile()) {
+    if (
+      fs.existsSync(testrailLinkFile) &&
+      fs.statSync(testrailLinkFile).isFile()
+    ) {
       const rawFile = fs.readFileSync(testrailLinkFile, 'utf8')
       core.info(`Testrail run available at: ${rawFile.toString()}`)
+    } else {
+      core.info(
+        `ERROR: Unable to save testrail link file, the "jahia-reporter testrail" command likely failed`
+      )
     }
   } else {
     core.info(
