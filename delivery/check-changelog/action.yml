@@ -10,7 +10,7 @@ runs:
   using: composite
   steps:
     - name: Check if no-changelog label is present
-      uses: actions/github-script@v8
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       id: check-no-changelog
       with:
         script: |
@@ -34,7 +34,7 @@ runs:
 
     - name: Check if changelog has been updated in the PR
       if: steps.check-no-changelog.outputs.result == 'false' && steps.check-repo-whitelist.outputs.whitelisted == 'false'
-      uses: actions/github-script@v8
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       id: check-changelog-updated
       with:
         script: |
@@ -55,7 +55,7 @@ runs:
 
     - name: Fail if checks failed
       if: steps.check-no-changelog.outputs.result == 'false' && steps.check-repo-whitelist.outputs.whitelisted == 'false' && steps.check-changelog-updated.outputs.result == 'false'
-      uses: actions/github-script@v8
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       with:
         script: |
           const message = "Changelog has not been updated. Please update the changelog or add the '🗒️ no-changelog' label to skip this check.";

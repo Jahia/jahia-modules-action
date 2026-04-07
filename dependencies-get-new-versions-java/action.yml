@@ -18,7 +18,7 @@ runs:
   using: "composite"
   steps:
     - name: Save/Restore dependencies from cache
-      uses: actions/cache@v4
+      uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
       with:
         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
         path: |
@@ -43,7 +43,7 @@ runs:
     - name: Convert HTML to Markdown
       id: html2markdown-new-versions
       if: always()
-      uses: rknj/html2markdown@v1.1.0
+      uses: rknj/html2markdown@a73d04a83b2a05ff57f08a8b20b2cca3dd2bc554 # v1.1.0
       with:
         html-file: "${{ inputs.root_folder }}/target/site/dependency-updates-report.html"
 
@@ -59,7 +59,7 @@ runs:
 
     - name: Create an issue with the Maven report
       if: always()
-      uses: dacbd/create-issue-action@v1.2.0
+      uses: dacbd/create-issue-action@cdb57ab6ff8862aa09fee2be6ba77a59581921c2 # v2.0.0
       with:
         token: ${{ inputs.github_token }}
         title: Maven dependency report (new versions available) - ${{ env.TODAY }}
