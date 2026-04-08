@@ -333,7 +333,7 @@ runs:
 
     - name: Post to a Slack channel
       if: ${{ inputs.slack-webhook-qa }}
-      uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95 #v3.0.1
+      uses: slackapi/slack-github-action@007b2c3c751a190b6f0f040e47ed024deaa72844 #v1.23.0
       with:
         payload: |
           {
