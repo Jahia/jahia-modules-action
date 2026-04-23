@@ -1,0 +1,160 @@
+name: Reusable on Pull Request
+on:
+  workflow_call:
+jobs:
+  read-project-metadata:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/jahia/jahia-docker-mvn-cache:11-jdk-noble-mvn-loaded
+      credentials:
+        username: ${{ secrets.GH_PACKAGES_USERNAME }}
+        password: ${{ secrets.GH_PACKAGES_TOKEN }}
+    outputs:
+      build-tool: ${{ steps.metadata.outputs.build-tool }}
+      artifact-id: ${{ steps.metadata.outputs.artifact-id }}
+      artifact-alias: ${{ steps.metadata.outputs.artifact-alias }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+      - name: Read project metadata
+        id: metadata
+        run: |
+          pom_exists=false
+          package_exists=false
+
+          if [ -f "pom.xml" ]; then
+            pom_exists=true
+          fi
+
+          if [ -f "package.json" ]; then
+            package_exists=true
+          fi
+
+          if [ "$pom_exists" = true ] && [ "$package_exists" = true ]; then
+            echo "ERROR: Both pom.xml and package.json found. Mixed project types are not supported."
+            exit 1
+          elif [ "$pom_exists" = true ]; then
+            echo "build-tool=maven" >> $GITHUB_OUTPUT
+            echo "Maven project detected (pom.xml found)"
+          
+            echo "Warming up Maven cache"
+            mvn help:evaluate -Dexpression=dummy && echo "Maven cache warmed up"
+
+            # Extract jahia.artifact.id from Maven pom.xml
+            artifact_id=$(mvn help:evaluate -Dexpression=jahia.artifact.id -q -DforceStdout 2>/dev/null || echo "")
+            if [ -n "$artifact_id" ]; then
+              echo "artifact-id=$artifact_id" >> $GITHUB_OUTPUT
+              echo "Maven artifact ID: $artifact_id"
+            else
+              echo "ERROR:: jahia.artifact.id property not found in pom.xml"
+              exit 1
+            fi
+
+            # Extract jahia.artifact.alias from Maven pom.xml
+            artifact_alias=$(mvn help:evaluate -Dexpression=jahia.artifact.alias -q -DforceStdout 2>/dev/null || echo "")
+            if [ -n "$artifact_alias" ]; then
+              echo "artifact-alias=$artifact_alias" >> $GITHUB_OUTPUT
+              echo "Maven artifact alias: $artifact_alias"
+            else
+              echo "ERROR:: jahia.artifact.alias property not found in pom.xml"
+              exit 1
+            fi
+          elif [ "$package_exists" = true ]; then
+            echo "build-tool=javascript" >> $GITHUB_OUTPUT
+            echo "JavaScript project detected (package.json found)"
+
+            # Extract artifact.id from package.json jahia field
+            artifact_id=$(jq -r '.jahia["artifact.id"] // empty' package.json 2>/dev/null || echo "")
+            if [ -n "$artifact_id" ]; then
+              echo "artifact-id=$artifact_id" >> $GITHUB_OUTPUT
+              echo "JavaScript artifact ID: $artifact_id"
+            else
+              echo "ERROR:: jahia.artifact.id field not found in package.json"
+              exit 1
+            fi
+
+            # Extract artifact.alias from package.json jahia field
+            artifact_id=$(jq -r '.jahia["artifact.alias"] // empty' package.json 2>/dev/null || echo "")
+            if [ -n "$artifact_alias" ]; then
+              echo "artifact-alias=$artifact_alias" >> $GITHUB_OUTPUT
+              echo "JavaScript artifact alias: $artifact_alias"
+            else
+              echo "ERROR:: jahia.artifact.id field not found in package.json"
+              exit 1
+            fi
+          else
+            echo "ERROR: No pom.xml or package.json found. Unknown project type."
+            exit 1
+          fi
+
+
+  # works but super slow (looks like the Maven cache is not used)
+  # commented out for now
+  #  check-signature:
+  #    runs-on: ubuntu-latest
+  #    container:
+  #      image: ghcr.io/jahia/jahia-docker-mvn-cache:11-jdk-noble-mvn-loaded
+  #    steps:
+  #      - uses: actions/checkout@v5
+  #        with:
+  #          ref: ${{ github.sha }}
+  #          token: ${{ secrets.GITHUB_TOKEN }}
+  #      - name: Configure git safe directory
+  #        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+  #      - uses: jahia/jahia-modules-action/update-signature@v2
+  #        with:
+  #          force_signature: 'true'
+  #          nexus_internal_releases_url: ${{ secrets.NEXUS_INTERNAL_RELEASES_URL }}
+  #          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+  #          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+  static-analysis:
+    name: Static JavaScript Analysis (linting, vulns)
+    runs-on: ubuntu-latest
+    needs: read-project-metadata
+    # ideally, we should have the equivalent for the Maven project type
+    if: needs.read-project-metadata.outputs.build-tool == 'javascript'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+      - uses: Jahia/jahia-modules-action/static-analysis@v2
+          #        with:
+        # In some situations it might be necessary to specify a particular version of node
+        # node_version: 12
+  #          auditci_level: critical
+  build:
+    runs-on: ubuntu-latest
+    needs: read-project-metadata
+    container:
+      image: ghcr.io/jahia/jahia-docker-mvn-cache:11-jdk-noble-mvn-loaded
+      credentials:
+        username: ${{ secrets.GH_PACKAGES_USERNAME }}
+        password: ${{ secrets.GH_PACKAGES_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          # TODO should we check the signature here instead?
+      - uses: jahia/jahia-modules-action/build@v2
+        # TODO update the generated 'build-artifacts' to be configurabled, to reduce its size
+        # for instance, using a regex. by default, would be "**/target/*.jar"
+        with:
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+  integration-tests:
+    uses:  Jahia/jahia-modules-action/.github/workflows/reusable-integration-tests.yml@v2
+    needs: build
+    secrets: inherit
+    with:
+      jahia_image: ghcr.io/jahia/jahia-ee-dev:8-SNAPSHOT
+      module_id: ${{ needs.read-project-metadata.outputs.artifact-id }} # use to send to ZenCrepes (and PagerDuty when enabled)
+      # TODO ok to skip TestRail in this case?
+      should_skip_testrail: true
+#      testrail_project: TODO
+      pagerduty_skip_notification: true
+      provisioning_manifest: provisioning-manifest-build.yml
+      should_use_build_artifacts: true
+#      pagerduty_incident_service: cloudimage-JahiaSN # TODO ok to remove when pagerduty_skip_notification is true?
+      artifact_prefix:  ${{ needs.read-project-metadata.outputs.artifact-alias }}
+      module_branch: ${{ github.head_ref }}
