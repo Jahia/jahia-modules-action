@@ -42,8 +42,16 @@ inputs:
     description: 'Version of Java to load and use for the analysis'
     required: false
     default: '11'
+  nvd_datafeed_url:
+    description: 'NVD Datafeed URL to bootstrap/refresh the bulk vulnerability database. Can be combined with nvd_apikey: the feed bootstraps the bulk DB, the API key fetches incremental deltas on top.'
+    required: false
+    default: 'https://dependency-check.github.io/DependencyCheck_Builder/nvd_cache/'
   nvd_apikey:
-    description: 'NVD API Key to download vulnerability database'
+    description: 'NVD API Key for incremental delta updates via the NVD REST API. Can be combined with nvd_datafeed_url: the feed bootstraps the bulk DB, the API key fetches deltas on top.'
+    required: false
+    default: ''
+  cisa_known_exploited_vuln_url:
+    description: 'URL for the CISA Known Exploited Vulnerabilities catalog JSON feed. When empty, defaults to the official CISA feed. Override to use an internal mirror.'
     required: false
     default: ''
   oss_username:
@@ -79,11 +87,6 @@ runs:
       shell: bash
       run: |
         find . -name 'pom.xml' | sort | xargs cat > maven_cache_seed
-        if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
-          echo "true" > is_pr
-        else
-          echo "false" > is_pr
-        fi
 
     - name: Set environment variables from parameters
       shell: bash
@@ -96,15 +99,33 @@ runs:
       run: |
         echo "github_pr_id = ${{ inputs.github_pr_id }}"
 
-    - name: Cache local Maven repository
+    - name: Prepare Sonar cache directory
+      shell: bash
+      run: |
+        mkdir -p ~/.sonar/cache
+
+    - name: Cache local Sonar data
       uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
       with:
-        path: |
-          ~/.owasp/dependency-check-data
-          ~/.sonar/cache
-        key: v3-sonar-owasp-dependencies-{{ checksum "is_pr" }}
+        path: ~/.sonar/cache
+        key: v1-sonar-cache-${{ runner.os }}
         restore-keys: |
-          v3-sonar-owasp-dependencies-{{ checksum "is_pr" }}
+          v1-sonar-cache-
+
+    - name: Prepare OWASP cache directory
+      shell: bash
+      if: ${{ inputs.github_pr_id == '' }}
+      run: |
+        mkdir -p ~/.owasp/dependency-check-data
+
+    - name: Cache local OWASP Dependency-Check data
+      uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+      if: ${{ inputs.github_pr_id == '' }}
+      with:
+        path: ~/.owasp/dependency-check-data
+        key: v1-owasp-dependencies-${{ hashFiles('maven_cache_seed') }}
+        restore-keys: |
+          v1-owasp-dependencies-
 
     - name: Setup Sonar env variables
       shell: bash
@@ -144,14 +165,21 @@ runs:
           
         SONAR_PARAMS+=" -DsuppressionFiles=${SUPPRESSION_LIST}"  
           
-        # Optional NVD API key (only add if provided)
+        # Optional NVD parameters - datafeed and API key are complementary:
+        # datafeed bootstraps/refreshes the bulk DB, API key fetches incremental deltas on top
+        if [[ -n "${{ inputs.nvd_datafeed_url }}" ]]; then
+          SONAR_PARAMS+=" -DnvdDatafeedUrl=${{ inputs.nvd_datafeed_url }}"
+        fi
         if [[ -n "${{ inputs.nvd_apikey }}" ]]; then
           SONAR_PARAMS+=" -DnvdApiKey=${{ inputs.nvd_apikey }}"
-        fi  
+        fi
+        if [[ -n "${{ inputs.cisa_known_exploited_vuln_url }}" ]]; then
+          SONAR_PARAMS+=" -DknownExploitedUrl=${{ inputs.cisa_known_exploited_vuln_url }}"
+        fi
         
         if [[ -n "${{ inputs.oss_username }}" && -n "${{ inputs.oss_apitoken }}" ]]; then
           SONAR_PARAMS+=" -DossIndexUsername=${{ inputs.oss_username }} -DossIndexPassword=${{ inputs.oss_apitoken }} \
-            -DossindexAnalyzerUrl=https://api.guide.sonatype.com -DossindexAnalyzerUseCache=false"
+            -DossindexAnalyzerUrl=https://api.guide.sonatype.com -DossindexAnalyzerUseCache=true"
         else    
           SONAR_PARAMS+=" -DossindexAnalyzerEnabled=false"
         fi  
@@ -160,15 +188,11 @@ runs:
 
     - name: Sonar OWASP
       shell: bash
+      if: ${{ inputs.github_pr_id == '' }}
       run: |
-        echo "Pull request number: ${{ inputs.github_pr_id }}"
-        if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
-          echo "Skipping OWASP for PR analysis"
-        else
-          echo "Executing an OWASP analysis on branch: ${{ steps.vars.outputs.branch }}"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:12.1.9:aggregate \
-            $SONAR_PARAMS
-        fi
+        echo "Executing an OWASP analysis on branch: ${{ steps.vars.outputs.branch }}"
+        mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:12.2.1:aggregate \
+          $SONAR_PARAMS
 
     - name: Sonar Release branch analysis
       shell: bash
@@ -177,18 +201,18 @@ runs:
         echo "Pull request number: ${{ inputs.github_pr_id }}"
         if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
           echo "Executing a PR based analysis"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.3.0.6276:sonar \
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.6.0.6792:sonar \
               -Dsonar.pullrequest.branch=$GITHUB_REF \
               -Dsonar.pullrequest.key=${{ inputs.github_pr_id }} \
               -Dsonar.pullrequest.base=${{ inputs.primary_release_branch }} \
               -Dsonar.pullrequest.github.repository=${{ steps.vars.outputs.github_slug }}
         elif [[ ${{ steps.vars.outputs.branch }} == ${{ inputs.primary_release_branch }} ]]; then
           echo "Executing an analysis on the main branch"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.3.0.6276:sonar \
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.6.0.6792:sonar \
             $SONAR_PARAMS
         else
           echo "Executing an analysis on branch: ${{ inputs.primary_release_branch }}"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.3.0.6276:sonar \
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.6.0.6792:sonar \
             -Dsonar.branch.name=${{ inputs.primary_release_branch }} \
             $SONAR_PARAMS
         fi
