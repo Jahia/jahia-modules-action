@@ -45,11 +45,32 @@ runs:
           echo "Base POM not found"
         fi
 
+    - name: Generate base cache key seed
+      shell: bash
+      if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
+      run: |
+        find "${BASE_REPO_DIR}" -name 'pom.xml' -type f | sort | xargs cat > base_maven_cache_seed || true
+        if [[ -s base_maven_cache_seed ]]; then
+          echo "BASE_MAVEN_CACHE_KEY_SUFFIX=$(sha256sum base_maven_cache_seed | cut -d' ' -f1)" >> $GITHUB_ENV
+        else
+          echo "BASE_MAVEN_CACHE_KEY_SUFFIX=no-pom" >> $GITHUB_ENV
+        fi
+
+    - name: Generate local cache key seed
+      shell: bash
+      run: |
+        find . -name 'pom.xml' -type f | sort | xargs cat > local_maven_cache_seed || true
+        if [[ -s local_maven_cache_seed ]]; then
+          echo "LOCAL_MAVEN_CACHE_KEY_SUFFIX=$(sha256sum local_maven_cache_seed | cut -d' ' -f1)" >> $GITHUB_ENV
+        else
+          echo "LOCAL_MAVEN_CACHE_KEY_SUFFIX=no-pom" >> $GITHUB_ENV
+        fi
+
     - name: Restore base dependencies from cache
       uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       with:
-        key: ${{ runner.os }}-maven-${{ hashFiles('/tmp/base-repo/**/pom.xml') }}
+        key: ${{ runner.os }}-maven-${{ env.BASE_MAVEN_CACHE_KEY_SUFFIX }}
         path: ~/.m2/repository
 
     - name: Get dependencies from base POM
@@ -63,7 +84,7 @@ runs:
       uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
       with:
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        key: ${{ runner.os }}-maven-${{ env.LOCAL_MAVEN_CACHE_KEY_SUFFIX }}
         path: ~/.m2/repository
 
     - name: Get dependencies from local POM

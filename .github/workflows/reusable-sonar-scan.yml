@@ -63,13 +63,13 @@ jobs:
         with:
           distribution: ${{ inputs.java_distribution }}
           java-version: ${{ inputs.java_version }}
-      - uses: jahia/jahia-modules-action/build@v2
+      - uses: jahia/jahia-modules-action/build@fix_sonar_depcheck_cache
         with:
           tests_module_type: ${{ inputs.tests_module_type }}
           mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
-      - uses: jahia/jahia-modules-action/sonar-analysis@v2
+      - uses: jahia/jahia-modules-action/sonar-analysis@fix_sonar_depcheck_cache
         with:
           primary_release_branch: ${{ inputs.git_branch }}
           build_artifacts: ""
@@ -77,6 +77,8 @@ jobs:
           sonar_url: ${{ secrets.SONAR_URL }}
           sonar_token: ${{ secrets.SONAR_TOKEN }}
           nvd_apikey: ${{ secrets.NVD_APIKEY }}
+          nvd_datafeed_url: ${{ vars.NVD_DATAFEED_URL }}
+          cisa_known_exploited_vuln_url: ${{ vars.CISA_KNOWN_EXPLOITED_VULN_URL }}
           oss_username: ${{ secrets.OSS_USERNAME }}
           oss_apitoken: ${{ secrets.OSS_API_TOKEN }}
           mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
