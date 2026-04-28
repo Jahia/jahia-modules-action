@@ -93,6 +93,9 @@ runs:
       run: |
         echo "SONAR_URL=${{ inputs.sonar_url }}" >> $GITHUB_ENV
         echo "SONAR_TOKEN=${{ inputs.sonar_token }}" >> $GITHUB_ENV
+        echo "SONAR_USER_HOME=${GITHUB_WORKSPACE}/.cache/sonar" >> $GITHUB_ENV
+        echo "SONAR_CACHE_DIR=${GITHUB_WORKSPACE}/.cache/sonar/cache" >> $GITHUB_ENV
+        echo "OWASP_DATA_DIR=${GITHUB_WORKSPACE}/.cache/owasp/dependency-check-data" >> $GITHUB_ENV
 
     - name: Displaying important variables
       shell: bash
@@ -102,12 +105,12 @@ runs:
     - name: Prepare Sonar cache directory
       shell: bash
       run: |
-        mkdir -p ~/.sonar/cache
+        mkdir -p "${SONAR_CACHE_DIR}"
 
     - name: Cache local Sonar data
       uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
       with:
-        path: ~/.sonar/cache
+        path: ${{ env.SONAR_CACHE_DIR }}
         key: v1-sonar-cache-${{ runner.os }}
         restore-keys: |
           v1-sonar-cache-
@@ -116,13 +119,13 @@ runs:
       shell: bash
       if: ${{ inputs.github_pr_id == '' }}
       run: |
-        mkdir -p ~/.owasp/dependency-check-data
+        mkdir -p "${OWASP_DATA_DIR}"
 
     - name: Cache local OWASP Dependency-Check data
       uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
       if: ${{ inputs.github_pr_id == '' }}
       with:
-        path: ~/.owasp/dependency-check-data
+        path: ${{ env.OWASP_DATA_DIR }}
         key: v1-owasp-dependencies-${{ hashFiles('maven_cache_seed') }}
         restore-keys: |
           v1-owasp-dependencies-
@@ -148,7 +151,7 @@ runs:
           -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
           -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
           -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DnodeAuditSkipDevDependencies=true \
-          -DyarnAuditAnalyzerEnabled=false -DdataDirectory=~/.owasp/dependency-check-data"
+          -DyarnAuditAnalyzerEnabled=false -Dsonar.userHome=${SONAR_USER_HOME} -DdataDirectory=${OWASP_DATA_DIR}"
           
         DEFAULT_SUPP="https://raw.githubusercontent.com/Jahia/jahia/master/.owasp/suppressions.xml"
         supps=("$DEFAULT_SUPP")
@@ -215,4 +218,20 @@ runs:
           mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.6.0.6792:sonar \
             -Dsonar.branch.name=${{ inputs.primary_release_branch }} \
             $SONAR_PARAMS
+        fi
+
+    - name: Display cache directories usage
+      shell: bash
+      if: ${{ always() }}
+      run: |
+        echo "HOME: ${HOME}"
+        echo "GITHUB_WORKSPACE: ${GITHUB_WORKSPACE}"
+        echo "SONAR_USER_HOME: ${SONAR_USER_HOME}"
+        echo "Sonar cache directory status"
+        du -sh "${SONAR_CACHE_DIR}" 2>/dev/null || true
+        find "${SONAR_CACHE_DIR}" -type f 2>/dev/null | wc -l || true
+        if [[ "${{ inputs.github_pr_id }}" == "" ]]; then
+          echo "OWASP cache directory status"
+          du -sh "${OWASP_DATA_DIR}" 2>/dev/null || true
+          find "${OWASP_DATA_DIR}" -type f 2>/dev/null | wc -l || true
         fi
