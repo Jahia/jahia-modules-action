@@ -73,7 +73,7 @@ inputs:
     required: false
   skip_staging:
     description: 'Skip staging repository (e.g. for Jahia Cloud releases)'
-    default: false
+    default: 'false'
     required: false
 
 runs:
@@ -113,6 +113,11 @@ runs:
       shell: bash
       run: |
         find . -name 'pom.xml' | sort | xargs cat > ./maven_cache_seed
+        if [[ -s ./maven_cache_seed ]]; then
+          echo "MAVEN_CACHE_KEY_SUFFIX=$(sha256sum ./maven_cache_seed | cut -d' ' -f1)" >> $GITHUB_ENV
+        else
+          echo "MAVEN_CACHE_KEY_SUFFIX=no-pom" >> $GITHUB_ENV
+        fi
 
     - name: Cache local Maven repository
       uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
@@ -120,9 +125,9 @@ runs:
         path: |
           ~/.m2/repository
           /root/.m2/repository
-        key: v1-maven-dependencies-${{ hashFiles('**/maven_cache_seed') }}
+        key: v1-maven-dependencies-${{ env.MAVEN_CACHE_KEY_SUFFIX }}
         restore-keys: |
-          v1-maven-dependencies-${{ hashFiles('**/maven_cache_seed') }}
+          v1-maven-dependencies-
 
     - name: Prepare GPG
       if: ${{ inputs.sign_commits == 'true' }}

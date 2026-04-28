@@ -17,10 +17,20 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Generate Maven cache key
+      shell: bash
+      run: |
+        find . -name 'pom.xml' -type f | sort | xargs cat > maven_cache_seed || true
+        if [[ -s maven_cache_seed ]]; then
+          echo "MAVEN_CACHE_KEY_SUFFIX=$(sha256sum maven_cache_seed | cut -d' ' -f1)" >> $GITHUB_ENV
+        else
+          echo "MAVEN_CACHE_KEY_SUFFIX=no-pom" >> $GITHUB_ENV
+        fi
+
     - name: Save/Restore dependencies from cache
       uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
       with:
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        key: ${{ runner.os }}-maven-${{ env.MAVEN_CACHE_KEY_SUFFIX }}
         path: |
           ~/.m2
 
