@@ -83,50 +83,66 @@ runs:
       with:
         name: ${{ inputs.build_artifacts }}
 
-    - name: Generate Cache Key Seeds
-      shell: bash
-      run: |
-        find . -name 'pom.xml' | sort | xargs cat > maven_cache_seed
-
     - name: Set environment variables from parameters
       shell: bash
       run: |
         echo "SONAR_URL=${{ inputs.sonar_url }}" >> $GITHUB_ENV
         echo "SONAR_TOKEN=${{ inputs.sonar_token }}" >> $GITHUB_ENV
+        if [[ -n "${{ inputs.nvd_apikey }}" ]]; then
+          echo "NVD_API_KEY=${{ inputs.nvd_apikey }}" >> $GITHUB_ENV
+        fi
         echo "SONAR_USER_HOME=${GITHUB_WORKSPACE}/.cache/sonar" >> $GITHUB_ENV
         echo "SONAR_CACHE_DIR=${GITHUB_WORKSPACE}/.cache/sonar/cache" >> $GITHUB_ENV
         echo "OWASP_DATA_DIR=${GITHUB_WORKSPACE}/.cache/owasp/dependency-check-data" >> $GITHUB_ENV
 
-    - name: Displaying important variables
+    - name: Seed Sonar cache from container image
+      id: sonar_seed
       shell: bash
       run: |
-        echo "github_pr_id = ${{ inputs.github_pr_id }}"
-
-    - name: Prepare Sonar cache directory
-      shell: bash
-      run: |
-        mkdir -p "${SONAR_CACHE_DIR}"
+        echo "seeded=false" >> $GITHUB_OUTPUT
+        if [[ -d /opt/sonar/cache ]]; then
+          mkdir -p "${SONAR_CACHE_DIR}"
+          cp -r /opt/sonar/cache/. "${SONAR_CACHE_DIR}/"
+          echo "Sonar cache seeded from container image ($(du -sh "${SONAR_CACHE_DIR}" | cut -f1))"
+          echo "seeded=true" >> $GITHUB_OUTPUT
+        else
+          echo "No pre-warmed Sonar cache found in container image, trying GitHub Actions cache fallback"
+        fi
 
     - name: Cache local Sonar data
       uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+      if: ${{ steps.sonar_seed.outputs.seeded != 'true' }}
       with:
         path: ${{ env.SONAR_CACHE_DIR }}
-        key: v1-sonar-cache-${{ runner.os }}
-        restore-keys: |
-          v1-sonar-cache-
+        key: v1-sonar-cache
 
-    - name: Prepare OWASP cache directory
+    - name: Generate OWASP cache bucket
       shell: bash
       if: ${{ inputs.github_pr_id == '' }}
       run: |
-        mkdir -p "${OWASP_DATA_DIR}"
-
-    - name: Cache local OWASP Dependency-Check data
-      uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        echo "OWASP_CACHE_WEEK=$(date -u +%G%V)" >> $GITHUB_ENV
+        
+    - name: Seed OWASP cache from container image
+      id: owasp_seed
+      shell: bash
       if: ${{ inputs.github_pr_id == '' }}
+      run: |
+        echo "seeded=false" >> $GITHUB_OUTPUT
+        if [[ -d /opt/owasp/dependency-check-data ]]; then
+          mkdir -p "${OWASP_DATA_DIR}"
+          cp -r /opt/owasp/dependency-check-data/. "${OWASP_DATA_DIR}/"
+          echo "OWASP cache seeded from container image ($(du -sh "${OWASP_DATA_DIR}" | cut -f1))"
+          echo "seeded=true" >> $GITHUB_OUTPUT
+        else
+          echo "No pre-warmed OWASP data found in container image, trying GitHub Actions cache fallback"
+        fi
+
+    - name: Cache local OWASP Dependency-Check data (fallback)
+      uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+      if: ${{ inputs.github_pr_id == '' && steps.owasp_seed.outputs.seeded != 'true' }}
       with:
         path: ${{ env.OWASP_DATA_DIR }}
-        key: v1-owasp-dependencies-${{ hashFiles('maven_cache_seed') }}
+        key: v1-owasp-dependencies-${{ env.OWASP_CACHE_WEEK }}
         restore-keys: |
           v1-owasp-dependencies-
 
@@ -144,15 +160,15 @@ runs:
         echo "GITHUB_SLUG: ${{ steps.vars.outputs.github_slug }}"
         echo "GITHUB_REF: ${GITHUB_REF}"
 
-    - name: Set common Sonar parameters
+    - name: OWASP Dependency-Check
       shell: bash
+      if: ${{ inputs.github_pr_id == '' }}
       run: |
-        SONAR_PARAMS="-DfailBuildOnCVSS=7 -DskipProvidedScope=true -DskipTestScope=true -DskipSystemScope=true -Dformats=HTML,JSON \
-          -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
-          -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
+        echo "Executing an OWASP analysis on branch: ${{ steps.vars.outputs.branch }}"
+        OWASP_PARAMS="-DfailBuildOnCVSS=7 -DskipProvidedScope=true -DskipTestScope=true -DskipSystemScope=true -Dformats=HTML,JSON \
           -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DnodeAuditSkipDevDependencies=true \
-          -DyarnAuditAnalyzerEnabled=false -Dsonar.userHome=${SONAR_USER_HOME} -DdataDirectory=${OWASP_DATA_DIR}"
-          
+          -DyarnAuditAnalyzerEnabled=false -DdataDirectory=${OWASP_DATA_DIR}"
+
         DEFAULT_SUPP="https://raw.githubusercontent.com/Jahia/jahia/master/.owasp/suppressions.xml"
         supps=("$DEFAULT_SUPP")
 
@@ -164,74 +180,54 @@ runs:
           echo "Custom suppression file not found at: $(pwd)/$CUSTOM_FILE"
         fi
 
-        SUPPRESSION_LIST="$(IFS=','; echo "${supps[*]}")"  
-          
-        SONAR_PARAMS+=" -DsuppressionFiles=${SUPPRESSION_LIST}"  
-          
+        SUPPRESSION_LIST="$(IFS=','; echo "${supps[*]}")"
+        OWASP_PARAMS+=" -DsuppressionFiles=${SUPPRESSION_LIST}"
+
         # Optional NVD parameters - datafeed and API key are complementary:
         # datafeed bootstraps/refreshes the bulk DB, API key fetches incremental deltas on top
         if [[ -n "${{ inputs.nvd_datafeed_url }}" ]]; then
-          SONAR_PARAMS+=" -DnvdDatafeedUrl=${{ inputs.nvd_datafeed_url }}"
+          OWASP_PARAMS+=" -DnvdDatafeedUrl=${{ inputs.nvd_datafeed_url }}"
         fi
         if [[ -n "${{ inputs.nvd_apikey }}" ]]; then
-          SONAR_PARAMS+=" -DnvdApiKey=${{ inputs.nvd_apikey }}"
+          OWASP_PARAMS+=" -DnvdApiKeyEnvironmentVariable=NVD_API_KEY"
         fi
         if [[ -n "${{ inputs.cisa_known_exploited_vuln_url }}" ]]; then
-          SONAR_PARAMS+=" -DknownExploitedUrl=${{ inputs.cisa_known_exploited_vuln_url }}"
+          OWASP_PARAMS+=" -DknownExploitedUrl=${{ inputs.cisa_known_exploited_vuln_url }}"
         fi
-        
-        if [[ -n "${{ inputs.oss_username }}" && -n "${{ inputs.oss_apitoken }}" ]]; then
-          SONAR_PARAMS+=" -DossIndexUsername=${{ inputs.oss_username }} -DossIndexPassword=${{ inputs.oss_apitoken }} \
-            -DossindexAnalyzerUrl=https://api.guide.sonatype.com -DossindexAnalyzerUseCache=true"
-        else    
-          SONAR_PARAMS+=" -DossindexAnalyzerEnabled=false"
-        fi  
-        
-        echo "SONAR_PARAMS=${SONAR_PARAMS}" >> $GITHUB_ENV
 
-    - name: Sonar OWASP
-      shell: bash
-      if: ${{ inputs.github_pr_id == '' }}
-      run: |
-        echo "Executing an OWASP analysis on branch: ${{ steps.vars.outputs.branch }}"
+        OSS_ARGS=""
+        if [[ -n "${{ inputs.oss_username }}" && -n "${{ inputs.oss_apitoken }}" ]]; then
+          OSS_ARGS="-DossIndexUsername=${{ inputs.oss_username }} -DossIndexPassword=${{ inputs.oss_apitoken }} -DossIndexAnalyzerUrl=https://api.guide.sonatype.com -DossIndexAnalyzerUseCache=true"
+        else
+          OSS_ARGS="-DossIndexAnalyzerEnabled=false"
+        fi
         mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:12.2.1:aggregate \
-          $SONAR_PARAMS
+          $OWASP_PARAMS \
+          $OSS_ARGS
 
     - name: Sonar Release branch analysis
       shell: bash
       if: ${{ always() }}
       run: |
         echo "Pull request number: ${{ inputs.github_pr_id }}"
+        SONAR_SCAN_PARAMS="-Dsonar.userHome=${SONAR_USER_HOME} \
+          -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
+          -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html"
         if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
           echo "Executing a PR based analysis"
           mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.6.0.6792:sonar \
               -Dsonar.pullrequest.branch=$GITHUB_REF \
               -Dsonar.pullrequest.key=${{ inputs.github_pr_id }} \
               -Dsonar.pullrequest.base=${{ inputs.primary_release_branch }} \
-              -Dsonar.pullrequest.github.repository=${{ steps.vars.outputs.github_slug }}
+              -Dsonar.pullrequest.github.repository=${{ steps.vars.outputs.github_slug }} \
+              $SONAR_SCAN_PARAMS
         elif [[ ${{ steps.vars.outputs.branch }} == ${{ inputs.primary_release_branch }} ]]; then
           echo "Executing an analysis on the main branch"
           mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.6.0.6792:sonar \
-            $SONAR_PARAMS
+            $SONAR_SCAN_PARAMS
         else
           echo "Executing an analysis on branch: ${{ inputs.primary_release_branch }}"
           mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.6.0.6792:sonar \
             -Dsonar.branch.name=${{ inputs.primary_release_branch }} \
-            $SONAR_PARAMS
-        fi
-
-    - name: Display cache directories usage
-      shell: bash
-      if: ${{ always() }}
-      run: |
-        echo "HOME: ${HOME}"
-        echo "GITHUB_WORKSPACE: ${GITHUB_WORKSPACE}"
-        echo "SONAR_USER_HOME: ${SONAR_USER_HOME}"
-        echo "Sonar cache directory status"
-        du -sh "${SONAR_CACHE_DIR}" 2>/dev/null || true
-        find "${SONAR_CACHE_DIR}" -type f 2>/dev/null | wc -l || true
-        if [[ "${{ inputs.github_pr_id }}" == "" ]]; then
-          echo "OWASP cache directory status"
-          du -sh "${OWASP_DATA_DIR}" 2>/dev/null || true
-          find "${OWASP_DATA_DIR}" -type f 2>/dev/null | wc -l || true
+            $SONAR_SCAN_PARAMS
         fi
