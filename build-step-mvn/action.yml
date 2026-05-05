@@ -14,7 +14,7 @@ inputs:
     description: Copy dependencies to provision artifacts
     default: 'true'
     required: false
-  archive_only_jars:
+  archive_only_packages:
     description: Copy dependencies to provision artifacts
     default: 'false'
     required: false
@@ -72,7 +72,7 @@ runs:
         mvn -B -s $ROOT_PATH/${{ inputs.mvn_settings_filepath }} dependency:copy-dependencies -DexcludeTransitive=true -DincludeScope=provided -DincludeGroupIds=org.jahia.modules -DincludeTypes=jar
 
     - name: Archive build artifacts
-      if: ${{ inputs.archive_only_jars == 'false' }}
+      if: ${{ inputs.archive_only_packages == 'false' }}
       uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: ${{ inputs.github_artifact_name }}
@@ -82,10 +82,11 @@ runs:
         retention-days: ${{ inputs.github_artifact_retention }}
 
     - name: Archive build artifacts (.jars)
-      if: ${{ inputs.archive_only_jars == 'true' }}
+      if: ${{ inputs.archive_only_packages == 'true' }}
       uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: ${{ inputs.github_artifact_name }}
         path: |
           ${{ inputs.module_path }}**/target/*.jar
+          ${{ inputs.module_path }}**/target/*.tgz
         retention-days: ${{ inputs.github_artifact_retention }}

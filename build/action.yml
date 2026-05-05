@@ -64,7 +64,7 @@ runs:
       with:
         module_path: ${{ inputs.tests_module_path }}
         copy_dependencies: 'false'
-        archive_only_jars: 'true'
+        archive_only_packages: 'true'
         mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
         nexus_username: ${{ inputs.nexus_username }}
         nexus_password: ${{ inputs.nexus_password }}
