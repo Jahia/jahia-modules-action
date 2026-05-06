@@ -83,11 +83,23 @@ runs:
       with:
         name: ${{ inputs.build_artifacts }}
 
-    - name: Set environment variables from parameters
+    - name: Set environment variables from parameters and manifest within container image
       shell: bash
       run: |
+        DEPENDENCY_CHECK_MAVEN_PLUGIN_VERSION_DEFAULT="12.2.1"
+        SONAR_MAVEN_PLUGIN_VERSION_DEFAULT="5.6.0.6792"
+
+        DEPENDENCY_CHECK_MAVEN_PLUGIN_VERSION="${DEPENDENCY_CHECK_MAVEN_PLUGIN_VERSION_DEFAULT}"
+        SONAR_MAVEN_PLUGIN_VERSION="${SONAR_MAVEN_PLUGIN_VERSION_DEFAULT}"
+        if [[ -s /opt/jahia-sast-versions.env ]]; then
+          # Optional image-provided override; defaults above are used when file is absent.
+          source /opt/jahia-sast-versions.env
+        fi
+
         echo "SONAR_URL=${{ inputs.sonar_url }}" >> $GITHUB_ENV
         echo "SONAR_TOKEN=${{ inputs.sonar_token }}" >> $GITHUB_ENV
+        echo "DEPENDENCY_CHECK_MAVEN_PLUGIN_VERSION=${DEPENDENCY_CHECK_MAVEN_PLUGIN_VERSION}" >> $GITHUB_ENV
+        echo "SONAR_MAVEN_PLUGIN_VERSION=${SONAR_MAVEN_PLUGIN_VERSION}" >> $GITHUB_ENV
         if [[ -n "${{ inputs.nvd_apikey }}" ]]; then
           echo "NVD_API_KEY=${{ inputs.nvd_apikey }}" >> $GITHUB_ENV
         fi
@@ -201,7 +213,7 @@ runs:
         else
           OSS_ARGS="-DossIndexAnalyzerEnabled=false"
         fi
-        mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:12.2.1:aggregate \
+        mvn -B -s ${{ inputs.mvn_settings_filepath }} org.owasp:dependency-check-maven:${DEPENDENCY_CHECK_MAVEN_PLUGIN_VERSION}:aggregate \
           $OWASP_PARAMS \
           $OSS_ARGS
 
@@ -215,7 +227,7 @@ runs:
           -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html"
         if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
           echo "Executing a PR based analysis"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.6.0.6792:sonar \
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:${SONAR_MAVEN_PLUGIN_VERSION}:sonar \
               -Dsonar.pullrequest.branch=$GITHUB_REF \
               -Dsonar.pullrequest.key=${{ inputs.github_pr_id }} \
               -Dsonar.pullrequest.base=${{ inputs.primary_release_branch }} \
@@ -223,11 +235,11 @@ runs:
               $SONAR_SCAN_PARAMS
         elif [[ ${{ steps.vars.outputs.branch }} == ${{ inputs.primary_release_branch }} ]]; then
           echo "Executing an analysis on the main branch"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.6.0.6792:sonar \
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:${SONAR_MAVEN_PLUGIN_VERSION}:sonar \
             $SONAR_SCAN_PARAMS
         else
           echo "Executing an analysis on branch: ${{ inputs.primary_release_branch }}"
-          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:5.6.0.6792:sonar \
+          mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:${SONAR_MAVEN_PLUGIN_VERSION}:sonar \
             -Dsonar.branch.name=${{ inputs.primary_release_branch }} \
             $SONAR_SCAN_PARAMS
         fi
