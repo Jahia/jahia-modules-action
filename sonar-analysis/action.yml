@@ -86,7 +86,7 @@ runs:
     - name: Set environment variables from parameters and manifest within container image
       shell: bash
       run: |
-        DEPENDENCY_CHECK_MAVEN_PLUGIN_VERSION_DEFAULT="12.2.1"
+        DEPENDENCY_CHECK_MAVEN_PLUGIN_VERSION_DEFAULT="12.2.2"
         SONAR_MAVEN_PLUGIN_VERSION_DEFAULT="5.6.0.6792"
 
         DEPENDENCY_CHECK_MAVEN_PLUGIN_VERSION="${DEPENDENCY_CHECK_MAVEN_PLUGIN_VERSION_DEFAULT}"
