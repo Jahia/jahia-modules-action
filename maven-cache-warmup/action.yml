@@ -7,11 +7,15 @@ inputs:
     required: true
     default: 'ghcr.io/jahia/jahia-docker-mvn-cache:8-jdk-noble-mvn-loaded'
   docker-username:
-    description: 'Docker login username'
+    description: Docker login username
     required: true
   docker-password:
-    description: 'Docker login password'
-    required: true    
+    description: Docker login password
+    required: true
+  docker-registry: 
+    description: Docker registry to log to (typically ghcr.io or docker.io)
+    required: false
+    default: 'ghcr.io'
   m2-path: 
     description: Path on the local instance for the .m2 folder
     required: false  
@@ -48,6 +52,7 @@ runs:
     - name: Docker login
       uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
       with:
+        registry: ${{ inputs.docker-registry }}
         username: ${{ inputs.docker-username }}
         password: ${{ inputs.docker-password }}
 
