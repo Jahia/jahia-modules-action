@@ -19,10 +19,11 @@ And use this instead:
 ```yaml
     runs-on: ubuntu-latest   
     steps:
-      - uses: jahia/jahia-modules-action/maven-cache-warmup@create-maven-cache-warmup
+      - uses: jahia/jahia-modules-action/maven-cache-warmup@v2
         with:
           docker-image: ghcr.io/jahia/jahia-docker-mvn-cache:11-jdk-noble-mvn-loaded
-          username: ${{ secrets.GH_PACKAGES_USERNAME }}
-          password: ${{ secrets.GH_PACKAGES_TOKEN }}
+          docker-username: ${{ secrets.GH_PACKAGES_USERNAME }}
+          docker-password: ${{ secrets.GH_PACKAGES_TOKEN }}
+          docker-registry: ghcr.io
 ```
 
