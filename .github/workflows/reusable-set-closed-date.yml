@@ -1,0 +1,18 @@
+name: Set Closed Date (separated action)
+
+on:
+  issues:
+    types: [closed, reopened]
+
+jobs:
+  set_closed_date:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update Closed_Date via composite action
+        uses: jahia/jahia-modules-action/update-closed-date@v2
+        with:
+          github_token: ${{ secrets.GH_JAHIA_CLOUD_TOKEN }}
+          project_url: https://github.com/orgs/Jahia/projects/50
+          field_name: Closed Date
