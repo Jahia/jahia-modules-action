@@ -28,7 +28,16 @@ runs:
           const { projectUrl, fieldName } = process.env
 
           const parseProjectUrl = (url) => {
-            const match = url.match(/\/(?<ownerType>orgs|users)\/(?<ownerName>[^/]+)\/projects\/(?<projectNumber>\d+)/)
+            let parsedUrl
+            try {
+              parsedUrl = new URL(url)
+            } catch {
+              throw new Error(`Invalid project URL: ${url}`)
+            }
+
+            const match = parsedUrl.pathname.match(
+              /^\/(?<ownerType>orgs|users)\/(?<ownerName>[^/]+)\/projects\/(?<projectNumber>\d+)\/?$/,
+            )
             if (!match?.groups) {
               throw new Error(
                 `Invalid project URL: ${url}. Expected .../(orgs|users)/<owner>/projects/<number>`,
@@ -47,8 +56,73 @@ runs:
               return await github.graphql(query, variables)
             } catch (error) {
               core.info("Request failed:")
-              core.info(JSON.stringify(error.request))
+              if (error.request) {
+                core.info(JSON.stringify(error.request))
+              }
               throw new Error(`${errorContext}: ${error.message}`)
+            }
+          }
+
+          const normalizeClosedDate = (closedAt) => {
+            if (!closedAt) {
+              return null
+            }
+
+            const parsedDate = new Date(closedAt)
+            if (Number.isNaN(parsedDate.getTime())) {
+              throw new Error(`Invalid closed_at value: ${closedAt}`)
+            }
+
+            return parsedDate.toISOString().split('T')[0]
+          }
+
+          const getProjectAndField = async ({ ownerName, projectNumber, ownerTypeQuery, fieldName }) => {
+            let after = null
+
+            while (true) {
+              const projectResponse = await graphql(
+                `query getProject($projectOwnerName: String!, $projectNumber: Int!, $after: String) {
+                  ${ownerTypeQuery}(login: $projectOwnerName) {
+                    projectV2(number: $projectNumber) {
+                      id
+                      fields(first: 100, after: $after) {
+                        nodes {
+                          ... on ProjectV2FieldCommon {
+                            id
+                            name
+                          }
+                        }
+                        pageInfo {
+                          hasNextPage
+                          endCursor
+                        }
+                      }
+                    }
+                  }
+                }`,
+                {
+                  projectOwnerName: ownerName,
+                  projectNumber,
+                  after,
+                },
+                `Unable to find project ${projectUrl}`,
+              )
+
+              const project = projectResponse[ownerTypeQuery]?.projectV2
+              if (!project) {
+                throw new Error(`Project not found for ${projectUrl}`)
+              }
+
+              const field = (project.fields.nodes ?? []).find((projectField) => projectField?.name === fieldName)
+              if (field) {
+                return { projectId: project.id, field }
+              }
+
+              if (!project.fields.pageInfo?.hasNextPage) {
+                throw new Error(`Field "${fieldName}" not found in project ${projectUrl}`)
+              }
+
+              after = project.fields.pageInfo.endCursor
             }
           }
 
@@ -58,41 +132,9 @@ runs:
             return
           }
 
-          const closedDate = issue.closed_at ? issue.closed_at.slice(0, 10) : null
+          const closedDate = normalizeClosedDate(issue.closed_at)
           const { ownerName, projectNumber, ownerTypeQuery } = parseProjectUrl(projectUrl)
-
-          const projectResponse = await graphql(
-            `query getProject($projectOwnerName: String!, $projectNumber: Int!) {
-              ${ownerTypeQuery}(login: $projectOwnerName) {
-                projectV2(number: $projectNumber) {
-                  id
-                  fields(first: 100) {
-                    nodes {
-                      ... on ProjectV2FieldCommon {
-                        id
-                        name
-                      }
-                    }
-                  }
-                }
-              }
-            }`,
-            {
-              projectOwnerName: ownerName,
-              projectNumber,
-            },
-            `Unable to find project ${projectUrl}`,
-          )
-
-          const project = projectResponse[ownerTypeQuery]?.projectV2
-          if (!project) {
-            throw new Error(`Project not found for ${projectUrl}`)
-          }
-
-          const field = project.fields.nodes.find((projectField) => projectField?.name === fieldName)
-          if (!field) {
-            throw new Error(`Field "${fieldName}" not found in project ${projectUrl}`)
-          }
+          const { projectId, field } = await getProjectAndField({ ownerName, projectNumber, ownerTypeQuery, fieldName })
 
           const itemResponse = await graphql(
             `query getIssueProjectItems($owner: String!, $repo: String!, $issueNumber: Int!) {
@@ -118,7 +160,7 @@ runs:
           )
 
           const projectItems = itemResponse.repository?.issue?.projectItems?.nodes ?? []
-          const item = projectItems.find((projectItem) => projectItem?.project?.id === project.id)
+          const item = projectItems.find((projectItem) => projectItem?.project?.id === projectId)
 
           if (!item) {
             core.info('Issue is not in the target project, nothing to update.')
@@ -142,7 +184,7 @@ runs:
                 }
               }`,
               {
-                projectId: project.id,
+                projectId,
                 itemId: item.id,
                 fieldId: field.id,
                 date: closedDate,
@@ -168,7 +210,7 @@ runs:
               }
             }`,
             {
-              projectId: project.id,
+              projectId,
               itemId: item.id,
               fieldId: field.id,
             },
