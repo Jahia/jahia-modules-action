@@ -221,11 +221,11 @@ async function run(): Promise<void> {
       }
     )
 
-    // Export containers artifacts (reports, secreenshots, videos)
+    // Export containers artifacts (reports, screenshots, videos)
     await core.group(
       `${timeSinceStart(
         startTime
-      )} 🐋 Export containers artifacts (reports, secreenshots, videos, logs) `,
+      )} 🐋 Export containers artifacts (reports, screenshots, videos, logs) `,
       async () => {
         await copyRunArtifacts(
           core.getInput('tests_container_name'),
