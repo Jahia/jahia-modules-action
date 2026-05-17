@@ -46,7 +46,7 @@ on:
       skip_notifications:
         required: false
         type: boolean
-        default: false        
+        default: false
       pagerduty_incident_service:
         required: false
         type: string
@@ -80,9 +80,9 @@ on:
         default: false
       tests_path:
         type: string
-        description: 'Folder containing the docker-compose.yml'
+        description: "Folder containing the docker-compose.yml"
         required: false
-        default: 'tests/'
+        default: "tests/"
       test_report_name:
         type: string
         default: "Tests Report"
@@ -134,7 +134,7 @@ jobs:
             echo "::warning::The 'pagerduty_skip_notification' input is deprecated. Please use 'skip_notification' instead."          
           else
             echo "skip_notification=false" >> $GITHUB_OUTPUT
-          fi       
+          fi
 
       - uses: jahia/jahia-modules-action/helper@v2
       - uses: KengoTODA/actions-setup-docker-compose@477353946803dd64eaa44008b865b6bfc88cab4e #v1.2.4
@@ -150,7 +150,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           ref: ${{ inputs.module_branch }}
-      - uses: jahia/jahia-modules-action/integration-tests@v2
+      - uses: jahia/jahia-modules-action/integration-tests@test-jahia-cli
         with:
           module_id: ${{ inputs.module_id }}
           incident_service: ${{ steps.deprecated_inputs.outputs.incident_service }}
