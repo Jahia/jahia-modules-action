@@ -85,4 +85,8 @@ export async function copyRunArtifacts(
       silent
     )
   }
+  core.info(`Listing artifacts content at: ${destinationPath}`)
+  await runShellCommands([`tree ${destinationPath}`], 'artifacts/tree.log', {
+    ignoreReturnCode: true
+  })
 }
