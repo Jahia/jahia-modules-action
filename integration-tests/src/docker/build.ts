@@ -13,6 +13,7 @@ export async function buildDockerTestImage(
   testsImage: string
 ): Promise<any> {
   const buildScript = path.join(testsFolder, ciBuildScript)
+  const jahiaCliConfig = path.join(testsFolder, 'jahia-cli.config.yml')
   const git = simpleGit({
     baseDir: `${testsFolder}`
   })
@@ -36,7 +37,15 @@ export async function buildDockerTestImage(
     DOCKER_BUILDX_CACHE_TO: `type=gha,mode=max,scope=${cacheScope}`
   }
 
-  if (!fs.existsSync(buildScript)) {
+  if (fs.existsSync(jahiaCliConfig)) {
+    // If a file called jahia-cli.config.yml is present in the tests folder, then jahia-cli will be used to build the image
+    let buildCommand = `jahia-cli tests:build -c ${jahiaCliConfig} --context ${testsFolder}/.`
+    await runShellCommands([buildCommand], 'artifacts/build.log', {
+      cwd: testsFolder,
+      ignoreReturnCode: true,
+      env: buildEnv
+    })
+  } else if (!fs.existsSync(buildScript)) {
     core.info(`Building test image using docker`)
 
     let buildCommand
@@ -61,9 +70,15 @@ export async function buildDockerTestImage(
     if (cacheEnabled) {
       core.info(`🔄 Docker build cache is enabled (scope=${cacheScope})`)
       core.info(`Cache settings are available via environment variables:`)
-      core.info(`  DOCKER_BUILD_CACHE_ENABLED=${buildEnv.DOCKER_BUILD_CACHE_ENABLED}`)
-      core.info(`  DOCKER_BUILD_CACHE_SCOPE=${buildEnv.DOCKER_BUILD_CACHE_SCOPE}`)
-      core.info(`  DOCKER_BUILDX_CACHE_FROM=${buildEnv.DOCKER_BUILDX_CACHE_FROM}`)
+      core.info(
+        `  DOCKER_BUILD_CACHE_ENABLED=${buildEnv.DOCKER_BUILD_CACHE_ENABLED}`
+      )
+      core.info(
+        `  DOCKER_BUILD_CACHE_SCOPE=${buildEnv.DOCKER_BUILD_CACHE_SCOPE}`
+      )
+      core.info(
+        `  DOCKER_BUILDX_CACHE_FROM=${buildEnv.DOCKER_BUILDX_CACHE_FROM}`
+      )
       core.info(`  DOCKER_BUILDX_CACHE_TO=${buildEnv.DOCKER_BUILDX_CACHE_TO}`)
     }
     await runShellCommands([`bash ${ciBuildScript}`], 'artifacts/build.log', {

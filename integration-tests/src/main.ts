@@ -26,7 +26,8 @@ import {
   setEnvironmentVariables,
   displaySystemInfo,
   installTooling,
-  setupSSH
+  setupSSH,
+  initTestsFolder
 } from './init'
 import {
   publishToTestrail,
@@ -174,6 +175,14 @@ async function run(): Promise<void> {
         }
       )
     }
+
+    // Init the tests folder with jahia-cli
+    await core.group(
+      `${timeSinceStart(startTime)} 🛠️ Fetch scaffolding from jahia-cypress`,
+      async () => {
+        await initTestsFolder(testsFolder)
+      }
+    )
 
     // Build the test image
     if (core.getInput('should_build_testsimage') === 'true') {

@@ -7,6 +7,7 @@ export async function displaySystemInfo(): Promise<any> {
     'node -v',
     'npm -v',
     'jahia-reporter -v',
+    'jahia-cli -v',
     'printenv'
   ]
 

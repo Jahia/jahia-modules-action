@@ -13,12 +13,26 @@ export async function startDockerEnvironment(
 ): Promise<void> {
   const startupFile = path.join(testsFolder, ciStartupScript)
   const composeFile = path.join(testsFolder, dockerComposeFile)
+  const jahiaCliConfig = path.join(testsFolder, 'jahia-cli.config.yml')
 
   // Note that we're ignoring the return code on purpose.
   // The last step of the action will take care of verifying
   // if execution was successful
 
-  if (fs.existsSync(startupFile)) {
+  if (fs.existsSync(jahiaCliConfig)) {
+    // If a file called jahia-cli.config.yml is present in the tests folder, then jahia-cli will be used to build the image
+    let createEnvironment = `jahia-cli environment:create -c ${jahiaCliConfig}`
+    await runShellCommands([createEnvironment], 'artifacts/create.log', {
+      cwd: testsFolder,
+      ignoreReturnCode: true
+    })
+
+    let startTests = `jahia-cli tests:run -c ${jahiaCliConfig} --env JAHIA_HOST=jahia --env JAHIA_URL=http://jahia:8080 `
+    await runShellCommands([startTests], 'artifacts/start-tests.log', {
+      cwd: testsFolder,
+      ignoreReturnCode: true
+    })
+  } else if (fs.existsSync(startupFile)) {
     core.info(`Starting environment using startup script: ${startupFile}`)
 
     try {
