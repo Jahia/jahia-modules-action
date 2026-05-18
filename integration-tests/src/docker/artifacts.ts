@@ -19,7 +19,7 @@ export async function copyRunArtifacts(
   if (fs.existsSync(jahiaCliConfig)) {
     // If a file called jahia-cli.config.yml is present in the tests folder, then jahia-cli will be used to fetch the artifacts
     await runShellCommands(
-      [`jahia-cli tests:artifacts -o  ${destinationPath}`],
+      [`jahia-cli tests:artifacts --output ${destinationPath}`],
       'artifacts/tests-artifacts.log',
       {
         ignoreReturnCode: true
@@ -87,6 +87,7 @@ export async function copyRunArtifacts(
   }
   core.info(`Listing artifacts content at: ${destinationPath}`)
   await runShellCommands([`tree ${destinationPath}`], 'artifacts/tree.log', {
-    ignoreReturnCode: true
+    ignoreReturnCode: true,
+    loggingMode: 'full'
   })
 }
