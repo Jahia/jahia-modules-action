@@ -21,6 +21,31 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Check if running inside a Docker container
+      shell: bash
+      run: |
+        IN_CONTAINER=false
+
+        # Docker leaves this file in the root of the container filesystem
+        [ -f /.dockerenv ] && IN_CONTAINER=true
+
+        # Some runtimes set this environment variable (e.g. systemd-nspawn, LXC)
+        [ -n "${container:-}" ] && IN_CONTAINER=true
+
+        # cgroups v1: the hierarchy contains "docker", "kubepods", "containerd", etc.
+        # cgroups v2: a single-line file — non-empty path usually means a container
+        if grep -qE '(docker|containerd|kubepods|lxc|buildkit)' /proc/self/cgroup 2>/dev/null; then
+          IN_CONTAINER=true
+        fi
+
+        if [ "$IN_CONTAINER" = "true" ]; then
+          echo "❌ Running inside a container. The VPN tunnel action cannot configure kernel-level network interfaces from within a container."
+          echo "   Please run this action directly on the host runner."
+          exit 1
+        fi
+
+        echo "✅ Not running inside a container, proceeding with VPN tunnel setup."
+
     - name: Install Wireguard
       shell: bash
       run: |
