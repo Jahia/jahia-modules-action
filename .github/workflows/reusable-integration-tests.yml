@@ -115,6 +115,10 @@ on:
         type: boolean
         default: false
         description: "Import secrets from HashiCorp Vault before running the tests"
+      vault_host:
+        type: string
+        default: ""
+        description: "HashiCorp Vault host URL (e.g. https://vault.example.com). Required if vault_secrets_enabled is true."
 
 jobs:
   integration-tests:
@@ -153,7 +157,7 @@ jobs:
         if: ${{ inputs.vault_secrets_enabled }}
         id: import-secrets
         with:
-          url: ${{ vars.JC_VAULT_HOST }}
+          url: ${{ inputs.vault_host }}
           method: approle
           tlsSkipVerify: true
           roleId: ${{ secrets.JC_VAULT_ROLE_ID }}
