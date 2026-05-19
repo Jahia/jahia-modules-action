@@ -55,7 +55,7 @@ runs:
     - name: Create configuration file
       shell: bash
       env:
-        WG_CONF_B64: ${{ secrets.WG_CONF_B64 }}
+        WG_CONF_B64: ${{ inputs.config-base64 }}
       run: |
           whoami
           echo "$WG_CONF_B64" | base64 -d | sudo tee /etc/wireguard/wg0.conf > /dev/null
