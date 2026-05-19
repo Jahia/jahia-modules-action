@@ -57,6 +57,8 @@ runs:
       run: |
           echo "${{ inputs.config-base64 }}" |base64 -d > wg0.conf
           sudo chmod 600 wg0.conf
+          ls -lah ./
+          whoami
           sudo wg-quick up ./wg0.conf
 
     - name: Validate connection using the provided canary URL
