@@ -119,9 +119,13 @@ on:
         type: string
         default: ""
         description: "HashiCorp Vault host URL (e.g. https://vault.example.com). Required if vault_secrets_enabled is true."
+      environment:
+        type: string
+        required: false
 
 jobs:
   integration-tests:
+    environment: ${{ inputs.environment }}
     name: Integration Tests
     runs-on: ${{ inputs.instance_type }}
     strategy:
