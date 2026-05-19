@@ -1,0 +1,73 @@
+# A Workflow to test the VPN tunnel on ubuntu-latest and self-hosted instances.
+# See 
+name: Test VPN tunnel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # Establish a VPN but tries to connect to a public URL
+  # This workflow should PASS
+  direct-ul-good-url:
+    runs-on: ubuntu-latest 
+    steps:
+      - uses: jahia/jahia-modules-action/vpn-tunnel@v2
+        with:
+          config-base64: ${{ secrets.JC_WIREGUARD_VPN }}
+          canary-url: https://www.github.com
+  
+  # Establish a VPN on "ubuntu-latest" and tries to connect to an invalid URL
+  # This workflow should FAIL
+  vpn-ul-wrong-url:
+    runs-on: ubuntu-latest 
+    steps:
+      - uses: jahia/jahia-modules-action/vpn-tunnel@v2
+        with:
+          config-base64: ${{ secrets.JC_WIREGUARD_VPN }}
+          canary-url: https://app.dev.j.rjahia.com
+
+  # Establish a VPN and tries to connect to an valid URL
+  # This workflow should PASS
+  vpn-ul-good-url:
+    runs-on: ubuntu-latest 
+    steps:
+      - uses: jahia/jahia-modules-action/vpn-tunnel@v2
+        with:
+          config-base64: ${{ secrets.JC_WIREGUARD_VPN }}
+          canary-url: https://app.dev.j.jahia.com
+
+  # Establish a VPN on "self-hosted" and tries to connect to an invalid URL
+  # This workflow should FAIL
+  vpn-sh-wrong-url:
+    runs-on: self-hosted
+    steps:
+      - uses: jahia/jahia-modules-action/vpn-tunnel@v2
+        with:
+          config-base64: ${{ secrets.JC_WIREGUARD_VPN }}
+          canary-url: https://app.dev.j.rjahia.com
+
+  # Establish a VPN on "self-hosted" and tries to connect to an valid URL
+  # This workflow should PASS
+  vpn-sh-good-url:
+    runs-on: self-hosted
+    steps:
+      - uses: jahia/jahia-modules-action/vpn-tunnel@v2
+        with:
+          config-base64: ${{ secrets.JC_WIREGUARD_VPN }}
+          canary-url: https://app.dev.j.jahia.com 
+
+  # Using self-hosted, runs the WF within a container
+  # This is not supported and known to not be working
+  # This workflow should FAIL
+  vpn-sh-good-url-container:
+    runs-on: self-hosted
+    container:
+      image: ghcr.io/jahia/jahia-docker-mvn-cache:11-jdk-noble-mvn-loaded
+      credentials:
+        username: ${{ secrets.GH_PACKAGES_USERNAME }}
+        password: ${{ secrets.GH_PACKAGES_TOKEN }} 
+    steps:
+      - uses: jahia/jahia-modules-action/vpn-tunnel@v2
+        with:
+          config-base64: ${{ secrets.JC_WIREGUARD_VPN }}
+          canary-url: https://app.dev.j.jahia.com            

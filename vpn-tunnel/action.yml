@@ -54,10 +54,14 @@ runs:
 
     - name: Create configuration file
       shell: bash
+      env:
+        WG_CONF_B64: ${{ inputs.config-base64 }}
       run: |
-          echo "${{ inputs.config-base64 }}" |base64 -d > wg0.conf
-          sudo chmod 600 wg0.conf
-          sudo wg-quick up ./wg0.conf
+          whoami
+          echo "$WG_CONF_B64" | base64 -d | sudo tee /etc/wireguard/wg0.conf > /dev/null
+          sudo chmod 600 /etc/wireguard/wg0.conf
+          sudo ls -lah /etc/wireguard/
+          sudo wg-quick up /etc/wireguard/wg0.conf
 
     - name: Validate connection using the provided canary URL
       shell: bash
