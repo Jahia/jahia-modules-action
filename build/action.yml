@@ -38,6 +38,10 @@ inputs:
     description: 'Version of node to install on the host'
     required: false
     default: 'lts/*'
+  skip_mvn_tests:
+    description: 'Skip tests execution during the build of the MVN module'
+    required: false
+    default: 'false'
 
 runs:
   using: 'composite'
@@ -70,6 +74,7 @@ runs:
         nexus_password: ${{ inputs.nexus_password }}
         github_artifact_retention: ${{ inputs.github_artifact_retention }}
         github_artifact_name: build-artifacts-tests${{ inputs.github_artifact_suffix }}
+        skip_mvn_tests:  ${{ inputs.skip_mvn_tests }}
 
     - name: Check if test module is present (Javascript)
       if: ${{ inputs.tests_module_type == 'javascript' }}
