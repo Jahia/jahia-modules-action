@@ -54,6 +54,7 @@ runs:
         nexus_password: ${{ inputs.nexus_password }}
         github_artifact_name: build-artifacts${{ inputs.github_artifact_suffix }}
         github_artifact_retention: ${{ inputs.github_artifact_retention }}
+        skip_mvn_tests: ${{ inputs.skip_mvn_tests }}
 
     - name: Check if test module is present (MVN)
       if: ${{ inputs.tests_module_type == 'mvn' }}
@@ -74,7 +75,6 @@ runs:
         nexus_password: ${{ inputs.nexus_password }}
         github_artifact_retention: ${{ inputs.github_artifact_retention }}
         github_artifact_name: build-artifacts-tests${{ inputs.github_artifact_suffix }}
-        skip_mvn_tests:  ${{ inputs.skip_mvn_tests }}
 
     - name: Check if test module is present (Javascript)
       if: ${{ inputs.tests_module_type == 'javascript' }}
