@@ -8,7 +8,7 @@ on:
 
 jobs:
   check-signal-patch:
-    name: Verify signal patch in dist
+    name: Integration Tests - Verify signal patch in dist
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
