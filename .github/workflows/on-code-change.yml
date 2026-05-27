@@ -9,7 +9,7 @@ on:
 jobs:
   check-signal-patch:
     name: Integration Tests - Verify signal patch in dist
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
       - uses: actions/checkout@v4
 
