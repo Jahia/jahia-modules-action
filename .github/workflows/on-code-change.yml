@@ -13,15 +13,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check signal option is present in dist/index.js
+      - name: Check signal option is present in _getSpawnOptions
         run: |
-          if grep -q "result.signal = options.signal;" integration-tests/dist/index.js; then
-            echo "✅ Signal patch is present in dist/index.js"
+          # Verify that result.signal = options.signal is inside _getSpawnOptions method
+          if grep -A 10 "_getSpawnOptions(options, toolPath)" integration-tests/dist/index.js | grep -q "result.signal = options.signal;"; then
+            echo "✅ Signal patch is present in _getSpawnOptions in dist/index.js"
           else
-            echo "❌ Signal patch is MISSING from dist/index.js"
+            echo "❌ Signal patch is MISSING from _getSpawnOptions in dist/index.js"
             echo ""
-            echo "The line 'result.signal = options.signal;' must be present in"
-            echo "integration-tests/dist/index.js for step cancellation to work."
+            echo "The line 'result.signal = options.signal;' must be present inside the"
+            echo "_getSpawnOptions method in integration-tests/dist/index.js for step"
+            echo "cancellation to work."
             echo ""
             echo "Run 'yarn run package' in the integration-tests/ directory to"
             echo "automatically apply the patch, or see the README for manual instructions."
