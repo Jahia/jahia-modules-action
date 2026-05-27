@@ -11,7 +11,7 @@ jobs:
     name: Integration Tests - Verify signal patch in dist
     runs-on: ubuntu-slim
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
 
       - name: Check signal option is present in _getSpawnOptions
         run: |
