@@ -1,0 +1,29 @@
+name: On Code Change
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'integration-tests/**'
+
+jobs:
+  check-signal-patch:
+    name: Verify signal patch in dist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check signal option is present in dist/index.js
+        run: |
+          if grep -q "result.signal = options.signal;" integration-tests/dist/index.js; then
+            echo "✅ Signal patch is present in dist/index.js"
+          else
+            echo "❌ Signal patch is MISSING from dist/index.js"
+            echo ""
+            echo "The line 'result.signal = options.signal;' must be present in"
+            echo "integration-tests/dist/index.js for step cancellation to work."
+            echo ""
+            echo "Run 'yarn run package' in the integration-tests/ directory to"
+            echo "automatically apply the patch, or see the README for manual instructions."
+            exit 1
+          fi
