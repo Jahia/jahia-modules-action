@@ -159,7 +159,8 @@ jobs:
               owner,
               repo,
               title: `Security checklist for feature development`,
-              body: `${body}`
+              body: `${body}`,
+              labels: ['Area:Security']
             });
 
             await github.request('POST /repos/{owner}/{repo}/issues/{issue_number}/sub_issues', {
