@@ -120,6 +120,57 @@ jobs:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labels: refresh
 
+  epic-creation:
+    name: For every new Epic
+    if: ${{ github.event.action == 'opened' }}
+    runs-on: ubuntu-slim
+    steps:
+      # Issue type is not available by default, this makes it available for if conditions
+      - name: Get Issue type
+        uses: jahia/jahia-modules-action/delivery/get-issue@v2
+        id: get-issue
+        with:
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+
+      - name: Create a Security checklist for every new Epic
+        if: ${{ steps.get-issue.outputs.issue_type == 'Epic' }}
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const parentIssueNumber = context.payload.issue.number;
+            const parentIssueTitle = context.payload.issue.title;
+            const templatePath = '.github/ISSUE_TEMPLATE/security-checks.md';
+
+            const templateFile = await github.rest.repos.getContent({
+              owner,
+              repo,
+              path: templatePath
+            });
+
+            const rawTemplate = Buffer.from(templateFile.data.content, 'base64').toString('utf8');
+
+            // Remove optional front matter block delimited by ---
+            const body = rawTemplate.replace(/^---[\s\S]*?---\n?/, '').trim();
+
+            const created = await github.rest.issues.create({
+              owner,
+              repo,
+              title: `Security checklist for feature development`,
+              body: `${body}`
+            });
+
+            await github.request('POST /repos/{owner}/{repo}/issues/{issue_number}/sub_issues', {
+              owner,
+              repo,
+              issue_number: parentIssueNumber,
+              sub_issue_id: created.data.id
+            });
+
+            core.info(`Created sub-issue #${created.data.number} from template ${templatePath}`);
+    
   projects-milestone:
     name: Projects on Milestones
     if: ${{ (github.event.action == 'milestoned' || github.event.action == 'demilestoned') && github.event.sender.login != 'jahia-ci' }}
