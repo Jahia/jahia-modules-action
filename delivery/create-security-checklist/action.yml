@@ -1,0 +1,49 @@
+name: Create a Security checklist
+description: Create a Security checklist issue
+
+inputs:
+  github-token:
+    description: 'Github token'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Create a Security checklist for every new Epic
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const owner = context.repo.owner;
+          const repo = context.repo.repo;
+          const parentIssueNumber = context.payload.issue.number;
+          const parentIssueTitle = context.payload.issue.title;
+          const templatePath = '.github/ISSUE_TEMPLATE/security-checks.md';
+
+          const templateFile = await github.rest.repos.getContent({
+            owner,
+            repo,
+            path: templatePath
+          });
+
+          const rawTemplate = Buffer.from(templateFile.data.content, 'base64').toString('utf8');
+
+          // Remove optional front matter block delimited by ---
+          const body = rawTemplate.replace(/^---[\s\S]*?---\n?/, '').trim();
+
+          const created = await github.rest.issues.create({
+            owner,
+            repo,
+            title: `Security checklist for feature development`,
+            body: `${body}`,
+            labels: ['Area:Security']
+          });
+
+          await github.request('POST /repos/{owner}/{repo}/issues/{issue_number}/sub_issues', {
+            owner,
+            repo,
+            issue_number: parentIssueNumber,
+            sub_issue_id: created.data.id
+          });
+
+          core.info(`Created sub-issue #${created.data.number} from template ${templatePath}`);
