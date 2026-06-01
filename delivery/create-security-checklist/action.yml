@@ -33,7 +33,7 @@ runs:
             // Remove optional front matter block delimited by --- (handle both LF and CRLF)
             body = rawTemplate.replace(/^---[\s\S]*?---(\r?\n)?/, '').trim();
           } catch (error) {
-            core.setFailed(`Unable to load template ${templatePath}: ${error.message}`);
+            core.warning(`Unable to load template ${templatePath} (${error.message}); skipping security checklist creation.`);
             return;
           }
           let created;
