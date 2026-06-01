@@ -33,7 +33,7 @@ runs:
             // Remove optional front matter block delimited by --- (handle both LF and CRLF)
             body = rawTemplate.replace(/^---[\s\S]*?---(\r?\n)?/, '').trim();
           } catch (error) {
-            core.warning(`Unable to load template ${templatePath} (${error.message}); skipping security checklist creation.`);
+            core.setFailed(`Unable to load template ${templatePath}: ${error.message}`);
             return;
           }
           let created;
@@ -60,4 +60,14 @@ runs:
             core.info(`Created sub-issue #${created.data.number} from template ${templatePath}`);
           } catch (error) {
             core.warning(`Created issue #${created.data.number} from template ${templatePath} but could not attach it as sub-issue of #${parentIssueNumber}: ${error.message}`);
+            try {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: created.data.number,
+                body: `Could not attach this issue as a sub-issue of #${parentIssueNumber}. Please link manually.\n\nError: ${error.message}`
+              });
+            } catch (commentError) {
+              core.warning(`Additionally failed to comment on issue #${created.data.number}: ${commentError.message}`);
+            }
           }
