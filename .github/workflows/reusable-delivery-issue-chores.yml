@@ -122,7 +122,7 @@ jobs:
 
   epic-creation:
     name: For every new Epic
-    if: ${{ github.event.action == 'opened' }}
+    if: ${{ github.event.action == 'opened' && github.event.sender.login != 'jahia-ci' }}
     runs-on: ubuntu-slim
     steps:
       # Issue type is not available by default, this makes it available for if conditions
