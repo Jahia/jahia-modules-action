@@ -136,7 +136,7 @@ jobs:
         if: ${{ steps.get-issue.outputs.issue_type == 'Epic' }}
         uses: jahia/jahia-modules-action/delivery/create-security-checklist@v2
         with:
-          github-token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
 
   projects-milestone:
     name: Projects on Milestones
