@@ -1,5 +1,5 @@
 name: Create a Security checklist
-description: Create a Security checklist issue
+description: Create a Security checklist sub-issue from .github/ISSUE_TEMPLATE/security-checks.md
 
 inputs:
   github_token:
@@ -36,19 +36,28 @@ runs:
             core.setFailed(`Unable to load template ${templatePath}: ${error.message}`);
             return;
           }
-          const created = await github.rest.issues.create({
-            owner,
-            repo,
-            title: `Security checklist for feature development`,
-            body: `${body}`,
-            labels: ['Area:Security']
-          });
+          let created;
+          try {
+            created = await github.rest.issues.create({
+              owner,
+              repo,
+              title: 'Security checklist for feature development',
+              body,
+              labels: ['Area:Security']
+            });
+          } catch (error) {
+            core.setFailed(`Unable to create security checklist issue: ${error.message}`);
+            return;
+          }
 
-          await github.request('POST /repos/{owner}/{repo}/issues/{issue_number}/sub_issues', {
-            owner,
-            repo,
-            issue_number: parentIssueNumber,
-            sub_issue_id: created.data.id
-          });
-
-          core.info(`Created sub-issue #${created.data.number} from template ${templatePath}`);
+          try {
+            await github.request('POST /repos/{owner}/{repo}/issues/{issue_number}/sub_issues', {
+              owner,
+              repo,
+              issue_number: parentIssueNumber,
+              sub_issue_id: created.data.id
+            });
+            core.info(`Created sub-issue #${created.data.number} from template ${templatePath}`);
+          } catch (error) {
+            core.warning(`Created issue #${created.data.number} from template ${templatePath} but could not attach it as sub-issue of #${parentIssueNumber}: ${error.message}`);
+          }
