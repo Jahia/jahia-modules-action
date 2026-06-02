@@ -120,6 +120,24 @@ jobs:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           labels: refresh
 
+  epic-creation:
+    name: For every new Epic
+    if: ${{ github.event.action == 'opened' && github.event.sender.login != 'jahia-ci' }}
+    runs-on: ubuntu-slim
+    steps:
+      # Issue type is not available by default, this makes it available for if conditions
+      - name: Get Issue type
+        uses: jahia/jahia-modules-action/delivery/get-issue@v2
+        id: get-issue
+        with:
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+
+      - name: Create a Security checklist for every new Epic
+        if: ${{ steps.get-issue.outputs.issue_type == 'Epic' }}
+        uses: jahia/jahia-modules-action/delivery/create-security-checklist@v2
+        with:
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+
   projects-milestone:
     name: Projects on Milestones
     if: ${{ (github.event.action == 'milestoned' || github.event.action == 'demilestoned') && github.event.sender.login != 'jahia-ci' }}
@@ -136,7 +154,7 @@ jobs:
   transfer:
     name: Transfer
     runs-on: ubuntu-latest
-    needs: [projects-label, projects-milestone]
+    needs: [projects-label, epic-creation, projects-milestone]
     if: always() && github.event.sender.login != 'jahia-ci'
     steps:
       # Transfer issues with label "jahia-only" back to jahia-private
