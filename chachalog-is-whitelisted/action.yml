@@ -44,7 +44,6 @@ runs:
             'Jahia/forms-elasticsearch-storage-tests',
             'Jahia/jahia-docker-mvn-cache',
             'Jahia/jahia-modules-action',
-            'Jahia/jahia-oauth',
             'Jahia/jahia-qa',
             'Jahia/jahia-qa-data',
             'Jahia/jahia-reporter',
