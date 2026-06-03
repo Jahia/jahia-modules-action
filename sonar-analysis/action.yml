@@ -177,8 +177,8 @@ runs:
         OWASP_PARAMS="-DfailBuildOnCVSS=7 -DskipProvidedScope=true -DskipTestScope=true -DskipSystemScope=true -Dformats=HTML,JSON \
           -DretireJsAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DassemblyAnalyzerEnabled=false -DnodeAuditSkipDevDependencies=true \
           -DyarnAuditAnalyzerEnabled=false -DdataDirectory=${OWASP_DATA_DIR}"
-
-        DEFAULT_SUPP="https://raw.githubusercontent.com/Jahia/jahia/master/.owasp/suppressions.xml"
+          
+        DEFAULT_SUPP="https://raw.githubusercontent.com/Jahia/jahia/main/.owasp/suppressions.xml"
         supps=("$DEFAULT_SUPP")
 
         CUSTOM_FILE=".owasp/custom-suppressions.xml"
