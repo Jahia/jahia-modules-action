@@ -111,21 +111,9 @@ on:
         type: boolean
         default: false
         description: "Establish a WireGuard VPN tunnel before running the tests"
-      vault_secrets_enabled:
-        type: boolean
-        default: false
-        description: "Import secrets from HashiCorp Vault before running the tests"
-      vault_host:
-        type: string
-        default: ""
-        description: "HashiCorp Vault host URL (e.g. https://vault.example.com). Required if vault_secrets_enabled is true."
-      environment:
-        type: string
-        required: false
 
 jobs:
   integration-tests:
-    environment: ${{ inputs.environment }}
     name: Integration Tests
     runs-on: ${{ inputs.instance_type }}
     strategy:
@@ -157,21 +145,6 @@ jobs:
         with:
           config-base64: ${{ secrets.JC_WIREGUARD_VPN }}
           canary-url: https://app.dev.j.jahia.com
-      - uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b #v3.4.0
-        if: ${{ inputs.vault_secrets_enabled }}
-        id: import-secrets
-        with:
-          url: ${{ inputs.vault_host }}
-          method: approle
-          tlsSkipVerify: true
-          roleId: ${{ secrets.JC_VAULT_ROLE_ID }}
-          secretId: ${{ secrets.JC_VAULT_SECRET_ID }}
-          secrets: |
-            kv/data/paas/frontend/aws access_key | JC_AWS_ACCESS_KEY ;
-            kv/data/paas/frontend/aws secret_key | JC_AWS_SECRET_KEY ;
-            kv/data/paas/frontend/jelastic master_login | JC_JELASTIC_MASTER_LOGIN ;
-            kv/data/paas/frontend/jelastic master_password | JC_JELASTIC_MASTER_PASSWORD ;
-            kv/data/paas/frontend/papi token | JC_PAPI_TOKEN
       - uses: jahia/jahia-modules-action/helper@v2
       - uses: KengoTODA/actions-setup-docker-compose@477353946803dd64eaa44008b865b6bfc88cab4e #v1.2.4
         with:
