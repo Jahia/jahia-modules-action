@@ -113,14 +113,20 @@ runs:
 
             // Convert glob pattern to a regular expression:
             //  1. Escape regex-special characters (preserving our glob wildcards)
-            //  2. Replace "**" with a regex that matches across path segments
-            //  3. Replace remaining "*" with a regex for a single path segment
-            //  4. Replace "?" with a single-character match within a segment
+            //  2. Handle "**/" as "zero or more directory segments" (including root)
+            //  3. Handle trailing "**" as "match anything remaining"
+            //  4. Replace remaining "*" with a regex for a single path segment
+            //  5. Replace "?" with a single-character match within a segment
+            //
+            // Key semantic: "**/" matches zero or more directories, so
+            //   "**/*.md" matches both "README.md" and "docs/guide.md"
             const regexStr = pattern
               .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+              .replace(/\*\*\//g, '{{GLOBSTAR_SLASH}}')
               .replace(/\*\*/g, '{{GLOBSTAR}}')
               .replace(/\*/g, '[^/]*')
               .replace(/\?/g, '[^/]')
+              .replace(/{{GLOBSTAR_SLASH}}/g, '(.*/)?')
               .replace(/{{GLOBSTAR}}/g, '.*');
 
             const regex = new RegExp(`^${regexStr}$`);
