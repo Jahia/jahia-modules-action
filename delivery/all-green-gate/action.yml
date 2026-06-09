@@ -1,0 +1,66 @@
+name: All Green Gate
+description: >
+  Evaluates all check runs and commit statuses for the current SHA.
+  Passes only when every other check has succeeded or been skipped.
+  Exits neutrally (without failing) if checks are still in progress.
+
+inputs:
+  github_token:
+    description: 'GitHub personal API token'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Evaluate all checks and statuses
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      with:
+        github-token: ${{ inputs.github_token }}
+        retries: 3
+        script: |
+          const sha = context.sha;
+
+          const { data: combinedStatus } = await github.rest.repos.getCombinedStatusForRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: sha,
+          });
+
+          const { data: checkRuns } = await github.rest.checks.listForRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: sha,
+            filter: 'latest',
+          });
+
+          // Exclude this workflow's own check to avoid self-reference loop
+          const otherChecks = checkRuns.check_runs.filter(
+            cr => cr.name !== 'gate'
+          );
+
+          const allCompleted = otherChecks.every(cr => cr.status === 'completed');
+          const allSuccess = otherChecks.every(
+            cr => cr.conclusion === 'success' || cr.conclusion === 'skipped'
+          );
+          const statusOk =
+            combinedStatus.state === 'success' || combinedStatus.statuses.length === 0;
+
+          if (!allCompleted) {
+            core.info('Not all checks completed yet — exiting neutrally (will re-trigger on next completion).');
+            return;
+          }
+
+          if (allSuccess && statusOk) {
+            core.info('All checks green!');
+          } else {
+            const failed = otherChecks
+              .filter(cr => cr.conclusion !== 'success' && cr.conclusion !== 'skipped')
+              .map(cr => `  - ${cr.name}: ${cr.conclusion}`);
+            if (failed.length > 0) {
+              core.info('Failed checks:\n' + failed.join('\n'));
+            }
+            if (combinedStatus.state !== 'success' && combinedStatus.statuses.length > 0) {
+              core.info(`Combined commit status: ${combinedStatus.state}`);
+            }
+            core.setFailed('Some checks failed or commit statuses are not green.');
+          }
