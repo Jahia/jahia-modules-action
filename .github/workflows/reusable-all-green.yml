@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Evaluate all checks and statuses
-        uses: actions/github-script@f28e40c9614fd4ece07310c56374c1544014c6fb # v7.1.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const sha = context.sha;
