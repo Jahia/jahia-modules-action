@@ -1,0 +1,98 @@
+# Reusable Workflow: All Checks Gate
+#
+# PURPOSE:
+#   Provides a single "gate" check that turns green only when every other
+#   check / status on the same commit has succeeded (or been skipped).
+#   This is useful as a branch-protection required status check so that
+#   you don't have to list every individual job — just require "gate".
+#
+# HOW IT WORKS:
+#   The workflow triggers on `check_suite` completions and `status` events.
+#   Each time a check finishes, this workflow re-evaluates all other checks
+#   and commit statuses for the same SHA:
+#     - If some checks are still running it exits neutrally (no failure).
+#     - If all checks completed successfully (or were skipped) it passes.
+#     - If any check failed it marks itself as failed.
+#   The job filters out its own check run ("gate") to avoid a self-reference
+#   loop.
+#
+# USAGE:
+#   In a consuming repository, create a workflow that calls this reusable
+#   workflow:
+#
+#     name: All Checks Gate
+#     on:
+#       check_suite:
+#         types: [completed]
+#       status: {}
+#
+#     jobs:
+#       all-green:
+#         uses: Jahia/jahia-modules-action/.github/workflows/reusable-all-green.yml@main
+#         secrets: inherit
+#
+#   Then add "gate" as the sole required status check in branch protection
+#   rules for your default branch.
+#
+# INPUTS: none
+# SECRETS: none (uses the default GITHUB_TOKEN)
+
+name: Reusable Workflow (All Checks Gate)
+
+on:
+  workflow_call:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate all checks and statuses
+        uses: actions/github-script@f28e40c9614fd4ece07310c56374c1544014c6fb # v7.1.0
+        with:
+          script: |
+            const sha = context.sha;
+
+            const { data: combinedStatus } = await github.rest.repos.getCombinedStatusForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: sha,
+            });
+
+            const { data: checkRuns } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: sha,
+              filter: 'latest',
+            });
+
+            // Exclude this workflow's own check to avoid self-reference loop
+            const otherChecks = checkRuns.check_runs.filter(
+              cr => cr.name !== 'gate'
+            );
+
+            const allCompleted = otherChecks.every(cr => cr.status === 'completed');
+            const allSuccess = otherChecks.every(
+              cr => cr.conclusion === 'success' || cr.conclusion === 'skipped'
+            );
+            const statusOk =
+              combinedStatus.state === 'success' || combinedStatus.statuses.length === 0;
+
+            if (!allCompleted) {
+              core.info('Not all checks completed yet — exiting neutrally (will re-trigger on next completion).');
+              return;
+            }
+
+            if (allSuccess && statusOk) {
+              core.info('All checks green!');
+            } else {
+              const failed = otherChecks
+                .filter(cr => cr.conclusion !== 'success' && cr.conclusion !== 'skipped')
+                .map(cr => `  - ${cr.name}: ${cr.conclusion}`);
+              if (failed.length > 0) {
+                core.info('Failed checks:\n' + failed.join('\n'));
+              }
+              if (combinedStatus.state !== 'success' && combinedStatus.statuses.length > 0) {
+                core.info(`Combined commit status: ${combinedStatus.state}`);
+              }
+              core.setFailed('Some checks failed or commit statuses are not green.');
+            }
