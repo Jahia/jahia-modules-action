@@ -5,6 +5,9 @@ inputs:
   job-event:
     default: "pass"
     description: "Status of the execution"
+  git-commit-sha: 
+    default: ""
+    description: "Git commit hash"
   skip-docker:
     type: boolean
     default: false
@@ -50,7 +53,7 @@ runs:
                 "text":
                   {
                     "type": "mrkdwn",
-                    "text": ":vertical_traffic_light: New build has started for *${{ env.REPO_NAME }}* (Branch: *${{ steps.branch-name.outputs.current_branch }}*). Wait for the green light to start testing the artifacts."
+                    "text": ":vertical_traffic_light: New build has started for *${{ env.REPO_NAME }}* (Commit: *${{ inputs.git-commit-sha }}*, Branch: *${{ steps.branch-name.outputs.current_branch }}*). Wait for the green light to start testing the artifacts."
                   }
               }
             ]
@@ -71,7 +74,7 @@ runs:
                 "text":
                   {
                     "type": "mrkdwn",
-                    "text": ":white_check_mark: New build available for *${{ env.REPO_NAME }}* (Job artifacts: <https://github.com/Jahia/${{ env.REPO_NAME }}/actions/runs/${{ github.run_id }}#artifacts|*${{ github.job }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*) ${{ env.DOCKER_COMMAND }}"
+                    "text": ":white_check_mark: New build available for *${{ env.REPO_NAME }}* (Commit: *${{ inputs.git-commit-sha }}*, Job artifacts: <https://github.com/Jahia/${{ env.REPO_NAME }}/actions/runs/${{ github.run_id }}#artifacts|*${{ github.job }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*) ${{ env.DOCKER_COMMAND }}"
                   }
               }
             ]
@@ -91,7 +94,7 @@ runs:
                 "text":
                   {
                     "type": "mrkdwn",
-                    "text": ":x: Build failure for *${{ env.REPO_NAME }}* (Job artifacts: <${{ github.server_url }}/Jahia/${{ env.REPO_NAME }}/actions/runs/${{ github.run_id }}|*${{ github.job }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*)"
+                    "text": ":x: Build failure for *${{ env.REPO_NAME }}* (Commit: *${{ inputs.git-commit-sha }}*, Job artifacts: <${{ github.server_url }}/Jahia/${{ env.REPO_NAME }}/actions/runs/${{ github.run_id }}|*${{ github.job }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*)"
 
                   }
               }
