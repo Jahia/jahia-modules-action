@@ -53,7 +53,7 @@ runs:
                 "text":
                   {
                     "type": "mrkdwn",
-                    "text": ":vertical_traffic_light: New build has started for *${{ env.REPO_NAME }}* (Commit: *${{ inputs.git-commit-sha }}*, Branch: *${{ steps.branch-name.outputs.current_branch }}*). Wait for the green light to start testing the artifacts."
+                    "text": ":x: New build has started for *${{ env.REPO_NAME }}* (Commit: *${{ inputs.git-commit-sha }}*, Branch: *${{ steps.branch-name.outputs.current_branch }}*). Wait for the green light to start testing the artifacts."
                   }
               }
             ]
