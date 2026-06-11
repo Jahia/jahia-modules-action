@@ -1,4 +1,5 @@
 name: slack-jahia
+description: Action used to send Slack messages related to build executions
 
 inputs:
   job-event:
@@ -36,6 +37,27 @@ runs:
     - name: Get repository name
       shell: bash
       run: echo "REPO_NAME=$(basename ${{ github.repository }})" >> $GITHUB_ENV
+
+    # when the job starts
+    - uses: slackapi/slack-github-action@007b2c3c751a190b6f0f040e47ed024deaa72844 #v1.23.0
+      if: ${{ inputs.job-event == 'started' }}
+      with:
+        payload: |
+          {
+            "blocks": [
+              {
+                "type": "section",
+                "text":
+                  {
+                    "type": "mrkdwn",
+                    "text": ":vertical_traffic_light: New build has started for *${{ env.REPO_NAME }}* (Branch: *${{ steps.branch-name.outputs.current_branch }}*). Wait for the green light to start testing the artifacts."
+                  }
+              }
+            ]
+          } 
+      env:
+        SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
     # if there was no failure
     - uses: slackapi/slack-github-action@007b2c3c751a190b6f0f040e47ed024deaa72844 #v1.23.0
