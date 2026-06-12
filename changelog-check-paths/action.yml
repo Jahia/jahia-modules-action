@@ -112,12 +112,8 @@ runs:
             }
 
             // Convert glob pattern to a regex.
-            // Supports: **/ (zero or more dirs), ** (anything), * (one segment), ? (one char)
-            //
-            // Placeholders are used to process "**/" and "**" before "*":
-            //   "**/" → (.*/)?  (optional prefix, so "**/*.md" matches "README.md")
-            //   "**"  → .*     (match anything remaining)
-            //   "*"   → [^/]*  (single segment only)
+            // Placeholders (__GLOBSTAR_SLASH__, __GLOBSTAR__) temporarily replace
+            // "**/" and "**" so that the single "*" replacement doesn't corrupt them.
             const regexStr = pattern
               .replace(/[.+^${}()|[\]\\]/g, '\\$&')
               .replace(/\*\*\//g, '__GLOBSTAR_SLASH__')
