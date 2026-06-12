@@ -45,7 +45,7 @@ runs:
       shell: bash
       run: |
         if [ "${{ inputs.git-commit-sha }}" != "" ]; then
-          COMMIT_SHA="Commit: ${{ inputs.git-commit-sha }}, "
+          COMMIT_SHA="Commit: *${{ inputs.git-commit-sha }}*, "
           echo "COMMIT_SHA=${COMMIT_SHA}" >> $GITHUB_ENV
         else
           echo "COMMIT_SHA=" >> $GITHUB_ENV
@@ -63,7 +63,7 @@ runs:
                 "text":
                   {
                     "type": "mrkdwn",
-                    "text": ":x: New build has started for *${{ env.REPO_NAME }}* (${{ env.COMMIT_SHA }}Branch: *${{ steps.branch-name.outputs.current_branch }}*). Wait for the green light to start testing the artifacts."
+                    "text": ":hourglass_flowing_sand:  New build has started for *${{ env.REPO_NAME }}* (${{ env.COMMIT_SHA }}Branch: *${{ steps.branch-name.outputs.current_branch }}*). Wait for the green light to start testing the artifacts."
                   }
               }
             ]
