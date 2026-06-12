@@ -132,23 +132,26 @@ runs:
             //     "** matches any number of characters, including /"
             //     https://github.com/isaacs/node-glob#glob-primer
             //
-            // Implementation detail: We use temporary placeholders ({{GLOBSTAR_SLASH}}
-            // and {{GLOBSTAR}}) to process "**/" and "**" separately before converting
-            // single "*". This is necessary because:
+            // Implementation detail: We use temporary placeholders to process
+            // "**/" and "**" separately before converting single "*". This is
+            // necessary because:
             //   - "**/" must become `(.*/)?` (optional directory prefix, enabling
             //     root-level matching — e.g. "**/*.md" matches "README.md")
             //   - "**" alone must become `.*` (match anything remaining)
             //   - "*" must become `[^/]*` (single segment only)
-            // Processing them in this order prevents "*" replacement from corrupting
-            // the "**" patterns.
+            // Processing them in this order prevents "*" replacement from
+            // corrupting the "**" patterns.
+            //
+            // Note: Placeholders use __PLACEHOLDER__ syntax (not {{ }}) to avoid
+            // confusion with GitHub Actions expression syntax (${{ }}).
             const regexStr = pattern
               .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-              .replace(/\*\*\//g, '{{GLOBSTAR_SLASH}}')
-              .replace(/\*\*/g, '{{GLOBSTAR}}')
+              .replace(/\*\*\//g, '__GLOBSTAR_SLASH__')
+              .replace(/\*\*/g, '__GLOBSTAR__')
               .replace(/\*/g, '[^/]*')
               .replace(/\?/g, '[^/]')
-              .replace(/{{GLOBSTAR_SLASH}}/g, '(.*/)?')
-              .replace(/{{GLOBSTAR}}/g, '.*');
+              .replace(/__GLOBSTAR_SLASH__/g, '(.*/)?')
+              .replace(/__GLOBSTAR__/g, '.*');
 
             const regex = new RegExp(`^${regexStr}$`);
             return regex.test(filePath);
