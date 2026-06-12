@@ -1,9 +1,13 @@
 name: slack-jahia
+description: Action used to send Slack messages related to build executions
 
 inputs:
   job-event:
     default: "pass"
     description: "Status of the execution"
+  git-commit-sha: 
+    default: ""
+    description: "Git commit hash"
   skip-docker:
     type: boolean
     default: false
@@ -37,6 +41,37 @@ runs:
       shell: bash
       run: echo "REPO_NAME=$(basename ${{ github.repository }})" >> $GITHUB_ENV
 
+    - name: Set the commit hash variable
+      shell: bash
+      run: |
+        if [ "${{ inputs.git-commit-sha }}" != "" ]; then
+          COMMIT_SHA="Commit: ${{ inputs.git-commit-sha }}, "
+          echo 'COMMIT_SHA=${COMMIT_SHA}"' >> $GITHUB_ENV
+        else
+          echo 'COMMIT_SHA=""' >> $GITHUB_ENV
+        fi
+
+    # when the job starts
+    - uses: slackapi/slack-github-action@007b2c3c751a190b6f0f040e47ed024deaa72844 #v1.23.0
+      if: ${{ inputs.job-event == 'started' }}
+      with:
+        payload: |
+          {
+            "blocks": [
+              {
+                "type": "section",
+                "text":
+                  {
+                    "type": "mrkdwn",
+                    "text": ":x: New build has started for *${{ env.REPO_NAME }}* (${{ env.COMMIT_SHA }}Branch: *${{ steps.branch-name.outputs.current_branch }}*). Wait for the green light to start testing the artifacts."
+                  }
+              }
+            ]
+          } 
+      env:
+        SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
     # if there was no failure
     - uses: slackapi/slack-github-action@007b2c3c751a190b6f0f040e47ed024deaa72844 #v1.23.0
       if: ${{ inputs.job-event == 'pass' }}
@@ -49,7 +84,7 @@ runs:
                 "text":
                   {
                     "type": "mrkdwn",
-                    "text": ":white_check_mark: New build available for *${{ env.REPO_NAME }}* (Job artifacts: <https://github.com/Jahia/${{ env.REPO_NAME }}/actions/runs/${{ github.run_id }}#artifacts|*${{ github.job }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*) ${{ env.DOCKER_COMMAND }}"
+                    "text": ":white_check_mark: New build available for *${{ env.REPO_NAME }}* (${{ env.COMMIT_SHA }}Job artifacts: <https://github.com/Jahia/${{ env.REPO_NAME }}/actions/runs/${{ github.run_id }}#artifacts|*${{ github.job }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*) ${{ env.DOCKER_COMMAND }}"
                   }
               }
             ]
@@ -69,7 +104,7 @@ runs:
                 "text":
                   {
                     "type": "mrkdwn",
-                    "text": ":x: Build failure for *${{ env.REPO_NAME }}* (Job artifacts: <${{ github.server_url }}/Jahia/${{ env.REPO_NAME }}/actions/runs/${{ github.run_id }}|*${{ github.job }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*)"
+                    "text": ":x: Build failure for *${{ env.REPO_NAME }}* (${{ env.COMMIT_SHA }}Job artifacts: <${{ github.server_url }}/Jahia/${{ env.REPO_NAME }}/actions/runs/${{ github.run_id }}|*${{ github.job }}*>, Branch: *${{ steps.branch-name.outputs.current_branch }}*)"
 
                   }
               }
