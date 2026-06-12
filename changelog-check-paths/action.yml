@@ -114,13 +114,11 @@ runs:
             // Convert glob pattern to a regex.
             // Supports: **/ (zero or more dirs), ** (anything), * (one segment), ? (one char)
             //
-            // Placeholders are used to process "**/" and "**" before "*":
+            // Placeholders (using __XYZ__ syntac )are used to process "**/" and "**" before "*":
             //   "**/" → (.*/)?  (optional prefix, so "**/*.md" matches "README.md")
             //   "**"  → .*     (match anything remaining)
             //   "*"   → [^/]*  (single segment only)
             //
-            // Placeholders use __X__ syntax (not {{ }}) to avoid confusion with
-            // GitHub Actions expression syntax (${{ }}).
             const regexStr = pattern
               .replace(/[.+^${}()|[\]\\]/g, '\\$&')
               .replace(/\*\*\//g, '__GLOBSTAR_SLASH__')
