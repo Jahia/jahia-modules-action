@@ -111,15 +111,36 @@ runs:
               return filePath === pattern;
             }
 
-            // Convert glob pattern to a regular expression:
-            //  1. Escape regex-special characters (preserving our glob wildcards)
-            //  2. Handle "**/" as "zero or more directory segments" (including root)
-            //  3. Handle trailing "**" as "match anything remaining"
-            //  4. Replace remaining "*" with a regex for a single path segment
-            //  5. Replace "?" with a single-character match within a segment
+            // Convert glob pattern to a regular expression.
             //
-            // Key semantic: "**/" matches zero or more directories, so
-            //   "**/*.md" matches both "README.md" and "docs/guide.md"
+            // Glob semantics implemented (consistent with Bash globstar, Node.js
+            // minimatch, and Python glob — see references below):
+            //
+            //   "**/" → zero or more directory segments (including matching nothing,
+            //           i.e. the root level). This is the critical "globstar" semantic
+            //           defined in Bash (shopt -s globstar) and minimatch/node-glob.
+            //   "**"  → matches any characters across any number of path segments
+            //           (used at the end of patterns like ".github/**")
+            //   "*"   → matches any characters within a single path segment (no /)
+            //   "?"   → matches exactly one character within a segment (no /)
+            //
+            // References:
+            //   - GNU Bash Manual, Section 3.5.8 (Filename Expansion):
+            //     "** will match all files and zero or more directories"
+            //     https://www.gnu.org/software/bash/manual/html_node/Filename-Expansion.html
+            //   - Node.js minimatch/node-glob:
+            //     "** matches any number of characters, including /"
+            //     https://github.com/isaacs/node-glob#glob-primer
+            //
+            // Implementation detail: We use temporary placeholders ({{GLOBSTAR_SLASH}}
+            // and {{GLOBSTAR}}) to process "**/" and "**" separately before converting
+            // single "*". This is necessary because:
+            //   - "**/" must become `(.*/)?` (optional directory prefix, enabling
+            //     root-level matching — e.g. "**/*.md" matches "README.md")
+            //   - "**" alone must become `.*` (match anything remaining)
+            //   - "*" must become `[^/]*` (single segment only)
+            // Processing them in this order prevents "*" replacement from corrupting
+            // the "**" patterns.
             const regexStr = pattern
               .replace(/[.+^${}()|[\]\\]/g, '\\$&')
               .replace(/\*\*\//g, '{{GLOBSTAR_SLASH}}')
