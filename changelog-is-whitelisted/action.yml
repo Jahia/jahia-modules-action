@@ -1,5 +1,5 @@
 name: Is repository whitelisted for Chachalog
-description: Check if the provided repository is in the list of repositories to be whitelisted from chachalog usage
+description: Check if the provided repository is in the list of repositories to be whitelisted from changelog usage
 
 inputs:
   repository:

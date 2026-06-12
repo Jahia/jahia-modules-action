@@ -52,14 +52,14 @@ runs:
     - name: Is repo whitelisted?
       id: check-repo-whitelist
       if: steps.check-no-changelog.outputs.result == 'false'
-      uses: jahia/jahia-modules-action/chachalog-is-whitelisted@v2
+      uses: jahia/jahia-modules-action/changelog-is-whitelisted@v2
       with:
         repository: ${{ github.repository }}
 
     - name: Do changed files require a changelog?
       id: check-paths-require-changelog
       if: steps.check-no-changelog.outputs.result == 'false' && steps.check-repo-whitelist.outputs.whitelisted == 'false'
-      uses: jahia/jahia-modules-action/chachalog-check-paths@v2
+      uses: jahia/jahia-modules-action/changelog-check-paths@v2
       with:
         changelog_exempt_paths: ${{ inputs.changelog_exempt_paths }}
 
