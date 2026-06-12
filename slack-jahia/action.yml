@@ -63,7 +63,7 @@ runs:
                 "text":
                   {
                     "type": "mrkdwn",
-                    "text": ":hourglass_flowing_sand:  New build has started for *${{ env.REPO_NAME }}* (${{ env.COMMIT_SHA }}Branch: *${{ steps.branch-name.outputs.current_branch }}*). Wait for the green light to start testing the artifacts."
+                    "text": ":hourglass_flowing_sand: New build has started for *${{ env.REPO_NAME }}* (${{ env.COMMIT_SHA }}Branch: *${{ steps.branch-name.outputs.current_branch }}*). Wait for the green light to start testing the artifacts."
                   }
               }
             ]
