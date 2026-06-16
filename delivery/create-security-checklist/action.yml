@@ -6,11 +6,11 @@ inputs:
     description: 'GitHub personal API token'
     required: true
   github_owner:
-    description: 'Github org where to create the task'
+    description: 'GitHub org where to create the task'
     default: 'Jahia'
     required: false
   github_repo:
-    description: 'Github repository where to create the task'
+    description: 'GitHub repository where to create the task'
     default: 'jahia-private'
     required: false
 
@@ -23,8 +23,8 @@ runs:
         github-token: ${{ inputs.github_token }}
         retries: 3
         script: |
-          const owner = ${{ inputs.github_owner }}
-          const repo = ${{ inputs.github_repo }}
+          const owner = '${{ inputs.github_owner }}';
+          const repo = '${{ inputs.github_repo }}';
           const parentIssueNumber = context.payload.issue.number;
           const templatePath = '.github/ISSUE_TEMPLATE/security-checks.md';
 
