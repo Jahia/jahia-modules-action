@@ -5,6 +5,14 @@ inputs:
   github_token:
     description: 'GitHub personal API token'
     required: true
+  github_owner:
+    description: 'Github org where to create the task'
+    default: 'Jahia'
+    required: false
+  github_repo:
+    description: 'Github repository where to create the task'
+    default: 'jahia-private'
+    required: false
 
 runs:
   using: "composite"
@@ -15,8 +23,8 @@ runs:
         github-token: ${{ inputs.github_token }}
         retries: 3
         script: |
-          const owner = context.repo.owner;
-          const repo = context.repo.repo;
+          const owner = ${{ inputs.github_owner }}
+          const repo = ${{ inputs.github_repo }}
           const parentIssueNumber = context.payload.issue.number;
           const templatePath = '.github/ISSUE_TEMPLATE/security-checks.md';
 
@@ -43,7 +51,7 @@ runs:
               repo,
               title: 'Security checklist for feature development',
               body,
-              labels: ['Area:Security']
+              labels: ['Area:Security', 'security-checks']
             });
           } catch (error) {
             core.setFailed(`Unable to create security checklist issue: ${error.message}`);
