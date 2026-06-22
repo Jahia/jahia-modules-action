@@ -10,11 +10,13 @@
 #   The workflow triggers on `check_suite` completions and `status` events.
 #   Each time a check finishes, this workflow re-evaluates all other checks
 #   and commit statuses for the same SHA:
-#     - If some checks are still running it exits neutrally (no failure).
+#     - If some checks are still running it fails (stays not-green) and will
+#       re-run on the next completion — this prevents a merge while the gate
+#       is the sole required check and other checks are still in flight.
 #     - If all checks completed successfully (or were skipped) it passes.
 #     - If any check failed it marks itself as failed.
-#   The job filters out its own check run ("gate") to avoid a self-reference
-#   loop.
+#   The job filters out its own check run (by run id) to avoid a
+#   self-reference loop.
 #
 # USAGE:
 #   In a consuming repository, create a workflow that calls this reusable

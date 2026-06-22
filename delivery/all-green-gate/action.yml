@@ -1,12 +1,13 @@
 name: All Green Gate
 description: >
   Evaluates all check runs and commit statuses for the current SHA.
-  Passes only when every other check has succeeded or been skipped.
-  Exits neutrally (without failing) if checks are still in progress.
+  Passes only when every other check has completed and succeeded (or was
+  skipped). Fails (stays not-green) while any check is still in progress, so
+  it is safe to use as the sole required status check in branch protection.
 
 inputs:
   github_token:
-    description: 'GitHub personal API token'
+    description: 'GitHub token used to read check runs and commit statuses (the default GITHUB_TOKEN is sufficient).'
     required: true
 
 runs:
@@ -20,23 +21,34 @@ runs:
         script: |
           const sha = context.sha;
 
+          // The combined-status `state` is the rolled-up overall state across
+          // all commit statuses (independent of pagination), so a single call
+          // is authoritative for the pass/fail decision.
           const { data: combinedStatus } = await github.rest.repos.getCombinedStatusForRef({
             owner: context.repo.owner,
             repo: context.repo.repo,
             ref: sha,
           });
 
-          const { data: checkRuns } = await github.rest.checks.listForRef({
+          // Paginate: a single page (max 100) would silently drop checks on
+          // repos with many check runs and let the gate go green prematurely.
+          const allCheckRuns = await github.paginate(github.rest.checks.listForRef, {
             owner: context.repo.owner,
             repo: context.repo.repo,
             ref: sha,
             filter: 'latest',
           });
 
-          // Exclude this workflow's own check to avoid self-reference loop
-          const otherChecks = checkRuns.check_runs.filter(
-            cr => cr.name !== 'gate'
-          );
+          // Exclude this workflow's own check run to avoid a self-reference
+          // loop. As a reusable workflow the check is named "<caller-job> / gate"
+          // (not "gate"), so match on the current run id instead of the name;
+          // the name suffix is kept as a fallback.
+          const selfRunMarker = `/actions/runs/${context.runId}/`;
+          const isSelf = (cr) =>
+            (cr.details_url && cr.details_url.includes(selfRunMarker)) ||
+            cr.name === 'gate' ||
+            cr.name.endsWith('/ gate');
+          const otherChecks = allCheckRuns.filter(cr => !isSelf(cr));
 
           const allCompleted = otherChecks.every(cr => cr.status === 'completed');
           const allSuccess = otherChecks.every(
@@ -45,8 +57,20 @@ runs:
           const statusOk =
             combinedStatus.state === 'success' || combinedStatus.statuses.length === 0;
 
+          if (otherChecks.length === 0) {
+            core.info('No other check runs found for this SHA.');
+          }
+
+          // While anything is still running the gate must NOT be green, or a PR
+          // could be merged mid-flight when "gate" is the sole required check.
+          // It re-runs on each check/status completion and turns green once the
+          // final check finishes successfully.
           if (!allCompleted) {
-            core.info('Not all checks completed yet — exiting neutrally (will re-trigger on next completion).');
+            const pending = otherChecks
+              .filter(cr => cr.status !== 'completed')
+              .map(cr => `  - ${cr.name}: ${cr.status}`);
+            core.info('Checks still in progress:\n' + pending.join('\n'));
+            core.setFailed('Not all checks have completed yet — gate is not green.');
             return;
           }
 
