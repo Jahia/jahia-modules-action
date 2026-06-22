@@ -21,9 +21,6 @@ on:
             mvn_settings_filepath:
                 type: string
                 default: .github/maven.settings.xml
-            sonar_analysis_execute:
-                type: boolean
-                default: false
             sonar_analysis_instance_type:
                 type: string
                 default: ubuntu-latest
@@ -32,7 +29,7 @@ on:
                 default: main
             integration_tests_standalone_execute:
                 type: boolean
-                default: false
+                default: true
             integration_tests_cluster_execute:
                 type: boolean
                 default: false
@@ -80,7 +77,7 @@ on:
                 default: false
             sbom_execute:
                 type: boolean
-                default: false
+                default: true
             sbom_container_image:
                 type: string
                 default: cyclonedx/cyclonedx-cli:0.24.2
@@ -132,7 +129,7 @@ jobs:
 
     sonar-analysis:
         runs-on: ${{ inputs.sonar_analysis_instance_type }}
-        if: ${{ inputs.sonar_analysis_execute }}
+        if: ${{ inputs.module_branch }}
         needs: build
         steps:
             - uses: actions/checkout@v7
