@@ -11,7 +11,7 @@ on:
                 type: string
             update_signature_execute:
                 type: boolean
-                default: false
+                default: true
             build_instance_type:
                 type: string
                 default: ubuntu-latest
@@ -44,16 +44,16 @@ on:
                 default: true
             integration_tests_provisioning_manifest:
                 type: string
-                default: ""
+                default: "provisioning-manifest-build.yml"
             integration_tests_should_use_build_artifacts:
                 type: boolean
-                default: false
+                default: true
             integration_tests_artifact_prefix:
                 type: string
                 default: "tests"
             integration_tests_jahia_image:
                 type: string
-                default: ""
+                default: "ghcr.io/jahia/jahia-ee-dev:8-SNAPSHOT"
             integration_tests_incident_service:
                 type: string
                 default: ""
@@ -83,13 +83,13 @@ on:
                 default: cyclonedx/cyclonedx-cli:0.24.2
             sbom_hostname:
                 type: string
-                default: ""
+                default: ${{ vars.DEPENDENCYTRACK_HOSTNAME }}
             sbom_artifacts:
                 type: string
                 default: "build-artifacts"
             publish_execute:
                 type: boolean
-                default: false
+                default: true
             publish_container_image:
                 type: string
                 default: ghcr.io/jahia/jahia-docker-mvn-cache:8-jdk-noble-mvn-loaded
