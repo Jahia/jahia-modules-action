@@ -3,7 +3,8 @@ on:
     workflow_call:
         inputs:
             module_id:
-                required: true
+                required: false
+                default: ${{ github.event.repository.name }}
                 type: string
             module_branch:
                 required: false
@@ -50,13 +51,13 @@ on:
                 default: true
             integration_tests_artifact_prefix:
                 type: string
-                default: "tests"
+                default: ${{ github.event.repository.name }}
             integration_tests_jahia_image:
                 type: string
                 default: "ghcr.io/jahia/jahia-ee-dev:8-SNAPSHOT"
             integration_tests_incident_service:
                 type: string
-                default: ""
+                default: ${{ github.event.repository.name }}-JahiaSN
             integration_tests_timeout:
                 type: number
                 default: 65
@@ -92,7 +93,7 @@ on:
                 default: true
             publish_container_image:
                 type: string
-                default: ghcr.io/jahia/jahia-docker-mvn-cache:8-jdk-noble-mvn-loaded
+                default: ghcr.io/jahia/jahia-docker-mvn-cache:11-jdk-noble-mvn-loaded
 
 
 jobs:
