@@ -39,7 +39,7 @@ on:
                 default: self-hosted
             integration_tests_testrail_project:
                 type: string
-                default: ""
+                default: ${{ github.event.repository.name }}
             integration_tests_skip_notifications:
                 type: boolean
                 default: true
