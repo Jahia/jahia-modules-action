@@ -63,15 +63,15 @@ inputs:
     required: false
     default: ''
   sonar_sources:
-    description: 'Default Sonar source roots safe for multi-module Maven: src, resources, build config, and CI/CD. JS monorepos must override to include packages, template, .storybook. Filtered at runtime.'
+    description: 'Source roots to be scanned by SonarQube - not-existing paths are not passed to sonar call. This input parameter is ignored for Maven multi-module repos, where it should be set in the pom.xml files.'
     required: false
     default: 'src,resources,.github,pom.xml,package.json'
   sonar_tests:
-    description: 'Default Sonar test roots safe for multi-module Maven. Override for other test directory patterns (tests, __tests__, cypress, etc.).'
+    description: 'Test code roots to inform SonarQube  - not-existing paths are not passed to sonar call. This input parameter is ignored for Maven multi-module repos, where it should be set in the pom.xml files.'
     required: false
     default: 'src/test,tests'
   sonar_exclusions:
-    description: 'Default exclusions for generated artifacts and dependencies.'
+    description: 'Sonar scan exclusions (e.g. generated artifacts and dependencies).'
     required: false
     default: '**/node_modules/**,**/dist/**,**/target/**,**/coverage/**,**/.yarn/**,**/.pnp.*'
   sonar_extra_params:
