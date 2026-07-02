@@ -243,7 +243,7 @@ runs:
             if [[ -z "$EXISTING_SOURCES" ]]; then
               EXISTING_SOURCES="$trimmed"
             else
-              EXISTING_SOURCES+="\,$trimmed"
+              EXISTING_SOURCES+=",$trimmed"
             fi
           fi
         done
@@ -256,7 +256,7 @@ runs:
             if [[ -z "$EXISTING_TESTS" ]]; then
               EXISTING_TESTS="$trimmed"
             else
-              EXISTING_TESTS+="\,$trimmed"
+              EXISTING_TESTS+=",$trimmed"
             fi
           fi
         done
