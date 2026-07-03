@@ -145,7 +145,7 @@ runs:
       shell: bash
       run: |
         git fetch --all
-        git pull origin ${{ inputs.primary_release_branch }} --quiet
+        git pull origin ${{ inputs.primary_release_branch }} --quiet --rebase
 
     - name: Setup git
       shell: bash
