@@ -62,6 +62,22 @@ inputs:
     description: 'OSS Index (Sonatype) API token or password to download their vulnerability database'
     required: false
     default: ''
+  sonar_sources:
+    description: 'Source roots to be scanned by SonarQube - not-existing paths are not passed to sonar call. This input parameter is ignored for Maven multi-module repos, where it should be set in the pom.xml files.'
+    required: false
+    default: 'src,resources,.github,pom.xml,package.json'
+  sonar_tests:
+    description: 'Test code roots to inform SonarQube  - not-existing paths are not passed to sonar call. This input parameter is ignored for Maven multi-module repos, where it should be set in the pom.xml files.'
+    required: false
+    default: 'src/test,tests'
+  sonar_exclusions:
+    description: 'Sonar scan exclusions (e.g. generated artifacts and dependencies).'
+    required: false
+    default: '**/node_modules/**,**/dist/**,**/target/**,**/coverage/**,**/.yarn/**,**/.pnp.*'
+  sonar_extra_params:
+    description: 'Additional Sonar scanner parameters appended to analysis commands.'
+    required: false
+    default: ''
 
 runs:
   using: 'composite'
@@ -219,9 +235,51 @@ runs:
       if: ${{ always() }}
       run: |
         echo "Pull request number: ${{ inputs.github_pr_id }}"
+        EXISTING_SOURCES=""
+        IFS=',' read -ra SOURCE_PATHS <<< "${{ inputs.sonar_sources }}"
+        for source_path in "${SOURCE_PATHS[@]}"; do
+          trimmed="$(echo "$source_path" | xargs)"
+          if [[ -n "$trimmed" && -e "$trimmed" ]]; then
+            if [[ -z "$EXISTING_SOURCES" ]]; then
+              EXISTING_SOURCES="$trimmed"
+            else
+              EXISTING_SOURCES+=",$trimmed"
+            fi
+          fi
+        done
+
+        EXISTING_TESTS=""
+        IFS=',' read -ra TEST_PATHS <<< "${{ inputs.sonar_tests }}"
+        for test_path in "${TEST_PATHS[@]}"; do
+          trimmed="$(echo "$test_path" | xargs)"
+          if [[ -n "$trimmed" && -e "$trimmed" ]]; then
+            if [[ -z "$EXISTING_TESTS" ]]; then
+              EXISTING_TESTS="$trimmed"
+            else
+              EXISTING_TESTS+=",$trimmed"
+            fi
+          fi
+        done
+
+        IS_MULTI_MODULE="false"
+        if [[ -f "pom.xml" ]] && grep -q "<modules>" "pom.xml"; then
+          IS_MULTI_MODULE="true"
+          echo "Multi-module Maven project detected: skipping sonar.sources/sonar.tests to let Maven modules use their own configuration"
+        fi
+
         SONAR_SCAN_PARAMS="-Dsonar.userHome=${SONAR_USER_HOME} \
+          -Dsonar.exclusions=${{ inputs.sonar_exclusions }} \
           -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
           -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html"
+        if [[ "$IS_MULTI_MODULE" != "true" && -n "$EXISTING_SOURCES" ]]; then
+          SONAR_SCAN_PARAMS+=" -Dsonar.sources=${EXISTING_SOURCES}"
+        fi
+        if [[ "$IS_MULTI_MODULE" != "true" && -n "$EXISTING_TESTS" ]]; then
+          SONAR_SCAN_PARAMS+=" -Dsonar.tests=${EXISTING_TESTS}"
+        fi
+        if [[ -n "${{ inputs.sonar_extra_params }}" ]]; then
+          SONAR_SCAN_PARAMS+=" ${{ inputs.sonar_extra_params }}"
+        fi
         if [[ ! -z "${{ inputs.github_pr_id }}" ]]; then
           echo "Executing a PR based analysis"
           mvn -B -s ${{ inputs.mvn_settings_filepath }} org.sonarsource.scanner.maven:sonar-maven-plugin:${SONAR_MAVEN_PLUGIN_VERSION}:sonar \
