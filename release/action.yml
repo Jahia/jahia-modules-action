@@ -145,7 +145,7 @@ runs:
       shell: bash
       run: |
         git fetch --all
-        git pull origin ${{ inputs.primary_release_branch }} --quiet --rebase
+        git pull origin ${{ inputs.primary_release_branch }} --quiet
 
     - name: Setup git
       shell: bash
@@ -248,6 +248,8 @@ runs:
         else
           echo "No CHANGELOG.md found at repository root, skipping changelog update"
         fi
+      env:
+        GPG_KEY_PASSPHRASE: ${{ inputs.gpg_key_passphrase }}
 
     - name: Set version in pom file(s) for ${{ inputs.release_version }}
       shell: bash
