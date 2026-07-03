@@ -4,7 +4,8 @@ description: |
 
   The check is skipped (passes) when any of the following conditions are met:
     1. The PR has a label containing "no" and "changelog" (e.g. "🗒️ no-changelog")
-    2. The repository is in the chachalog whitelist
+    2. The repository is whitelisted from changelogs (custom property
+       "Changelog" set to false, or listed in the static chachalog whitelist)
     3. ALL changed files match the changelog_exempt_paths patterns
        (e.g. only CI, tests, or docs were modified)
 
@@ -29,6 +30,13 @@ inputs:
       Default: ".github/**, tests/**, docker-tests/**, **/*.md"
     required: false
     default: ".github/**, tests/**, docker-tests/**, **/*.md"
+  github-token:
+    description: >-
+      Token used to read the repository custom properties when checking
+      the chachalog whitelist (requires "Metadata" read permission,
+      granted by default to the workflow token).
+    required: false
+    default: ${{ github.token }}
 
 runs:
   using: composite
@@ -55,6 +63,7 @@ runs:
       uses: jahia/jahia-modules-action/changelog-is-whitelisted@v2
       with:
         repository: ${{ github.repository }}
+        github-token: ${{ inputs.github-token }}
 
     - name: Do changed files require a changelog?
       id: check-paths-require-changelog

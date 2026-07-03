@@ -20,6 +20,7 @@ jobs:
         uses: jahia/jahia-modules-action/changelog-is-whitelisted@v2
         with:
           repository: ${{ github.repository }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       # If the repo does not contain a Chachalog config, this action
       # handles the creation of a default configuration, that should be
