@@ -1,14 +1,25 @@
 name: Is repository whitelisted for Chachalog
-description: Check if the provided repository is in the list of repositories to be whitelisted from changelog usage
+description: |
+  Check if the provided repository is whitelisted from changelog usage.
+
+  A repository is considered whitelisted when any of the following conditions are met:
+    1. The repository has a custom property named "Changelog" whose value is "false"
+    2. The repository is in the static whitelist maintained in this action
 
 inputs:
   repository:
     description: "Repository to check, using the format org/repo"
     required: true
     default: ""
+  github-token:
+    description: >-
+      Token used to read the repository custom properties
+      (requires "Metadata" read permission, granted by default to the workflow token).
+    required: false
+    default: ${{ github.token }}
 outputs:
   whitelisted:
-    description: '"true" if the repository is in the whitelist, otherwise "false".'
+    description: '"true" if the repository is whitelisted, otherwise "false".'
     value: ${{ steps.check.outputs.whitelisted }}
 
 runs:
@@ -18,10 +29,30 @@ runs:
       id: check
       uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       env:
-        INPUT_REPOSITORY: ${{ inputs.repository }}      
+        INPUT_REPOSITORY: ${{ inputs.repository }}
       with:
+        github-token: ${{ inputs.github-token }}
         script: |
           const inputRepo = process.env.INPUT_REPOSITORY?.trim();
+          const [owner, repo] = inputRepo.split('/');
+
+          // A repository can opt out of changelogs by setting the custom
+          // property "Changelog" to false. If the property is absent or set
+          // to true, the static whitelist below still applies.
+          try {
+            const { data: properties } = await github.request('GET /repos/{owner}/{repo}/properties/values', {
+              owner,
+              repo,
+            });
+            const changelogProperty = properties.find(p => p.property_name.toLowerCase() === 'changelog');
+            if (changelogProperty && String(changelogProperty.value).toLowerCase() === 'false') {
+              core.info(`Repository "${inputRepo}" has its "Changelog" custom property set to false, whitelisted: true`);
+              core.setOutput('whitelisted', 'true');
+              return;
+            }
+          } catch (error) {
+            core.warning(`Unable to read custom properties for "${inputRepo}" (${error.message}), falling back to the static whitelist.`);
+          }
 
           // Static whitelist (edit as needed)
           const whitelist = [
