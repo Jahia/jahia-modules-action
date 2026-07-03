@@ -217,7 +217,6 @@ runs:
         if [[ -f "CHANGELOG.md" ]]; then
           echo "Updating CHANGELOG.md for release version ${{ steps.versions.outputs.final_release_version }}"
           RELEASE_VERSION="${{ steps.versions.outputs.final_release_version }}"
-          cp CHANGELOG.md CHANGELOG.md.bak
 
           if grep -qE '^##[[:space:]]+Unreleased[[:space:]]*$' CHANGELOG.md; then
             sed -E "0,/^##[[:space:]]+Unreleased[[:space:]]*$/s//## ${RELEASE_VERSION}/" CHANGELOG.md > CHANGELOG.md.tmp
@@ -236,8 +235,16 @@ runs:
             mv CHANGELOG.md.tmp CHANGELOG.md
           fi
 
-          rm -f CHANGELOG.md.bak
-          git add CHANGELOG.md
+          if ! git diff --quiet -- CHANGELOG.md; then
+            git add CHANGELOG.md
+            git commit -m "[skip ci] Update changelog for ${{ steps.versions.outputs.final_release_version }}"
+            if [[ ${{ inputs.sign_commits }} == 'true' ]]; then
+              git verify-commit $( git rev-parse HEAD )
+            fi
+            git push
+          else
+            echo "No CHANGELOG.md changes detected"
+          fi
         else
           echo "No CHANGELOG.md found at repository root, skipping changelog update"
         fi
@@ -291,7 +298,7 @@ runs:
       shell: bash
       run: |
         cd ${GITHUB_WORKSPACE}
-        mvn -B -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=${{ steps.versions.outputs.tag_version }} release:prepare -DreleaseVersion="${{ steps.versions.outputs.final_release_version }}" -DdevelopmentVersion="${{ steps.versions.outputs.next_development_version }}" -DpushChanges=false
+        mvn -B -s ${{ inputs.mvn_settings_filepath }} -B -Dtag=${{ steps.versions.outputs.tag_version }} release:prepare -DreleaseVersion="${{ steps.versions.outputs.final_release_version }}" -DdevelopmentVersion="${{ steps.versions.outputs.next_development_version }}" -DscmCommentPrefix="[skip ci] [maven-release-plugin]"
       env:
         GPG_KEY_PASSPHRASE: ${{ inputs.gpg_key_passphrase }}
 
