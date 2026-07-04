@@ -235,6 +235,12 @@ runs:
       if: ${{ always() }}
       run: |
         echo "Pull request number: ${{ inputs.github_pr_id }}"
+        # `src/test` is test code by convention and must never be indexed as a main source. When
+        # sonar.sources includes a parent such as `src` that contains it (the default sonar_sources),
+        # the scanner indexes those files as both main and test and fails with
+        # "File ... can't be indexed twice". Always exclude the test source tree from the main source
+        # set so the two stay disjoint (harmless when sources/tests are unset or Maven-driven).
+        SONAR_EXCLUSIONS="${{ inputs.sonar_exclusions }},**/src/test/**"
         EXISTING_SOURCES=""
         IFS=',' read -ra SOURCE_PATHS <<< "${{ inputs.sonar_sources }}"
         for source_path in "${SOURCE_PATHS[@]}"; do
@@ -268,7 +274,7 @@ runs:
         fi
 
         SONAR_SCAN_PARAMS="-Dsonar.userHome=${SONAR_USER_HOME} \
-          -Dsonar.exclusions=${{ inputs.sonar_exclusions }} \
+          -Dsonar.exclusions=${SONAR_EXCLUSIONS} \
           -Dsonar.dependencyCheck.jsonReportPath=target/dependency-check-report.json \
           -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html"
         if [[ "$IS_MULTI_MODULE" != "true" && -n "$EXISTING_SOURCES" ]]; then
