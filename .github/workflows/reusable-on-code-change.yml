@@ -246,25 +246,33 @@ jobs:
     changelog:
       runs-on: ubuntu-latest
       steps:
-      - uses: dangoslen/changelog-enforcer@8b5e9dc3121363bb7c0115f8533404d92af382de # v3.7.0
-        id: changelog-enforcer
-        with:
-          skipLabels: '🗒%EF%B8%8F%20no-changelog,no-changelog'
-          missingUpdateErrorMessage: 'Please provide a changelog update'        
-          token: ${{ secrets.GH_API_TOKEN }}
-      - name: Delete the error comment
-        if: success()
-        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
-        with:
-          comment-tag: changelog-failed
-          mode: delete
-      - name: Comment on error
-        if: failure()
-        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
-        with:
-          message: |
-            Hey @${{ github.event.pull_request.user.login }}, the Changelog Enforcer failed. Can you take a look at the error below and correct it? Thanks!
-            ```
-            ${{ steps.changelog-enforcer.outputs.errorMessage }}
-            ```
-          comment-tag: changelog-failed
+        - name: Is repo whitelisted?
+          id: wl
+          uses: jahia/jahia-modules-action/changelog-is-whitelisted@v2
+          with:
+            repository: ${{ github.repository }}
+        - uses: dangoslen/changelog-enforcer@8b5e9dc3121363bb7c0115f8533404d92af382de # v3.7.0
+          if: ${{ steps.wl.outputs.whitelisted != 'true' }}
+          id: changelog-enforcer
+          with:
+            skipLabels: '🗒%EF%B8%8F%20no-changelog,no-changelog'
+            missingUpdateErrorMessage: 'Please provide a changelog update'        
+            token: ${{ secrets.GH_API_TOKEN }}
+        - name: Delete the error comment
+          if: ${{ steps.wl.outputs.whitelisted != 'true' }}
+          if: success()
+          uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
+          with:
+            comment-tag: changelog-failed
+            mode: delete
+        - name: Comment on error
+          if: ${{ steps.wl.outputs.whitelisted != 'true' }}
+          if: failure()
+          uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
+          with:
+            message: |
+              Hey @${{ github.event.pull_request.user.login }}, the Changelog Enforcer failed. Can you take a look at the error below and correct it? Thanks!
+              ```
+              ${{ steps.changelog-enforcer.outputs.errorMessage }}
+              ```
+            comment-tag: changelog-failed
