@@ -46,7 +46,7 @@ on:
       skip_notifications:
         required: false
         type: boolean
-        default: false        
+        default: false
       pagerduty_incident_service:
         required: false
         type: string
@@ -62,7 +62,7 @@ on:
         default: 65
       timeout_step:
         type: number
-        default: 50
+        default: 60
       tests_profile:
         type: string
         default: ""
