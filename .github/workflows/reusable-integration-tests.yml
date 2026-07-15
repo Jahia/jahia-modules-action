@@ -59,7 +59,7 @@ on:
         description: "This input is deprecated, please use skip_notifications instead."
       timeout_job:
         type: number
-        default: 65
+        default: 75
       timeout_step:
         type: number
         default: 60
