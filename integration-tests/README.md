@@ -20,14 +20,17 @@ git checkout -b YOUR_BRANCH
 # Build
 yarn run build
 
-# Package
-NODE_OPTIONS=--openssl-legacy-provider yarn run package
+# Package (also auto-patches dist/index.js with signal support)
+yarn run package
 ```
 
-# Fix issue with child.spawn
+## Note about signal support in child.spawn
+
 We are currently waiting for both https://github.com/actions/toolkit/issues/1534 and https://github.com/actions/toolkit/pull/1469 to be included into the action toolkit to support step cancellation.
 
-In the meantime, after building/packaging, modify the `dist/index.js` search for `_getSpawnOptions(options, toolPath)` and update it as follow (simply adding the signal option):
+In the meantime, the `postpackage` script (`scripts/patch-signal.js`) automatically patches `dist/index.js` to add signal support after each packaging run. No manual intervention is normally needed.
+
+If for any reason the automatic patch did not run (e.g. packaging was done without using the `yarn run package` command), you can manually apply the fix. In `dist/index.js`, search for `_getSpawnOptions(options, toolPath)` and add the signal option:
 
 Before:
 ```
@@ -50,6 +53,8 @@ sed -i '' '/result\.cwd = options\.cwd;/a\
 result.signal = options.signal;
 ' dist/index.js
 ```
+
+A CI check verifies this patch is present on every pull request.
 
 # Add, commit and push the changes
 ```bash
