@@ -1,0 +1,56 @@
+# Reusable Workflow: All Checks Gate
+#
+# PURPOSE:
+#   Provides a single "gate" check that turns green only when every other
+#   check / status on the same commit has succeeded (or been skipped).
+#   This is useful as a branch-protection required status check so that
+#   you don't have to list every individual job — just require "gate".
+#
+# HOW IT WORKS:
+#   The workflow triggers on `check_suite` completions and `status` events.
+#   Each time a check finishes, this workflow re-evaluates all other checks
+#   and commit statuses for the same SHA:
+#     - If some checks are still running it fails (stays not-green) and will
+#       re-run on the next completion — this prevents a merge while the gate
+#       is the sole required check and other checks are still in flight.
+#     - If all checks completed successfully (or were skipped) it passes.
+#     - If any check failed it marks itself as failed.
+#   The job filters out its own check run (by run id) to avoid a
+#   self-reference loop.
+#
+# USAGE:
+#   In a consuming repository, create a workflow that calls this reusable
+#   workflow:
+#
+#     name: All Checks Gate
+#     on:
+#       check_suite:
+#         types: [completed]
+#       status: {}
+#
+#     jobs:
+#       all-green:
+#         uses: Jahia/jahia-modules-action/.github/workflows/reusable-all-green.yml@main
+#         secrets: inherit
+#
+#   Then add "gate" as the sole required status check in branch protection
+#   rules for your default branch.
+#
+# INPUTS: none
+# SECRETS: none (uses the default GITHUB_TOKEN)
+
+name: Reusable Workflow (All Checks Gate)
+
+on:
+  workflow_call:
+
+jobs:
+  gate:
+    runs-on: ubuntu-slim
+    steps:
+      - name: Checkout actions
+        uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+      - name: All Green Gate
+        uses: ./delivery/all-green-gate
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
