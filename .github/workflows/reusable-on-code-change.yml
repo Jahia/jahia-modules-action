@@ -244,6 +244,9 @@ jobs:
                 nexus_password: ${{ secrets.NEXUS_PASSWORD }}
 
     changelog:
+      # The changelog enforcer (and the PR comment actions) only make sense
+      # in the context of a pull request
+      if: ${{ github.event_name == 'pull_request' }}
       runs-on: ubuntu-latest
       steps:
         - name: Is repo whitelisted?
@@ -255,19 +258,22 @@ jobs:
           if: ${{ steps.wl.outputs.whitelisted != 'true' }}
           id: changelog-enforcer
           with:
-            skipLabels: '🗒%EF%B8%8F%20no-changelog,no-changelog'
-            missingUpdateErrorMessage: 'Please provide a changelog update'        
+            skipLabels: '🗒️ no-changelog,no-changelog'
+            missingUpdateErrorMessage: |-
+              No CHANGELOG.md update was found in this pull request, please add an entry describing your change.
+              - Changes merged into the primary branch but not released yet belong to the "## Unreleased" section, at the top of the changelog.
+              - Keep a link to your pull request at the end of the entry, using the format: message (#PR-id)
+              - Take this opportunity to verify that the structure of the changelog is correct: released changes must be listed under the "## <version>" section corresponding to the version they were released with.
+              - Pay attention not to mix into the "## Unreleased" section changes that were already released in a previous version.
             token: ${{ secrets.GH_API_TOKEN }}
         - name: Delete the error comment
-          if: ${{ steps.wl.outputs.whitelisted != 'true' }}
-          if: success()
+          if: ${{ success() && steps.wl.outputs.whitelisted != 'true' }}
           uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
           with:
             comment-tag: changelog-failed
             mode: delete
         - name: Comment on error
-          if: ${{ steps.wl.outputs.whitelisted != 'true' }}
-          if: failure()
+          if: ${{ failure() && steps.wl.outputs.whitelisted != 'true' }}
           uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
           with:
             message: |

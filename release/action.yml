@@ -218,17 +218,20 @@ runs:
           echo "Updating CHANGELOG.md for release version ${{ steps.versions.outputs.final_release_version }}"
           RELEASE_VERSION="${{ steps.versions.outputs.final_release_version }}"
 
-          if grep -qE '^##[[:space:]]+Unreleased[[:space:]]*$' CHANGELOG.md; then
-            sed -E "0,/^##[[:space:]]+Unreleased[[:space:]]*$/s//## ${RELEASE_VERSION}/" CHANGELOG.md > CHANGELOG.md.tmp
-            {
-              echo "## Unreleased"
-              echo
-              cat CHANGELOG.md.tmp
-            } > CHANGELOG.md
-            rm -f CHANGELOG.md.tmp
+          if grep -qxF "## ${RELEASE_VERSION}" CHANGELOG.md; then
+            # Safety for re-executed releases: do not rotate the changelog twice
+            echo "CHANGELOG.md already contains a \"## ${RELEASE_VERSION}\" section, skipping update"
+          elif grep -qE '^##[[:space:]]+Unreleased[[:space:]]*$' CHANGELOG.md; then
+            # Rename the "## Unreleased" section into the release version and recreate an
+            # empty "## Unreleased" section right above it, keeping anything located
+            # before it (e.g. a "# Changelog" title) in place
+            sed -E "0,/^##[[:space:]]+Unreleased[[:space:]]*$/s//## Unreleased\n\n## ${RELEASE_VERSION}/" CHANGELOG.md > CHANGELOG.md.tmp
+            mv CHANGELOG.md.tmp CHANGELOG.md
           else
             {
               echo "## Unreleased"
+              echo
+              echo "## ${RELEASE_VERSION}"
               echo
               cat CHANGELOG.md
             } > CHANGELOG.md.tmp
