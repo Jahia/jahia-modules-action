@@ -105,7 +105,9 @@ runs:
       run: |
         echo "::group::Install audit-ci"     
         echo "Install audit-ci"
-        sudo npm install -g audit-ci
+        # Pinned and script-free: this runs as root and resolves fresh on every run,
+        # so an unpinned range plus lifecycle scripts is a supply-chain foothold.
+        sudo npm install -g --ignore-scripts audit-ci@7.1.0
         echo "::endgroup::"
     - name: Audit-ci module (javascript only)
       if: ${{ inputs.skip_vulns_modules == 'false' }}

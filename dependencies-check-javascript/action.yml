@@ -39,14 +39,18 @@ runs:
 
     - name: Check licenses
       shell: bash
+      env:
+        # Pinned and script-free: this install resolves fresh on every run, so an
+        # unpinned range plus lifecycle scripts is a supply-chain foothold.
+        npm_config_ignore_scripts: "true"
       run: |
-        npx -q license-checker --summary --production --direct --exclude "${{ env.ALLOWLIST }}" --start "${{ inputs.root_folder }}/" > bad-js-licenses.txt || true
+        npx -q --yes license-checker@25.0.1 --summary --production --direct --exclude "${{ env.ALLOWLIST }}" --start "${{ inputs.root_folder }}/" > bad-js-licenses.txt || true
         if [[ $(wc -w <bad-js-licenses.txt) -gt 0  ]]; then
           cat bad-js-licenses.txt
           echo "LICENSE_JS_DIFF_STATUS=1" >> $GITHUB_ENV
           echo "## NPM licenses analysis" >> .github/workflows/bad-js-licenses.md
           echo "### Incompatible licenses" >> .github/workflows/bad-js-licenses.md
-          echo "Execute \`npx -q license-checker --summary --production --direct --exclude \"${{ env.ALLOWLIST }}\"\` to get more details (see https://www.npmjs.com/package/license-checker)" >> .github/workflows/bad-js-licenses.md
+          echo "Execute \`npx -q --yes license-checker@25.0.1 --summary --production --direct --exclude \"${{ env.ALLOWLIST }}\"\` to get more details (see https://www.npmjs.com/package/license-checker)" >> .github/workflows/bad-js-licenses.md
           cat bad-js-licenses.txt >> .github/workflows/bad-js-licenses.md
         else
           echo "LICENSE_DIFF_STATUS=0" >> $GITHUB_ENV
