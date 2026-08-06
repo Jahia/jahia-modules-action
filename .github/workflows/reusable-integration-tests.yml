@@ -149,9 +149,6 @@ jobs:
       - uses: KengoTODA/actions-setup-docker-compose@477353946803dd64eaa44008b865b6bfc88cab4e #v1.2.4
         with:
           version: "1.29.2"
-      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: "lts/*"
       - uses: s4u/setup-maven-action@6c4e9964d4ecb8f1026310cd8618791fd51a8016 #v1.19.0
         with:
           java-distribution: ${{ inputs.mvn_java_distribution }}
@@ -159,6 +156,21 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           ref: ${{ inputs.module_branch }}
+
+      # Toolchain: mise.toml is the source of truth when the module has one, it pins both node
+      # and yarn. Modules without a mise.toml keep the legacy setup-node path below, which pins
+      # node only and leaves yarn to whatever the runner ships.
+      # NOTE: this must stay *after* the checkout, hashFiles() reads the working tree, so
+      # running it before checkout would always see an empty workspace and pick the fallback.
+      # TODO: once every module declares a mise.toml, delete the setup-node step.
+      - if: hashFiles('mise.toml') != ''
+        uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4.2.4
+
+      - if: hashFiles('mise.toml') == ''
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "lts/*"
+
       - uses: jahia/jahia-modules-action/integration-tests@v2
         with:
           module_id: ${{ inputs.module_id }}

@@ -23,6 +23,7 @@ on:
         static_analysis_node_version:
             type: number
             default: 18
+            description: "DEPRECATED and ignored when the module has a mise.toml — declare node there instead."
         build_instance_type:
             type: string
             default: "ubuntu-latest"
