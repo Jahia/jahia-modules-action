@@ -107,7 +107,7 @@ jobs:
     steps:
       - name: Select eligible incident issues
         id: select
-        uses: jahia/jahia-modules-action/ai-incident-triage/select-issues@feat/ai-incident-triage
+        uses: jahia/jahia-modules-action/ai-incident-triage/select-issues@v2
         with:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           search_scope: ${{ inputs.search_scope }}
@@ -124,7 +124,7 @@ jobs:
       contents: read
     steps:
       - name: Open the mTLS tunnel to internal Jahia services
-        uses: jahia/jahia-modules-action/mtls-tunnel@feat/ai-incident-triage
+        uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: ${{ inputs.tunnel_hosts || 'litellm-prod.int.jahia.com qa.jahia.com' }}
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
@@ -137,7 +137,7 @@ jobs:
 
       - name: Set up Claude Code and the cortex harness
         id: setup
-        uses: jahia/jahia-modules-action/ai-agent-setup@feat/ai-incident-triage
+        uses: jahia/jahia-modules-action/ai-agent-setup@v2
         with:
           claude_code_version: ${{ inputs.claude_code_version || 'stable' }}
           anthropic_base_url: ${{ vars.AI_LITELLM_BASE_URL }}
@@ -150,7 +150,7 @@ jobs:
 
       - name: Triage the incident issues
         id: triage
-        uses: jahia/jahia-modules-action/ai-incident-triage@feat/ai-incident-triage
+        uses: jahia/jahia-modules-action/ai-incident-triage@v2
         with:
           issues: ${{ needs.select-issues.outputs.issues }}
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
