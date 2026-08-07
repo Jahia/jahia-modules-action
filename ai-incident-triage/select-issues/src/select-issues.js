@@ -1,20 +1,24 @@
-// Selects open incident issues whose latest failure event has not yet been
-// handled by the triage agent (no marker comment posted after it).
+// Selects open incident issues — across every repository the search scope covers —
+// whose latest failure event has not yet been handled by the triage agent (no marker
+// comment posted after it).
 //
 // The rule is deliberately deterministic: one agent action per failure event.
 // A triage comment (identified by the hidden marker) posted AFTER the latest
 // failure event marks that failure as handled; a NEW failure comment arriving
 // later re-arms the issue for exactly one more triage pass.
-module.exports = async ({github, core}, {owner, repo, label, marker}) => {
+module.exports = async ({github, core}, {searchScope, label, marker}) => {
   const FAILURE_SIGNATURE = /Source URL:|### Failure Details/
+  const query = `${searchScope} is:issue is:open label:"${label}"`
 
-  const issues = await github.paginate(github.rest.issues.listForRepo, {
-    owner, repo, labels: label, state: 'open', per_page: 100,
+  const found = await github.paginate(github.rest.search.issuesAndPullRequests, {
+    q: query, advanced_search: 'true', per_page: 100,
   })
+  core.info(`${found.length} open '${label}' issue(s) found by search: ${query}`)
 
   const eligible = []
-  for (const issue of issues) {
+  for (const issue of found) {
     if (issue.pull_request) continue
+    const [owner, repo] = issue.repository_url.split('/').slice(-2)
 
     const comments = await github.paginate(github.rest.issues.listComments, {
       owner, repo, issue_number: issue.number, per_page: 100,
@@ -26,7 +30,7 @@ module.exports = async ({github, core}, {owner, repo, label, marker}) => {
       ...comments,
     ].filter(e => FAILURE_SIGNATURE.test(e.body ?? ''))
     if (failureEvents.length === 0) {
-      core.info(`#${issue.number}: no failure-details event found, skipping`)
+      core.info(`${owner}/${repo}#${issue.number}: no failure-details event found, skipping`)
       continue
     }
 
@@ -37,7 +41,7 @@ module.exports = async ({github, core}, {owner, repo, label, marker}) => {
       (c.body ?? '').includes(marker) &&
       new Date(c.created_at) > new Date(latestFailure.created_at))
     if (handled) {
-      core.info(`#${issue.number}: latest failure already triaged, skipping`)
+      core.info(`${owner}/${repo}#${issue.number}: latest failure already triaged, skipping`)
       continue
     }
 
@@ -45,6 +49,7 @@ module.exports = async ({github, core}, {owner, repo, label, marker}) => {
     const vpnArtifactsUrl = (latestFailure.body.match(/https:\/\/qa\.jahia\.com\/artifacts-ci\/\S+/) ?? [])[0] ?? ''
 
     eligible.push({
+      repository: `${owner}/${repo}`,
       number: issue.number,
       title: issue.title,
       html_url: issue.html_url,
@@ -55,14 +60,14 @@ module.exports = async ({github, core}, {owner, repo, label, marker}) => {
   }
 
   // Deterministic processing order for the agent job.
-  eligible.sort((a, b) => a.number - b.number)
+  eligible.sort((a, b) => a.repository.localeCompare(b.repository) || a.number - b.number)
 
-  core.info(`${eligible.length}/${issues.length} open '${label}' issue(s) eligible for triage`)
+  core.info(`${eligible.length}/${found.length} issue(s) eligible for triage`)
 
   // Observability: publish the exact selection to the job summary.
   await core.summary
     .addHeading('Incident issue selection', 3)
-    .addRaw(`\n${eligible.length} of ${issues.length} open \`${label}\` issue(s) eligible for triage.\n\n`)
+    .addRaw(`\nSearch: \`${query}\` — ${eligible.length} of ${found.length} issue(s) eligible for triage.\n\n`)
     .addCodeBlock(JSON.stringify(eligible, null, 2), 'json')
     .write()
 

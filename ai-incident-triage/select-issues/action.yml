@@ -1,14 +1,14 @@
 name: Select incident issues for triage
-description: Deterministically selects open automated-incident issues whose latest failure has not yet been analyzed by the triage agent
+description: Deterministically selects open automated-incident issues, across all repositories in scope, whose latest failure has not yet been analyzed by the triage agent
 
 inputs:
   github_token:
-    description: 'Token used to list issues and comments'
+    description: 'Token used to search issues and list comments (must have access to every repository in scope)'
     required: true
-  repository:
-    description: 'Repository to scan (owner/repo)'
+  search_scope:
+    description: 'GitHub issue-search scope qualifier, e.g. "org:Jahia" or "repo:Jahia/sandbox"'
     required: false
-    default: ${{ github.repository }}
+    default: 'org:Jahia'
   label:
     description: 'Label identifying automated test-failure incidents'
     required: false
@@ -20,7 +20,7 @@ inputs:
 
 outputs:
   issues:
-    description: 'JSON array of eligible issues ({number, title, html_url, latest_failure_at, source_run_url, vpn_artifacts_url})'
+    description: 'JSON array of eligible issues ({repository, number, title, html_url, latest_failure_at, source_run_url, vpn_artifacts_url})'
     value: ${{ steps.select.outputs.result }}
   has_issues:
     description: '"true" when at least one issue is eligible'
@@ -37,9 +37,8 @@ runs:
         retries: 3
         script: |
           const select = require(`${process.env.GITHUB_ACTION_PATH}/src/select-issues.js`)
-          const [owner, repo] = '${{ inputs.repository }}'.split('/')
           return await select({github, core}, {
-            owner, repo,
+            searchScope: '${{ inputs.search_scope }}',
             label: '${{ inputs.label }}',
             marker: '${{ inputs.marker }}',
           })

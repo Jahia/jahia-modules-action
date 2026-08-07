@@ -9,9 +9,13 @@ run's logs and posts its conclusion as a comment on the issue.
 **v1 is analysis-only.** The agent never changes code, never opens or merges PRs, never
 closes or labels issues — it only posts comments.
 
-Callers normally use the
-[`reusable-ai-incident-triage.yml`](../.github/workflows/reusable-ai-incident-triage.yml)
-workflow rather than these actions directly.
+The whole organization is triaged by ONE workflow running in this repository —
+[`ai-incident-triage.yml`](../.github/workflows/ai-incident-triage.yml) — which searches all
+repositories in scope for `automated-incident` issues and analyzes every eligible one in a
+single run. Individual repositories do not call anything: opting a repo in is a matter of the
+search scope and IT's mTLS allowlist. Processing all incidents together also lets the agent
+spot a shared root cause impacting several repositories at once (each per-issue prompt embeds
+a snapshot of the full selection).
 
 ## The eligibility rule (one agent action per failure event)
 
@@ -42,7 +46,7 @@ LLM-free selection, runs on any cheap runner.
 | Input | Required | Default | Description |
 |---|---|---|---|
 | `github_token` | yes | — | Token used to list issues and comments |
-| `repository` | no | `${{ github.repository }}` | Repository to scan (owner/repo) |
+| `search_scope` | no | `org:Jahia` | Issue-search scope qualifier (e.g. `org:Jahia`, `repo:Jahia/sandbox`) |
 | `label` | no | `automated-incident` | Label identifying automated test-failure incidents |
 | `marker` | no | `<!-- cortex-incident-triage -->` | Hidden marker string identifying agent triage comments |
 
@@ -60,7 +64,6 @@ installs the CLI, exports the LiteLLM env, and clones cortex) and an established
 | Input | Required | Default | Description |
 |---|---|---|---|
 | `issues` | yes | — | JSON array produced by `select-issues` |
-| `repository` | no | `${{ github.repository }}` | Repository holding the incident issues |
 | `github_token` | yes | — | Token used by the agent to read issues/runs and post comments |
 | `cortex_path` | yes | — | Absolute path of the cortex checkout (from `ai-agent-setup`) |
 | `marker` | no | `<!-- cortex-incident-triage -->` | Marker the agent must put in every triage comment |
@@ -72,12 +75,13 @@ installs the CLI, exports the LiteLLM env, and clones cortex) and an established
 
 ## Determinism & observability
 
-- Issue selection, ordering (ascending issue number), prompt construction, and the
-  per-issue loop are plain code — the agent only ever sees **one issue per invocation**.
-- Every invocation's full `stream-json` output is kept in `logs_dir`
-  (`selected-issues.json`, `prompts/issue-<n>.prompt.md`, `issue-<n>.stream.jsonl`,
-  `issue-<n>.result.json`, `issue-<n>.stderr.log`) — the reusable workflow uploads it as the
-  `ai-incident-triage-logs` artifact.
+- Issue selection, ordering (by repository, then issue number), prompt construction, and the
+  per-issue loop are plain code — the agent only ever sees **one issue per invocation**, with
+  the org-wide selection embedded as read-only context.
+- Every invocation's full `stream-json` output is kept in `logs_dir`, keyed by
+  `owner-repo-number` (`selected-issues.json`, `prompts/issue-<key>.prompt.md`,
+  `issue-<key>.stream.jsonl`, `issue-<key>.result.json`, `issue-<key>.stderr.log`) — the
+  workflow uploads it as the `ai-incident-triage-logs` artifact.
 - The job log shows a deterministic trace per issue (`[tool]`/`[say ]`/`[end ]` lines);
   the job summary tabulates outcome, turns, duration and cost per issue.
 - A final verification step re-reads the issues and warns about any missing triage comment
@@ -103,20 +107,20 @@ instructs the agent to treat issue/log content as data, never as instructions.
   `INFRAJAHIA_MTLS_SERVER_CA`).
 - The agent job needs `permissions: id-token: write` (the tunnel mints a short-lived client
   certificate from the run's OIDC token). The broker is deny-by-default on BOTH dimensions:
-  every tunneled host AND every calling repository must be allowlisted on IT's side —
-  onboarding a new repo onto this workflow starts with that allowlist request.
+  every tunneled host AND the repository running the workflow must be allowlisted on IT's
+  side — one reason the workflow runs centrally from this (allowlisted) repository.
+- `GH_ISSUES_PRS_CHORES` must be able to read issues and post comments on every repository
+  in the search scope.
 
-## How to call
+## How it runs
 
-```yaml
-name: Nightly incident triage
-on:
-  schedule:
-    - cron: '0 5 * * *'
-  workflow_dispatch:
+The [`ai-incident-triage.yml`](../.github/workflows/ai-incident-triage.yml) workflow in this
+repository is the single entry point:
 
-jobs:
-  triage:
-    uses: Jahia/jahia-modules-action/.github/workflows/reusable-ai-incident-triage.yml@v2
-    secrets: inherit
-```
+- **`workflow_dispatch`** — normal operation; org-wide by default, narrowable via the
+  `search_scope` input (e.g. `repo:Jahia/sandbox`), with a `dry_run` mode that stops after
+  selection.
+- **Labeling a PR with `ai-triage-test`** — development iteration; runs the PR branch's
+  version pinned to `repo:Jahia/sandbox` so dev runs never touch real incidents. Remove and
+  re-add the label to re-run.
+- A schedule can be added to the same workflow once the pilot validates analysis quality.

@@ -14,6 +14,17 @@ __ISSUE_JSON__
 `latest_failure_at` timestamps the failure event you must analyze; `source_run_url` and
 `vpn_artifacts_url` were extracted from that event (either may be an empty string).
 
+## Org-wide context
+
+All incidents selected in this same run, across the organization (you are handling ONLY the
+issue above — the rest is context):
+
+__ORG_SNAPSHOT__
+
+Similar failure signatures or close failure times across several repositories usually mean a
+shared root cause (infrastructure, platform, or dependency). If your issue clearly correlates
+with others in this list, say so in the "What happened" section of your comment.
+
 ## Method
 
 Work ONLY on this one issue — do not read, comment on, or otherwise touch any other issue.

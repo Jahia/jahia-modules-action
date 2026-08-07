@@ -3,12 +3,8 @@ description: Runs a Claude Code agent from the cortex harness to analyze automat
 
 inputs:
   issues:
-    description: 'JSON array of issues produced by the select-issues action'
+    description: 'JSON array of issues produced by the select-issues action (each item carries its own repository)'
     required: true
-  repository:
-    description: 'Repository holding the incident issues (owner/repo)'
-    required: false
-    default: ${{ github.repository }}
   github_token:
     description: 'Token used by the agent to read issues/runs and post comments'
     required: true
@@ -37,15 +33,14 @@ runs:
       shell: bash
       env:
         ISSUES_JSON: ${{ inputs.issues }}
-        REPOSITORY: ${{ inputs.repository }}
         MARKER: ${{ inputs.marker }}
       run: |
         LOG_DIR="$RUNNER_TEMP/triage-logs"
         mkdir -p "$LOG_DIR"
-        ISSUE_NUMBERS=$(python3 "$GITHUB_ACTION_PATH/src/build-prompts.py" "$GITHUB_ACTION_PATH/prompt.md" "$LOG_DIR")
-        echo "Prepared prompts for issue(s): $ISSUE_NUMBERS"
+        ISSUE_KEYS=$(python3 "$GITHUB_ACTION_PATH/src/build-prompts.py" "$GITHUB_ACTION_PATH/prompt.md" "$LOG_DIR")
+        echo "Prepared prompts for issue(s): $ISSUE_KEYS"
         echo "logs_dir=$LOG_DIR" >> "$GITHUB_OUTPUT"
-        echo "issue_numbers=$ISSUE_NUMBERS" >> "$GITHUB_OUTPUT"
+        echo "issue_keys=$ISSUE_KEYS" >> "$GITHUB_OUTPUT"
 
     - name: Run the triage agent, one invocation per issue
       shell: bash
@@ -54,7 +49,7 @@ runs:
         GH_TOKEN: ${{ inputs.github_token }}
         ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
-        ISSUE_NUMBERS: ${{ steps.prep.outputs.issue_numbers }}
+        ISSUE_KEYS: ${{ steps.prep.outputs.issue_keys }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
         {
@@ -64,19 +59,19 @@ runs:
           echo "|---|---|---|---|---|---|"
         } >> "$GITHUB_STEP_SUMMARY"
         FAILURES=0
-        for NUMBER in $ISSUE_NUMBERS; do
-          echo "::group::Triage issue #$NUMBER"
-          STREAM_FILE="$LOG_DIR/issue-$NUMBER.stream.jsonl"
+        for KEY in $ISSUE_KEYS; do
+          echo "::group::Triage issue $KEY"
+          STREAM_FILE="$LOG_DIR/issue-$KEY.stream.jsonl"
           EXIT_CODE=0
-          claude -p "$(cat "$LOG_DIR/prompts/issue-$NUMBER.prompt.md")" \
+          claude -p "$(cat "$LOG_DIR/prompts/issue-$KEY.prompt.md")" \
             --allowedTools "$ALLOWED_TOOLS" \
             --permission-mode dontAsk \
             --output-format stream-json \
             --verbose \
-            > "$STREAM_FILE" 2> "$LOG_DIR/issue-$NUMBER.stderr.log" || EXIT_CODE=$?
-          python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "$NUMBER" "$EXIT_CODE"
+            > "$STREAM_FILE" 2> "$LOG_DIR/issue-$KEY.stderr.log" || EXIT_CODE=$?
+          python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "$KEY" "$EXIT_CODE"
           if [ "$EXIT_CODE" -ne 0 ]; then
-            echo "::warning::Issue #$NUMBER: agent exited with code $EXIT_CODE — the issue stays eligible and will be retried on the next run"
+            echo "::warning::Issue $KEY: agent exited with code $EXIT_CODE — the issue stays eligible and will be retried on the next run"
             FAILURES=$((FAILURES + 1))
           fi
           echo "::endgroup::"
@@ -92,13 +87,13 @@ runs:
         github-token: ${{ inputs.github_token }}
         script: |
           const issues = JSON.parse(process.env.ISSUES_JSON)
-          const [owner, repo] = '${{ inputs.repository }}'.split('/')
           for (const issue of issues) {
+            const [owner, repo] = issue.repository.split('/')
             const comments = await github.paginate(github.rest.issues.listComments,
               {owner, repo, issue_number: issue.number, per_page: 100})
             const done = comments.some(c =>
               (c.body ?? '').includes('${{ inputs.marker }}') &&
               new Date(c.created_at) > new Date(issue.latest_failure_at))
-            if (done) core.info(`#${issue.number}: triage comment present`)
-            else core.warning(`#${issue.number}: NO triage comment was posted — it stays eligible and will be retried on the next run`)
+            if (done) core.info(`${issue.repository}#${issue.number}: triage comment present`)
+            else core.warning(`${issue.repository}#${issue.number}: NO triage comment was posted — it stays eligible and will be retried on the next run`)
           }

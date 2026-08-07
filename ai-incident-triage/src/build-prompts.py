@@ -1,19 +1,21 @@
 """Build one deterministic triage prompt per selected issue.
 
 Usage: build-prompts.py <template-path> <log-dir>
-Env:   ISSUES_JSON  - JSON array produced by the select-issues action
-       REPOSITORY   - owner/repo holding the incident issues
+Env:   ISSUES_JSON  - JSON array produced by the select-issues action (each item
+                      carries its own "repository" as owner/repo)
        MARKER       - hidden marker string for triage comments
 
-Writes <log-dir>/selected-issues.json and <log-dir>/prompts/issue-<n>.prompt.md,
-then prints the space-separated, ascending list of issue numbers to stdout.
+Writes <log-dir>/selected-issues.json and <log-dir>/prompts/issue-<key>.prompt.md
+(key = owner-repo-number, since issue numbers collide across repositories), then
+prints the space-separated, deterministically ordered list of keys to stdout.
+Every prompt also embeds a snapshot of ALL selected issues, so the agent can spot
+a shared root cause impacting several repositories at once.
 """
 import json
 import os
 import sys
 
 template_path, log_dir = sys.argv[1], sys.argv[2]
-repository = os.environ['REPOSITORY']
 marker = os.environ['MARKER']
 issues = json.loads(os.environ['ISSUES_JSON'])  # fail fast on malformed input
 
@@ -27,15 +29,21 @@ with open(os.path.join(log_dir, 'selected-issues.json'), 'w', encoding='utf-8') 
 with open(template_path, encoding='utf-8') as fh:
     template = fh.read()
 
-numbers = []
-for issue in sorted(issues, key=lambda i: int(i['number'])):
-    number = int(issue['number'])
+ordered = sorted(issues, key=lambda i: (i['repository'], int(i['number'])))
+snapshot = '\n'.join(
+    f"- {i['repository']}#{i['number']} — {i['title']} (latest failure: {i['latest_failure_at']})"
+    for i in ordered)
+
+keys = []
+for issue in ordered:
+    key = f"{issue['repository'].replace('/', '-')}-{issue['number']}"
     prompt = (template
               .replace('__ISSUE_JSON__', json.dumps(issue, indent=2))
-              .replace('__REPOSITORY__', repository)
+              .replace('__REPOSITORY__', issue['repository'])
+              .replace('__ORG_SNAPSHOT__', snapshot)
               .replace('__MARKER__', marker))
-    with open(os.path.join(prompts_dir, f'issue-{number}.prompt.md'), 'w', encoding='utf-8') as fh:
+    with open(os.path.join(prompts_dir, f'issue-{key}.prompt.md'), 'w', encoding='utf-8') as fh:
         fh.write(prompt)
-    numbers.append(str(number))
+    keys.append(key)
 
-print(' '.join(numbers))
+print(' '.join(keys))
