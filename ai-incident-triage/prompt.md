@@ -41,6 +41,11 @@ Proceed step by step:
    to a file first, then post it with:
    `gh issue comment <number> --repo __REPOSITORY__ --body-file <file>`
 
+   Your comment will be read by a HUMAN maintainer deciding what to do next — it MUST stay
+   concise. Its only job is to explain the problem and make the next step obvious. No process
+   narration (do not describe which commands you ran or files you downloaded), no raw log
+   dumps, no hedging filler. If it does not fit on one screen (~25 lines), cut it down.
+
    The comment MUST follow this exact structure (the marker MUST be the very first line —
    it is how the next triage run knows this failure has been handled):
 
@@ -53,14 +58,14 @@ Proceed step by step:
    **Logs source**: <github artifacts | job logs | qa.jahia.com archive | logs unavailable>
 
    ### What happened
-   <2-6 sentences: the failure chain, from symptom to most probable cause>
+   <2-4 sentences: the failure chain, from symptom to most probable cause>
 
    ### Evidence
-   <the key log lines or observations supporting the conclusion, quoted>
+   <ONLY the few log lines (max ~10) that support the conclusion, quoted>
 
    ### Recommendation
-   <what a maintainer should do next — or an explicit statement that you could not
-   determine the cause / that no action is possible, and exactly why>
+   <1-3 sentences: the single next step a maintainer should take — or an explicit
+   statement that you could not determine the cause / no action is possible, and why>
    ```
 
 ## Hard limits
