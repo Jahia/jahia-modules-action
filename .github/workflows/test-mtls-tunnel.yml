@@ -18,10 +18,30 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Two hosts in one job, with a canary on each.
+  # Nominal use on a hosted runner: one host, with a canary.
   # This job should PASS
-  two-hosts:
+  single-host:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: jahia/jahia-modules-action/mtls-tunnel@update-secrets
+        with:
+          hosts: litellm-prod.int.jahia.com
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
+          server-name: ci-egress.jahia.com
+          audience: jahia-ci-egress
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
+          canary-url: https://litellm-prod.int.jahia.com/health/liveliness
+
+  # The same nominal use, on a self-hosted runner: different network position, and root is
+  # obtained differently (the runner user may already be root, or sudo may be absent).
+  # This job should PASS
+  single-host-self-hosted:
+    runs-on: self-hosted
     permissions:
       id-token: write
       contents: read

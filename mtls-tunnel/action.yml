@@ -113,7 +113,9 @@ runs:
           fi
           echo "Installing: ${missing[*]}"
           $SUDO apt-get update -y
-          $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y "${missing[@]}"
+          # `env` and not a bare VAR=val prefix: when $SUDO is empty (container, already
+          # root) bash would parse DEBIAN_FRONTEND=noninteractive as the command name.
+          $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y "${missing[@]}"
         fi
 
     - name: Mint a short-lived client certificate from the run's OIDC token
