@@ -1,18 +1,18 @@
-"""Build one deterministic triage prompt per selected issue.
+"""Build the triage prompt covering ALL selected issues in one agent invocation.
 
 Usage: build-prompts.py <template-path> <log-dir>
 Env:   ISSUES_JSON    - JSON array produced by the select-issues action (each item
                         carries its own "repository" as owner/repo)
        MARKER         - hidden marker string for triage comments
-       POST_COMMENTS  - "true": the agent posts the comment on the issue;
-                        anything else: review mode — the agent writes the comment
+       POST_COMMENTS  - "true": the agent posts each comment on its issue;
+                        anything else: review mode — the agent writes the comments
                         it WOULD have posted to <log-dir>/comments/ instead
 
-Writes <log-dir>/selected-issues.json and <log-dir>/prompts/issue-<key>.prompt.md
-(key = owner-repo-number, since issue numbers collide across repositories), then
-prints the space-separated, deterministically ordered list of keys to stdout.
-Every prompt also embeds a snapshot of ALL selected issues, so the agent can spot
-a shared root cause impacting several repositories at once.
+The agent sees the whole selection at once (deliberate: cross-repository correlation
+reveals shared root causes). Issues are deterministically ordered (repository, then
+number) and each gains a "key" (owner-repo-number — issue numbers collide across
+repositories) used for report file names. Writes <log-dir>/selected-issues.json and
+<log-dir>/triage.prompt.md, then prints the space-separated key list to stdout.
 """
 import json
 import os
@@ -23,47 +23,38 @@ marker = os.environ['MARKER']
 post_comments = os.environ.get('POST_COMMENTS', 'true') == 'true'
 issues = json.loads(os.environ['ISSUES_JSON'])  # fail fast on malformed input
 
-prompts_dir = os.path.join(log_dir, 'prompts')
-os.makedirs(prompts_dir, exist_ok=True)
 comments_dir = os.path.join(log_dir, 'comments')
 if not post_comments:
     os.makedirs(comments_dir, exist_ok=True)
 
-POST_INSTRUCTIONS = (
-    'post EXACTLY ONE comment on the issue, no matter the outcome. Write the body\n'
-    '   to a file first, then post it with:\n'
-    '   `gh issue comment <number> --repo __REPOSITORY__ --body-file <file>`')
-REVIEW_INSTRUCTIONS = (
-    'do NOT post anything to the issue — this run is a REVIEW pass. Instead, write the\n'
-    '   comment you WOULD have posted (exact same format below) to the file\n'
-    '   `__COMMENT_FILE__` using the Write tool. A human reviews that file in place of the\n'
-    '   issue comment. Write no other file.')
+ordered = sorted(issues, key=lambda i: (i['repository'], int(i['number'])))
+for issue in ordered:
+    issue['key'] = f"{issue['repository'].replace('/', '-')}-{issue['number']}"
 
 # Keep the exact selection alongside the run logs for auditability.
+os.makedirs(log_dir, exist_ok=True)
 with open(os.path.join(log_dir, 'selected-issues.json'), 'w', encoding='utf-8') as fh:
-    json.dump(issues, fh, indent=2)
+    json.dump(ordered, fh, indent=2)
+
+POST_INSTRUCTIONS = (
+    'post EXACTLY ONE comment on the issue being processed, no matter the outcome. Write\n'
+    '   the body to a file first, then post it with:\n'
+    '   `gh issue comment <number> --repo <repository> --body-file <file>`')
+REVIEW_INSTRUCTIONS = (
+    'do NOT post anything to any issue — this run is a REVIEW pass. For the issue being\n'
+    '   processed, write the comment you WOULD have posted (exact same format below) to the\n'
+    '   file `' + comments_dir + '/issue-<key>.comment.md` using the Write tool. A human\n'
+    '   reviews these files in place of the issue comments. Write no other files.')
 
 with open(template_path, encoding='utf-8') as fh:
     template = fh.read()
 
-ordered = sorted(issues, key=lambda i: (i['repository'], int(i['number'])))
-snapshot = '\n'.join(
-    f"- {i['repository']}#{i['number']} — {i['title']} (latest failure: {i['latest_failure_at']})"
-    for i in ordered)
+prompt = (template
+          .replace('__REPORTING_INSTRUCTIONS__',
+                   POST_INSTRUCTIONS if post_comments else REVIEW_INSTRUCTIONS)
+          .replace('__ISSUES_JSON__', json.dumps(ordered, indent=2))
+          .replace('__MARKER__', marker))
+with open(os.path.join(log_dir, 'triage.prompt.md'), 'w', encoding='utf-8') as fh:
+    fh.write(prompt)
 
-keys = []
-for issue in ordered:
-    key = f"{issue['repository'].replace('/', '-')}-{issue['number']}"
-    reporting = POST_INSTRUCTIONS if post_comments else REVIEW_INSTRUCTIONS.replace(
-        '__COMMENT_FILE__', os.path.join(comments_dir, f'issue-{key}.comment.md'))
-    prompt = (template
-              .replace('__REPORTING_INSTRUCTIONS__', reporting)
-              .replace('__ISSUE_JSON__', json.dumps(issue, indent=2))
-              .replace('__REPOSITORY__', issue['repository'])
-              .replace('__ORG_SNAPSHOT__', snapshot)
-              .replace('__MARKER__', marker))
-    with open(os.path.join(prompts_dir, f'issue-{key}.prompt.md'), 'w', encoding='utf-8') as fh:
-        fh.write(prompt)
-    keys.append(key)
-
-print(' '.join(keys))
+print(' '.join(issue['key'] for issue in ordered))

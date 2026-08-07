@@ -1,11 +1,10 @@
 """Summarize one headless Claude Code run from its stream-json output.
 
-Usage: summarize-run.py <stream-file> <issue-key> <exit-code>
+Usage: summarize-run.py <stream-file> <label> <exit-code>
 
-The issue key is owner-repo-number (issue numbers collide across repositories).
 Prints a deterministic trace of everything the agent did (tool calls, messages,
-final result) to stdout, writes the final result event to issue-<key>.result.json
-next to the stream file, and appends one row to $GITHUB_STEP_SUMMARY.
+final result) to stdout, writes the final result event next to the stream file
+(<name>.result.json), and appends one row to $GITHUB_STEP_SUMMARY.
 Always exits 0 — reporting must not mask the agent's own exit code.
 """
 import json
@@ -36,7 +35,7 @@ except OSError as error:
     print(f'[warn] could not read stream file: {error}')
 
 result = None
-print(f'--- Agent trace for issue {key} ---')
+print(f'--- Agent trace ({key}) ---')
 for event in events:
     etype = event.get('type')
     if etype == 'system' and event.get('subtype') == 'init':
@@ -64,7 +63,7 @@ else:
     cost = f'{usd:.4f}' if isinstance(usd, (int, float)) else 'n/a'
     print(f'[end ] {outcome} turns={turns} duration={duration} cost=${cost} exit={exit_code}')
     print(f'[result] {compact(result.get("result", ""), 2000)}')
-    result_path = os.path.join(os.path.dirname(stream_path), f'issue-{key}.result.json')
+    result_path = stream_path.replace('.stream.jsonl', '.result.json')
     with open(result_path, 'w', encoding='utf-8') as fh:
         json.dump(result, fh, indent=2)
 

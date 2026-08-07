@@ -47,7 +47,9 @@ runs:
         echo "logs_dir=$LOG_DIR" >> "$GITHUB_OUTPUT"
         echo "issue_keys=$ISSUE_KEYS" >> "$GITHUB_OUTPUT"
 
-    - name: Run the triage agent, one invocation per issue
+    # One invocation over ALL issues, deliberately: seeing the whole selection lets the
+    # agent correlate failures across repositories and spot shared root causes.
+    - name: Run the triage agent over all issues
       shell: bash
       working-directory: ${{ inputs.cortex_path }}
       env:
@@ -58,30 +60,24 @@ runs:
       run: |
         export PATH="$HOME/.local/bin:$PATH"
         {
-          echo "### Triage runs"
+          echo "### Triage run"
           echo ""
-          echo "| Issue | Outcome | Turns | Duration | Cost (USD) | Exit code |"
+          echo "| Scope | Outcome | Turns | Duration | Cost (USD) | Exit code |"
           echo "|---|---|---|---|---|---|"
         } >> "$GITHUB_STEP_SUMMARY"
-        FAILURES=0
-        for KEY in $ISSUE_KEYS; do
-          echo "::group::Triage issue $KEY"
-          STREAM_FILE="$LOG_DIR/issue-$KEY.stream.jsonl"
-          EXIT_CODE=0
-          claude -p "$(cat "$LOG_DIR/prompts/issue-$KEY.prompt.md")" \
-            --allowedTools "$ALLOWED_TOOLS" \
-            --permission-mode dontAsk \
-            --output-format stream-json \
-            --verbose \
-            > "$STREAM_FILE" 2> "$LOG_DIR/issue-$KEY.stderr.log" || EXIT_CODE=$?
-          python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "$KEY" "$EXIT_CODE"
-          if [ "$EXIT_CODE" -ne 0 ]; then
-            echo "::warning::Issue $KEY: agent exited with code $EXIT_CODE — the issue stays eligible and will be retried on the next run"
-            FAILURES=$((FAILURES + 1))
-          fi
-          echo "::endgroup::"
-        done
-        echo "Triage loop finished with $FAILURES failed agent run(s)"
+        echo "Triaging in one agent run: $ISSUE_KEYS"
+        STREAM_FILE="$LOG_DIR/triage.stream.jsonl"
+        EXIT_CODE=0
+        claude -p "$(cat "$LOG_DIR/triage.prompt.md")" \
+          --allowedTools "$ALLOWED_TOOLS" \
+          --permission-mode dontAsk \
+          --output-format stream-json \
+          --verbose \
+          > "$STREAM_FILE" 2> "$LOG_DIR/triage.stderr.log" || EXIT_CODE=$?
+        python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "all issues" "$EXIT_CODE"
+        if [ "$EXIT_CODE" -ne 0 ]; then
+          echo "::warning::Agent exited with code $EXIT_CODE — unreported issues stay eligible and will be retried on the next run"
+        fi
 
     - name: Publish the stored review comments to the job summary
       if: always() && inputs.post_comments != 'true'

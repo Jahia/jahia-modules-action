@@ -75,15 +75,18 @@ installs the CLI, exports the LiteLLM env, and clones cortex) and an established
 
 ## Determinism & observability
 
-- Issue selection, ordering (by repository, then issue number), prompt construction, and the
-  per-issue loop are plain code — the agent only ever sees **one issue per invocation**, with
-  the org-wide selection embedded as read-only context.
-- Every invocation's full `stream-json` output is kept in `logs_dir`, keyed by
-  `owner-repo-number` (`selected-issues.json`, `prompts/issue-<key>.prompt.md`,
-  `issue-<key>.stream.jsonl`, `issue-<key>.result.json`, `issue-<key>.stderr.log`) — the
-  workflow uploads it as the `ai-incident-triage-logs` artifact.
-- The job log shows a deterministic trace per issue (`[tool]`/`[say ]`/`[end ]` lines);
-  the job summary tabulates outcome, turns, duration and cost per issue.
+- Issue selection, deterministic ordering (by repository, then issue number), and prompt
+  construction are plain code. The agent runs **once over the whole selection** — deliberate,
+  so it can correlate failures across repositories and report shared root causes — processing
+  issues in the given order and producing exactly one report per issue (keyed
+  `owner-repo-number`, since issue numbers collide across repositories).
+- The run's full `stream-json` output is kept in `logs_dir` (`selected-issues.json`,
+  `triage.prompt.md`, `triage.stream.jsonl`, `triage.result.json`, `triage.stderr.log`,
+  plus `comments/issue-<key>.comment.md` in review mode) — the workflow uploads it as the
+  `ai-incident-triage-logs` artifact.
+- The job log shows a deterministic trace of everything the agent did
+  (`[tool]`/`[say ]`/`[end ]` lines); the job summary tabulates outcome, turns, duration
+  and cost.
 - A final verification step re-reads the issues and warns about any missing triage comment
   (warn, not fail: the issue stays eligible and the next scheduled run is the retry).
 
