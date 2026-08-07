@@ -113,7 +113,9 @@ runs:
           fi
           echo "Installing: ${missing[*]}"
           $SUDO apt-get update -y
-          $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y "${missing[@]}"
+          # `env` and not a bare VAR=val prefix: when $SUDO is empty (container, already
+          # root) bash would parse DEBIAN_FRONTEND=noninteractive as the command name.
+          $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y "${missing[@]}"
         fi
 
     - name: Mint a short-lived client certificate from the run's OIDC token
@@ -186,7 +188,7 @@ runs:
         foreground = no
         pid = $d/stunnel.pid
         output = $d/stunnel.log
-        debug = 4
+        debug = 7
         EOF
 
         # One loopback address per host: the port is imposed by the protocol, so hosts reached
@@ -242,6 +244,10 @@ runs:
 
           # Decoupled on purpose: `sni` is what the bastion routes on, `checkHost` pins the
           # bastion's own certificate. Requiring CN == SNI would fail every tunnel.
+          # OCSPrequire: stunnel >= 5.72 demands a stapled OCSP response by default in
+          # client mode, but the private CI CA has no OCSP responder, so every handshake
+          # would die with "No OCSP stapling response received". verifyChain + checkHost
+          # still verify the bastion, and the client certificates only live an hour anyway.
           cat >> "$conf" <<EOF
 
         [${host}_${port}]
@@ -253,6 +259,7 @@ runs:
         CAfile = $d/server-ca.crt
         verifyChain = yes
         checkHost = $MTLS_SERVER_NAME
+        OCSPrequire = no
         sni = $host
         EOF
           echo "$host $port $ip" >> "$opened_state"
@@ -322,7 +329,7 @@ runs:
 
         if [ "$rc" -ne 0 ]; then
           echo "--- stunnel log ---"
-          ${MTLS_SUDO:-} cat "$MTLS_DIR/stunnel.log" 2>/dev/null | tail -40 || true
+          ${MTLS_SUDO:-} cat "$MTLS_DIR/stunnel.log" 2>/dev/null | tail -200 || true
         fi
         exit $rc
 

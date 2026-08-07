@@ -95,12 +95,12 @@ jobs:
           hosts: |
             registry.internal.example.com
             api.internal.example.com
-          ca-url: ${{ vars.CI_MTLS_CA_URL }}
-          bastion: ${{ vars.CI_MTLS_BASTION }}
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
           server-name: ${{ vars.CI_MTLS_SERVER_NAME }}
           audience: ${{ vars.CI_MTLS_AUDIENCE }}
-          step-root: ${{ secrets.CI_STEP_ROOT }}
-          server-ca: ${{ secrets.CI_SERVER_CA }}
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
           # optional: fail here rather than in the middle of the job
           canary-url: |
             https://registry.internal.example.com/health
@@ -118,12 +118,12 @@ An SSH host works the same way. Only the port changes, and the canary does not a
       - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: build-host.internal.example.com:22
-          ca-url: ${{ vars.CI_MTLS_CA_URL }}
-          bastion: ${{ vars.CI_MTLS_BASTION }}
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
           server-name: ${{ vars.CI_MTLS_SERVER_NAME }}
           audience: ${{ vars.CI_MTLS_AUDIENCE }}
-          step-root: ${{ secrets.CI_STEP_ROOT }}
-          server-ca: ${{ secrets.CI_SERVER_CA }}
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
 
       - run: ssh ci@build-host.internal.example.com 'uptime'
 ```
