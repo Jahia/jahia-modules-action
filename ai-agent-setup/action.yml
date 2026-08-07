@@ -82,7 +82,7 @@ runs:
         GATEWAY_HOST=$(echo "${{ inputs.anthropic_base_url }}" | sed -E 's|^[a-z]+://([^/:]+).*|\1|')
         echo "Gateway host: $GATEWAY_HOST"
         if ! getent hosts "$GATEWAY_HOST" > /dev/null; then
-          echo "::error::Cannot resolve gateway host '$GATEWAY_HOST' from this runner (is the VPN up, does it provide internal DNS, and does it route the DNS servers?)"
+          echo "::error::Cannot resolve gateway host '$GATEWAY_HOST' from this runner (is the tunnel to internal services up?)"
           echo "--- DNS diagnostics ---"
           cat /etc/resolv.conf 2>/dev/null || true
           command -v resolvectl > /dev/null && resolvectl status 2>/dev/null || true

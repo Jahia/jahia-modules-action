@@ -29,8 +29,8 @@ Proceed step by step:
    2. Job logs via the harness tool:
       `tools/jahia-ci-triage/bin/jahia-ci-triage fetch --run <run-id> --repo __REPOSITORY__`
       (add `--job <job-id>` to target a specific failed job).
-   3. The VPN-only archive, when a `https://qa.jahia.com/artifacts-ci/...` URL is available
-      (the VPN is already up on this runner):
+   3. The restricted archive, when a `https://qa.jahia.com/artifacts-ci/...` URL is available
+      (this runner already has a tunnel to internal Jahia services):
       `wget -r -np -nH -P sources/incident-<number> <url>` or the equivalent `curl`.
    4. If every source is expired or unreachable, your conclusion is **logs unavailable** —
       still post your comment, stating explicitly what you tried and why it failed.

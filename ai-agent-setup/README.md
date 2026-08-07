@@ -18,9 +18,9 @@ Claude-on-runner duty should reuse it as-is.
 
 ## Requirements
 
-- A **host** runner (Ubuntu), not a container — pair it with
-  [`vpn-tunnel`](../vpn-tunnel) when the agent needs to reach VPN-only resources, and
-  `vpn-tunnel` refuses to run inside containers.
+- An Ubuntu runner. Pair it with [`mtls-tunnel`](../mtls-tunnel) when the agent needs to
+  reach internal Jahia services (LiteLLM gateway, `qa.jahia.com` artifacts) — the tunnel
+  step must run **before** this action so the gateway connectivity check can pass.
 - Runners are typically **ephemeral**: everything this action installs disappears after the
   job, and everything it *doesn't* install must come from the runner image. It warns (without
   failing) when `git`, `python3`, `unzip` or `gh` are missing, since the cortex tooling needs them.
