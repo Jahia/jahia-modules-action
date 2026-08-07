@@ -1,4 +1,4 @@
-name: Claude Code Setup
+name: AI Agent Setup
 description: Install the Claude Code CLI on a self-hosted runner, point it at the Jahia LiteLLM gateway, and clone the cortex agentic harness
 
 inputs:
@@ -76,6 +76,25 @@ runs:
           echo "ANTHROPIC_DEFAULT_HAIKU_MODEL=${{ inputs.default_haiku_model }}" >> "$GITHUB_ENV"
         fi
 
+    - name: Verify gateway connectivity
+      shell: bash
+      run: |
+        GATEWAY_HOST=$(echo "${{ inputs.anthropic_base_url }}" | sed -E 's|^[a-z]+://([^/:]+).*|\1|')
+        echo "Gateway host: $GATEWAY_HOST"
+        if ! getent hosts "$GATEWAY_HOST" > /dev/null; then
+          echo "::error::Cannot resolve gateway host '$GATEWAY_HOST' from this runner (is the VPN up, and does it provide internal DNS?)"
+          echo "--- DNS diagnostics ---"
+          cat /etc/resolv.conf 2>/dev/null || true
+          command -v resolvectl > /dev/null && resolvectl status 2>/dev/null || true
+          exit 1
+        fi
+        HTTP_CODE=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 "${{ inputs.anthropic_base_url }}") || HTTP_CODE="000"
+        echo "Gateway responded with HTTP $HTTP_CODE"
+        if [ "$HTTP_CODE" = "000" ]; then
+          echo "::error::Gateway host '$GATEWAY_HOST' resolves but the gateway is unreachable"
+          exit 1
+        fi
+
     - name: Clone the cortex harness
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
       with:
@@ -92,6 +111,20 @@ runs:
         export PATH="$HOME/.local/bin:$PATH"
         CLAUDE_VERSION=$(claude --version)
         echo "Claude Code CLI installed: $CLAUDE_VERSION"
+        # Pre-trust the cortex checkout: without this, Claude Code ignores the
+        # permissions carried by the repository's own .claude/settings.json.
+        CORTEX_PATH="${{ github.workspace }}/${{ inputs.cortex_path }}" python3 - <<'EOF'
+        import json, os
+        path = os.path.expanduser('~/.claude.json')
+        config = {}
+        if os.path.exists(path):
+            with open(path, encoding='utf-8') as fh:
+                config = json.load(fh)
+        project = config.setdefault('projects', {}).setdefault(os.environ['CORTEX_PATH'], {})
+        project['hasTrustDialogAccepted'] = True
+        with open(path, 'w', encoding='utf-8') as fh:
+            json.dump(config, fh)
+        EOF
         # Ephemeral runners provide a fresh image every run: prerequisites must come from
         # the image itself. Warn (do not fail) so the calling use case decides what is fatal.
         for bin in git python3 unzip gh; do

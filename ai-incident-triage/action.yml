@@ -1,4 +1,4 @@
-name: Claude Incident Triage
+name: AI Incident Triage
 description: Runs a Claude Code agent from the cortex harness to analyze automated-incident issues and post a triage comment on each
 
 inputs:
@@ -13,7 +13,7 @@ inputs:
     description: 'Token used by the agent to read issues/runs and post comments'
     required: true
   cortex_path:
-    description: 'Absolute path of the cortex checkout (from claude-code-setup)'
+    description: 'Absolute path of the cortex checkout (from ai-agent-setup)'
     required: true
   marker:
     description: 'Hidden marker string the agent must put in every triage comment'

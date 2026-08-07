@@ -4,7 +4,7 @@
 # logs and posts its conclusion as a comment on each issue. Analysis only — it never changes code.
 # Note: re-usable workflows must be in the .github/workflows folder, amongst other workflows dedicated
 # to the jahia-modules-action repository. Thus using "reusable-" prefix to easily identify them.
-name: Claude Incident Triage
+name: AI Incident Triage
 
 on:
   workflow_call:
@@ -45,7 +45,7 @@ jobs:
     steps:
       - name: Select eligible incident issues
         id: select
-        uses: jahia/jahia-modules-action/claude-incident-triage/select-issues@feat/claude-incident-triage
+        uses: jahia/jahia-modules-action/ai-incident-triage/select-issues@feat/ai-incident-triage
         with:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           label: ${{ inputs.incident_label }}
@@ -65,7 +65,7 @@ jobs:
 
       - name: Set up Claude Code and the cortex harness
         id: setup
-        uses: jahia/jahia-modules-action/claude-code-setup@feat/claude-incident-triage
+        uses: jahia/jahia-modules-action/ai-agent-setup@feat/ai-incident-triage
         with:
           claude_code_version: ${{ inputs.claude_code_version }}
           anthropic_base_url: ${{ vars.AI_LITELLM_BASE_URL }}
@@ -78,7 +78,7 @@ jobs:
 
       - name: Triage the incident issues
         id: triage
-        uses: jahia/jahia-modules-action/claude-incident-triage@feat/claude-incident-triage
+        uses: jahia/jahia-modules-action/ai-incident-triage@feat/ai-incident-triage
         with:
           issues: ${{ needs.select-issues.outputs.issues }}
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
@@ -88,7 +88,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: claude-incident-triage-logs
+          name: ai-incident-triage-logs
           path: ${{ runner.temp }}/triage-logs
           if-no-files-found: ignore
 

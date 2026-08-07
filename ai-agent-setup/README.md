@@ -1,4 +1,4 @@
-# claude-code-setup
+# ai-agent-setup
 
 Provisions a self-hosted runner to run [Claude Code](https://code.claude.com) headlessly:
 
@@ -6,11 +6,14 @@ Provisions a self-hosted runner to run [Claude Code](https://code.claude.com) he
 2. Points it at the Jahia **LiteLLM gateway** by exporting `ANTHROPIC_BASE_URL`,
    `ANTHROPIC_AUTH_TOKEN` and the `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL` aliases to
    `$GITHUB_ENV` (they apply to all subsequent steps of the job).
-3. Clones the [cortex agentic harness](https://github.com/Jahia/cortex) — Claude Code is meant
-   to be started **from inside that checkout** so cortex's skills and instructions auto-load.
+3. Verifies the gateway is reachable from the runner (DNS + HTTP), failing fast with DNS
+   diagnostics instead of letting the agent retry against an unreachable endpoint.
+4. Clones the [cortex agentic harness](https://github.com/Jahia/cortex) — Claude Code is meant
+   to be started **from inside that checkout** so cortex's skills and instructions auto-load,
+   and pre-trusts that checkout so its `.claude/settings.json` permissions apply.
 
 This action is **use-case agnostic**: incident triage
-([`claude-incident-triage`](../claude-incident-triage)) is its first consumer, but any future
+([`ai-incident-triage`](../ai-incident-triage)) is its first consumer, but any future
 Claude-on-runner duty should reuse it as-is.
 
 ## Requirements
@@ -50,7 +53,7 @@ Claude-on-runner duty should reuse it as-is.
 ```yaml
       - name: Set up Claude Code and the cortex harness
         id: setup
-        uses: jahia/jahia-modules-action/claude-code-setup@v2
+        uses: jahia/jahia-modules-action/ai-agent-setup@v2
         with:
           anthropic_base_url: ${{ vars.AI_LITELLM_BASE_URL }}
           anthropic_auth_token: ${{ secrets.AI_LITELLM_AUTH_TOKEN }}
