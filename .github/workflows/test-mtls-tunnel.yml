@@ -29,15 +29,14 @@ jobs:
       - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: |
-            papi.dev.cloud-core.jahia.com
-            citizen.dev.cloud-core.jahia.com
+            litellm-prod.int.jahia.com
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
           bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
           server-name: ci-egress.jahia.com
           audience: jahia-ci-egress
           step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
           server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
-          canary-url: https://papi.dev.cloud-core.jahia.com/healthcheck
+          canary-url: https://litellm-prod.int.jahia.com/
 
   # Same thing inside a container, which vpn-tunnel cannot do. A bare image has neither
   # stunnel nor curl/jq/openssl, so this also covers the install step.
@@ -52,14 +51,14 @@ jobs:
     steps:
       - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
-          hosts: papi.dev.cloud-core.jahia.com
+          hosts: litellm-prod.int.jahia.com
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
           bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
           server-name: ci-egress.jahia.com
           audience: jahia-ci-egress
           step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
           server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
-          canary-url: https://papi.dev.cloud-core.jahia.com/healthcheck
+          canary-url: https://litellm-prod.int.jahia.com/
 
   # Called twice in one job: the host already tunnelled is skipped, and the same host on a
   # second port reuses its loopback address instead of taking a new one.
@@ -72,7 +71,7 @@ jobs:
     steps:
       - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
-          hosts: papi.dev.cloud-core.jahia.com
+          hosts: litellm-prod.int.jahia.com
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
           bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
           server-name: ci-egress.jahia.com
@@ -83,8 +82,7 @@ jobs:
       - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: |
-            papi.dev.cloud-core.jahia.com
-            papi.dev.cloud-core.jahia.com:8443
+            litellm-prod.int.jahia.com
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
           bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
           server-name: ci-egress.jahia.com
@@ -101,7 +99,7 @@ jobs:
     steps:
       - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
-          hosts: papi.dev.cloud-core.jahia.com
+          hosts: litellm-prod.int.jahia.com
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
           bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
           server-name: ci-egress.jahia.com
@@ -119,7 +117,7 @@ jobs:
     steps:
       - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
-          hosts: https://papi.dev.cloud-core.jahia.com
+          hosts: litellm-prod.int.jahia.com
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
           bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
           server-name: ci-egress.jahia.com
@@ -145,5 +143,5 @@ jobs:
           audience: jahia-ci-egress
           step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
           server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
-          canary-url: https://not-allowlisted.internal.example.com/
+          canary-url: https://litellm-prod.int.jahia.com/
           canary-retries: 2
