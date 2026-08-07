@@ -66,10 +66,18 @@ runs:
           echo "|---|---|---|---|---|---|"
         } >> "$GITHUB_STEP_SUMMARY"
         echo "Triaging in one agent run: $ISSUE_KEYS"
+        # Model responses are not streamed to this log, so show upfront what the agent was
+        # asked to do; the full action trace is printed after the run completes.
+        echo "::group::Prompt given to the agent"
+        cat "$LOG_DIR/triage.prompt.md"
+        echo "::endgroup::"
         STREAM_FILE="$LOG_DIR/triage.stream.jsonl"
         EXIT_CODE=0
+        # --add-dir: the log dir lives outside the cortex working directory, and Claude Code
+        # refuses writes outside its sanctioned directories (review-mode comment files land there).
         claude -p "$(cat "$LOG_DIR/triage.prompt.md")" \
           --allowedTools "$ALLOWED_TOOLS" \
+          --add-dir "$LOG_DIR" \
           --permission-mode dontAsk \
           --output-format stream-json \
           --verbose \
