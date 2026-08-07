@@ -1,0 +1,205 @@
+name: AI Agent Setup
+description: Install the Claude Code CLI on a self-hosted runner, point it at the Jahia LiteLLM gateway, and clone the cortex agentic harness
+
+inputs:
+  claude_code_version:
+    description: 'Claude Code version to install (a specific version like 2.1.89, or "stable" / "latest")'
+    required: false
+    default: 'stable'
+  anthropic_base_url:
+    description: 'Base URL of the Anthropic-compatible gateway (LiteLLM)'
+    required: true
+  anthropic_auth_token:
+    description: 'Auth token for the gateway'
+    required: true
+  default_opus_model:
+    description: 'Model served by the gateway for the "opus" alias'
+    required: false
+    default: ''
+  default_sonnet_model:
+    description: 'Model served by the gateway for the "sonnet" alias'
+    required: false
+    default: ''
+  default_haiku_model:
+    description: 'Model served by the gateway for the "haiku" alias'
+    required: false
+    default: ''
+  cortex_repository:
+    description: 'Repository holding the cortex agentic harness'
+    required: false
+    default: 'Jahia/cortex'
+  cortex_ref:
+    description: 'Git ref of cortex to check out'
+    required: false
+    default: 'main'
+  cortex_path:
+    description: 'Path (relative to the workspace) to clone cortex into'
+    required: false
+    default: 'cortex'
+  github_token:
+    description: 'Token able to clone the cortex repository'
+    required: true
+
+outputs:
+  cortex_path:
+    description: 'Absolute path of the cortex checkout'
+    value: ${{ steps.paths.outputs.cortex_path }}
+  claude_version:
+    description: 'Version of the Claude Code CLI that was installed'
+    value: ${{ steps.paths.outputs.claude_version }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Claude Code CLI
+      shell: bash
+      run: |
+        echo "Installing Claude Code CLI (${{ inputs.claude_code_version }})"
+        curl -fsSL https://claude.ai/install.sh | bash -s ${{ inputs.claude_code_version }}
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+    - name: Configure Claude Code for the LiteLLM gateway
+      shell: bash
+      run: |
+        {
+          echo "ANTHROPIC_BASE_URL=${{ inputs.anthropic_base_url }}"
+          echo "ANTHROPIC_AUTH_TOKEN=${{ inputs.anthropic_auth_token }}"
+          echo "DISABLE_AUTOUPDATER=1"
+        } >> "$GITHUB_ENV"
+        if [ -n "${{ inputs.default_opus_model }}" ]; then
+          echo "ANTHROPIC_DEFAULT_OPUS_MODEL=${{ inputs.default_opus_model }}" >> "$GITHUB_ENV"
+        fi
+        if [ -n "${{ inputs.default_sonnet_model }}" ]; then
+          echo "ANTHROPIC_DEFAULT_SONNET_MODEL=${{ inputs.default_sonnet_model }}" >> "$GITHUB_ENV"
+        fi
+        if [ -n "${{ inputs.default_haiku_model }}" ]; then
+          echo "ANTHROPIC_DEFAULT_HAIKU_MODEL=${{ inputs.default_haiku_model }}" >> "$GITHUB_ENV"
+        fi
+
+    - name: Verify gateway connectivity
+      shell: bash
+      run: |
+        GATEWAY_HOST=$(echo "${{ inputs.anthropic_base_url }}" | sed -E 's|^[a-z]+://([^/:]+).*|\1|')
+        echo "Gateway host: $GATEWAY_HOST"
+        if ! getent hosts "$GATEWAY_HOST" > /dev/null; then
+          echo "::error::Cannot resolve gateway host '$GATEWAY_HOST' from this runner (is the tunnel to internal services up?)"
+          echo "--- DNS diagnostics ---"
+          cat /etc/resolv.conf 2>/dev/null || true
+          command -v resolvectl > /dev/null && resolvectl status 2>/dev/null || true
+          echo "--- Routing diagnostics ---"
+          ip route show 2>/dev/null || true
+          sudo wg show 2>/dev/null || true
+          for ns in $(resolvectl dns 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | sort -u); do
+            timeout 3 bash -c "echo > /dev/tcp/$ns/53" 2>/dev/null \
+              && echo "TCP 53 to $ns: reachable" || echo "TCP 53 to $ns: UNREACHABLE"
+          done
+          exit 1
+        fi
+        HTTP_CODE=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 "${{ inputs.anthropic_base_url }}") || HTTP_CODE="000"
+        echo "Gateway responded with HTTP $HTTP_CODE"
+        if [ "$HTTP_CODE" = "000" ]; then
+          echo "::error::Gateway host '$GATEWAY_HOST' resolves but the gateway is unreachable"
+          exit 1
+        fi
+
+    - name: Clone the cortex harness
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+      with:
+        repository: ${{ inputs.cortex_repository }}
+        ref: ${{ inputs.cortex_ref }}
+        token: ${{ inputs.github_token }}
+        path: ${{ inputs.cortex_path }}
+        persist-credentials: false
+
+    - name: Install the GitHub CLI if missing
+      shell: bash
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        if command -v gh >/dev/null; then
+          echo "gh already present: $(gh --version | head -1)"
+          exit 0
+        fi
+        case "$(uname -m)" in
+          x86_64) ARCH=amd64 ;;
+          aarch64|arm64) ARCH=arm64 ;;
+          *) echo "::error::Unsupported architecture $(uname -m)"; exit 1 ;;
+        esac
+        VERSION=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/cli/cli/releases/latest | sed 's|.*/v||')
+        echo "Installing gh v$VERSION ($ARCH) into ~/.local/bin"
+        mkdir -p "$HOME/.local/bin"
+        curl -fsSL "https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_${ARCH}.tar.gz" \
+          | tar -xz --strip-components=2 -C "$HOME/.local/bin" "gh_${VERSION}_linux_${ARCH}/bin/gh"
+        gh --version | head -1
+
+    - name: Verify installation and prerequisites
+      id: paths
+      shell: bash
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        CLAUDE_VERSION=$(claude --version)
+        echo "Claude Code CLI installed: $CLAUDE_VERSION"
+        # Pre-trust the cortex checkout: without this, Claude Code ignores the
+        # permissions carried by the repository's own .claude/settings.json.
+        CORTEX_PATH="${{ github.workspace }}/${{ inputs.cortex_path }}" python3 - <<'EOF'
+        import json, os
+        path = os.path.expanduser('~/.claude.json')
+        config = {}
+        if os.path.exists(path):
+            with open(path, encoding='utf-8') as fh:
+                config = json.load(fh)
+        project = config.setdefault('projects', {}).setdefault(os.environ['CORTEX_PATH'], {})
+        project['hasTrustDialogAccepted'] = True
+        with open(path, 'w', encoding='utf-8') as fh:
+            json.dump(config, fh)
+        EOF
+        # Ephemeral runners provide a fresh image every run: prerequisites must come from
+        # the image itself. Warn (do not fail) so the calling use case decides what is fatal.
+        for bin in git python3 unzip gh; do
+          command -v "$bin" >/dev/null || echo "::warning::'$bin' is not available on this runner — parts of the cortex harness need it"
+        done
+        echo "cortex_path=${{ github.workspace }}/${{ inputs.cortex_path }}" >> "$GITHUB_OUTPUT"
+        echo "claude_version=$CLAUDE_VERSION" >> "$GITHUB_OUTPUT"
+
+    # A real end-to-end round trip (CLI -> gateway -> model): auth, model aliases and the
+    # network path are all exercised, so a broken setup fails HERE, not mid-agent-run.
+    - name: Smoke-test the model gateway (hello world)
+      shell: bash
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        OUTPUT=$(claude -p "Reply with exactly one word: ok" --permission-mode dontAsk --output-format json 2> /tmp/claude-smoke.stderr) || {
+          echo "::error::Claude Code smoke test failed — the agent cannot reach the model through the gateway"
+          tail -5 /tmp/claude-smoke.stderr || true
+          printf '%s\n' "$OUTPUT" | tail -5
+          exit 1
+        }
+        printf '%s' "$OUTPUT" | python3 -c "
+        import json, sys
+        result = json.load(sys.stdin)
+        if result.get('is_error'):
+            print('::error::Smoke test returned an error: ' + str(result.get('result'))[:300])
+            sys.exit(1)
+        models = ', '.join(result.get('modelUsage', {}).keys()) or 'unknown'
+        print(f\"Hello-world OK — model(s): {models}, duration: {result.get('duration_ms')}ms, response: {str(result.get('result'))[:80]!r}\")
+        "
+
+    # The hello world proves the gateway; this proves the HARNESS: started from the cortex
+    # checkout, the agent must see cortex's skills — asked about something only cortex knows.
+    - name: Verify the agent sees the cortex harness
+      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.cortex_path }}
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        OUTPUT=$(claude -p "Which of the skills available to you here analyzes Jahia module CI Cypress failures? Reply with the skill name only." --permission-mode dontAsk --output-format json 2> /tmp/claude-cortex-check.stderr) || {
+          echo "::error::Cortex harness check failed to run"
+          tail -5 /tmp/claude-cortex-check.stderr || true
+          exit 1
+        }
+        printf '%s' "$OUTPUT" | python3 -c "
+        import json, sys
+        result = json.load(sys.stdin)
+        answer = str(result.get('result', ''))
+        if result.get('is_error') or 'analyze-jahia-ci' not in answer:
+            print('::error::The agent does not see the cortex harness (expected it to name analyze-jahia-ci). Answer: ' + answer[:200])
+            sys.exit(1)
+        print(f'Cortex harness OK — agent answered: {answer[:120]!r}')
+        "

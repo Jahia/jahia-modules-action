@@ -4,12 +4,56 @@
 # reaching internal services through the IT mTLS bastion) analyzes each failed run's logs and
 # posts its conclusion as a comment on the issue. Analysis only — it never changes code.
 #
-# workflow_dispatch only: the mTLS broker mints certificates exclusively for
-# workflow_dispatch-triggered runs of this repository. Development iteration = dispatch the
-# feature branch (--ref) with search_scope narrowed to repo:Jahia/sandbox.
+# Runs here via workflow_dispatch (the mTLS broker mints certificates exclusively for
+# dispatch-triggered runs of this repository; development iteration = dispatch the feature
+# branch with search_scope narrowed to repo:Jahia/sandbox), and is also callable as a
+# reusable workflow (workflow_call) so another repository can own the schedule — that
+# repository must then be allowlisted with the mTLS broker for its triggering events.
 name: AI Incident Triage
 
 on:
+  workflow_call:
+    inputs:
+      search_scope:
+        description: "GitHub issue-search scope qualifier (e.g. org:Jahia, or repo:Jahia/sandbox)"
+        type: string
+        required: false
+        default: "org:Jahia"
+      dry_run:
+        description: "Only run issue selection; do not start the agent"
+        type: boolean
+        required: false
+        default: false
+      post_comments:
+        description: "Post the triage comment on each issue (false = review mode: store the would-be comments in the run artifact instead)"
+        type: boolean
+        required: false
+        default: false
+      instance_type:
+        description: "Type of instances to run the agent job on"
+        type: string
+        required: false
+        default: "self-hosted"
+      timeout_job:
+        description: "Timeout (in minutes) of the agent job"
+        type: number
+        required: false
+        default: 60
+      cortex_ref:
+        description: "Git ref of the cortex harness to use"
+        type: string
+        required: false
+        default: "main"
+      claude_code_version:
+        description: "Claude Code CLI version to install"
+        type: string
+        required: false
+        default: "stable"
+      tunnel_hosts:
+        description: "Internal hosts to reach through the mTLS tunnel (space-separated); must be allowlisted on IT's side"
+        type: string
+        required: false
+        default: "litellm-prod.int.jahia.com qa.jahia.com"
   workflow_dispatch:
     inputs:
       search_scope:
@@ -19,6 +63,11 @@ on:
         default: "org:Jahia"
       dry_run:
         description: "Only run issue selection; do not start the agent"
+        type: boolean
+        required: false
+        default: false
+      post_comments:
+        description: "Post the triage comment on each issue (false = review mode: store the would-be comments in the run artifact instead)"
         type: boolean
         required: false
         default: false
@@ -58,7 +107,7 @@ jobs:
     steps:
       - name: Select eligible incident issues
         id: select
-        uses: jahia/jahia-modules-action/ai-incident-triage/select-issues@feat/ai-incident-triage
+        uses: jahia/jahia-modules-action/ai-incident-triage/select-issues@v2
         with:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           search_scope: ${{ inputs.search_scope }}
@@ -68,13 +117,14 @@ jobs:
     needs: select-issues
     if: needs.select-issues.outputs.has_issues == 'true' && !inputs.dry_run
     runs-on: ${{ inputs.instance_type }}
-    timeout-minutes: ${{ inputs.timeout_job }}
+    # fromJSON: number-typed dispatch inputs materialize as strings, timeout-minutes needs a number
+    timeout-minutes: ${{ fromJSON(inputs.timeout_job) }}
     permissions:
       id-token: write
       contents: read
     steps:
       - name: Open the mTLS tunnel to internal Jahia services
-        uses: jahia/jahia-modules-action/mtls-tunnel@feat/ai-incident-triage
+        uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: ${{ inputs.tunnel_hosts || 'litellm-prod.int.jahia.com qa.jahia.com' }}
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
@@ -87,7 +137,7 @@ jobs:
 
       - name: Set up Claude Code and the cortex harness
         id: setup
-        uses: jahia/jahia-modules-action/ai-agent-setup@feat/ai-incident-triage
+        uses: jahia/jahia-modules-action/ai-agent-setup@v2
         with:
           claude_code_version: ${{ inputs.claude_code_version || 'stable' }}
           anthropic_base_url: ${{ vars.AI_LITELLM_BASE_URL }}
@@ -100,11 +150,12 @@ jobs:
 
       - name: Triage the incident issues
         id: triage
-        uses: jahia/jahia-modules-action/ai-incident-triage@feat/ai-incident-triage
+        uses: jahia/jahia-modules-action/ai-incident-triage@v2
         with:
           issues: ${{ needs.select-issues.outputs.issues }}
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           cortex_path: ${{ steps.setup.outputs.cortex_path }}
+          post_comments: ${{ inputs.post_comments }}
 
       - name: Upload triage logs
         if: always()

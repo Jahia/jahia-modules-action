@@ -1,0 +1,136 @@
+name: AI Incident Triage
+description: Runs a Claude Code agent from the cortex harness to analyze automated-incident issues and post a triage comment on each
+
+inputs:
+  issues:
+    description: 'JSON array of issues produced by the select-issues action (each item carries its own repository)'
+    required: true
+  github_token:
+    description: 'Token used by the agent to read issues/runs and post comments'
+    required: true
+  cortex_path:
+    description: 'Absolute path of the cortex checkout (from ai-agent-setup)'
+    required: true
+  marker:
+    description: 'Hidden marker string the agent must put in every triage comment'
+    required: false
+    default: '<!-- cortex-incident-triage -->'
+  post_comments:
+    description: 'true: post the triage comment on each issue; false: review mode — store the would-be comments under logs_dir/comments instead (nothing is posted, issues stay eligible)'
+    required: false
+    default: 'true'
+  allowed_tools:
+    description: 'Claude Code --allowedTools value for the agent (analysis-only: no Edit/Write/push surface)'
+    required: false
+    default: 'Read,Write,Grep,Glob,Skill,TodoWrite,WebFetch,Bash(gh issue view *),Bash(gh issue comment *),Bash(gh run view *),Bash(gh run download *),Bash(gh api *),Bash(tools/jahia-ci-triage/bin/jahia-ci-triage *),Bash(curl *),Bash(wget *),Bash(unzip *),Bash(ls *),Bash(cat *),Bash(mkdir *),Bash(python3 *)'
+
+outputs:
+  logs_dir:
+    description: 'Directory holding all triage run logs (prompts, agent streams, results) — upload it as an artifact'
+    value: ${{ steps.prep.outputs.logs_dir }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Prepare per-issue prompts and the log directory
+      id: prep
+      shell: bash
+      env:
+        ISSUES_JSON: ${{ inputs.issues }}
+        MARKER: ${{ inputs.marker }}
+        POST_COMMENTS: ${{ inputs.post_comments }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        AGENT="Claude Code $(claude --version 2>/dev/null | head -1 || echo '(version unknown)')"
+        if [ -n "$ANTHROPIC_DEFAULT_SONNET_MODEL" ]; then
+          AGENT="$AGENT · model: $ANTHROPIC_DEFAULT_SONNET_MODEL"
+        fi
+        export AGENT
+        LOG_DIR="$RUNNER_TEMP/triage-logs"
+        mkdir -p "$LOG_DIR"
+        ISSUE_KEYS=$(python3 "$GITHUB_ACTION_PATH/src/build-prompts.py" "$GITHUB_ACTION_PATH/prompt.md" "$LOG_DIR")
+        echo "Prepared prompts for issue(s): $ISSUE_KEYS"
+        echo "logs_dir=$LOG_DIR" >> "$GITHUB_OUTPUT"
+        echo "issue_keys=$ISSUE_KEYS" >> "$GITHUB_OUTPUT"
+
+    # One invocation over ALL issues, deliberately: seeing the whole selection lets the
+    # agent correlate failures across repositories and spot shared root causes.
+    - name: Run the triage agent over all issues
+      shell: bash
+      working-directory: ${{ inputs.cortex_path }}
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        # The CI-run restart (transient-infrastructure signatures) is only permitted when the
+        # agent acts for real; review mode stays strictly observational.
+        ALLOWED_TOOLS: ${{ inputs.post_comments == 'true' && format('{0},Bash(gh run rerun *)', inputs.allowed_tools) || inputs.allowed_tools }}
+        LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
+        ISSUE_KEYS: ${{ steps.prep.outputs.issue_keys }}
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        {
+          echo "### Triage run"
+          echo ""
+          echo "| Scope | Outcome | Turns | Duration | Cost (USD) | Exit code |"
+          echo "|---|---|---|---|---|---|"
+        } >> "$GITHUB_STEP_SUMMARY"
+        echo "Triaging in one agent run: $ISSUE_KEYS"
+        # Model responses are not streamed to this log, so show upfront what the agent was
+        # asked to do; the full action trace is printed after the run completes.
+        echo "::group::Prompt given to the agent"
+        cat "$LOG_DIR/triage.prompt.md"
+        echo "::endgroup::"
+        STREAM_FILE="$LOG_DIR/triage.stream.jsonl"
+        EXIT_CODE=0
+        # --add-dir: the log dir lives outside the cortex working directory, and Claude Code
+        # refuses writes outside its sanctioned directories (review-mode comment files land there).
+        claude -p "$(cat "$LOG_DIR/triage.prompt.md")" \
+          --allowedTools "$ALLOWED_TOOLS" \
+          --add-dir "$LOG_DIR" \
+          --permission-mode dontAsk \
+          --output-format stream-json \
+          --verbose \
+          > "$STREAM_FILE" 2> "$LOG_DIR/triage.stderr.log" || EXIT_CODE=$?
+        python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "all issues" "$EXIT_CODE"
+        if [ "$EXIT_CODE" -ne 0 ]; then
+          echo "::warning::Agent exited with code $EXIT_CODE — unreported issues stay eligible and will be retried on the next run"
+        fi
+
+    - name: Publish the stored review comments to the job summary
+      if: always() && inputs.post_comments != 'true'
+      shell: bash
+      env:
+        LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
+      run: |
+        {
+          echo "### Review mode — comments that WOULD have been posted"
+          echo ""
+          for f in "$LOG_DIR"/comments/*.comment.md; do
+            [ -e "$f" ] || { echo "_No comment files were produced._"; break; }
+            echo "<details><summary>$(basename "$f")</summary>"
+            echo ""
+            cat "$f"
+            echo ""
+            echo "</details>"
+          done
+        } >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Verify each issue received a triage comment
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      if: always() && inputs.post_comments == 'true'
+      env:
+        ISSUES_JSON: ${{ inputs.issues }}
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const issues = JSON.parse(process.env.ISSUES_JSON)
+          for (const issue of issues) {
+            const [owner, repo] = issue.repository.split('/')
+            const comments = await github.paginate(github.rest.issues.listComments,
+              {owner, repo, issue_number: issue.number, per_page: 100})
+            const done = comments.some(c =>
+              (c.body ?? '').includes('${{ inputs.marker }}') &&
+              new Date(c.created_at) > new Date(issue.latest_failure_at))
+            if (done) core.info(`${issue.repository}#${issue.number}: triage comment present`)
+            else core.warning(`${issue.repository}#${issue.number}: NO triage comment was posted — it stays eligible and will be retried on the next run`)
+          }
