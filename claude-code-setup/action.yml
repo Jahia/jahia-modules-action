@@ -1,0 +1,101 @@
+name: Claude Code Setup
+description: Install the Claude Code CLI on a self-hosted runner, point it at the Jahia LiteLLM gateway, and clone the cortex agentic harness
+
+inputs:
+  claude_code_version:
+    description: 'Claude Code version to install (a specific version like 2.1.89, or "stable" / "latest")'
+    required: false
+    default: 'stable'
+  anthropic_base_url:
+    description: 'Base URL of the Anthropic-compatible gateway (LiteLLM)'
+    required: true
+  anthropic_auth_token:
+    description: 'Auth token for the gateway'
+    required: true
+  default_opus_model:
+    description: 'Model served by the gateway for the "opus" alias'
+    required: false
+    default: ''
+  default_sonnet_model:
+    description: 'Model served by the gateway for the "sonnet" alias'
+    required: false
+    default: ''
+  default_haiku_model:
+    description: 'Model served by the gateway for the "haiku" alias'
+    required: false
+    default: ''
+  cortex_repository:
+    description: 'Repository holding the cortex agentic harness'
+    required: false
+    default: 'Jahia/cortex'
+  cortex_ref:
+    description: 'Git ref of cortex to check out'
+    required: false
+    default: 'main'
+  cortex_path:
+    description: 'Path (relative to the workspace) to clone cortex into'
+    required: false
+    default: 'cortex'
+  github_token:
+    description: 'Token able to clone the cortex repository'
+    required: true
+
+outputs:
+  cortex_path:
+    description: 'Absolute path of the cortex checkout'
+    value: ${{ steps.paths.outputs.cortex_path }}
+  claude_version:
+    description: 'Version of the Claude Code CLI that was installed'
+    value: ${{ steps.paths.outputs.claude_version }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Claude Code CLI
+      shell: bash
+      run: |
+        echo "Installing Claude Code CLI (${{ inputs.claude_code_version }})"
+        curl -fsSL https://claude.ai/install.sh | bash -s ${{ inputs.claude_code_version }}
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+    - name: Configure Claude Code for the LiteLLM gateway
+      shell: bash
+      run: |
+        {
+          echo "ANTHROPIC_BASE_URL=${{ inputs.anthropic_base_url }}"
+          echo "ANTHROPIC_AUTH_TOKEN=${{ inputs.anthropic_auth_token }}"
+          echo "DISABLE_AUTOUPDATER=1"
+        } >> "$GITHUB_ENV"
+        if [ -n "${{ inputs.default_opus_model }}" ]; then
+          echo "ANTHROPIC_DEFAULT_OPUS_MODEL=${{ inputs.default_opus_model }}" >> "$GITHUB_ENV"
+        fi
+        if [ -n "${{ inputs.default_sonnet_model }}" ]; then
+          echo "ANTHROPIC_DEFAULT_SONNET_MODEL=${{ inputs.default_sonnet_model }}" >> "$GITHUB_ENV"
+        fi
+        if [ -n "${{ inputs.default_haiku_model }}" ]; then
+          echo "ANTHROPIC_DEFAULT_HAIKU_MODEL=${{ inputs.default_haiku_model }}" >> "$GITHUB_ENV"
+        fi
+
+    - name: Clone the cortex harness
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+      with:
+        repository: ${{ inputs.cortex_repository }}
+        ref: ${{ inputs.cortex_ref }}
+        token: ${{ inputs.github_token }}
+        path: ${{ inputs.cortex_path }}
+        persist-credentials: false
+
+    - name: Verify installation and prerequisites
+      id: paths
+      shell: bash
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        CLAUDE_VERSION=$(claude --version)
+        echo "Claude Code CLI installed: $CLAUDE_VERSION"
+        # Ephemeral runners provide a fresh image every run: prerequisites must come from
+        # the image itself. Warn (do not fail) so the calling use case decides what is fatal.
+        for bin in git python3 unzip gh; do
+          command -v "$bin" >/dev/null || echo "::warning::'$bin' is not available on this runner — parts of the cortex harness need it"
+        done
+        echo "cortex_path=${{ github.workspace }}/${{ inputs.cortex_path }}" >> "$GITHUB_OUTPUT"
+        echo "claude_version=$CLAUDE_VERSION" >> "$GITHUB_OUTPUT"
