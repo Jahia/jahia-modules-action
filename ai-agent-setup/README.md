@@ -11,6 +11,9 @@ Provisions a self-hosted runner to run [Claude Code](https://code.claude.com) he
 4. Clones the [cortex agentic harness](https://github.com/Jahia/cortex) — Claude Code is meant
    to be started **from inside that checkout** so cortex's skills and instructions auto-load,
    and pre-trusts that checkout so its `.claude/settings.json` permissions apply.
+5. Runs two live checks and fails fast if either breaks: a hello-world round trip through the
+   gateway (auth, model aliases, network path), then a cortex-awareness question the agent can
+   only answer if the harness actually loaded (it must name the `analyze-jahia-ci` skill).
 
 This action is **use-case agnostic**: incident triage
 ([`ai-incident-triage`](../ai-incident-triage)) is its first consumer, but any future
