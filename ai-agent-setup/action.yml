@@ -111,6 +111,26 @@ runs:
         path: ${{ inputs.cortex_path }}
         persist-credentials: false
 
+    - name: Install the GitHub CLI if missing
+      shell: bash
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        if command -v gh >/dev/null; then
+          echo "gh already present: $(gh --version | head -1)"
+          exit 0
+        fi
+        case "$(uname -m)" in
+          x86_64) ARCH=amd64 ;;
+          aarch64|arm64) ARCH=arm64 ;;
+          *) echo "::error::Unsupported architecture $(uname -m)"; exit 1 ;;
+        esac
+        VERSION=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/cli/cli/releases/latest | sed 's|.*/v||')
+        echo "Installing gh v$VERSION ($ARCH) into ~/.local/bin"
+        mkdir -p "$HOME/.local/bin"
+        curl -fsSL "https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_${ARCH}.tar.gz" \
+          | tar -xz --strip-components=2 -C "$HOME/.local/bin" "gh_${VERSION}_linux_${ARCH}/bin/gh"
+        gh --version | head -1
+
     - name: Verify installation and prerequisites
       id: paths
       shell: bash
