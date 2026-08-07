@@ -12,32 +12,57 @@
 #
 # The hosts, the canary and the bastion certificate name are written in plain here: they say
 # what this test targets, and reading the file should be enough to know that.
-name: Test mTLS tunnel
-
+name: test-mtls-litellm
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}          # déclenchement manuel -> mode step-ca 'dispatch'
+
+permissions:
+  id-token: write                # REQUIS : jeton OIDC pour le broker step-ca (:8444)
+  contents: read
 
 jobs:
-  # Two hosts in one job, with a canary on each.
-  # This job should PASS
-  two-hosts:
+  litellm-egress:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
     steps:
-      - uses: jahia/jahia-modules-action/mtls-tunnel@v2
+      - uses: actions/checkout@v4          # nécessaire si l'action est locale (./mtls-tunnel)
+
+      - name: Ouvrir le tunnel mTLS vers litellm-prod (HACI)
+        uses: jahia/jahia-modules-action/mtls-tunnel@update-secrets
         with:
-          hosts: |
-            papi.dev.cloud-core.jahia.com
-            citizen.dev.cloud-core.jahia.com
-          ca-url: ${{ vars.CI_MTLS_CA_URL }}
-          bastion: ${{ vars.CI_MTLS_BASTION }}
-          server-name: ci-egress.jahia.com
-          audience: jahia-ci-egress
-          step-root: ${{ secrets.CI_STEP_ROOT }}
-          server-ca: ${{ secrets.CI_SERVER_CA }}
-          canary-url: https://papi.dev.cloud-core.jahia.com/healthcheck
+          hosts:          litellm-prod.int.jahia.com
+          ca-url:         https://54.36.205.185:8444    # https://54.36.205.185:8444 (broker)
+          bastion:        54.36.205.185:8443   # 54.36.205.185:8443  ⚠️ host:port SANS schéma
+          server-name:    ci-egress.jahia.com                   # CN du cert bastion (verify chaîne)
+          audience:       jahia-ci-egress
+          step-root:      ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}   # trust du broker :8444
+          server-ca:      ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}   # trust du bastion :8443
+          canary-url:     https://litellm-prod.int.jahia.com/health/liveliness
+          canary-retries: 5
+
+      - name: LiteLLM — liste des modèles (non-stream)
+        env:
+          KEY: ${{ secrets.AI_LITELLM_AUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl -fsS https://litellm-prod.int.jahia.com/v1/models \
+            -H "Authorization: Bearer $KEY" | jq '.data[].id'
+
+      - name: LiteLLM — complétion en STREAMING (SSE)
+        env:
+          KEY:   ${{ secrets.AI_LITELLM_AUTH_TOKEN }}
+          MODEL: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_HAIKU_MODEL }}
+        run: |
+          set -euo pipefail
+          # -N = curl sans buffering : on doit voir des lignes 'data:' arriver au fil de l'eau
+          curl -sS -N https://litellm-prod.int.jahia.com/v1/chat/completions \
+            -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+            -d "{\"model\":\"$MODEL\",\"stream\":false,
+                 \"messages\":[{\"role\":\"user\",\"content\":\"Dis bonjour en trois mots.\"}]}" \
+            | tee /tmp/stream.out
+          echo
+          grep -q '^data:' /tmp/stream.out \
+            && echo "✅ streaming OK (chunks SSE reçus de bout en bout)" \
+            || { echo "❌ aucun chunk SSE — vérifier timeout tunnel / backend"; exit 1; }
 
   # Same thing inside a container, which vpn-tunnel cannot do. A bare image has neither
   # stunnel nor curl/jq/openssl, so this also covers the install step.
