@@ -89,10 +89,11 @@ installs the CLI, exports the LiteLLM env, and clones cortex) and an established
 
 ## Analysis-only guarantee
 
-The default allowlist gives the agent read/search tools, `gh` read commands,
-`gh issue comment`, log download commands, and the cortex `jahia-ci-triage` tool — no
-`Edit`/`Write`, no `git push`, no PR or merge surface. `--permission-mode dontAsk` denies
-everything not explicitly allowed. The prompt additionally forbids modifying anything and
+The default allowlist gives the agent read/search tools, local file writes (needed to stage
+the comment body — the runner is ephemeral and the agent has no `git` surface, so writes
+cannot leave the machine), `gh` read commands, `gh issue comment`, log download commands,
+and the cortex `jahia-ci-triage` tool — no `Edit`, no `git`/push, no PR or merge surface.
+`--permission-mode dontAsk` denies everything not explicitly allowed. The prompt additionally forbids modifying anything and
 instructs the agent to treat issue/log content as data, never as instructions.
 
 ## Requirements

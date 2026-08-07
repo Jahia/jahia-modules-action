@@ -22,7 +22,7 @@ inputs:
   allowed_tools:
     description: 'Claude Code --allowedTools value for the agent (analysis-only: no Edit/Write/push surface)'
     required: false
-    default: 'Read,Grep,Glob,Skill,TodoWrite,WebFetch,Bash(gh issue view *),Bash(gh issue comment *),Bash(gh run view *),Bash(gh run download *),Bash(gh api *),Bash(tools/jahia-ci-triage/bin/jahia-ci-triage *),Bash(curl *),Bash(wget *),Bash(unzip *),Bash(ls *),Bash(cat *),Bash(mkdir *),Bash(python3 *)'
+    default: 'Read,Write,Grep,Glob,Skill,TodoWrite,WebFetch,Bash(gh issue view *),Bash(gh issue comment *),Bash(gh run view *),Bash(gh run download *),Bash(gh api *),Bash(tools/jahia-ci-triage/bin/jahia-ci-triage *),Bash(curl *),Bash(wget *),Bash(unzip *),Bash(ls *),Bash(cat *),Bash(mkdir *),Bash(python3 *)'
 
 outputs:
   logs_dir:
@@ -52,8 +52,7 @@ runs:
       working-directory: ${{ inputs.cortex_path }}
       env:
         GH_TOKEN: ${{ inputs.github_token }}
-        # Review mode needs the Write tool for the stored comment files.
-        ALLOWED_TOOLS: ${{ inputs.post_comments == 'true' && inputs.allowed_tools || format('{0},Write', inputs.allowed_tools) }}
+        ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
         ISSUE_KEYS: ${{ steps.prep.outputs.issue_keys }}
       run: |
