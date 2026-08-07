@@ -1,0 +1,330 @@
+name: mTLS Tunnel
+description: >
+  Reach internal Jahia services from CI over an mTLS tunnel, using a short-lived client
+  certificate minted from the run's GitHub OIDC token. Carries raw TCP, so HTTPS and ssh
+  alike work unmodified. Container-safe, one identity per run.
+
+# Network model:
+#
+#   local client  --its own protocol-->  127.0.0.x:<port>   (local stunnel client)
+#                                        --mTLS, SNI=host-->  bastion
+#                                        --raw TCP-->  <host>            (real service)
+#
+# The bastion routes on the outer SNI, then forwards raw TCP: it never terminates what the
+# client speaks, so a TLS payload still verifies the real service certificate and an ssh
+# session works just as well. See README.md for the rest.
+
+inputs:
+  hosts:
+    description: >
+      Internal hosts to tunnel, one `host` or `host:port` per line (a space- or
+      comma-separated list on a single line also works). The port is the one your tools
+      connect to locally, so use the target protocol's port: 443 (the default) for HTTPS,
+      22 for ssh. Each host must be allowlisted on IT's side; anything else is refused
+      (deny by default).
+    required: true
+  ca-url:
+    description: >
+      URL of the step-ca broker that exchanges the OIDC token for a client certificate,
+      e.g. "https://<broker>:8444". No default on purpose: the endpoint is environment
+      specific, and pinning it here would force a new action release when it moves.
+    required: true
+  bastion:
+    description: >
+      mTLS entry point of the egress bastion, as host:port, e.g. "<bastion>:8443". No
+      default, for the same reason as `ca-url`.
+    required: true
+  step-root:
+    description: >
+      step-ca root CA certificate, PEM. Public value (used as --cacert when talking to the
+      broker); store it as an organization secret or variable for convenience.
+    required: true
+  server-ca:
+    description: >
+      CA certificate that issued the bastion's server certificate, PEM. Public value, used
+      to verify the bastion at the outer TLS layer.
+    required: true
+  server-name:
+    description: >
+      Expected CN/SAN on the bastion's own certificate, pinned via stunnel's checkHost.
+      This is NOT the SNI the action sends: the SNI carries the target host (that is what
+      the bastion routes on), while the bastion certificate carries its own identity.
+      Requiring CN == SNI would fail by design. No default: it identifies one specific
+      bastion deployment.
+    required: true
+  audience:
+    description: >
+      Intended recipient of the GitHub OIDC token: the `aud` claim of the JWT, passed to
+      GitHub's token endpoint. The broker refuses a token minted for anything else, which
+      is what stops a token obtained for another service (AWS, Vault...) from being replayed
+      here. No default: the expected value belongs to the broker, not to this action.
+    required: true
+  canary-url:
+    description: >
+      Optional URLs fetched through the tunnels once they are up, one per line, so that a
+      broken tunnel fails here instead of in the middle of the job. List one per host to
+      cover them all. Empty (the default) skips the check.
+    required: false
+    default: ''
+  canary-http-response:
+    description: >
+      HTTP status code every canary URL must return. Empty (the default) accepts ANY HTTP
+      response: what the canary proves is that the tunnel carried the request, and a 403
+      from an unauthenticated endpoint proves that just as well as a 200: only the absence
+      of a response means a broken tunnel. Set a code to check it strictly.
+    required: false
+    default: ''
+  canary-retries:
+    description: Number of attempts per canary URL before the check fails the job.
+    required: false
+    default: '5'
+
+runs:
+  using: composite
+  steps:
+    - name: Install the tools the tunnel needs
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Root is needed (loopback binds, /etc/hosts): sudo on a hosted runner, nothing in a
+        # container where we already are root and sudo often is not installed.
+        if [ "$(id -u)" -eq 0 ]; then
+          SUDO=""
+        elif command -v sudo >/dev/null; then
+          SUDO="sudo"
+        else
+          echo "::error::This action needs root (privileged ports and /etc/hosts) but is running as $(id -un) without sudo."
+          exit 1
+        fi
+        echo "MTLS_SUDO=$SUDO" >> "$GITHUB_ENV"
+
+        # A hosted runner has everything but stunnel; a bare container image may have none of
+        # it. Hence installing what is actually missing rather than assuming.
+        missing=()
+        command -v stunnel >/dev/null || command -v stunnel4 >/dev/null || missing+=(stunnel4)
+        command -v curl    >/dev/null || missing+=(curl)
+        command -v jq      >/dev/null || missing+=(jq)
+        command -v openssl >/dev/null || missing+=(openssl)
+
+        if [ ${#missing[@]} -gt 0 ]; then
+          if ! command -v apt-get >/dev/null; then
+            echo "::error::Missing ${missing[*]} and no apt-get to install them. This action expects a Debian-based runner or image."
+            exit 1
+          fi
+          echo "Installing: ${missing[*]}"
+          $SUDO apt-get update -y
+          $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y "${missing[@]}"
+        fi
+
+    - name: Mint a short-lived client certificate from the run's OIDC token
+      shell: bash
+      env:
+        MTLS_CA_URL: ${{ inputs.ca-url }}
+        MTLS_AUDIENCE: ${{ inputs.audience }}
+        MTLS_STEP_ROOT: ${{ inputs.step-root }}
+        MTLS_SERVER_CA: ${{ inputs.server-ca }}
+      run: |
+        set -euo pipefail
+        # No `set -x` in this step: the JWT is a bearer credential.
+
+        # One working directory per invocation, so a job can call the action twice.
+        d="$RUNNER_TEMP/mtls-tunnel/${GITHUB_ACTION:-default}"
+        mkdir -p "$d"; chmod 700 "$d"
+        echo "MTLS_DIR=$d" >> "$GITHUB_ENV"
+
+        printf '%s\n' "$MTLS_STEP_ROOT" > "$d/step-root.crt"
+        printf '%s\n' "$MTLS_SERVER_CA" > "$d/server-ca.crt"
+
+        # A composite action cannot grant itself this permission: name the fix rather than
+        # fail later on an empty token.
+        if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
+          echo "::error::No OIDC token available. Add 'permissions: { id-token: write }' to the job."
+          exit 1
+        fi
+
+        JWT=$(curl -fsSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$MTLS_AUDIENCE" | jq -r '.value')
+
+        # Payload only, never the token: makes a rejection readable against the allowlist.
+        b=$(cut -d. -f2 <<<"$JWT" | tr '_-' '/+')
+        case $(( ${#b} % 4 )) in 2) b="$b==";; 3) b="$b=";; esac
+        echo "::group::OIDC claims presented to the broker"
+        base64 -d <<<"$b" | jq '{sub, aud, repository, repository_owner, ref, ref_type, base_ref, job_workflow_ref, event_name}'
+        echo "::endgroup::"
+
+        openssl req -newkey rsa:2048 -nodes \
+          -keyout "$d/client.key" -out "$d/client.csr" -subj "/CN=ci" >/dev/null 2>&1
+        chmod 600 "$d/client.key"
+
+        # --fail-with-body: on a 4xx (claims not allowlisted) the reason is in the body.
+        if ! resp=$(jq -n --arg csr "$(cat "$d/client.csr")" --arg ott "$JWT" '{csr:$csr, ott:$ott}' \
+                    | curl -sS --fail-with-body --cacert "$d/step-root.crt" \
+                        "$MTLS_CA_URL/1.0/sign" -H "Content-Type: application/json" -d @-); then
+          echo "::error::The broker refused to sign the CSR. See the claims above and its response below."
+          printf '%s\n' "$resp"
+          exit 1
+        fi
+        jq -r '.crt' <<<"$resp" >  "$d/client.crt"   # leaf
+        jq -r '.ca'  <<<"$resp" >> "$d/client.crt"   # + intermediate = full chain
+        chmod 600 "$d/client.crt"
+
+        echo "Client certificate obtained (one identity for the whole run):"
+        openssl x509 -in "$d/client.crt" -noout -subject -issuer -dates
+
+    - name: Open one mTLS tunnel per host
+      shell: bash
+      env:
+        MTLS_BASTION: ${{ inputs.bastion }}
+        MTLS_HOSTS: ${{ inputs.hosts }}
+        MTLS_SERVER_NAME: ${{ inputs.server-name }}
+      run: |
+        set -euo pipefail
+        d="$MTLS_DIR"
+        conf="$d/stunnel.conf"
+
+        cat > "$conf" <<EOF
+        foreground = no
+        pid = $d/stunnel.pid
+        output = $d/stunnel.log
+        debug = 4
+        EOF
+
+        # One loopback address per host: the port is imposed by the protocol, so hosts reached
+        # the same way all want the same one, and a port binds once per address. 127.0.0.0/8 is
+        # entirely local, so extra addresses are free.
+        counter="$RUNNER_TEMP/mtls-tunnel/.loopback-counter"
+        mkdir -p "$(dirname "$counter")"
+        [ -f "$counter" ] || echo 1 > "$counter"
+
+        # "host port ip" per line. Both files live outside the per-invocation directory, so a
+        # second call in the same job sees what the first opened.
+        opened_state="$RUNNER_TEMP/mtls-tunnel/.opened"
+        touch "$opened_state"
+
+        # Every action input is a string: word splitting handles both the multi-line and the
+        # single-line form, and `tr` keeps "a, b" from yielding a host named "a,".
+        opened=0
+        for entry in $(printf '%s' "$MTLS_HOSTS" | tr ',' ' '); do
+          # The port local tools connect to: 22 for ssh, 443 by default.
+          case "$entry" in
+            *:*) host="${entry%:*}"; port="${entry##*:}" ;;
+            *)   host="$entry";      port=443 ;;
+          esac
+
+          # Reject here: a bad entry would otherwise surface as a broken stunnel section.
+          if ! printf '%s' "$host" | grep -qE '^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$'; then
+            echo "::error::'$entry' is not a valid host[:port] entry. List one per line."
+            exit 1
+          fi
+          if ! printf '%s' "$port" | grep -qE '^[0-9]+$' || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+            echo "::error::'$entry' has an invalid port. Use host or host:port."
+            exit 1
+          fi
+
+          if grep -qE "^$host $port " "$opened_state"; then
+            echo "$host:$port: already tunnelled in this job, skipping"
+            continue
+          fi
+
+          # Same host on another port: reuse its address, one /etc/hosts mapping per host.
+          ip=$(awk -v h="$host" '$1 == h {print $3; exit}' "$opened_state")
+          if [ -z "$ip" ]; then
+            i=$(( $(cat "$counter") + 1 ))
+            echo "$i" > "$counter"
+            if [ "$i" -gt 254 ]; then
+              echo "::error::Ran out of loopback addresses (more than 253 tunnelled hosts)."
+              exit 1
+            fi
+            ip="127.0.0.$i"
+            # Unmodified tools reach the tunnel just by resolving the name.
+            echo "$ip $host" | ${MTLS_SUDO:-} tee -a /etc/hosts >/dev/null
+          fi
+
+          # Decoupled on purpose: `sni` is what the bastion routes on, `checkHost` pins the
+          # bastion's own certificate. Requiring CN == SNI would fail every tunnel.
+          cat >> "$conf" <<EOF
+
+        [${host}_${port}]
+        client = yes
+        accept = $ip:$port
+        connect = $MTLS_BASTION
+        cert = $d/client.crt
+        key = $d/client.key
+        CAfile = $d/server-ca.crt
+        verifyChain = yes
+        checkHost = $MTLS_SERVER_NAME
+        sni = $host
+        EOF
+          echo "$host $port $ip" >> "$opened_state"
+          echo "tunnel: $host:$port -> $ip:$port (outer SNI=$host) -> $MTLS_BASTION"
+          opened=$((opened + 1))
+        done
+
+        if [ "$opened" -eq 0 ]; then
+          echo "::error::No host to tunnel. Check the 'hosts' input."
+          exit 1
+        fi
+
+        # One process serves every section; binding privileged ports needs root.
+        ${MTLS_SUDO:-} stunnel "$conf"
+        sleep 2
+        if [ -f "$d/stunnel.pid" ] && ${MTLS_SUDO:-} kill -0 "$(${MTLS_SUDO:-} cat "$d/stunnel.pid")" 2>/dev/null; then
+          echo "✅ stunnel up with $opened tunnel(s)"
+        else
+          echo "::error::stunnel failed to start"
+          ${MTLS_SUDO:-} cat "$d/stunnel.log" 2>/dev/null || true
+          exit 1
+        fi
+
+    - name: Validate the egress with the canary URLs
+      shell: bash
+      env:
+        MTLS_CANARY_URL: ${{ inputs.canary-url }}
+        MTLS_CANARY_CODE: ${{ inputs.canary-http-response }}
+        MTLS_CANARY_RETRIES: ${{ inputs.canary-retries }}
+      run: |
+        set -uo pipefail
+        if [ -z "${MTLS_CANARY_URL//[[:space:]]/}" ]; then
+          echo "No canary URL provided, skipping the check."
+          exit 0
+        fi
+
+        rc=0
+        # One URL per line, like `hosts`: checking one host leaves the other tunnels unproven.
+        for url in $(printf '%s' "$MTLS_CANARY_URL" | tr ',' ' '); do
+          attempt=1; ok=0
+          while [ "$attempt" -le "$MTLS_CANARY_RETRIES" ]; do
+            # No -k, no --resolve: plain HTTPS has to work, certificate verification included.
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 25 "$url") || code=000
+            if [ -n "$MTLS_CANARY_CODE" ]; then
+              [ "$code" = "$MTLS_CANARY_CODE" ] && ok=1
+            else
+              # 000 = no response at all. Any code means the tunnel carried the request.
+              [ "$code" != "000" ] && ok=1
+            fi
+            if [ "$ok" -eq 1 ]; then
+              echo "✅ $url -> $code"
+              break
+            fi
+            echo "attempt $attempt/$MTLS_CANARY_RETRIES: $url -> $code"
+            attempt=$((attempt + 1))
+            [ "$attempt" -le "$MTLS_CANARY_RETRIES" ] && sleep 2
+          done
+          if [ "$ok" -eq 0 ]; then
+            if [ -n "$MTLS_CANARY_CODE" ]; then
+              echo "::error::canary $url never returned $MTLS_CANARY_CODE"
+            else
+              echo "::error::canary $url never answered: the tunnel did not carry the request"
+            fi
+            rc=1
+          fi
+        done
+
+        if [ "$rc" -ne 0 ]; then
+          echo "--- stunnel log ---"
+          ${MTLS_SUDO:-} cat "$MTLS_DIR/stunnel.log" 2>/dev/null | tail -40 || true
+        fi
+        exit $rc
+
+# No in-flight renewal: the certificate lasts an hour and today's jobs run well under that.
+# A longer job would need a background renewal plus a stunnel reload.
