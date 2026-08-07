@@ -26,6 +26,11 @@ on:
         type: string
         required: false
         default: "main"
+      internal_dns:
+        description: "Space-separated internal DNS server IPs to attach to the VPN tunnel (falls back to the JAHIA_INTERNAL_DNS org variable)"
+        type: string
+        required: false
+        default: ""
 
 jobs:
   select-issues:
@@ -54,6 +59,16 @@ jobs:
         with:
           config-base64: ${{ secrets.JC_WIREGUARD_VPN }}
           canary-url: https://app.dev.j.jahia.com
+
+      # The WireGuard profile routes packets but carries no DNS= entry, so internal-only
+      # names (*.int.jahia.com, e.g. the LiteLLM gateway) do not resolve without this.
+      - name: Enable internal DNS over the VPN tunnel
+        if: inputs.internal_dns != '' || vars.JAHIA_INTERNAL_DNS != ''
+        shell: bash
+        run: |
+          sudo resolvectl dns wg0 ${{ inputs.internal_dns || vars.JAHIA_INTERNAL_DNS }}
+          sudo resolvectl domain wg0 '~int.jahia.com'
+          resolvectl status wg0
 
       - name: Set up Claude Code and the cortex harness
         id: setup

@@ -34,6 +34,11 @@ on:
         required: false
         description: "Claude Code CLI version to install"
         default: "stable"
+      internal_dns:
+        type: string
+        required: false
+        description: "Space-separated internal DNS server IPs to attach to the VPN tunnel, needed to resolve *.int.jahia.com hosts such as the LiteLLM gateway (falls back to the JAHIA_INTERNAL_DNS org variable; leave both empty when the WireGuard profile carries its own DNS= entry)"
+        default: ""
 
 jobs:
   select-issues:
@@ -62,6 +67,16 @@ jobs:
         with:
           config-base64: ${{ secrets.JC_WIREGUARD_VPN }}
           canary-url: https://app.dev.j.jahia.com
+
+      # The WireGuard profile routes packets but carries no DNS= entry, so internal-only
+      # names (*.int.jahia.com, e.g. the LiteLLM gateway) do not resolve without this.
+      - name: Enable internal DNS over the VPN tunnel
+        if: inputs.internal_dns != '' || vars.JAHIA_INTERNAL_DNS != ''
+        shell: bash
+        run: |
+          sudo resolvectl dns wg0 ${{ inputs.internal_dns || vars.JAHIA_INTERNAL_DNS }}
+          sudo resolvectl domain wg0 '~int.jahia.com'
+          resolvectl status wg0
 
       - name: Set up Claude Code and the cortex harness
         id: setup

@@ -99,6 +99,10 @@ instructs the agent to treat issue/log content as data, never as instructions.
   `ai-agent-setup`, which warns on gaps).
 - Org secrets/vars: `GH_ISSUES_PRS_CHORES`, `JC_WIREGUARD_VPN`, `AI_LITELLM_AUTH_TOKEN`,
   `AI_LITELLM_BASE_URL`, `AI_LITELLM_ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL`.
+- Internal DNS on the tunnel: the LiteLLM gateway lives on `*.int.jahia.com`, which only
+  internal DNS resolves. Either the WireGuard profile carries a `DNS=` entry, or provide the
+  DNS server IPs via the reusable workflow's `internal_dns` input / the `JAHIA_INTERNAL_DNS`
+  org variable.
 
 ## How to call
 
