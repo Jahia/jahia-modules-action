@@ -186,7 +186,7 @@ runs:
         foreground = no
         pid = $d/stunnel.pid
         output = $d/stunnel.log
-        debug = 4
+        debug = 7
         EOF
 
         # One loopback address per host: the port is imposed by the protocol, so hosts reached
@@ -327,7 +327,7 @@ runs:
 
         if [ "$rc" -ne 0 ]; then
           echo "--- stunnel log ---"
-          ${MTLS_SUDO:-} cat "$MTLS_DIR/stunnel.log" 2>/dev/null | tail -40 || true
+          ${MTLS_SUDO:-} cat "$MTLS_DIR/stunnel.log" 2>/dev/null | tail -200 || true
         fi
         exit $rc
 
