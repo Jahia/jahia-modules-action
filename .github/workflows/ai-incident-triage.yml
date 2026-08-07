@@ -68,7 +68,8 @@ jobs:
     needs: select-issues
     if: needs.select-issues.outputs.has_issues == 'true' && !inputs.dry_run
     runs-on: ${{ inputs.instance_type }}
-    timeout-minutes: ${{ inputs.timeout_job }}
+    # fromJSON: number-typed dispatch inputs materialize as strings, timeout-minutes needs a number
+    timeout-minutes: ${{ fromJSON(inputs.timeout_job) }}
     permissions:
       id-token: write
       contents: read
