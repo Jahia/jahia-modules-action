@@ -102,8 +102,9 @@ instructs the agent to treat issue/log content as data, never as instructions.
   (`INFRAJAHIA_MTLS_CA_URL`, `INFRAJAHIA_MTLS_BASTION`, `INFRAJAHIA_MTLS_STEP_ROOT`,
   `INFRAJAHIA_MTLS_SERVER_CA`).
 - The agent job needs `permissions: id-token: write` (the tunnel mints a short-lived client
-  certificate from the run's OIDC token), and every tunneled host must be allowlisted on
-  IT's side.
+  certificate from the run's OIDC token). The broker is deny-by-default on BOTH dimensions:
+  every tunneled host AND every calling repository must be allowlisted on IT's side —
+  onboarding a new repo onto this workflow starts with that allowlist request.
 
 ## How to call
 
