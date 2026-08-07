@@ -99,6 +99,11 @@ and the cortex `jahia-ci-triage` tool — no `Edit`, no `git`/push, no PR or mer
 `--permission-mode dontAsk` denies everything not explicitly allowed. The prompt additionally forbids modifying anything and
 instructs the agent to treat issue/log content as data, never as instructions.
 
+One deliberate exception: when the failed run's logs carry a known transient-infrastructure
+signature (unreachable maven artifact, `devtools.jahia.com` connect timeout), the agent may
+restart the failed jobs (`gh run rerun --failed`) — and only then. The rerun permission is
+granted only when `post_comments` is true; review mode stays strictly observational.
+
 ## Requirements
 
 - Self-hosted Ubuntu runner. Runners are typically ephemeral; all state lives and dies

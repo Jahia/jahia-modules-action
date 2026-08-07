@@ -54,7 +54,9 @@ runs:
       working-directory: ${{ inputs.cortex_path }}
       env:
         GH_TOKEN: ${{ inputs.github_token }}
-        ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
+        # The CI-run restart (transient-infrastructure signatures) is only permitted when the
+        # agent acts for real; review mode stays strictly observational.
+        ALLOWED_TOOLS: ${{ inputs.post_comments == 'true' && format('{0},Bash(gh run rerun *)', inputs.allowed_tools) || inputs.allowed_tools }}
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
         ISSUE_KEYS: ${{ steps.prep.outputs.issue_keys }}
       run: |

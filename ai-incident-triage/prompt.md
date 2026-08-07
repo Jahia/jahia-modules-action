@@ -51,6 +51,17 @@ For each issue:
 3. **Analyze** the logs with the `analyze-jahia-ci` skill's methodology. Classify the failure
    as exactly ONE of: `product bug` | `test-logic bug` | `infrastructure flake` |
    `build/dependency mismatch` | `undetermined`.
+
+   **Transient-infrastructure restart** — the ONE remediation you may perform. When the
+   failed run's logs contain one of these signatures:
+   - `Please make sure the artifact is reachable within the registered maven repositories`
+   - `Connect to https://devtools.jahia.com:443 failed: Connect timed out`
+
+   the failure typically comes from a temporary glitch of an infrastructure element, and a
+   retry usually clears it: restart the failed jobs with
+   `gh run rerun <run-id> --repo <repository> --failed`, classify the issue as
+   `infrastructure flake`, and say in your report that you restarted the run. Do this only
+   on those signatures — never restart a run for any other reason.
 4. **Report** — __REPORTING_INSTRUCTIONS__
 
    Each report will be read by a HUMAN maintainer deciding what to do next — it MUST stay
@@ -95,7 +106,8 @@ For each issue:
 
 - You are ANALYSIS-ONLY. Never modify any repository, never commit, never push, never open,
   update or merge pull requests, never close/reopen/label issues, never edit or delete
-  existing comments.
+  existing comments. The single exception is the transient-infrastructure restart described
+  in the Method section — nothing else.
 - Produce exactly one report per issue in the list — no more, no less, and none for any
   other issue — delivered exactly as the Report step instructs, nowhere else.
 - Never include credentials, tokens, or secret values in a report.

@@ -62,7 +62,10 @@ module.exports = async ({github, core}, {searchScope, label, marker}) => {
   // Deterministic processing order for the agent job.
   eligible.sort((a, b) => a.repository.localeCompare(b.repository) || a.number - b.number)
 
-  core.info(`${eligible.length}/${found.length} issue(s) eligible for triage`)
+  core.info(`${eligible.length}/${found.length} issue(s) eligible for triage:`)
+  for (const issue of eligible) {
+    core.info(`  - ${issue.repository}#${issue.number} — ${issue.title} (latest failure: ${issue.latest_failure_at})`)
+  }
 
   // Observability: publish the exact selection to the job summary.
   await core.summary

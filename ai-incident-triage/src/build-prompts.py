@@ -44,7 +44,9 @@ REVIEW_INSTRUCTIONS = (
     'do NOT post anything to any issue — this run is a REVIEW pass. For the issue being\n'
     '   processed, write the comment you WOULD have posted (exact same format below) to the\n'
     '   file `' + comments_dir + '/issue-<key>.comment.md` using the Write tool. A human\n'
-    '   reviews these files in place of the issue comments. Write no other files.')
+    '   reviews these files in place of the issue comments. Write no other files. In this\n'
+    '   mode, also do NOT restart any CI run — when the transient-infrastructure signatures\n'
+    '   match, state in the stored comment that you would have restarted the run.')
 
 with open(template_path, encoding='utf-8') as fh:
     template = fh.read()
