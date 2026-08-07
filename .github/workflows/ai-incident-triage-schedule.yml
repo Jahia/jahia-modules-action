@@ -1,0 +1,26 @@
+# TEMPORARY scheduler for the org-wide AI incident triage.
+# The schedule is meant to live in jahia-ee (https://github.com/Jahia/jahia-ee/pull/1713,
+# .github/workflows/ai-incident-triage.yml there), but only jahia-modules-action is currently
+# authorized with the IT mTLS egress broker — so the cron runs here for now.
+# REMOVE THIS WORKFLOW once IT adds Jahia/jahia-ee to the broker's authorized repositories
+# and the jahia-ee scheduler takes over.
+# Note: the broker authorization for this repository was observed for workflow_dispatch
+# events; if the scheduled run is refused a certificate, the schedule event needs the same
+# authorization from IT.
+name: AI Incident Triage Schedule
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 04:00 UTC = 5AM CET (winter) / 6AM CEST (summer), Monday to Friday — GitHub cron is UTC only
+    - cron: '0 4 * * 1-5'
+
+jobs:
+  triage:
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/ai-incident-triage.yml
+    with:
+      post_comments: true
+    secrets: inherit
