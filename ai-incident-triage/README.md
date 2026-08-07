@@ -117,10 +117,11 @@ instructs the agent to treat issue/log content as data, never as instructions.
 The [`ai-incident-triage.yml`](../.github/workflows/ai-incident-triage.yml) workflow in this
 repository is the single entry point:
 
-- **`workflow_dispatch`** — normal operation; org-wide by default, narrowable via the
+- **`workflow_dispatch`** — the only trigger (the mTLS broker mints certificates exclusively
+  for dispatch-triggered runs of this repository); org-wide by default, narrowable via the
   `search_scope` input (e.g. `repo:Jahia/sandbox`), with a `dry_run` mode that stops after
   selection.
-- **Labeling a PR with `ai-triage-test`** — development iteration; runs the PR branch's
-  version pinned to `repo:Jahia/sandbox` so dev runs never touch real incidents. Remove and
-  re-add the label to re-run.
+- **Development iteration** — dispatch the feature branch:
+  `gh workflow run ai-incident-triage.yml --ref <branch> -f search_scope=repo:Jahia/sandbox`
+  (dispatching a branch requires the workflow file to also exist on `main`).
 - A schedule can be added to the same workflow once the pilot validates analysis quality.

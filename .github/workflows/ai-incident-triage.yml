@@ -4,10 +4,9 @@
 # reaching internal services through the IT mTLS bastion) analyzes each failed run's logs and
 # posts its conclusion as a comment on the issue. Analysis only — it never changes code.
 #
-# Triggers:
-#   - workflow_dispatch: normal operation, org-wide by default (narrow via search_scope).
-#   - pull_request labeled "ai-triage-test": development iteration — runs the PR branch's version,
-#     pinned to repo:Jahia/sandbox so dev runs can never touch real incidents in other repos.
+# workflow_dispatch only: the mTLS broker mints certificates exclusively for
+# workflow_dispatch-triggered runs of this repository. Development iteration = dispatch the
+# feature branch (--ref) with search_scope narrowed to repo:Jahia/sandbox.
 name: AI Incident Triage
 
 on:
@@ -48,13 +47,10 @@ on:
         type: string
         required: false
         default: "litellm-prod.int.jahia.com qa.jahia.com"
-  pull_request:
-    types: [labeled]
 
 jobs:
   select-issues:
     name: Select incident issues
-    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'ai-triage-test'
     runs-on: ubuntu-slim
     outputs:
       issues: ${{ steps.select.outputs.issues }}
@@ -65,14 +61,14 @@ jobs:
         uses: jahia/jahia-modules-action/ai-incident-triage/select-issues@feat/ai-incident-triage
         with:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
-          search_scope: ${{ github.event_name == 'pull_request' && 'repo:Jahia/sandbox' || inputs.search_scope }}
+          search_scope: ${{ inputs.search_scope }}
 
   triage:
     name: Analyze incidents with Claude Code
     needs: select-issues
-    if: needs.select-issues.outputs.has_issues == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
-    runs-on: ${{ inputs.instance_type || 'self-hosted' }}
-    timeout-minutes: ${{ fromJSON(inputs.timeout_job || 60) }}
+    if: needs.select-issues.outputs.has_issues == 'true' && !inputs.dry_run
+    runs-on: ${{ inputs.instance_type }}
+    timeout-minutes: ${{ inputs.timeout_job }}
     permissions:
       id-token: write
       contents: read
