@@ -100,7 +100,12 @@ For each issue:
    ### Recommendation
    <1-3 sentences: the single next step a maintainer should take — or an explicit
    statement that you could not determine the cause / no action is possible, and why>
+
+   ---
+   <sub>_Automated analysis by __AGENT__ — [analysis run log](__RUN_URL__)_</sub>
    ```
+
+   Reproduce the footer line EXACTLY as given (it links the human to the run's logs).
 
 ## Hard limits
 

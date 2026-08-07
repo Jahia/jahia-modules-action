@@ -4,6 +4,8 @@ Usage: build-prompts.py <template-path> <log-dir>
 Env:   ISSUES_JSON    - JSON array produced by the select-issues action (each item
                         carries its own "repository" as owner/repo)
        MARKER         - hidden marker string for triage comments
+       AGENT          - human-readable identity of the agent (CLI + model)
+       RUN_URL        - URL of the workflow run performing this analysis
        POST_COMMENTS  - "true": the agent posts each comment on its issue;
                         anything else: review mode — the agent writes the comments
                         it WOULD have posted to <log-dir>/comments/ instead
@@ -55,6 +57,8 @@ prompt = (template
           .replace('__REPORTING_INSTRUCTIONS__',
                    POST_INSTRUCTIONS if post_comments else REVIEW_INSTRUCTIONS)
           .replace('__ISSUES_JSON__', json.dumps(ordered, indent=2))
+          .replace('__AGENT__', os.environ.get('AGENT', 'Claude Code'))
+          .replace('__RUN_URL__', os.environ.get('RUN_URL', ''))
           .replace('__MARKER__', marker))
 with open(os.path.join(log_dir, 'triage.prompt.md'), 'w', encoding='utf-8') as fh:
     fh.write(prompt)

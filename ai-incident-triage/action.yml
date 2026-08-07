@@ -39,7 +39,14 @@ runs:
         ISSUES_JSON: ${{ inputs.issues }}
         MARKER: ${{ inputs.marker }}
         POST_COMMENTS: ${{ inputs.post_comments }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        AGENT="Claude Code $(claude --version 2>/dev/null | head -1 || echo '(version unknown)')"
+        if [ -n "$ANTHROPIC_DEFAULT_SONNET_MODEL" ]; then
+          AGENT="$AGENT · model: $ANTHROPIC_DEFAULT_SONNET_MODEL"
+        fi
+        export AGENT
         LOG_DIR="$RUNNER_TEMP/triage-logs"
         mkdir -p "$LOG_DIR"
         ISSUE_KEYS=$(python3 "$GITHUB_ACTION_PATH/src/build-prompts.py" "$GITHUB_ACTION_PATH/prompt.md" "$LOG_DIR")
