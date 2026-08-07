@@ -1,0 +1,100 @@
+# This workflow triages open "automated-incident" issues (nightly test failures) in the calling
+# repository: a deterministic job selects issues whose latest failure was not yet analyzed, then a
+# Claude Code agent (running from the cortex harness, over the Jahia VPN) analyzes the failed run's
+# logs and posts its conclusion as a comment on each issue. Analysis only — it never changes code.
+# Note: re-usable workflows must be in the .github/workflows folder, amongst other workflows dedicated
+# to the jahia-modules-action repository. Thus using "reusable-" prefix to easily identify them.
+name: Claude Incident Triage
+
+on:
+  workflow_call:
+    inputs:
+      instance_type:
+        type: string
+        required: false
+        description: "Type of instances to run the agent job on (must be a host runner, not a container)"
+        default: "self-hosted"
+      timeout_job:
+        type: number
+        required: false
+        description: "Timeout (in minutes) of the agent job"
+        default: 60
+      incident_label:
+        type: string
+        required: false
+        description: "Label identifying automated test-failure incidents"
+        default: "automated-incident"
+      cortex_ref:
+        type: string
+        required: false
+        description: "Git ref of the cortex harness to use"
+        default: "main"
+      claude_code_version:
+        type: string
+        required: false
+        description: "Claude Code CLI version to install"
+        default: "stable"
+
+jobs:
+  select-issues:
+    name: Select incident issues
+    runs-on: ubuntu-slim
+    outputs:
+      issues: ${{ steps.select.outputs.issues }}
+      has_issues: ${{ steps.select.outputs.has_issues }}
+    steps:
+      - name: Select eligible incident issues
+        id: select
+        uses: jahia/jahia-modules-action/claude-incident-triage/select-issues@feat/claude-incident-triage
+        with:
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          label: ${{ inputs.incident_label }}
+
+  triage:
+    name: Analyze incidents with Claude Code
+    needs: select-issues
+    if: needs.select-issues.outputs.has_issues == 'true'
+    runs-on: ${{ inputs.instance_type }}
+    timeout-minutes: ${{ inputs.timeout_job }}
+    steps:
+      - name: Establish the Jahia VPN tunnel
+        uses: jahia/jahia-modules-action/vpn-tunnel@v2
+        with:
+          config-base64: ${{ secrets.JC_WIREGUARD_VPN }}
+          canary-url: https://app.dev.j.jahia.com
+
+      - name: Set up Claude Code and the cortex harness
+        id: setup
+        uses: jahia/jahia-modules-action/claude-code-setup@feat/claude-incident-triage
+        with:
+          claude_code_version: ${{ inputs.claude_code_version }}
+          anthropic_base_url: ${{ vars.AI_LITELLM_BASE_URL }}
+          anthropic_auth_token: ${{ secrets.AI_LITELLM_AUTH_TOKEN }}
+          default_opus_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_OPUS_MODEL }}
+          default_sonnet_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_SONNET_MODEL }}
+          default_haiku_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_HAIKU_MODEL }}
+          cortex_ref: ${{ inputs.cortex_ref }}
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+
+      - name: Triage the incident issues
+        id: triage
+        uses: jahia/jahia-modules-action/claude-incident-triage@feat/claude-incident-triage
+        with:
+          issues: ${{ needs.select-issues.outputs.issues }}
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          cortex_path: ${{ steps.setup.outputs.cortex_path }}
+
+      - name: Upload triage logs
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: claude-incident-triage-logs
+          path: ${{ runner.temp }}/triage-logs
+          if-no-files-found: ignore
+
+      # Runners are normally ephemeral, but belt-and-braces for any persistent runner:
+      # vpn-tunnel has no teardown of its own.
+      - name: Tear down the VPN tunnel
+        if: always()
+        shell: bash
+        run: sudo wg-quick down /etc/wireguard/wg0.conf || true
