@@ -7,8 +7,8 @@
 # instead. See mtls-tunnel/README.md.
 #
 # Also needs, on this repository:
-#   vars    CI_MTLS_CA_URL, CI_MTLS_BASTION   (the broker's coordinates, which move)
-#   secrets CI_STEP_ROOT, CI_SERVER_CA        (public CA certificates, secrets for convenience)
+#   vars    INFRAJAHIA_MTLS_CA_URL, INFRAJAHIA_MTLS_BASTION   (the broker's coordinates, which move)
+#   secrets INFRAJAHIA_MTLS_STEP_ROOT, INFRAJAHIA_MTLS_SERVER_CA        (public CA certificates, secrets for convenience)
 #
 # The hosts, the canary and the bastion certificate name are written in plain here: they say
 # what this test targets, and reading the file should be enough to know that.
@@ -31,12 +31,12 @@ jobs:
           hosts: |
             papi.dev.cloud-core.jahia.com
             citizen.dev.cloud-core.jahia.com
-          ca-url: ${{ vars.CI_MTLS_CA_URL }}
-          bastion: ${{ vars.CI_MTLS_BASTION }}
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
           server-name: ci-egress.jahia.com
           audience: jahia-ci-egress
-          step-root: ${{ secrets.CI_STEP_ROOT }}
-          server-ca: ${{ secrets.CI_SERVER_CA }}
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
           canary-url: https://papi.dev.cloud-core.jahia.com/healthcheck
 
   # Same thing inside a container, which vpn-tunnel cannot do. A bare image has neither
@@ -53,12 +53,12 @@ jobs:
       - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: papi.dev.cloud-core.jahia.com
-          ca-url: ${{ vars.CI_MTLS_CA_URL }}
-          bastion: ${{ vars.CI_MTLS_BASTION }}
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
           server-name: ci-egress.jahia.com
           audience: jahia-ci-egress
-          step-root: ${{ secrets.CI_STEP_ROOT }}
-          server-ca: ${{ secrets.CI_SERVER_CA }}
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
           canary-url: https://papi.dev.cloud-core.jahia.com/healthcheck
 
   # Called twice in one job: the host already tunnelled is skipped, and the same host on a
@@ -73,24 +73,24 @@ jobs:
       - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: papi.dev.cloud-core.jahia.com
-          ca-url: ${{ vars.CI_MTLS_CA_URL }}
-          bastion: ${{ vars.CI_MTLS_BASTION }}
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
           server-name: ci-egress.jahia.com
           audience: jahia-ci-egress
-          step-root: ${{ secrets.CI_STEP_ROOT }}
-          server-ca: ${{ secrets.CI_SERVER_CA }}
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
 
       - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: |
             papi.dev.cloud-core.jahia.com
             papi.dev.cloud-core.jahia.com:8443
-          ca-url: ${{ vars.CI_MTLS_CA_URL }}
-          bastion: ${{ vars.CI_MTLS_BASTION }}
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
           server-name: ci-egress.jahia.com
           audience: jahia-ci-egress
-          step-root: ${{ secrets.CI_STEP_ROOT }}
-          server-ca: ${{ secrets.CI_SERVER_CA }}
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
 
   # The job does not grant id-token: write, which a composite action cannot grant itself.
   # This job should FAIL, on the action's own error message rather than on a blank token.
@@ -102,12 +102,12 @@ jobs:
       - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: papi.dev.cloud-core.jahia.com
-          ca-url: ${{ vars.CI_MTLS_CA_URL }}
-          bastion: ${{ vars.CI_MTLS_BASTION }}
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
           server-name: ci-egress.jahia.com
           audience: jahia-ci-egress
-          step-root: ${{ secrets.CI_STEP_ROOT }}
-          server-ca: ${{ secrets.CI_SERVER_CA }}
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
 
   # A malformed entry, caught by the action before anything is written to /etc/hosts.
   # This job should FAIL
@@ -120,12 +120,12 @@ jobs:
       - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: https://papi.dev.cloud-core.jahia.com
-          ca-url: ${{ vars.CI_MTLS_CA_URL }}
-          bastion: ${{ vars.CI_MTLS_BASTION }}
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
           server-name: ci-egress.jahia.com
           audience: jahia-ci-egress
-          step-root: ${{ secrets.CI_STEP_ROOT }}
-          server-ca: ${{ secrets.CI_SERVER_CA }}
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
 
   # A host that is not in the bastion's target map: the tunnel comes up, but no traffic goes
   # through it, so the canary is what catches it.
@@ -139,11 +139,11 @@ jobs:
       - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: not-allowlisted.internal.example.com
-          ca-url: ${{ vars.CI_MTLS_CA_URL }}
-          bastion: ${{ vars.CI_MTLS_BASTION }}
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
           server-name: ci-egress.jahia.com
           audience: jahia-ci-egress
-          step-root: ${{ secrets.CI_STEP_ROOT }}
-          server-ca: ${{ secrets.CI_SERVER_CA }}
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
           canary-url: https://not-allowlisted.internal.example.com/
           canary-retries: 2
