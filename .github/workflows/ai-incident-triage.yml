@@ -22,6 +22,11 @@ on:
         type: boolean
         required: false
         default: false
+      post_comments:
+        description: "Post the triage comment on each issue (false = review mode: store the would-be comments in the run artifact instead)"
+        type: boolean
+        required: false
+        default: false
       instance_type:
         description: "Type of instances to run the agent job on"
         type: string
@@ -106,6 +111,7 @@ jobs:
           issues: ${{ needs.select-issues.outputs.issues }}
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           cortex_path: ${{ steps.setup.outputs.cortex_path }}
+          post_comments: ${{ inputs.post_comments }}
 
       - name: Upload triage logs
         if: always()

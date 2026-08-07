@@ -121,6 +121,11 @@ repository is the single entry point:
   for dispatch-triggered runs of this repository); org-wide by default, narrowable via the
   `search_scope` input (e.g. `repo:Jahia/sandbox`), with a `dry_run` mode that stops after
   selection.
+- **Review mode** (`post_comments: false`, currently the default): the agent analyzes as
+  usual but posts nothing — each would-be comment is stored as
+  `comments/issue-<key>.comment.md` inside the `ai-incident-triage-logs` artifact and inlined
+  in the job summary for human review. Since no marker lands on the issues, they stay
+  eligible for the next run.
 - **Development iteration** — dispatch the feature branch:
   `gh workflow run ai-incident-triage.yml --ref <branch> -f search_scope=repo:Jahia/sandbox`
   (dispatching a branch requires the workflow file to also exist on `main`).
