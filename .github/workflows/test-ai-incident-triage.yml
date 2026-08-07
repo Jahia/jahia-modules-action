@@ -58,7 +58,7 @@ jobs:
       contents: read
     steps:
       - name: Open the mTLS tunnel to internal Jahia services
-        uses: jahia/jahia-modules-action/mtls-tunnel@v2
+        uses: jahia/jahia-modules-action/mtls-tunnel@feat/ai-incident-triage
         with:
           hosts: ${{ inputs.tunnel_hosts }}
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
