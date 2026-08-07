@@ -36,7 +36,7 @@ jobs:
           audience: jahia-ci-egress
           step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
           server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
-          canary-url: https://litellm-prod.int.jahia.com/
+          canary-url: https://litellm-prod.int.jahia.com/health/liveliness
 
   # Same thing inside a container, which vpn-tunnel cannot do. A bare image has neither
   # stunnel nor curl/jq/openssl, so this also covers the install step.
@@ -58,7 +58,7 @@ jobs:
           audience: jahia-ci-egress
           step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
           server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
-          canary-url: https://litellm-prod.int.jahia.com/
+          canary-url: https://litellm-prod.int.jahia.com/health/liveliness
 
   # Called twice in one job: the host already tunnelled is skipped, and the same host on a
   # second port reuses its loopback address instead of taking a new one.
@@ -143,5 +143,5 @@ jobs:
           audience: jahia-ci-egress
           step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
           server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
-          canary-url: https://litellm-prod.int.jahia.com/
+          canary-url: https://litellm-prod.int.jahia.com/health/liveliness
           canary-retries: 2
