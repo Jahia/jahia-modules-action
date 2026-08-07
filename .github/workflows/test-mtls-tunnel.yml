@@ -26,7 +26,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: jahia/jahia-modules-action/mtls-tunnel@update-secrets
+      - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: litellm-prod.int.jahia.com
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
@@ -46,7 +46,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: jahia/jahia-modules-action/mtls-tunnel@update-secrets
+      - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: litellm-prod.int.jahia.com
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
@@ -68,7 +68,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: jahia/jahia-modules-action/mtls-tunnel@update-secrets
+      - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: litellm-prod.int.jahia.com
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
@@ -88,7 +88,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: jahia/jahia-modules-action/mtls-tunnel@update-secrets
+      - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: litellm-prod.int.jahia.com
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
@@ -98,7 +98,7 @@ jobs:
           step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
           server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
 
-      - uses: jahia/jahia-modules-action/mtls-tunnel@update-secrets
+      - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: |
             litellm-prod.int.jahia.com
@@ -116,7 +116,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: jahia/jahia-modules-action/mtls-tunnel@update-secrets
+      - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: litellm-prod.int.jahia.com
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
@@ -134,7 +134,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: jahia/jahia-modules-action/mtls-tunnel@update-secrets
+      - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: litellm-prod.int.jahia.com
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
@@ -153,7 +153,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: jahia/jahia-modules-action/mtls-tunnel@update-secrets
+      - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
           hosts: not-allowlisted.internal.example.com
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
