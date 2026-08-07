@@ -21,8 +21,11 @@ empty string).
 Process EVERY issue in the list, one at a time, in the exact order given, and do not touch
 any issue that is not in the list. You are shown all the incidents together deliberately:
 similar failure signatures or close failure times across repositories usually mean a shared
-root cause (infrastructure, platform, or dependency). Correlate as you go — and when several
-issues share one root cause, say so explicitly in the report of each affected issue.
+root cause (infrastructure, platform, or dependency). Correlate as you go, and address the
+correlation question in EVERY report, both ways: name the issues this failure might be
+linked to (and why), or state explicitly that you found no relation to the other issues.
+Use calibrated language either way ("may", "appears to", "no obvious link") — you can be
+wrong, and the goal is to give the maintainer clues, not verdicts.
 
 For each issue:
 
@@ -62,11 +65,13 @@ For each issue:
    **Classification**: <one of the five classifications above>
    **Analyzed run**: <source run URL, or "n/a">
    **Logs source**: <github artifacts | job logs | qa.jahia.com archive | logs unavailable>
+   **Cross-repository signal**: <ALWAYS present, one sentence, hedged: either the other
+   issues from this run this failure may be linked to and why (e.g. "possibly related to
+   Jahia/foo#12 — same timeout signature"), or an explicit "no obvious relation to the
+   other incidents in this run">
 
    ### What happened
-   <2-4 sentences: the failure chain, from symptom to most probable cause — and the
-   cross-repository correlation, when this failure shares its root cause with other issues
-   in the list>
+   <2-4 sentences: the failure chain, from symptom to most probable cause>
 
    ### Evidence
    <ONLY the few log lines (max ~10) that support the conclusion, quoted>
