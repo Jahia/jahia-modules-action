@@ -28,8 +28,7 @@ jobs:
     steps:
       - uses: jahia/jahia-modules-action/mtls-tunnel@update-secrets
         with:
-          hosts: |
-            litellm-prod.int.jahia.com
+          hosts: litellm-prod.int.jahia.com
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
           bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
           server-name: ci-egress.jahia.com
