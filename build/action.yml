@@ -46,8 +46,12 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    # TEMPORARY, revert the three refs below to @v2 before merging: this action is the second
+    # @v2 hop between a caller and the mise steps this PR adds to build-step-mvn and
+    # build-step-javascript. Lets https://github.com/Jahia/javascript-modules/pull/716 test
+    # the whole chain.
     - name: Build package
-      uses: jahia/jahia-modules-action/build-step-mvn@v2
+      uses: jahia/jahia-modules-action/build-step-mvn@chore/js-setup
       with:
         mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
         nexus_username: ${{ inputs.nexus_username }}
@@ -64,7 +68,7 @@ runs:
         files: "${{ inputs.tests_module_path }}pom.xml"
 
     - name: Build tests package (MVN)
-      uses: jahia/jahia-modules-action/build-step-mvn@v2
+      uses: jahia/jahia-modules-action/build-step-mvn@chore/js-setup
       if: ${{ inputs.tests_module_type == 'mvn' && steps.check_test_module_mvn.outputs.files_exists == 'true' }}
       with:
         module_path: ${{ inputs.tests_module_path }}
@@ -85,7 +89,7 @@ runs:
 
     - name: Build tests package (javascript)
       if: ${{ inputs.tests_module_type == 'javascript' && steps.check_test_module_javascript.outputs.files_exists == 'true' }}
-      uses: jahia/jahia-modules-action/build-step-javascript@v2
+      uses: jahia/jahia-modules-action/build-step-javascript@chore/js-setup
       with:
         module_path: ${{ inputs.tests_module_path }}
         node_version: ${{ inputs.node_version }}
