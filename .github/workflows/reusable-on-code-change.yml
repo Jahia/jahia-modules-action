@@ -128,11 +128,7 @@ jobs:
         - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
           with:
             ref: ${{ inputs.module_branch }}
-        # TEMPORARY, revert to @v2 before merging: the mise steps of this PR live in the
-        # composite actions, which @v2 does not carry yet, so a caller pinning this reusable
-        # workflow to the branch would still get the old toolchain. Lets
-        # https://github.com/Jahia/javascript-modules/pull/716 test the whole chain.
-        - uses: jahia/jahia-modules-action/static-analysis@chore/js-setup
+        - uses: jahia/jahia-modules-action/static-analysis@v2
           with:
             node_version: ${{ inputs.static_analysis_node_version }}
             auditci_level: ${{ inputs.static_analysis_auditci_level }}
@@ -150,8 +146,7 @@ jobs:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
               with:
                 ref: ${{ inputs.module_branch }}
-            # TEMPORARY, revert to @v2 before merging (see the static-analysis job above)
-            - uses: jahia/jahia-modules-action/build@chore/js-setup
+            - uses: jahia/jahia-modules-action/build@v2
               with:
                 mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
                 nexus_username: ${{ secrets.NEXUS_USERNAME }}
@@ -176,8 +171,7 @@ jobs:
         if: ${{ inputs.integration_tests_standalone_execute }}
         needs: build
         secrets: inherit
-        # TEMPORARY, revert to @v2 before merging (see the static-analysis job above)
-        uses: Jahia/jahia-modules-action/.github/workflows/reusable-integration-tests.yml@chore/js-setup
+        uses: Jahia/jahia-modules-action/.github/workflows/reusable-integration-tests.yml@v2
         with:
             instance_type: ${{ inputs.integration_tests_instance_type }}
             module_id: ${{ inputs.module_id }}
@@ -201,8 +195,7 @@ jobs:
         if: ${{ inputs.integration_tests_cluster_execute }}
         needs: build
         secrets: inherit
-        # TEMPORARY, revert to @v2 before merging (see the static-analysis job above)
-        uses: Jahia/jahia-modules-action/.github/workflows/reusable-integration-tests.yml@chore/js-setup
+        uses: Jahia/jahia-modules-action/.github/workflows/reusable-integration-tests.yml@v2
         with:
             instance_type: ${{ inputs.integration_tests_instance_type }}
             module_id: ${{ inputs.module_id }}
@@ -246,8 +239,7 @@ jobs:
                 password: ${{ secrets.GH_PACKAGES_TOKEN }}
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
-            # TEMPORARY, revert to @v2 before merging (see the static-analysis job above)
-            - uses: jahia/jahia-modules-action/publish@chore/js-setup
+            - uses: jahia/jahia-modules-action/publish@v2
               with:
                 nexus_username: ${{ secrets.NEXUS_USERNAME }}
                 nexus_password: ${{ secrets.NEXUS_PASSWORD }}
