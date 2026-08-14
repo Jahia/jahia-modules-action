@@ -14,9 +14,10 @@ inputs:
     required: false
     default: ./
   node_version:
-    description: 'Version of node to install on the host'
+    description: 'Version of node to install on the host. DEPRECATED and ignored when the module has a mise.toml — declare node there instead.'
     required: false
     default: 'lts/*'
+    deprecationMessage: 'Use mise.toml'
   archive_artifacts:
     description: 'Should we archive built artifacts ?'
     default: 'true'
@@ -25,7 +26,17 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+    # Toolchain: mise.toml is the source of truth when the module has one, it pins both node
+    # and yarn. Modules without a mise.toml keep the legacy setup-node path below, which pins
+    # node only and leaves yarn to whatever the runner ships.
+    # NOTE: this must stay *after* the checkout, hashFiles() reads the working tree, so
+    # running it before checkout would always see an empty workspace and pick the fallback.
+    # TODO: once every module declares a mise.toml, delete the setup-node step.
+    - if: hashFiles('mise.toml') != ''
+      uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4.2.4
+
+    - if: hashFiles('mise.toml') == ''
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
       with:
         node-version: ${{ inputs.node_version }}
 

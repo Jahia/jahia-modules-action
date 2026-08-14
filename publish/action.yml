@@ -56,6 +56,9 @@ runs:
         restore-keys: |
           ${{ runner.os }}-maven-
 
+    - if: hashFiles('mise.toml') != ''
+      uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4.2.4
+
     - name: Build package
       shell: bash
       run: mvn -B -s ${{ inputs.mvn_settings_filepath }} clean deploy -DskipTests -Dmaven.resolver.transport=wagon | tee mvnLogs.txt
