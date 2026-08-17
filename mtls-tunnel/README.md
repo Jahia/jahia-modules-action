@@ -53,7 +53,7 @@ The job also needs root (binding the loopback addresses and writing `/etc/hosts`
 | `canary-http-response` | Status code every canary URL must return. Empty accepts any HTTP response. | ❌ | `''` |
 | `canary-retries` | Attempts per canary URL before the check fails the job | ❌ | `5` |
 
-**No input describing the broker has a default.** `ca-url`, `bastion`, `server-name` and `audience` all identify one specific deployment, and baking any of them into the action would force a new release the day it moves. Pass them as organization variables. Only the canary inputs have defaults, and those are behaviour choices rather than environment values.
+**No input describing the broker has a default.** `ca-url`, `bastion`, `server-name` and `audience` all identify one specific deployment, and baking any of them into the action would force a new release the day it moves. Pass `ca-url` and `bastion` as organization variables; `server-name` and `audience` do not move, so callers write them in plain. Only the canary inputs have defaults, and those are behaviour choices rather than environment values.
 
 `step-root` and `server-ca` are **public** CA certificates, not secrets; they sit in organization secrets for convenience only.
 
@@ -97,8 +97,8 @@ jobs:
             api.internal.example.com
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
           bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
-          server-name: ${{ vars.CI_MTLS_SERVER_NAME }}
-          audience: ${{ vars.CI_MTLS_AUDIENCE }}
+          server-name: ci-egress.jahia.com
+          audience: jahia-ci-egress
           step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
           server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
           # optional: fail here rather than in the middle of the job
@@ -120,8 +120,8 @@ An SSH host works the same way. Only the port changes, and the canary does not a
           hosts: build-host.internal.example.com:22
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
           bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
-          server-name: ${{ vars.CI_MTLS_SERVER_NAME }}
-          audience: ${{ vars.CI_MTLS_AUDIENCE }}
+          server-name: ci-egress.jahia.com
+          audience: jahia-ci-egress
           step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
           server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
 
@@ -141,20 +141,13 @@ A test workflow lives at `.github/workflows/test-mtls-tunnel.yml`, triggered man
 
 | Job | Expected | Covers |
 |-----|----------|--------|
-| `two-hosts` | ✅ Pass | Two hosts in one job, one canary each |
+| `single-host` | ✅ Pass | One host with a canary |
+| `single-host-self-hosted` | ✅ Pass | The same on a self-hosted runner |
 | `container` | ✅ Pass | The same inside a bare container image, which `vpn-tunnel` cannot do |
 | `called-twice` | ✅ Pass | Second call skipping a tunnelled host, and a second port reusing its address |
 | `no-oidc-permission` | ❌ Fail | The job forgets `id-token: write`, and gets the action's own error |
 | `invalid-host` | ❌ Fail | A malformed entry, rejected before `/etc/hosts` is touched |
 | `denied-host` | ❌ Fail | A host outside the target map: the tunnel opens, no traffic passes |
-
-**It cannot run yet.** The broker allowlists the **calling** repository's OIDC claims, and `jahia-modules-action` is not on that list; asking IT for it is still to be done. Until then, the action is validated from a consumer repository that is already allowlisted, calling it by ref:
-
-```yaml
-- uses: jahia/jahia-modules-action/mtls-tunnel@<branch-or-tag>
-```
-
-Calling an external action does not change the claims presented to the broker, which is what makes both arrangements equivalent from its point of view.
 
 The workflow expects two variables (the broker's coordinates, which move) and the two CA certificates as secrets. The hosts it targets are written in plain in the file.
 
