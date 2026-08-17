@@ -214,7 +214,7 @@ jobs:
       # Create links in Jira to GitHub Issues
       # We still need to create a Jira User and update the server_host
       - name: Create links to GitHub in Jira issues
-        uses: Fgerthoffert/actions-create-jira-link@7e1dab38447f2d7cc9d405f8e38af7ac08e7bc44 # v1.4.0
+        uses: Fgerthoffert/actions-create-jira-link@75f12ca71d6db9bcabdaa959c0c85824ec070dd7 # v1.5.0
         if: steps.issue-exists.outputs.issue_number != ''
         with:
           token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
