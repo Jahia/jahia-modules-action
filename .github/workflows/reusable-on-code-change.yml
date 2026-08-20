@@ -36,6 +36,9 @@ on:
         sonar_analysis_instance_type:
             type: string
             default: "ubuntu-latest"
+        sonar_analysis_container_image:
+            type: string
+            default: "ghcr.io/jahia/jahia-docker-mvn-cache:11-jdk-noble-mvn-loaded"
         integration_tests_instance_type:
             type: string
             default: "self-hosted"
@@ -155,6 +158,11 @@ jobs:
     sonar-analysis:
         runs-on: ${{ inputs.sonar_analysis_instance_type }}
         needs: build
+        container:
+            image: ${{ inputs.sonar_analysis_container_image }}
+            credentials:
+                username: ${{ secrets.GH_PACKAGES_USERNAME }}
+                password: ${{ secrets.GH_PACKAGES_TOKEN }}
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
               with:
