@@ -48,7 +48,7 @@ on:
         integration_tests_standalone_execute:
             type: boolean
             default: false
-            description: "Forces the standalone run. Left false, it runs anyway when a provisioning manifest is given and no cluster run is requested."
+            description: "Forces the standalone run. It also runs on its own when a provisioning manifest is given and no cluster run is requested, so setting this to false does not turn the tests off — remove integration_tests_provisioning_manifest for that."
         integration_tests_cluster_execute:
             type: boolean
             default: false
@@ -127,7 +127,7 @@ jobs:
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
               with:
-                ref: ${{ inputs.module_branch || github.ref }}
+                ref: ${{ inputs.module_branch }}
             - uses: jahia/jahia-modules-action/update-signature@v2
               with:
                 nexus_internal_releases_url: ${{ secrets.NEXUS_INTERNAL_RELEASES_URL }}
@@ -139,7 +139,7 @@ jobs:
       steps:
         - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
           with:
-            ref: ${{ inputs.module_branch || github.ref }}
+            ref: ${{ inputs.module_branch }}
         - uses: jahia/jahia-modules-action/static-analysis@v2
           with:
             node_version: ${{ inputs.static_analysis_node_version }}
@@ -157,7 +157,7 @@ jobs:
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
               with:
-                ref: ${{ inputs.module_branch || github.ref }}
+                ref: ${{ inputs.module_branch }}
             - uses: jahia/jahia-modules-action/build@v2
               with:
                 mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
@@ -175,7 +175,7 @@ jobs:
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
               with:
-                ref: ${{ inputs.module_branch || github.ref }}
+                ref: ${{ inputs.module_branch }}
             - uses: jahia/jahia-modules-action/sonar-analysis@v2
               with:
                 primary_release_branch: ${{ inputs.sonar_analysis_primary_release_branch || github.event.pull_request.base.ref || github.event.repository.default_branch || 'main' }}
