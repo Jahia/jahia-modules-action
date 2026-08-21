@@ -109,7 +109,7 @@ jobs:
         id: select
         uses: jahia/jahia-modules-action/ai-incident-triage/select-issues@v2
         with:
-          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           search_scope: ${{ inputs.search_scope }}
 
   triage:
@@ -146,14 +146,14 @@ jobs:
           default_sonnet_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_SONNET_MODEL }}
           default_haiku_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_HAIKU_MODEL }}
           cortex_ref: ${{ inputs.cortex_ref || 'main' }}
-          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
 
       - name: Triage the incident issues
         id: triage
         uses: jahia/jahia-modules-action/ai-incident-triage@v2
         with:
           issues: ${{ needs.select-issues.outputs.issues }}
-          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           cortex_path: ${{ steps.setup.outputs.cortex_path }}
           post_comments: ${{ inputs.post_comments }}
 
