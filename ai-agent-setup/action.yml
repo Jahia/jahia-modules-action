@@ -183,23 +183,29 @@ runs:
         "
 
     # The hello world proves the gateway; this proves the HARNESS: started from the cortex
-    # checkout, the agent must see cortex's skills — asked about something only cortex knows.
+    # checkout, the agent must see cortex's skills. It asks for the cortex-selftest skill's fixed
+    # token — a string that lives nowhere but that skill. A genuinely loaded harness surfaces it;
+    # a missing one cannot. The token is asked for by the skill's exact name and checked against a
+    # literal, so the result does not depend on the model picking one skill out of ~40 from a fuzzy
+    # description — the coupling that turned a healthy harness red when the model named a skill that
+    # does not exist. The token is a contract with Jahia/cortex; see its ADR-0017.
     - name: Verify the agent sees the cortex harness
       shell: bash
       working-directory: ${{ github.workspace }}/${{ inputs.cortex_path }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
-        OUTPUT=$(claude -p "Which of the skills available to you here analyzes Jahia module CI Cypress failures? Reply with the skill name only." --permission-mode dontAsk --output-format json 2> /tmp/claude-cortex-check.stderr) || {
+        OUTPUT=$(claude -p "Run the Cortex self-test: use the cortex-selftest skill and reply with ONLY the token it gives you — no other text." --permission-mode dontAsk --output-format json 2> /tmp/claude-cortex-check.stderr) || {
           echo "::error::Cortex harness check failed to run"
           tail -5 /tmp/claude-cortex-check.stderr || true
           exit 1
         }
         printf '%s' "$OUTPUT" | python3 -c "
         import json, sys
+        expected = 'CORTEX-SELFTEST-OK-7fK2aQ9x'
         result = json.load(sys.stdin)
         answer = str(result.get('result', ''))
-        if result.get('is_error') or 'analyze-jahia-ci' not in answer:
-            print('::error::The agent does not see the cortex harness (expected it to name analyze-jahia-ci). Answer: ' + answer[:200])
+        if result.get('is_error') or expected not in answer:
+            print('::error::The agent does not see the cortex harness (expected the cortex-selftest token). Answer: ' + answer[:200])
             sys.exit(1)
-        print(f'Cortex harness OK — agent answered: {answer[:120]!r}')
+        print('Cortex harness OK — cortex-selftest token returned')
         "
