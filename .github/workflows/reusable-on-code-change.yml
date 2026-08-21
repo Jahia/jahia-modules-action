@@ -21,6 +21,7 @@ on:
         static_analysis_auditci_level:
             type: string
             default: "critical"
+            description: "Severity at which audit-ci fails. A module that gates on a lower severity than critical must keep declaring it."
         static_analysis_node_version:
             type: number
             default: 18
@@ -71,6 +72,7 @@ on:
         integration_tests_jahia_image:
             type: string
             default: "ghcr.io/jahia/jahia-ee-dev:8-SNAPSHOT"
+            description: "Jahia image the tests run against. This value is passed down, so it also overrides whatever the module's own docker-compose.yml falls back to."
         integration_tests_pagerduty_incident_service:
             type: string
             default: ""
@@ -92,9 +94,11 @@ on:
         integration_tests_should_skip_testrail:
             type: boolean
             default: true
+            description: "TestRail is not published from a pull request. Set to false to publish from this workflow."
         integration_tests_should_skip_pagerduty:
             type: boolean
             default: false
+            description: "DEPRECATED and ignored — never forwarded to the test run. Use integration_tests_pagerduty_skip_notification."
         sbom_execute:
             type: boolean
             default: false
@@ -174,7 +178,7 @@ jobs:
                 ref: ${{ inputs.module_branch || github.ref }}
             - uses: jahia/jahia-modules-action/sonar-analysis@v2
               with:
-                primary_release_branch: ${{ inputs.sonar_analysis_primary_release_branch || github.event.pull_request.base.ref || github.event.repository.default_branch }}
+                primary_release_branch: ${{ inputs.sonar_analysis_primary_release_branch || github.event.pull_request.base.ref || github.event.repository.default_branch || 'main' }}
                 github_pr_id: ${{github.event.number}}
                 sonar_url: ${{ secrets.SONAR_URL }}
                 sonar_token: ${{ secrets.SONAR_TOKEN }}
