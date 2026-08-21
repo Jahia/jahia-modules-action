@@ -21,7 +21,7 @@ on:
         static_analysis_auditci_level:
             type: string
             default: "critical"
-            description: "Severity at which audit-ci fails. A module that gates on a lower severity than critical must keep declaring it."
+            description: "Severity at which audit-ci fails. A module that gates lower than critical must keep declaring it, on every branch that runs this workflow."
         static_analysis_node_version:
             type: number
             default: 18
@@ -94,7 +94,7 @@ on:
         integration_tests_should_skip_testrail:
             type: boolean
             default: true
-            description: "TestRail is not published from a pull request. Set to false to publish from this workflow."
+            description: "Skips publishing to TestRail, which is what a pull-request run wants. Set to false to publish."
         integration_tests_should_skip_pagerduty:
             type: boolean
             default: false
@@ -196,7 +196,6 @@ jobs:
             jahia_image: ${{ inputs.integration_tests_jahia_image }}
             pagerduty_skip_notification: ${{ inputs.integration_tests_pagerduty_skip_notification }}
             provisioning_manifest: ${{ inputs.integration_tests_provisioning_manifest }}
-            should_use_build_artifacts: ${{ inputs.integration_tests_should_use_build_artifacts }}
             artifact_prefix: standalone-${{ inputs.integration_tests_artifact_prefix || inputs.module_id }}
             module_branch: ${{ inputs.module_branch || github.ref }}
             timeout_job: ${{ inputs.integration_tests_timeout }}
@@ -220,7 +219,6 @@ jobs:
             jahia_image: ${{ inputs.integration_tests_jahia_image }}
             pagerduty_skip_notification: ${{ inputs.integration_tests_pagerduty_skip_notification }}
             provisioning_manifest: ${{ inputs.integration_tests_provisioning_manifest }}
-            should_use_build_artifacts: ${{ inputs.integration_tests_should_use_build_artifacts }}
             artifact_prefix: cluster-${{ inputs.integration_tests_artifact_prefix || inputs.module_id }}
             module_branch: ${{ inputs.module_branch || github.ref }}
             timeout_job: ${{ inputs.integration_tests_timeout }}
