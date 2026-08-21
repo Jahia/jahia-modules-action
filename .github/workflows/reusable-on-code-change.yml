@@ -9,8 +9,9 @@ on:
             type: string
             default: ".github/maven.settings.xml"
         module_branch:
-            required: true
             type: string
+            default: ""
+            description: "Ref to check out and test. Defaults to the ref that triggered the caller."
         update_signature_execute:
             type: boolean
             default: false
@@ -19,7 +20,7 @@ on:
             default: "ubuntu-latest"
         static_analysis_auditci_level:
             type: string
-            default: "moderate"
+            default: "critical"
         static_analysis_node_version:
             type: number
             default: 18
@@ -32,7 +33,8 @@ on:
             default: "ghcr.io/jahia/jahia-docker-mvn-cache:11-jdk-noble-mvn-loaded"
         sonar_analysis_primary_release_branch:
             type: string
-            default: "main"
+            default: ""
+            description: "Branch the analysis compares against. Defaults to the base branch of the pull request, then to the repository default branch."
         sonar_analysis_instance_type:
             type: string
             default: "ubuntu-latest"
@@ -45,6 +47,7 @@ on:
         integration_tests_standalone_execute:
             type: boolean
             default: false
+            description: "Forces the standalone run. Left false, it runs anyway when a provisioning manifest is given and no cluster run is requested."
         integration_tests_cluster_execute:
             type: boolean
             default: false
@@ -60,12 +63,14 @@ on:
         integration_tests_should_use_build_artifacts:
             type: boolean
             default: false
+            description: "DEPRECATED and ignored — build artifacts are downloaded whenever they are available."
         integration_tests_artifact_prefix:
             type: string
-            default: "tests"
+            default: ""
+            description: "Prefix of the test artifacts, after the run type. Defaults to module_id."
         integration_tests_jahia_image:
             type: string
-            default: ""
+            default: "ghcr.io/jahia/jahia-ee-dev:8-SNAPSHOT"
         integration_tests_pagerduty_incident_service:
             type: string
             default: ""
@@ -86,7 +91,7 @@ on:
             default: ""
         integration_tests_should_skip_testrail:
             type: boolean
-            default: false
+            default: true
         integration_tests_should_skip_pagerduty:
             type: boolean
             default: false
@@ -118,7 +123,7 @@ jobs:
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
               with:
-                ref: ${{ inputs.module_branch }}
+                ref: ${{ inputs.module_branch || github.ref }}
             - uses: jahia/jahia-modules-action/update-signature@v2
               with:
                 nexus_internal_releases_url: ${{ secrets.NEXUS_INTERNAL_RELEASES_URL }}
@@ -130,7 +135,7 @@ jobs:
       steps:
         - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
           with:
-            ref: ${{ inputs.module_branch }}
+            ref: ${{ inputs.module_branch || github.ref }}
         - uses: jahia/jahia-modules-action/static-analysis@v2
           with:
             node_version: ${{ inputs.static_analysis_node_version }}
@@ -148,7 +153,7 @@ jobs:
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
               with:
-                ref: ${{ inputs.module_branch }}
+                ref: ${{ inputs.module_branch || github.ref }}
             - uses: jahia/jahia-modules-action/build@v2
               with:
                 mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
@@ -166,17 +171,17 @@ jobs:
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
               with:
-                ref: ${{ inputs.module_branch }}
+                ref: ${{ inputs.module_branch || github.ref }}
             - uses: jahia/jahia-modules-action/sonar-analysis@v2
               with:
-                primary_release_branch: ${{ inputs.sonar_analysis_primary_release_branch }}
+                primary_release_branch: ${{ inputs.sonar_analysis_primary_release_branch || github.event.pull_request.base.ref || github.event.repository.default_branch }}
                 github_pr_id: ${{github.event.number}}
                 sonar_url: ${{ secrets.SONAR_URL }}
                 sonar_token: ${{ secrets.SONAR_TOKEN }}
                 mvn_settings_filepath: ${{ inputs.mvn_settings_filepath }}
 
     integration-tests-standalone:
-        if: ${{ inputs.integration_tests_standalone_execute }}
+        if: ${{ inputs.integration_tests_standalone_execute || (inputs.integration_tests_provisioning_manifest != '' && !inputs.integration_tests_cluster_execute) }}
         needs: build
         secrets: inherit
         uses: Jahia/jahia-modules-action/.github/workflows/reusable-integration-tests.yml@v2
@@ -188,8 +193,8 @@ jobs:
             pagerduty_skip_notification: ${{ inputs.integration_tests_pagerduty_skip_notification }}
             provisioning_manifest: ${{ inputs.integration_tests_provisioning_manifest }}
             should_use_build_artifacts: ${{ inputs.integration_tests_should_use_build_artifacts }}
-            artifact_prefix: standalone-${{ inputs.integration_tests_artifact_prefix }}
-            module_branch: ${{ inputs.module_branch }}
+            artifact_prefix: standalone-${{ inputs.integration_tests_artifact_prefix || inputs.module_id }}
+            module_branch: ${{ inputs.module_branch || github.ref }}
             timeout_job: ${{ inputs.integration_tests_timeout }}
             timeout_step: ${{ inputs.integration_tests_timeout_step }}
             tests_profile: ${{ inputs.integration_tests_profile }}
@@ -212,8 +217,8 @@ jobs:
             pagerduty_skip_notification: ${{ inputs.integration_tests_pagerduty_skip_notification }}
             provisioning_manifest: ${{ inputs.integration_tests_provisioning_manifest }}
             should_use_build_artifacts: ${{ inputs.integration_tests_should_use_build_artifacts }}
-            artifact_prefix: cluster-${{ inputs.integration_tests_artifact_prefix }}
-            module_branch: ${{ inputs.module_branch }}
+            artifact_prefix: cluster-${{ inputs.integration_tests_artifact_prefix || inputs.module_id }}
+            module_branch: ${{ inputs.module_branch || github.ref }}
             timeout_job: ${{ inputs.integration_tests_timeout }}
             timeout_step: ${{ inputs.integration_tests_timeout_step }}
             tests_profile: ${{ inputs.integration_tests_profile }}
