@@ -40,6 +40,9 @@ runs:
       with:
         node-version: ${{ inputs.node_version }}
 
+    - run: node --version
+      shell: bash
+
     - name: Get package.json infos
       shell: bash
       run: |
