@@ -30,7 +30,12 @@ runs:
         mkdir -p "${BASE_REPO_DIR}"
         echo "BASE_REPO_DIR=${BASE_REPO_DIR}" >> $GITHUB_ENV
         echo "Using ${BASE_REPO_DIR} as base repository directory"
-        git clone --depth 1 https://x-access-token:${{ inputs.github_token }}@github.com/${{ github.repository }}.git ${BASE_REPO_DIR}
+        # Clone the branch the pull request targets, not the repository's default branch:
+        # the workspace is the pull request merged into that branch, so it is the only
+        # baseline against which the difference is the pull request's own work.
+        # github.base_ref is set on pull_request events only, hence the fallback.
+        BASE_BRANCH="${{ github.base_ref || github.event.repository.default_branch }}"
+        git clone --depth 1 --branch "${BASE_BRANCH}" https://x-access-token:${{ inputs.github_token }}@github.com/${{ github.repository }}.git ${BASE_REPO_DIR}
         echo "Commit hash of base branch:"
         git rev-parse HEAD
 
