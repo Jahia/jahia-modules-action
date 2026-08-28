@@ -35,6 +35,7 @@ runs:
         # baseline against which the difference is the pull request's own work.
         # github.base_ref is set on pull_request events only, hence the fallback.
         BASE_BRANCH="${{ github.base_ref || github.event.repository.default_branch }}"
+        echo "Cloning branch $BASE_BRANCH"
         git clone --depth 1 --branch "${BASE_BRANCH}" https://x-access-token:${{ inputs.github_token }}@github.com/${{ github.repository }}.git ${BASE_REPO_DIR}
         echo "Commit hash of base branch:"
         git rev-parse HEAD
