@@ -40,11 +40,15 @@ runs:
         config_file="${{ inputs.config-file }}"
         # If the config file exists, we assume the version file (if needed) exists
         if [ ! -f "$config_file" ]; then
-          mkdir -p "$(dirname "$version_file")"
-          echo "0.0.0" > "$version_file"
-          echo "Created $version_file with 0.0.0"
+          if [ ! -f "$version_file" ]; then
+            mkdir -p "$(dirname "$version_file")"
+            echo "0.0.0" > "$version_file"
+            echo "Created $version_file with 0.0.0"
+          else
+            echo "$version_file already exists; leaving it unchanged"
+          fi
         else
-          echo "$version_file already exists"
+          echo "$config_file already exists; skipping creation of $version_file"
         fi
 
     - name: Resolve defaults (package-name, base-branch)
