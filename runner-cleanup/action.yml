@@ -1,0 +1,81 @@
+name: Runner Cleanup
+description: Reclaim disk space on GitHub-hosted runners by removing unnecessary SDKs, caches and, optionally, browsers and Docker data.
+
+inputs:
+  remove-browsers:
+    description: If true, also remove browser caches and binaries.
+    required: false
+    default: 'false'
+  remove-docker-images:
+    description: If false, skip the Docker system/builder prune, keeping Docker images already present on the runner (e.g. images pre-pulled for later steps).
+    required: false
+    default: 'true'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Disk space before cleanup
+      shell: bash
+      run: |
+        echo "📊 Disk space before cleanup:"
+        df -h
+
+    - name: Remove language/toolchain directories
+      shell: bash
+      run: |
+        # Removes each element and logs the disk space it reclaimed
+        cleanup() {
+          local label="$1"; shift
+          local before after
+          before=$(df -k --output=avail / | tail -1)
+          sudo rm -rf "$@"
+          after=$(df -k --output=avail / | tail -1)
+          echo "🧼 Removed ${label}: reclaimed $(( (after - before) / 1024 )) MB"
+        }
+        cleanup "Java" /usr/lib/jvm
+        cleanup ".NET SDKs and Runtimes" /usr/share/dotnet
+        cleanup "Swift" /usr/share/swift
+        cleanup "Haskell (.ghcup)" /usr/local/.ghcup
+        cleanup "Julia" /usr/local/julia*
+        cleanup "Android SDK" /usr/local/lib/android
+        cleanup "Azure CLI" /opt/az
+        cleanup "PowerShell" /usr/local/share/powershell
+        cleanup "hostedtoolcache" /opt/hostedtoolcache
+
+    - name: Conditionally remove browsers
+      if: inputs.remove-browsers == 'true'
+      shell: bash
+      run: |
+        cleanup() {
+          local label="$1"; shift
+          local before after
+          before=$(df -k --output=avail / | tail -1)
+          sudo rm -rf "$@"
+          after=$(df -k --output=avail / | tail -1)
+          echo "🧼 Removed ${label}: reclaimed $(( (after - before) / 1024 )) MB"
+        }
+        cleanup "Chromium" /usr/local/share/chromium
+        cleanup "Microsoft Edge" /opt/microsoft
+        cleanup "Google Chrome" /opt/google
+        cleanup "Firefox" /usr/lib/firefox
+
+    - name: Prune Docker system
+      if: inputs.remove-docker-images == 'true'
+      shell: bash
+      run: |
+        before=$(df -k --output=avail / | tail -1)
+        docker system prune -af || true
+        docker builder prune -af || true
+        after=$(df -k --output=avail / | tail -1)
+        echo "🧼 Pruned Docker system and builder cache: reclaimed $(( (after - before) / 1024 )) MB"
+
+    - name: Docker prune skipped
+      if: inputs.remove-docker-images != 'true'
+      shell: bash
+      run: echo "🐳 Docker prune skipped (remove-docker-images is false), existing Docker images are kept."
+
+    - name: Disk space after cleanup
+      shell: bash
+      run: |
+        echo "📊 Disk space after cleanup:"
+        df -h
