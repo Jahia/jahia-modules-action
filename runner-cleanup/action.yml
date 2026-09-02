@@ -24,15 +24,15 @@ runs:
       shell: bash
       run: |
         # Removes each element and logs the disk space it reclaimed
+        # Java is deliberately NOT removed: Jahia builds rely on the JDKs present on the runner
         cleanup() {
           local label="$1"; shift
           local before after
           before=$(df -k --output=avail / | tail -1)
-          sudo rm -rf "$@"
+          if [ "$#" -gt 0 ]; then sudo rm -rf "$@"; fi
           after=$(df -k --output=avail / | tail -1)
           echo "🧼 Removed ${label}: reclaimed $(( (after - before) / 1024 )) MB"
         }
-        cleanup "Java" /usr/lib/jvm
         cleanup ".NET SDKs and Runtimes" /usr/share/dotnet
         cleanup "Swift" /usr/share/swift
         cleanup "Haskell (.ghcup)" /usr/local/.ghcup
@@ -40,7 +40,7 @@ runs:
         cleanup "Android SDK" /usr/local/lib/android
         cleanup "Azure CLI" /opt/az
         cleanup "PowerShell" /usr/local/share/powershell
-        cleanup "hostedtoolcache" /opt/hostedtoolcache
+        cleanup "hostedtoolcache (except Java)" $(sudo find /opt/hostedtoolcache -mindepth 1 -maxdepth 1 ! -iname '*jdk*' ! -iname 'java*' 2>/dev/null)
 
     - name: Conditionally remove browsers
       if: inputs.remove-browsers == 'true'
