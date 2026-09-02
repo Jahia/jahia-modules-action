@@ -61,7 +61,7 @@ runs:
       shell: bash
       run: |
         if [ "${{ inputs.dry-run }}" == "true" ]; then
-          echo "::notice title=Artifacts location (require VPN, dry-run)::Artifacts would have been uploaded to: ${{ inputs.destination-host }}:${{ inputs.destination-path }}"
+          echo "::notice title=Artifacts location::Artifacts have not been uploaded to: ${{ inputs.destination-host }}:${{ inputs.destination-path }} (dry-run)"
         else
           echo "::notice title=Artifacts location (require VPN)::Artifacts have been uploaded to: ${{ inputs.destination-host }}:${{ inputs.destination-path }}"
         fi
