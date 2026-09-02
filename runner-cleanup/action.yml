@@ -59,6 +59,24 @@ runs:
         cleanup "Google Chrome" /opt/google
         cleanup "Firefox" /usr/lib/firefox
 
+    - name: Docker cache contents
+      shell: bash
+      run: |
+        echo "🐳 Docker disk usage summary:"
+        docker system df || true
+        echo ""
+        echo "🐳 Images (name:tag, largest first):"
+        docker image ls --format '{{.Size}}\t{{.Repository}}:{{.Tag}}\t{{.CreatedSince}}' | sort -hr | column -t -s $'\t' || true
+        echo ""
+        echo "🐳 Containers (with the image they were created from):"
+        docker ps -a --size --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Size}}' || true
+        echo ""
+        echo "🐳 Volumes:"
+        docker system df -v 2>/dev/null | awk '/^Local Volumes space usage:/{flag=1; next} flag && /^$/{exit} flag{print}' || true
+        echo ""
+        echo "🐳 Build cache total:"
+        docker builder du 2>/dev/null | tail -1 || true
+
     - name: Prune Docker system
       if: inputs.remove-docker-images == 'true'
       shell: bash

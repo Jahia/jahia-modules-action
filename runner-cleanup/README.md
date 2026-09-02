@@ -13,6 +13,7 @@ This action is a local copy of [mathio/gha-cleanup](https://github.com/mathio/gh
 
 - New `remove-docker-images` input (default `true`, matching upstream behavior). Set it to `false` to keep the Docker images already present on the runner.
 - After each element is cleaned up, the action logs the amount of disk space reclaimed by that element.
+- Before the Docker prune (or its skip), the action logs a detailed inventory of the Docker cache: overall usage per category (`docker system df`), images by name:tag sorted by size, containers with the image they were created from, volumes, and the build cache total.
 - The upstream `verbose` input was removed: the per-element reclaimed-space log replaces it and is always on.
 
 ## Usage
