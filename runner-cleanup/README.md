@@ -11,6 +11,7 @@ This action is a local copy of [mathio/gha-cleanup](https://github.com/mathio/gh
 
 ## Differences from upstream
 
+- **Nothing related to Java is ever removed.** Upstream deletes `/usr/lib/jvm` (the runner's pre-installed JDKs), which Jahia builds rely on. This copy keeps `/usr/lib/jvm`, and the hostedtoolcache wipe skips any Java/JDK entries (e.g. JDKs cached by `setup-java`).
 - New `remove-docker-images` input (default `true`, matching upstream behavior). Set it to `false` to keep the Docker images already present on the runner.
 - After each element is cleaned up, the action logs the amount of disk space reclaimed by that element.
 - Before the Docker prune (or its skip), the action logs a detailed inventory of the Docker cache: overall usage per category (`docker system df`), images by name:tag sorted by size, containers with the image they were created from, volumes, and the build cache total.
