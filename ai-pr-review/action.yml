@@ -19,6 +19,10 @@ inputs:
     description: 'true: submit the review on the PR; false: review mode — store the would-be review under logs_dir/reviews instead (nothing is posted, the review request stays pending)'
     required: false
     default: 'true'
+  debug:
+    description: 'Run the Claude Code CLI with --debug: API/CLI-level detail lands in review.stderr.log inside the logs artifact'
+    required: false
+    default: 'false'
   allowed_tools:
     description: 'Claude Code --allowedTools value for the agent: read/search tools, local file writes (the review body file), read-only git/gh, and the throwaway clone surface. The agent never posts — submitting the review file is a deterministic step of this action.'
     required: false
@@ -67,6 +71,7 @@ runs:
         GH_TOKEN: ${{ inputs.github_token }}
         ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
         DISALLOWED_TOOLS: ${{ inputs.disallowed_tools }}
+        CLAUDE_DEBUG: ${{ inputs.debug }}
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
         PR_KEY: ${{ steps.prep.outputs.pr_key }}
       run: |
@@ -84,6 +89,8 @@ runs:
         echo "::endgroup::"
         STREAM_FILE="$LOG_DIR/review.stream.jsonl"
         EXIT_CODE=0
+        DEBUG_FLAG=""
+        [ "$CLAUDE_DEBUG" = "true" ] && DEBUG_FLAG="--debug"
         # --add-dir: the log dir lives outside the cortex cwd, which Claude Code otherwise refuses
         claude -p "$(cat "$LOG_DIR/review.prompt.md")" \
           --allowedTools "$ALLOWED_TOOLS" \
@@ -91,9 +98,11 @@ runs:
           --add-dir "$LOG_DIR" \
           --permission-mode dontAsk \
           --output-format stream-json \
-          --verbose \
+          --verbose $DEBUG_FLAG \
           > "$STREAM_FILE" 2> "$LOG_DIR/review.stderr.log" || EXIT_CODE=$?
-        python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "$PR_KEY" "$EXIT_CODE"
+        # tee: the readable trace belongs in the artifact too, not only in this console log
+        python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "$PR_KEY" "$EXIT_CODE" \
+          | tee "$LOG_DIR/review.trace.log"
         if [ "$EXIT_CODE" -ne 0 ]; then
           echo "::warning::Agent exited with code $EXIT_CODE — the review request stays pending; re-run this workflow or re-request the review to retry"
         fi

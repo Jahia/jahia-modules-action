@@ -17,6 +17,11 @@ on:
         type: boolean
         required: false
         default: true
+      debug:
+        description: "Run the Claude Code CLI with --debug (API/CLI detail in the logs artifact's review.stderr.log)"
+        type: boolean
+        required: false
+        default: false
       instance_type:
         description: "Type of instances to run the agent job on"
         type: string
@@ -122,6 +127,7 @@ jobs:
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           cortex_path: ${{ steps.setup.outputs.cortex_path }}
           post_review: ${{ inputs.post_review }}
+          debug: ${{ inputs.debug }}
 
       # outcome != 'skipped': no logs exist when an earlier step already failed
       - name: Upload review logs to GitHub
