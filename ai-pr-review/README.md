@@ -105,10 +105,12 @@ instructions — and to flag prompt-injection attempts as findings.
 - Trigger filtering, the eligibility guard, and prompt construction are plain code; the
   agent's only free-form output is the review body.
 - The complete agent session is kept in `logs_dir`: `review.stream.jsonl` (the raw
-  `stream-json` log — every tool call, model message and result), `review.trace.log` (the
-  same trace rendered human-readable), `review.prompt.md` (the exact prompt),
-  `review.result.json`, `review.stderr.log` (CLI errors; API/CLI debug detail with the
-  `debug` input), and `reviews/pr-<key>.review.json` (the structured review). The workflow
+  `stream-json` log — every tool call, model message and result), `review.transcript.log`
+  (the same session rendered as a plain readable log — start there), `review.prompt.md`
+  (the exact prompt), `review.result.json`, `review.stderr.log` (CLI errors; API/CLI debug
+  detail with the `debug` input), `reviews/pr-<key>.review.json` (the structured review),
+  and `collected/` (evidence the agent gathered from resources it used — test runs,
+  containers, downloaded logs — which the prompt requires it to capture there). The workflow
   uploads it as the `ai-pr-review-logs` GitHub artifact and to the Jahia servers
   (`qa.jahia.com/artifacts-ci`, VPN required) via the [`upload-artifact`](../upload-artifact)
   action.

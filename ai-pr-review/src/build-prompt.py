@@ -33,6 +33,9 @@ key = '-'.join(match.groups())
 reviews_dir = os.path.join(log_dir, 'reviews')
 os.makedirs(reviews_dir, exist_ok=True)
 review_file = os.path.join(reviews_dir, f'pr-{key}.review.json')
+# Everything the agent gathers from resources it uses lands here (uploaded as the artifact).
+collect_dir = os.path.join(log_dir, 'collected')
+os.makedirs(collect_dir, exist_ok=True)
 
 POST_INSTRUCTIONS = (
     'write the final review (exact JSON format below) to the file\n'
@@ -52,6 +55,7 @@ prompt = (template
           .replace('__REPORTING_INSTRUCTIONS__',
                    POST_INSTRUCTIONS if post_review else REVIEW_INSTRUCTIONS)
           .replace('__PR_URL__', pr_url)
+          .replace('__COLLECT_DIR__', collect_dir)
           .replace('__AGENT__', os.environ.get('AGENT', 'Claude Code'))
           .replace('__RUN_URL__', os.environ.get('RUN_URL', ''))
           .replace('__MARKER__', marker))

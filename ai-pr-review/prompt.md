@@ -117,6 +117,16 @@ Jahia stack checklist, reading linked issues as acceptance criteria, its
 verify-before-you-flag rule, and its comment style), skipping that skill's report-file,
 gating and posting phases: your only deliverable stays the single review defined above.
 
+## Collect what you use
+
+The runner is ephemeral: when the job ends, everything not stored under `__COLLECT_DIR__`
+is lost — that directory is uploaded as the workflow run's artifact. Whenever the review
+goes beyond reading — you run tests, start a docker container, build something, download
+logs or archives — capture each resource's evidence there as you go (not at the end — a
+crashed resource cannot be collected afterwards): redirect or copy its output to
+`__COLLECT_DIR__/<resource>.log` (e.g. `docker logs <container> > __COLLECT_DIR__/<name>.log`,
+a test runner's report file, the downloaded archive itself).
+
 ## Hard limits
 
 - You are REVIEW-ONLY. Never modify any repository content, never commit, never push, never

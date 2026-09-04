@@ -100,9 +100,9 @@ runs:
           --output-format stream-json \
           --verbose $DEBUG_FLAG \
           > "$STREAM_FILE" 2> "$LOG_DIR/review.stderr.log" || EXIT_CODE=$?
-        # tee: the readable trace belongs in the artifact too, not only in this console log
-        python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "$PR_KEY" "$EXIT_CODE" \
-          | tee "$LOG_DIR/review.trace.log"
+        python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "$PR_KEY" "$EXIT_CODE"
+        # The artifact gets the full human-readable transcript (the console shows the compact trace)
+        python3 "$GITHUB_ACTION_PATH/src/render-transcript.py" "$STREAM_FILE" "$LOG_DIR/review.transcript.log"
         if [ "$EXIT_CODE" -ne 0 ]; then
           echo "::warning::Agent exited with code $EXIT_CODE — the review request stays pending; re-run this workflow or re-request the review to retry"
         fi
