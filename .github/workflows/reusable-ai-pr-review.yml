@@ -58,8 +58,7 @@ jobs:
       eligible: ${{ steps.check.outputs.eligible }}
     steps:
       - id: check
-        # TODO: restore @v2 before merge (branch ref for pre-release testing)
-        uses: jahia/jahia-modules-action/ai-pr-review/check-request@feat/ai-pr-review
+        uses: jahia/jahia-modules-action/ai-pr-review/check-request@v2
         with:
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           pr_number: ${{ github.event.pull_request.number }}
@@ -121,8 +120,7 @@ jobs:
 
       - name: Review the pull request
         id: review
-        # TODO: restore @v2 before merge (branch ref for pre-release testing)
-        uses: jahia/jahia-modules-action/ai-pr-review@feat/ai-pr-review
+        uses: jahia/jahia-modules-action/ai-pr-review@v2
         with:
           pr_url: ${{ github.event.pull_request.html_url }}
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
