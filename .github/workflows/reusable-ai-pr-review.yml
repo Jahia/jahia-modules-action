@@ -1,0 +1,125 @@
+# On-demand AI review of a pull request: a Claude Code agent (cortex harness, LiteLLM through
+# the IT mTLS bastion) reviews the PR and submits a single COMMENT review — it never approves,
+# requests changes, or touches code. Trigger filtering (which event, which reviewer) belongs to
+# the caller, typically reusable-delivery-pr-chores.yml. Requirements: ai-pr-review/README.md.
+name: AI PR Review
+
+on:
+  workflow_call:
+    inputs:
+      reviewer:
+        description: "GitHub username of the AI reviewer account (the review only runs while this user's review request is pending)"
+        type: string
+        required: false
+        default: "jahia-ai"
+      post_review:
+        description: "Submit the review on the PR (false = review mode: store the would-be review in the run artifact instead)"
+        type: boolean
+        required: false
+        default: true
+      instance_type:
+        description: "Type of instances to run the agent job on"
+        type: string
+        required: false
+        default: "self-hosted"
+      timeout_job:
+        description: "Timeout (in minutes) of the agent job"
+        type: number
+        required: false
+        default: 30
+      cortex_ref:
+        description: "Git ref of the cortex harness to use"
+        type: string
+        required: false
+        default: "main"
+      claude_code_version:
+        description: "Claude Code CLI version to install"
+        type: string
+        required: false
+        default: "stable"
+      tunnel_hosts:
+        description: "Internal hosts to reach through the mTLS tunnel (space-separated); must be allowlisted on IT's side"
+        type: string
+        required: false
+        default: "litellm-prod.int.jahia.com"
+
+jobs:
+  # Cheap LLM-free guard: only proceed while the review request is still pending.
+  check-request:
+    name: Check the review request is pending
+    runs-on: ubuntu-slim
+    outputs:
+      eligible: ${{ steps.check.outputs.eligible }}
+    steps:
+      - id: check
+        uses: jahia/jahia-modules-action/ai-pr-review/check-request@v2
+        with:
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          pr_number: ${{ github.event.pull_request.number }}
+          reviewer: ${{ inputs.reviewer }}
+
+  review:
+    name: Review the PR with Claude Code
+    needs: check-request
+    if: needs.check-request.outputs.eligible == 'true'
+    runs-on: ${{ inputs.instance_type }}
+    timeout-minutes: ${{ inputs.timeout_job }}
+    # One review at a time per PR: a re-request arriving while a review is in flight waits.
+    concurrency:
+      group: ai-pr-review-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Open the mTLS tunnel to internal Jahia services
+        uses: jahia/jahia-modules-action/mtls-tunnel@v2
+        with:
+          hosts: ${{ inputs.tunnel_hosts }}
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
+          server-name: ci-egress.jahia.com
+          audience: jahia-ci-egress
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
+          canary-url: ${{ vars.AI_LITELLM_BASE_URL }}/health/liveliness
+
+      - name: Set up Claude Code and the cortex harness
+        id: setup
+        uses: jahia/jahia-modules-action/ai-agent-setup@v2
+        with:
+          claude_code_version: ${{ inputs.claude_code_version }}
+          anthropic_base_url: ${{ vars.AI_LITELLM_BASE_URL }}
+          anthropic_auth_token: ${{ secrets.AI_LITELLM_AUTH_TOKEN }}
+          default_opus_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_OPUS_MODEL }}
+          default_sonnet_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_SONNET_MODEL }}
+          default_haiku_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_HAIKU_MODEL }}
+          cortex_ref: ${{ inputs.cortex_ref }}
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+
+      - name: Review the pull request
+        uses: jahia/jahia-modules-action/ai-pr-review@v2
+        with:
+          pr_url: ${{ github.event.pull_request.html_url }}
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          cortex_path: ${{ steps.setup.outputs.cortex_path }}
+          post_review: ${{ inputs.post_review }}
+
+      - name: Upload review logs to GitHub
+        if: always()
+        uses: jahia/jahia-modules-action/upload-artifact@v2
+        with:
+          destination: "github"
+          name: ai-pr-review-logs
+          path: ${{ runner.temp }}/pr-review-logs
+          retention-days: 2
+
+      - name: Upload review logs to Jahia servers
+        if: always()
+        uses: jahia/jahia-modules-action/upload-artifact@v2
+        with:
+          destination: "jahia"
+          name: ai-pr-review-logs
+          path: ${{ runner.temp }}/pr-review-logs
+          retention-days: 30
+          ssh-key: ${{ secrets.BASTION_SSH_PRIVATE_KEY_JAHIACI }}

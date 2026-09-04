@@ -1,0 +1,139 @@
+name: AI PR Review
+description: Runs a Claude Code agent from the cortex harness to review one pull request and submit its findings as a single COMMENT review
+
+inputs:
+  pr_url:
+    description: 'URL of the pull request to review (the agent derives the repository and what to check out from it)'
+    required: true
+  github_token:
+    description: 'Token used by the agent to read the PR and submit the review. Use the AI reviewer account''s token: submitting the review with it fulfills (clears) the review request, which is what makes "one review per request" deterministic.'
+    required: true
+  cortex_path:
+    description: 'Absolute path of the cortex checkout (from ai-agent-setup)'
+    required: true
+  marker:
+    description: 'Hidden marker string the agent must put in every review body'
+    required: false
+    default: '<!-- cortex-pr-review -->'
+  post_review:
+    description: 'true: submit the review on the PR; false: review mode — store the would-be review under logs_dir/reviews instead (nothing is posted, the review request stays pending)'
+    required: false
+    default: 'true'
+  allowed_tools:
+    description: 'Claude Code --allowedTools value for the agent: read/search tools, local file writes (staging the review body), read-only git/gh, and the throwaway clone surface. Bash(gh pr review:*) is appended automatically when post_review is true.'
+    required: false
+    default: 'Read,Write,Grep,Glob,Skill,Task,Agent,TodoWrite,ReportFindings,Bash(git log:*),Bash(git diff:*),Bash(git show:*),Bash(git status:*),Bash(git branch --show-current),Bash(git branch --list),Bash(git branch -a),Bash(git branch -r),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(git blame:*),Bash(git cat-file:*),Bash(git fetch:*),Bash(git merge-base:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr checkout:*),Bash(gh issue view:*),Bash(gh repo view:*),Bash(gh repo clone:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(mkdir:*)'
+  disallowed_tools:
+    description: 'Claude Code --disallowedTools value. A deny rule beats an allow rule, including one the cloned repository''s own settings could carry: editing tools, every way a review could reach the forge or rewrite history, and the options of allowed commands that write (--output) or execute (--upload-pack). Bash(gh pr review:*) is appended automatically when post_review is false.'
+    required: false
+    default: 'Edit,NotebookEdit,MultiEdit,Bash(git push:*),Bash(git commit:*),Bash(git switch:*),Bash(git checkout:*),Bash(git reset:*),Bash(git remote:*),Bash(git * --output*),Bash(git * --upload-pack*),Bash(gh pr create:*),Bash(gh pr comment:*),Bash(gh pr edit:*),Bash(gh pr ready:*),Bash(gh pr merge:*),Bash(gh pr close:*),Bash(gh issue create:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh api:*),Bash(gh release:*),Bash(gh workflow:*),Bash(gh secret:*)'
+
+outputs:
+  logs_dir:
+    description: 'Directory holding the review run logs (prompt, agent stream, result) — upload it as an artifact'
+    value: ${{ steps.prep.outputs.logs_dir }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Prepare the review prompt and the log directory
+      id: prep
+      shell: bash
+      env:
+        PR_URL: ${{ inputs.pr_url }}
+        MARKER: ${{ inputs.marker }}
+        POST_REVIEW: ${{ inputs.post_review }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        AGENT="Claude Code $(claude --version 2>/dev/null | head -1 || echo '(version unknown)')"
+        if [ -n "$ANTHROPIC_DEFAULT_SONNET_MODEL" ]; then
+          AGENT="$AGENT · model: $ANTHROPIC_DEFAULT_SONNET_MODEL"
+        fi
+        export AGENT
+        LOG_DIR="$RUNNER_TEMP/pr-review-logs"
+        mkdir -p "$LOG_DIR"
+        PR_KEY=$(python3 "$GITHUB_ACTION_PATH/src/build-prompt.py" "$GITHUB_ACTION_PATH/prompt.md" "$LOG_DIR")
+        echo "Prepared the review prompt for $PR_URL"
+        # Reviews submitted by this run must be newer than this instant (verification step).
+        echo "started_at=$(date -u +%FT%TZ)" >> "$GITHUB_OUTPUT"
+        echo "logs_dir=$LOG_DIR" >> "$GITHUB_OUTPUT"
+        echo "pr_key=$PR_KEY" >> "$GITHUB_OUTPUT"
+
+    - name: Run the review agent
+      shell: bash
+      working-directory: ${{ inputs.cortex_path }}
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        # gh pr review is only granted when the agent acts for real; in review mode it is
+        # explicitly denied (a deny rule beats an allow rule)
+        ALLOWED_TOOLS: ${{ inputs.post_review == 'true' && format('{0},Bash(gh pr review:*)', inputs.allowed_tools) || inputs.allowed_tools }}
+        DISALLOWED_TOOLS: ${{ inputs.post_review == 'true' && inputs.disallowed_tools || format('{0},Bash(gh pr review:*)', inputs.disallowed_tools) }}
+        LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
+        PR_KEY: ${{ steps.prep.outputs.pr_key }}
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        {
+          echo "### AI PR review run"
+          echo ""
+          echo "| Scope | Outcome | Turns | Duration | Cost (USD) | Exit code |"
+          echo "|---|---|---|---|---|---|"
+        } >> "$GITHUB_STEP_SUMMARY"
+        echo "Reviewing: $PR_KEY"
+        # Nothing streams to this log during the run; the trace is printed after it completes.
+        echo "::group::Prompt given to the agent"
+        cat "$LOG_DIR/review.prompt.md"
+        echo "::endgroup::"
+        STREAM_FILE="$LOG_DIR/review.stream.jsonl"
+        EXIT_CODE=0
+        # --add-dir: the log dir lives outside the cortex cwd, which Claude Code otherwise refuses
+        claude -p "$(cat "$LOG_DIR/review.prompt.md")" \
+          --allowedTools "$ALLOWED_TOOLS" \
+          --disallowedTools "$DISALLOWED_TOOLS" \
+          --add-dir "$LOG_DIR" \
+          --permission-mode dontAsk \
+          --output-format stream-json \
+          --verbose \
+          > "$STREAM_FILE" 2> "$LOG_DIR/review.stderr.log" || EXIT_CODE=$?
+        python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "$PR_KEY" "$EXIT_CODE"
+        if [ "$EXIT_CODE" -ne 0 ]; then
+          echo "::warning::Agent exited with code $EXIT_CODE — the review request stays pending; re-run this workflow or re-request the review to retry"
+        fi
+
+    - name: Publish the stored review to the job summary
+      if: always() && inputs.post_review != 'true'
+      shell: bash
+      env:
+        LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
+      run: |
+        {
+          echo "### Review mode — PR review that WOULD have been submitted"
+          echo ""
+          for f in "$LOG_DIR"/reviews/*.review.md; do
+            [ -e "$f" ] || { echo "_No review file was produced._"; break; }
+            echo "<details><summary>$(basename "$f")</summary>"
+            echo ""
+            cat "$f"
+            echo ""
+            echo "</details>"
+          done
+        } >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Verify the pull request received the review
+      uses: actions/github-script@v9
+      if: always() && inputs.post_review == 'true'
+      env:
+        PR_URL: ${{ inputs.pr_url }}
+        MARKER: ${{ inputs.marker }}
+        STARTED_AT: ${{ steps.prep.outputs.started_at }}
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const [, owner, repo, number] = process.env.PR_URL.match(/([^/]+)\/([^/]+)\/pull\/(\d+)$/)
+          const reviews = await github.paginate(github.rest.pulls.listReviews,
+            { owner, repo, pull_number: Number(number), per_page: 100 })
+          const done = reviews.some(r =>
+            (r.body ?? '').includes(process.env.MARKER) &&
+            new Date(r.submitted_at) > new Date(process.env.STARTED_AT))
+          if (done) core.info(`${process.env.PR_URL}: review submitted`)
+          else core.warning(`${process.env.PR_URL}: NO review was submitted by this run — the review request stays pending; re-run this workflow or re-request the review to retry`)
