@@ -20,13 +20,13 @@ inputs:
     required: false
     default: 'true'
   allowed_tools:
-    description: 'Claude Code --allowedTools value for the agent: read/search tools, local file writes (staging the review body), read-only git/gh, and the throwaway clone surface. Bash(gh pr review:*) is appended automatically when post_review is true.'
+    description: 'Claude Code --allowedTools value for the agent: read/search tools, local file writes (the review body file), read-only git/gh, and the throwaway clone surface. The agent never posts — submitting the review file is a deterministic step of this action.'
     required: false
     default: 'Read,Write,Grep,Glob,Skill,Task,Agent,TodoWrite,ReportFindings,Bash(git log:*),Bash(git diff:*),Bash(git show:*),Bash(git status:*),Bash(git branch --show-current),Bash(git branch --list),Bash(git branch -a),Bash(git branch -r),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(git blame:*),Bash(git cat-file:*),Bash(git fetch:*),Bash(git merge-base:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr checkout:*),Bash(gh issue view:*),Bash(gh repo view:*),Bash(gh repo clone:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(mkdir:*)'
   disallowed_tools:
-    description: 'Claude Code --disallowedTools value. A deny rule beats an allow rule, including one the cloned repository''s own settings could carry: editing tools, every way a review could reach the forge or rewrite history, and the options of allowed commands that write (--output) or execute (--upload-pack). Bash(gh pr review:*) is appended automatically when post_review is false.'
+    description: 'Claude Code --disallowedTools value. A deny rule beats an allow rule, including one the cloned repository''s own settings could carry: editing tools, every way a review could reach the forge or rewrite history, and the options of allowed commands that write (--output) or execute (--upload-pack).'
     required: false
-    default: 'Edit,NotebookEdit,MultiEdit,Bash(git push:*),Bash(git commit:*),Bash(git switch:*),Bash(git checkout:*),Bash(git reset:*),Bash(git remote:*),Bash(git * --output*),Bash(git * --upload-pack*),Bash(gh pr create:*),Bash(gh pr comment:*),Bash(gh pr edit:*),Bash(gh pr ready:*),Bash(gh pr merge:*),Bash(gh pr close:*),Bash(gh issue create:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh api:*),Bash(gh release:*),Bash(gh workflow:*),Bash(gh secret:*)'
+    default: 'Edit,NotebookEdit,MultiEdit,Bash(git push:*),Bash(git commit:*),Bash(git switch:*),Bash(git checkout:*),Bash(git reset:*),Bash(git remote:*),Bash(git * --output*),Bash(git * --upload-pack*),Bash(gh pr create:*),Bash(gh pr comment:*),Bash(gh pr review:*),Bash(gh pr edit:*),Bash(gh pr ready:*),Bash(gh pr merge:*),Bash(gh pr close:*),Bash(gh issue create:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh api:*),Bash(gh release:*),Bash(gh workflow:*),Bash(gh secret:*)'
 
 outputs:
   logs_dir:
@@ -65,10 +65,8 @@ runs:
       working-directory: ${{ inputs.cortex_path }}
       env:
         GH_TOKEN: ${{ inputs.github_token }}
-        # gh pr review is only granted when the agent acts for real; in review mode it is
-        # explicitly denied (a deny rule beats an allow rule)
-        ALLOWED_TOOLS: ${{ inputs.post_review == 'true' && format('{0},Bash(gh pr review:*)', inputs.allowed_tools) || inputs.allowed_tools }}
-        DISALLOWED_TOOLS: ${{ inputs.post_review == 'true' && inputs.disallowed_tools || format('{0},Bash(gh pr review:*)', inputs.disallowed_tools) }}
+        ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
+        DISALLOWED_TOOLS: ${{ inputs.disallowed_tools }}
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
         PR_KEY: ${{ steps.prep.outputs.pr_key }}
       run: |
@@ -99,6 +97,27 @@ runs:
         if [ "$EXIT_CODE" -ne 0 ]; then
           echo "::warning::Agent exited with code $EXIT_CODE — the review request stays pending; re-run this workflow or re-request the review to retry"
         fi
+
+    # The agent only writes the review file; posting is deterministic and happens here,
+    # outside the agent's permission surface (cortex's own settings ask-gate pr review,
+    # which a headless dontAsk run cannot answer).
+    - name: Submit the review
+      if: inputs.post_review == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        PR_URL: ${{ inputs.pr_url }}
+        LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
+        PR_KEY: ${{ steps.prep.outputs.pr_key }}
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        FILE="$LOG_DIR/reviews/pr-$PR_KEY.review.md"
+        if [ ! -s "$FILE" ]; then
+          echo "::warning::The agent produced no review file — nothing to submit (the review request stays pending)"
+          exit 0
+        fi
+        gh pr review "$PR_URL" --comment --body-file "$FILE"
+        echo "Review submitted on $PR_URL"
 
     - name: Publish the stored review to the job summary
       if: always() && inputs.post_review != 'true'

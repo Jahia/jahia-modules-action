@@ -5,9 +5,13 @@ Env:   PR_URL       - URL of the pull request to review
        MARKER       - hidden marker string for review bodies
        AGENT        - human-readable identity of the agent (CLI + model)
        RUN_URL      - URL of the workflow run performing this review
-       POST_REVIEW  - "true": the agent submits the review on the PR;
-                      anything else: review mode - the agent writes the review
-                      it WOULD have submitted to <log-dir>/reviews/ instead
+       POST_REVIEW  - "true": the workflow submits the review file the agent
+                      writes; anything else: review mode - the file only lands
+                      in the run artifact
+
+The agent never posts to GitHub itself: in BOTH modes it writes the review body
+to <log-dir>/reviews/pr-<key>.review.md, and the posting (when post_review is
+true) is a deterministic action step.
 
 Writes <log-dir>/review.prompt.md, then prints the PR key (owner-repo-number,
 used for file names) to stdout.
@@ -27,18 +31,19 @@ if not match:
 key = '-'.join(match.groups())
 
 reviews_dir = os.path.join(log_dir, 'reviews')
-if not post_review:
-    os.makedirs(reviews_dir, exist_ok=True)
+os.makedirs(reviews_dir, exist_ok=True)
+review_file = os.path.join(reviews_dir, f'pr-{key}.review.md')
 
 POST_INSTRUCTIONS = (
-    'submit EXACTLY ONE pull-request review of type COMMENT, no matter the outcome. Write\n'
-    '   the review body to a file first, then submit it with:\n'
-    '   `gh pr review ' + pr_url + ' --comment --body-file <file>`')
+    'write the final review body (exact format below) to the file\n'
+    '   `' + review_file + '` using the Write tool, no matter the outcome. Do NOT post\n'
+    '   anything to GitHub yourself — the workflow submits that file as the PR review on\n'
+    '   your behalf right after you finish.')
 REVIEW_INSTRUCTIONS = (
-    'do NOT submit or post anything on the pull request — this run is a REVIEW pass of the\n'
-    '   agent itself. Write the review you WOULD have submitted (exact same format below) to\n'
-    '   the file `' + reviews_dir + '/pr-' + key + '.review.md` using the Write tool. A human\n'
-    '   reads that file in place of the PR review. Write no other files.')
+    'write the review you WOULD have delivered (exact format below) to the file\n'
+    '   `' + review_file + '` using the Write tool, no matter the outcome. Do NOT post\n'
+    '   anything to GitHub yourself — this run is a REVIEW pass of the agent itself:\n'
+    '   nothing is posted, a human reads the file from the run artifact.')
 
 with open(template_path, encoding='utf-8') as fh:
     template = fh.read()

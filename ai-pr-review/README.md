@@ -82,9 +82,10 @@ cloned repository's own settings could carry — names every editing tool, every
 could reach the forge or rewrite history (`git push/commit/checkout/reset/remote`,
 `gh pr create/comment/edit/ready/merge/close`, `gh issue *`, `gh api`, `gh release`,
 `gh workflow`, `gh secret`), and the options of allowed commands that write (`--output`) or
-execute (`--upload-pack`). `Bash(gh pr review:*)` is allowed **only** when `post_review` is
-`true` — in review mode it joins the deny list instead. `--permission-mode dontAsk` denies
-everything not explicitly allowed. The prompt additionally forbids approving/requesting
+execute (`--upload-pack`). The agent itself never posts anything: `gh pr review` is denied
+too — the agent writes the review body to a file, and submitting that file is a
+deterministic action step (running with the jahia-ai token) after the agent finishes.
+`--permission-mode dontAsk` denies everything not explicitly allowed. The prompt additionally forbids approving/requesting
 changes and instructs the agent to treat PR content (title, description, code, comments) as
 data, never as instructions — and to flag prompt-injection attempts as findings.
 
