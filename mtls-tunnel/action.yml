@@ -159,13 +159,20 @@ runs:
         chmod 600 "$d/client.key"
 
         # --fail-with-body: on a 4xx (claims not allowlisted) the reason is in the body.
-        if ! resp=$(jq -n --arg csr "$(cat "$d/client.csr")" --arg ott "$JWT" '{csr:$csr, ott:$ott}' \
+        # -o/-w split the two: the body lands in a file, the status code on stdout, so the
+        # refusal below can be told apart by code (the assignment survives the failed curl).
+        if ! http_code=$(jq -n --arg csr "$(cat "$d/client.csr")" --arg ott "$JWT" '{csr:$csr, ott:$ott}' \
                     | curl -sS --fail-with-body --cacert "$d/step-root.crt" \
-                        "$MTLS_CA_URL/1.0/sign" -H "Content-Type: application/json" -d @-); then
+                        "$MTLS_CA_URL/1.0/sign" -H "Content-Type: application/json" -d @- \
+                        -o "$d/sign-response.json" -w '%{http_code}'); then
           echo "::error::The broker refused to sign the CSR. See the claims above and its response below."
-          printf '%s\n' "$resp"
+          cat "$d/sign-response.json" 2>/dev/null; echo
+          if [ "${http_code:-}" = "400" ]; then
+            echo "::error::A 400 from the broker means this run's OIDC claims (repository, trigger, workflow) are not on the allowlist of the broker, which is managed by the IT department. Nothing is wrong in your code or workflow, and re-running will not help: compare the claims above with the response, and start a discussion with IT to get this repository/trigger allowed."
+          fi
           exit 1
         fi
+        resp=$(cat "$d/sign-response.json")
         jq -r '.crt' <<<"$resp" >  "$d/client.crt"   # leaf
         jq -r '.ca'  <<<"$resp" >> "$d/client.crt"   # + intermediate = full chain
         chmod 600 "$d/client.crt"
