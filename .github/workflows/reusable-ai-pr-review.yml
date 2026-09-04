@@ -99,6 +99,7 @@ jobs:
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
 
       - name: Review the pull request
+        id: review
         # TODO: restore @v2 before merge (branch ref for pre-release testing)
         uses: jahia/jahia-modules-action/ai-pr-review@feat/ai-pr-review
         with:
@@ -107,8 +108,9 @@ jobs:
           cortex_path: ${{ steps.setup.outputs.cortex_path }}
           post_review: ${{ inputs.post_review }}
 
+      # outcome != 'skipped': no logs exist when an earlier step already failed
       - name: Upload review logs to GitHub
-        if: always()
+        if: always() && steps.review.outcome != 'skipped'
         uses: jahia/jahia-modules-action/upload-artifact@v2
         with:
           destination: "github"
@@ -117,7 +119,7 @@ jobs:
           retention-days: 2
 
       - name: Upload review logs to Jahia servers
-        if: always()
+        if: always() && steps.review.outcome != 'skipped'
         uses: jahia/jahia-modules-action/upload-artifact@v2
         with:
           destination: "jahia"
