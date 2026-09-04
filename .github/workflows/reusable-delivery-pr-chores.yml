@@ -130,7 +130,8 @@ jobs:
   ai-review:
     name: AI Review
     if: github.event.action == 'review_requested' && github.event.requested_reviewer.login == 'jahia-ai'
-    uses: jahia/jahia-modules-action/.github/workflows/reusable-ai-pr-review.yml@v2
+    # TODO: restore @v2 before merge (branch ref for pre-release testing)
+    uses: jahia/jahia-modules-action/.github/workflows/reusable-ai-pr-review.yml@feat/ai-pr-review
     permissions:
       id-token: write
       contents: read
