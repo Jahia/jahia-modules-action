@@ -111,13 +111,12 @@ runs:
         PR_KEY: ${{ steps.prep.outputs.pr_key }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
-        FILE="$LOG_DIR/reviews/pr-$PR_KEY.review.md"
+        FILE="$LOG_DIR/reviews/pr-$PR_KEY.review.json"
         if [ ! -s "$FILE" ]; then
           echo "::warning::The agent produced no review file — nothing to submit (the review request stays pending)"
           exit 0
         fi
-        gh pr review "$PR_URL" --comment --body-file "$FILE"
-        echo "Review submitted on $PR_URL"
+        python3 "$GITHUB_ACTION_PATH/src/submit-review.py" post "$FILE" "$PR_URL"
 
     - name: Publish the stored review to the job summary
       if: always() && inputs.post_review != 'true'
@@ -128,11 +127,11 @@ runs:
         {
           echo "### Review mode — PR review that WOULD have been submitted"
           echo ""
-          for f in "$LOG_DIR"/reviews/*.review.md; do
+          for f in "$LOG_DIR"/reviews/*.review.json; do
             [ -e "$f" ] || { echo "_No review file was produced._"; break; }
             echo "<details><summary>$(basename "$f")</summary>"
             echo ""
-            cat "$f"
+            python3 "$GITHUB_ACTION_PATH/src/submit-review.py" render "$f"
             echo ""
             echo "</details>"
           done

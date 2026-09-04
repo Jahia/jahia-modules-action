@@ -4,8 +4,11 @@ On-demand AI review of a pull request: when a human requests a review from the A
 account (`jahia-ai`), a headless [Claude Code](https://code.claude.com) agent — running from
 inside the [cortex harness](https://github.com/Jahia/cortex), reaching the LiteLLM gateway
 through the IT mTLS bastion — reviews the PR and submits its findings as a **single review of
-type COMMENT**. It never approves, never requests changes, never touches code: gating and
-merging stay human decisions.
+type COMMENT, with each finding attached as a native inline comment on the line in
+question** (findings that fit no diff line land in the review body's General notes; if
+GitHub rejects an anchor, the review is re-submitted body-only so it is never lost). It
+never approves, never requests changes, never touches code: gating and merging stay human
+decisions.
 
 ## One review per request — the eligibility rule
 

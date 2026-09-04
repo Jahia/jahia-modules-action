@@ -32,15 +32,15 @@ key = '-'.join(match.groups())
 
 reviews_dir = os.path.join(log_dir, 'reviews')
 os.makedirs(reviews_dir, exist_ok=True)
-review_file = os.path.join(reviews_dir, f'pr-{key}.review.md')
+review_file = os.path.join(reviews_dir, f'pr-{key}.review.json')
 
 POST_INSTRUCTIONS = (
-    'write the final review body (exact format below) to the file\n'
+    'write the final review (exact JSON format below) to the file\n'
     '   `' + review_file + '` using the Write tool, no matter the outcome. Do NOT post\n'
-    '   anything to GitHub yourself — the workflow submits that file as the PR review on\n'
-    '   your behalf right after you finish.')
+    '   anything to GitHub yourself — the workflow submits that file on your behalf as ONE\n'
+    '   pull-request review, with each finding attached as an inline comment on its line.')
 REVIEW_INSTRUCTIONS = (
-    'write the review you WOULD have delivered (exact format below) to the file\n'
+    'write the review you WOULD have delivered (exact JSON format below) to the file\n'
     '   `' + review_file + '` using the Write tool, no matter the outcome. Do NOT post\n'
     '   anything to GitHub yourself — this run is a REVIEW pass of the agent itself:\n'
     '   nothing is posted, a human reads the file from the run artifact.')
