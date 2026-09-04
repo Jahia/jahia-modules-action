@@ -65,9 +65,8 @@ jobs:
       - name: Post the "on it" status comment
         if: steps.check.outputs.eligible == 'true' && inputs.post_review
         uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 #v3.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
         with:
+          GITHUB_TOKEN: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           header: ai-pr-review-status
           number: ${{ github.event.pull_request.number }}
           message: |
@@ -147,9 +146,8 @@ jobs:
       - name: Delete the status comment — the review replaces it
         if: success() && inputs.post_review
         uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 #v3.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
         with:
+          GITHUB_TOKEN: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           header: ai-pr-review-status
           number: ${{ github.event.pull_request.number }}
           delete: true
@@ -157,9 +155,8 @@ jobs:
       - name: Replace the status comment with a failure note
         if: failure() && inputs.post_review
         uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 #v3.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
         with:
+          GITHUB_TOKEN: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           header: ai-pr-review-status
           number: ${{ github.event.pull_request.number }}
           message: |
