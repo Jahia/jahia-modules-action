@@ -1,0 +1,52 @@
+name: AI PR Review — Check request
+description: Deterministic (LLM-free) guard deciding whether the AI reviewer owes a review on a pull request
+
+inputs:
+  github_token:
+    description: 'Token used to read the pull request'
+    required: true
+  repository:
+    description: 'Repository of the pull request (owner/repo)'
+    required: false
+    default: ${{ github.repository }}
+  pr_number:
+    description: 'Pull request number'
+    required: true
+  reviewer:
+    description: 'GitHub username of the AI reviewer account'
+    required: false
+    default: 'jahia-ai'
+
+outputs:
+  eligible:
+    description: '"true" when the PR is open and the reviewer is still in its requested reviewers'
+    value: ${{ steps.check.outputs.eligible }}
+
+runs:
+  using: 'composite'
+  steps:
+    # Makes the review_requested trigger idempotent: re-runs, duplicate deliveries, or
+    # requests withdrawn/fulfilled in the meantime land here as "not eligible".
+    - name: Check the reviewer is still requested on the pull request
+      id: check
+      uses: actions/github-script@v9
+      env:
+        REPOSITORY: ${{ inputs.repository }}
+        PR_NUMBER: ${{ inputs.pr_number }}
+        REVIEWER: ${{ inputs.reviewer }}
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const [owner, repo] = process.env.REPOSITORY.split('/')
+          const number = Number(process.env.PR_NUMBER)
+          const reviewer = process.env.REVIEWER.toLowerCase()
+          const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number })
+          let reason = ''
+          if (pr.state !== 'open') {
+            reason = `the pull request is ${pr.state}`
+          } else if (!(pr.requested_reviewers ?? []).some(r => r.login.toLowerCase() === reviewer)) {
+            reason = `'${process.env.REVIEWER}' is not (or no longer) a requested reviewer — review already submitted, or request withdrawn`
+          }
+          core.setOutput('eligible', String(reason === ''))
+          if (reason === '') core.info(`${process.env.REPOSITORY}#${number}: review by '${process.env.REVIEWER}' is due`)
+          else core.notice(`${process.env.REPOSITORY}#${number}: skipping AI review — ${reason}`)

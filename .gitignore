@@ -2,4 +2,4 @@
 /.project
 *.iml
 .DS_Store
-.idea
+.idea__pycache__/
