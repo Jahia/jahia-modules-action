@@ -59,6 +59,22 @@ jobs:
           pr_number: ${{ github.event.pull_request.number }}
           reviewer: ${{ inputs.reviewer }}
 
+      # Sign off early, as the reviewer account, that the request was heard. The agent job's
+      # last steps replace this comment: deleted on success (the review takes its place),
+      # rewritten into a failure note otherwise.
+      - name: Post the "on it" status comment
+        if: steps.check.outputs.eligible == 'true' && inputs.post_review
+        uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 #v3.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+        with:
+          header: ai-pr-review-status
+          number: ${{ github.event.pull_request.number }}
+          message: |
+            🤖 I received the review request and I'm on it — follow the [review run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+
+            _This message will be replaced by the review._
+
   review:
     name: Review the PR with Claude Code
     needs: check-request
@@ -127,3 +143,24 @@ jobs:
           path: ${{ runner.temp }}/pr-review-logs
           retention-days: 30
           ssh-key: ${{ secrets.BASTION_SSH_PRIVATE_KEY_JAHIACI }}
+
+      - name: Delete the status comment — the review replaces it
+        if: success() && inputs.post_review
+        uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 #v3.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+        with:
+          header: ai-pr-review-status
+          number: ${{ github.event.pull_request.number }}
+          delete: true
+
+      - name: Replace the status comment with a failure note
+        if: failure() && inputs.post_review
+        uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 #v3.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+        with:
+          header: ai-pr-review-status
+          number: ${{ github.event.pull_request.number }}
+          message: |
+            ⚠️ The [review run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) failed before delivering a review — the request stays pending. Re-request a review from this account (or re-run the job) to retry.

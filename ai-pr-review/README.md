@@ -29,6 +29,11 @@ Two deterministic mechanisms make this idempotent:
   crashed agent submits nothing, the request stays pending, and re-running the workflow (or
   re-requesting) retries.
 
+As soon as the guard passes, a **status comment** is posted on the PR as the reviewer
+account ("I received the review request and I'm on it", linking to the run). When the agent
+job ends it is deleted (the review takes its place) or rewritten into a failure note
+("request stays pending — re-request to retry"). Review mode posts no status comment.
+
 Every review body additionally starts with a hidden marker (`<!-- cortex-pr-review -->`):
 it lets the agent detect its own previous review (re-review = delta), and lets the
 verification step confirm this run delivered one.
