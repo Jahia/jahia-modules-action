@@ -56,19 +56,26 @@ def post(payload):
                           input=json.dumps(payload).encode(), capture_output=True)
 
 
-payload = {'event': 'COMMENT', 'body': body}
+event = review.get('event', 'COMMENT')
+if event not in ('APPROVE', 'COMMENT'):
+    print(f'::warning::Unexpected review event {event!r} — submitting as COMMENT')
+    event = 'COMMENT'
+if event == 'APPROVE' and comments:
+    print('::warning::APPROVE with findings attached — downgraded to COMMENT (approval requires zero findings)')
+    event = 'COMMENT'
+payload = {'event': event, 'body': body}
 if comments:
     payload['comments'] = [{'path': c['path'], 'line': int(c['line']),
                             'side': c.get('side', 'RIGHT'), 'body': c['body']}
                            for c in comments]
 result = post(payload)
 if result.returncode == 0:
-    print(f'Review submitted with {len(comments)} inline comment(s)')
+    print(f'Review submitted ({event}) with {len(comments)} inline comment(s)')
     sys.exit(0)
 sys.stderr.write(result.stderr.decode(errors='replace')[-800:] + '\n')
 if comments:
     print('::warning::GitHub rejected the review payload (usually an anchor outside the diff) — submitting body-only with the findings folded in')
-    result = post({'event': 'COMMENT', 'body': fold(body, comments)})
+    result = post({'event': event, 'body': fold(body, comments)})
     if result.returncode == 0:
         print('Review submitted body-only')
         sys.exit(0)

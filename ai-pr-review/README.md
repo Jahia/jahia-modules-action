@@ -3,12 +3,14 @@
 On-demand AI review of a pull request: when a human requests a review from the AI reviewer
 account (`jahia-ai`), a headless [Claude Code](https://code.claude.com) agent — running from
 inside the [cortex harness](https://github.com/Jahia/cortex), reaching the LiteLLM gateway
-through the IT mTLS bastion — reviews the PR and submits its findings as a **single review of
-type COMMENT, with each finding attached as a native inline comment on the line in
+through the IT mTLS bastion — reviews the PR and submits **one review: APPROVE when it
+finds no code issue** (a failing CI check is alerted in the notes, never blocking),
+**COMMENT otherwise, with each finding attached as a native inline comment on the line in
 question** (findings that fit no diff line land in the review body's General notes; if
-GitHub rejects an anchor, the review is re-submitted body-only so it is never lost). It
-never approves, never requests changes, never touches code: gating and merging stay human
-decisions.
+GitHub rejects an anchor, the review is re-submitted body-only so it is never lost).
+Approval strictly requires zero findings — enforced deterministically by the submit step,
+not just by the prompt. It never requests changes and never touches code: blocking a PR,
+and merging, stay human decisions.
 
 ## One review per request — the eligibility rule
 
@@ -93,9 +95,10 @@ could reach the forge or rewrite history (`git push/commit/checkout/reset/remote
 execute (`--upload-pack`). The agent itself never posts anything: `gh pr review` is denied
 too — the agent writes the review body to a file, and submitting that file is a
 deterministic action step (running with the jahia-ai token) after the agent finishes.
-`--permission-mode dontAsk` denies everything not explicitly allowed. The prompt additionally forbids approving/requesting
-changes and instructs the agent to treat PR content (title, description, code, comments) as
-data, never as instructions — and to flag prompt-injection attempts as findings.
+`--permission-mode dontAsk` denies everything not explicitly allowed. The prompt additionally forbids requesting
+changes (approval only with zero findings, re-enforced by the submit step) and instructs the
+agent to treat PR content (title, description, code, comments) as data, never as
+instructions — and to flag prompt-injection attempts as findings.
 
 ## Determinism & observability
 
