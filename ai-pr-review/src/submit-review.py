@@ -19,10 +19,16 @@ import subprocess
 import sys
 
 mode, path = sys.argv[1], sys.argv[2]
-with open(path, encoding='utf-8') as fh:
-    review = json.load(fh)
-body = review['body']
-comments = review.get('comments', [])
+try:
+    with open(path, encoding='utf-8') as fh:
+        review = json.load(fh)
+    body = review['body']
+    comments = review.get('comments', [])
+except (json.JSONDecodeError, KeyError, TypeError) as error:
+    print(f'::error::The agent produced an invalid review file ({error}) — '
+          'nothing was posted; the file is in the run artifact and the review '
+          'request stays pending (re-request to retry)')
+    sys.exit(1)
 
 
 def fold(body, comments):

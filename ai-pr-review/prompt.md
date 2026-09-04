@@ -67,6 +67,9 @@ approves and merges.
      ([resolved] previous findings are mentioned in the body, not re-anchored).
    - When a short concrete fix exists, end the comment with a ```suggestion block.
    - No findings: `"comments": []`.
+   - The file MUST be valid JSON (newlines inside strings escaped as \n). After writing it,
+     run `python3 -m json.tool <the file>` and fix any error before you finish — an invalid
+     file loses the review.
 
    The `body` MUST follow this exact structure (the marker MUST be its very first line —
    it is how a later run knows a review was already delivered):
