@@ -136,12 +136,13 @@ jobs:
       contents: read
     secrets: inherit
 
-  # Label a PR "clear-ai-review" to remove jahia-ai's footprint (comments deleted, review
-  # bodies blanked and minimized, approvals dismissed). The label is consumed afterwards.
+  # Label a PR "💀 Clear jahia-ai review" to remove jahia-ai's footprint (comments deleted,
+  # review bodies blanked and minimized, pending review request withdrawn — approvals keep
+  # their effect). The label is consumed afterwards.
   ai-review-clear:
     name: Clear AI Review
     runs-on: ubuntu-slim
-    if: github.event.action == 'labeled' && github.event.label.name == 'clear-ai-review'
+    if: github.event.action == 'labeled' && github.event.label.name == '💀 Clear jahia-ai review'
     steps:
       - uses: jahia/jahia-modules-action/ai-pr-review/clear@v2
         with:

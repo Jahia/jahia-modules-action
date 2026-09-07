@@ -19,15 +19,16 @@ inputs:
   label:
     description: 'Label that triggered the cleanup — removed afterwards so it can be re-applied (empty: leave labels untouched)'
     required: false
-    default: 'clear-ai-review'
+    default: '💀 Clear jahia-ai review'
 
 runs:
   using: 'composite'
   steps:
     # A submitted review cannot be deleted by any GitHub API. This removes everything
     # removable: issue comments and inline review comments are deleted, review bodies are
-    # blanked (which also removes the re-review marker) and minimized, approvals are
-    # dismissed. A thin "review dismissed" timeline entry remains — a GitHub limit.
+    # blanked (which also removes the re-review marker) and minimized, and any pending
+    # review request for the reviewer is withdrawn. Approvals are deliberately NOT
+    # dismissed: an already-submitted APPROVE keeps its effect (only dismissal revokes it).
     - name: Clear the reviewer's comments and reviews
       uses: actions/github-script@v9
       env:
@@ -62,18 +63,19 @@ runs:
           for (const r of reviews.filter(mine)) {
             if (r.body) {
               await github.rest.pulls.updateReview({ owner, repo, pull_number, review_id: r.id,
-                body: '_Review cleared via the `' + (process.env.LABEL || 'clear-ai-review') + '` label._' })
-            }
-            if (['APPROVED', 'CHANGES_REQUESTED'].includes(r.state)) {
-              await github.rest.pulls.dismissReview({ owner, repo, pull_number, review_id: r.id,
-                message: 'Cleared via the `' + (process.env.LABEL || 'clear-ai-review') + '` label' })
-              core.info(`dismissed review ${r.id} (${r.state})`)
+                body: '_Review cleared via the `' + (process.env.LABEL || '💀 Clear jahia-ai review') + '` label._' })
             }
             await github.graphql(
               'mutation($id: ID!) { minimizeComment(input: {subjectId: $id, classifier: OUTDATED}) { minimizedComment { isMinimized } } }',
               { id: r.node_id })
             core.info(`blanked and minimized review ${r.id}`)
           }
+
+          try {
+            await github.rest.pulls.removeRequestedReviewers({ owner, repo, pull_number,
+              reviewers: [process.env.REVIEWER] })
+            core.info('withdrew the pending review request')
+          } catch (e) { core.info(`no pending review request withdrawn: ${e.message}`) }
 
           if (process.env.LABEL) {
             try {
