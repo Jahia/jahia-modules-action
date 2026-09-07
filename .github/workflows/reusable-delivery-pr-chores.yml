@@ -135,3 +135,22 @@ jobs:
       id-token: write
       contents: read
     secrets: inherit
+
+  # Any label whose name contains "clear", "jahia-ai" and "review" (any order or casing —
+  # e.g. "💀 Clear jahia-ai review") removes jahia-ai's footprint from the PR (comments
+  # deleted, review bodies blanked and minimized, pending review request withdrawn —
+  # approvals keep their effect). The label is consumed afterwards.
+  ai-review-clear:
+    name: Clear AI Review
+    runs-on: ubuntu-slim
+    if: >-
+      github.event.action == 'labeled' &&
+      contains(github.event.label.name, 'clear') &&
+      contains(github.event.label.name, 'jahia-ai') &&
+      contains(github.event.label.name, 'review')
+    steps:
+      - uses: jahia/jahia-modules-action/ai-pr-review/clear@v2
+        with:
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          pr_number: ${{ github.event.pull_request.number }}
+          label: ${{ github.event.label.name }}
