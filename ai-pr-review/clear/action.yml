@@ -1,0 +1,84 @@
+name: AI PR Review — Clear
+description: Remove the AI reviewer's footprint from a pull request (comments deleted, review bodies blanked and minimized, approvals dismissed)
+
+inputs:
+  github_token:
+    description: 'Token of the AI reviewer account (a review body can only be edited by its author)'
+    required: true
+  repository:
+    description: 'Repository of the pull request (owner/repo)'
+    required: false
+    default: ${{ github.repository }}
+  pr_number:
+    description: 'Pull request number'
+    required: true
+  reviewer:
+    description: 'GitHub username of the AI reviewer account'
+    required: false
+    default: 'jahia-ai'
+  label:
+    description: 'Label that triggered the cleanup — removed afterwards so it can be re-applied (empty: leave labels untouched)'
+    required: false
+    default: 'clear-ai-review'
+
+runs:
+  using: 'composite'
+  steps:
+    # A submitted review cannot be deleted by any GitHub API. This removes everything
+    # removable: issue comments and inline review comments are deleted, review bodies are
+    # blanked (which also removes the re-review marker) and minimized, approvals are
+    # dismissed. A thin "review dismissed" timeline entry remains — a GitHub limit.
+    - name: Clear the reviewer's comments and reviews
+      uses: actions/github-script@v9
+      env:
+        REPOSITORY: ${{ inputs.repository }}
+        PR_NUMBER: ${{ inputs.pr_number }}
+        REVIEWER: ${{ inputs.reviewer }}
+        LABEL: ${{ inputs.label }}
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const [owner, repo] = process.env.REPOSITORY.split('/')
+          const pull_number = Number(process.env.PR_NUMBER)
+          const reviewer = process.env.REVIEWER.toLowerCase()
+          const mine = item => (item.user?.login ?? '').toLowerCase() === reviewer
+
+          const issueComments = await github.paginate(github.rest.issues.listComments,
+            { owner, repo, issue_number: pull_number, per_page: 100 })
+          for (const c of issueComments.filter(mine)) {
+            await github.rest.issues.deleteComment({ owner, repo, comment_id: c.id })
+            core.info(`deleted issue comment ${c.id}`)
+          }
+
+          const inline = await github.paginate(github.rest.pulls.listReviewComments,
+            { owner, repo, pull_number, per_page: 100 })
+          for (const c of inline.filter(mine)) {
+            await github.rest.pulls.deleteReviewComment({ owner, repo, comment_id: c.id })
+            core.info(`deleted inline comment ${c.id}`)
+          }
+
+          const reviews = await github.paginate(github.rest.pulls.listReviews,
+            { owner, repo, pull_number, per_page: 100 })
+          for (const r of reviews.filter(mine)) {
+            if (r.body) {
+              await github.rest.pulls.updateReview({ owner, repo, pull_number, review_id: r.id,
+                body: '_Review cleared via the `' + (process.env.LABEL || 'clear-ai-review') + '` label._' })
+            }
+            if (['APPROVED', 'CHANGES_REQUESTED'].includes(r.state)) {
+              await github.rest.pulls.dismissReview({ owner, repo, pull_number, review_id: r.id,
+                message: 'Cleared via the `' + (process.env.LABEL || 'clear-ai-review') + '` label' })
+              core.info(`dismissed review ${r.id} (${r.state})`)
+            }
+            await github.graphql(
+              'mutation($id: ID!) { minimizeComment(input: {subjectId: $id, classifier: OUTDATED}) { minimizedComment { isMinimized } } }',
+              { id: r.node_id })
+            core.info(`blanked and minimized review ${r.id}`)
+          }
+
+          if (process.env.LABEL) {
+            try {
+              await github.rest.issues.removeLabel({ owner, repo, issue_number: pull_number,
+                name: process.env.LABEL })
+            } catch (e) { core.info(`label not removed: ${e.message}`) }
+          }
+          core.notice(`Cleared ${process.env.REVIEWER}'s footprint on ${process.env.REPOSITORY}#${pull_number} (${issueComments.filter(mine).length} comment(s), ${inline.filter(mine).length} inline, ${reviews.filter(mine).length} review(s))`)
