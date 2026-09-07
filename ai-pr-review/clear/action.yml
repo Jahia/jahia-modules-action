@@ -1,5 +1,5 @@
 name: AI PR Review — Clear
-description: Remove the AI reviewer's footprint from a pull request (comments deleted, review bodies blanked and minimized, approvals dismissed)
+description: Remove the AI reviewer's footprint from a pull request (comments deleted, review bodies blanked and minimized, pending review request withdrawn)
 
 inputs:
   github_token:
