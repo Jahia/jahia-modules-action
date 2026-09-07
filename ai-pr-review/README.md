@@ -39,12 +39,14 @@ account ("I received the review request and I'm on it", linking to the run). Whe
 job ends it is deleted (the review takes its place) or rewritten into a failure note
 ("request stays pending — re-request to retry"). Review mode posts no status comment.
 
-**Clearing a review**: label the PR `clear-ai-review` and the
+**Clearing a review**: label the PR `💀 Clear jahia-ai review` and the
 [`ai-pr-review/clear`](clear/action.yml) action removes the reviewer's footprint — its
-comments (status and inline) are deleted, its review bodies blanked and minimized, and its
-approvals dismissed; the label is then consumed, so it can be re-applied later. GitHub does
-not allow deleting a submitted review outright, so a thin "review dismissed" timeline entry
-remains. Blanking also removes the re-review marker: the next requested review starts fresh.
+comments (status and inline) are deleted, its review bodies blanked and minimized, and any
+pending review request for it is withdrawn; the label is then consumed, so it can be
+re-applied later. Two GitHub limits to know: a submitted review cannot be deleted outright
+(a minimized empty shell remains), and an already-submitted APPROVE keeps its effect on
+branch protection — only a dismissal revokes it, and this action deliberately does not
+dismiss. Blanking also removes the re-review marker: the next requested review starts fresh.
 
 Every review body additionally starts with a hidden marker (`<!-- cortex-pr-review -->`):
 it lets the agent detect its own previous review (re-review = delta), and lets the
