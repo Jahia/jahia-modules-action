@@ -12,6 +12,13 @@ Approval strictly requires zero findings — enforced deterministically by the s
 not just by the prompt. It never requests changes and never touches code: blocking a PR,
 and merging, stay human decisions.
 
+Every review also carries the agent's **confidence call**: a **Human review** line in the
+body (`not needed` / `recommended` / `required`, with a one-line reason) mirrored as a PR
+label — `🤖 AI-only review OK` (green), `🤖 Human review recommended` (yellow) or
+`🤖 Human review required` (red). The submit step applies it deterministically (creating
+the label on first use and swapping out the previous recommendation), best-effort so a
+labeling hiccup never loses a review; the clear label removes these labels too.
+
 ## One review per request — the eligibility rule
 
 The trigger is the `review_requested` pull-request event, filtered to the AI reviewer

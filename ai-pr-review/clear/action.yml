@@ -77,6 +77,13 @@ runs:
             core.info('withdrew the pending review request')
           } catch (e) { core.info(`no pending review request withdrawn: ${e.message}`) }
 
+          for (const name of ['🤖 AI-only review OK', '🤖 Human review recommended', '🤖 Human review required']) {
+            try {
+              await github.rest.issues.removeLabel({ owner, repo, issue_number: pull_number, name })
+              core.info(`removed label ${name}`)
+            } catch (e) { /* label not present */ }
+          }
+
           if (process.env.LABEL) {
             try {
               await github.rest.issues.removeLabel({ owner, repo, issue_number: pull_number,
