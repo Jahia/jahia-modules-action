@@ -55,6 +55,7 @@ when the code is clean; merging, and blocking a PR, stay human decisions.
    ```json
    {
      "event": "<APPROVE or COMMENT — see the rule below>",
+     "human_review": "<not-needed, recommended or required — see the rule below>",
      "body": "<the review body, markdown — structure below>",
      "comments": [
        {
@@ -71,6 +72,15 @@ when the code is clean; merging, and blocking a PR, stay human decisions.
    or a missing changelog alone never withholds approval; on a re-review, all previous
    findings resolved and nothing new also means APPROVE), and "COMMENT" as soon as there is
    at least one finding. Never anything else — requesting changes is a human call.
+
+   `human_review` is your confidence call, independent of the event — could this PR merge
+   with only this AI review? "not-needed" when you are confident it can (small blast
+   radius, well-understood change, nothing you were unsure about); "recommended" when a
+   human pass adds real value (notable complexity or size, areas where your analysis was
+   uncertain, conventions you could not verify); "required" when a human MUST look
+   (security-sensitive surface, public API or data-model change, wide blast radius, or low
+   confidence in your own analysis). State the reason on the body's Human review line —
+   this drives a PR label, so be honest: an over-confident "not-needed" costs trust.
 
    Comment rules — GitHub rejects the WHOLE review on one bad anchor, so anchor carefully:
    - `path` + `line` MUST point at a line that appears in the PR diff (`gh pr diff` output);
@@ -94,6 +104,7 @@ when the code is clean; merging, and blocking a PR, stay human decisions.
    **Scope**: <one sentence: what this PR changes, as you understood it>
    **Assessment**: <exactly one of: approved | minor remarks | needs attention> — merging stays a human decision.
    **Findings**: <count + "attached to the lines in question", or exactly "No issues found.">
+   **Human review**: <exactly one of: not needed | recommended | required> — <one short sentence: why>
 
    ### General notes
    <optional, max 3 bullets: findings that fit no diff line, resolved-on-re-review notes,
