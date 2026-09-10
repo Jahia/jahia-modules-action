@@ -2,7 +2,7 @@
 
 A composite GitHub Action that lets a CI job reach internal Jahia services using a short-lived client certificate minted from the run's own GitHub OIDC token.
 
-The tunnel carries **raw TCP**, so it is not limited to HTTPS: `ssh` on port 22 goes through it the same way `curl` does on 443.
+The tunnel carries **raw TCP**, so it is not limited to HTTPS: `ssh` goes through it the same way `curl` does.
 
 It replaces the WireGuard [`vpn-tunnel`](../vpn-tunnel) action for access to those services:
 
@@ -59,7 +59,7 @@ The job also needs root (binding the loopback addresses and writing `/etc/hosts`
 
 ### `hosts` and ports
 
-The port is the one your **local** tools connect to, and you rarely get to choose it: `ssh <host>` dials port 22 on its own, `curl https://<host>` dials 443. So it must be the target protocol's port, otherwise the tunnel listens somewhere the client never knocks and the connection is refused.
+The port is the one your **local** tools connect to, and it is usually the target protocol's port because the client picks it on its own: `ssh <host>` dials 22, `curl https://<host>` dials 443. It does not have to be: the bastion routes on the SNI and reads the remote port from its own map, so any free local port works provided the client is pointed at it. What must never differ is the port declared here and the port your client dials, otherwise the tunnel listens somewhere nobody knocks.
 
 ### `audience`
 
@@ -112,12 +112,12 @@ jobs:
       - run: terraform plan
 ```
 
-An SSH host works the same way. Only the port changes, and the canary does not apply:
+An SSH host works the same way, on a local port other than 22 (see Limitations), and the canary does not apply:
 
 ```yaml
       - uses: jahia/jahia-modules-action/mtls-tunnel@v2
         with:
-          hosts: build-host.internal.example.com:22
+          hosts: build-host.internal.example.com:2222
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
           bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
           server-name: ci-egress.jahia.com
@@ -125,7 +125,7 @@ An SSH host works the same way. Only the port changes, and the canary does not a
           step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
           server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
 
-      - run: ssh ci@build-host.internal.example.com 'uptime'
+      - run: ssh -p 2222 ci@build-host.internal.example.com 'uptime'
 ```
 
 The tunnel only carries the connection: authenticating the SSH session itself (key, `known_hosts`) remains the caller's business.
@@ -156,4 +156,5 @@ The workflow expects two variables (the broker's coordinates, which move) and th
 - **Hosts must be allowlisted on the bastion.** Adding a new host to a workflow requires an IT change on the target map first; until then the connection fails closed.
 - **The certificate lasts one hour and is not renewed in flight.** Jobs shorter than that are unaffected; a longer job would need a background renewal and a `stunnel` reload.
 - **No teardown.** Composite actions have no `post` step, so `stunnel` keeps running and the `/etc/hosts` entries remain until the runner is discarded. Fine on ephemeral runners; on a persistent self-hosted runner, clean up explicitly at the end of the job.
+- **Port 22 cannot be the local port on a GitHub-hosted runner.** On the `ubuntu-latest` image, `systemd` (pid 1) holds `0.0.0.0:22` and `[::]:22` through socket activation, and a wildcard listener pre-empts every `127.0.0.x:22`, so `stunnel` fails with `Address already in use`. Declare SSH hosts on another local port (`host:2222`) and dial it with `ssh -p`. Measured 10/09/2026 on image `20260907.300.1`.
 - **The OIDC claims must match the broker's allowlist** (repository, and depending on the configuration the event and the ref). The action prints the claims it presents, so a rejection can be read directly against the allowlist.
