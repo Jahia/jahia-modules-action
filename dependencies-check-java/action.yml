@@ -77,10 +77,6 @@ runs:
         mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${BASE_REPO_DIR}/${{ inputs.root_folder }}/pom.xml dependency:list -Dsort=true -DforceStdout -DincludeScope=runtime -DexcludeTransitive=true -DoutputFile=base-deps.txt --no-transfer-progress --batch-mode
         cat ${BASE_REPO_DIR}/${{ inputs.root_folder }}/base-deps.txt
 
-    # No second restore before the local resolution: it asked for the same entry as the
-    # step above — the seed is the concatenated POM contents, so an unchanged POM set
-    # produces the same digest on both sides — and ~/.m2 is already warm by this point,
-    # from that restore and from the resolution that just ran.
     - name: Get dependencies from local POM
       shell: bash
       if: ${{ env.BASE_POM_NOT_FOUND == 0 }}
