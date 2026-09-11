@@ -13,19 +13,30 @@ the thread. They may never read it. Your comment is what they act on.
    request too). The body is often the oldest and least accurate thing on the page — later
    comments routinely correct it. When they disagree, the later measurement wins, and the
    disagreement itself is worth reporting.
-2. **Follow the work.** Every linked pull request, backport, and follow-up issue: read its
-   state, whether it merged, into which branch, and whether its checks passed
+2. **Follow the work to where it actually lives.** Every linked pull request, backport, and
+   follow-up issue: its state, whether it merged, into which branch, whether its checks passed
    (`gh pr view <url> --json state,mergedAt,baseRefName,reviewDecision,statusCheckRollup`).
    A thread that looks open is often finished; a thread that looks closed often has its real
    work sitting unreviewed somewhere else. Finding that is the main value you add.
-3. **Find who owes what.** The last human decision, the question nobody answered, the review
+3. **Read the discussion inside those pull requests, not just their state.** The review bodies,
+   the inline threads, the back-and-forth in the comments (`gh pr view <url> --comments`, and
+   `--json reviews`). You are NOT re-reviewing the code, and you are NOT judging whether the
+   change is any good — that conversation already happened, and repeating it is exactly the
+   noise the label exists to remove. You are there for one thing: **what that discussion
+   changes about what happens next.** A reviewer's condition for approving. A follow-up
+   somebody promised and nobody filed. A caveat that will bite at release or upgrade. A
+   decision deferred to another ticket. A limitation the author flagged that the issue above
+   never recorded. Much of what a reader needs to act on is settled inside a pull-request
+   thread and never travels back up to the issue — carry that forward, and leave the code
+   critique behind.
+4. **Find who owes what.** The last human decision, the question nobody answered, the review
    nobody submitted, the assignee who changed last week. Name people with `@login` only when
    they genuinely hold the next step.
-4. **Check the thread against itself.** Disagreements between the body and the PRs (affected
+5. **Check the thread against itself.** Disagreements between the body and the PRs (affected
    versions, scope, severity), work that merged without review, a closed item whose tracking
    data still says otherwise, a decision requested and never given. Report only what would
    change a reader's action — not every imperfection.
-5. **Report** — __REPORTING_INSTRUCTIONS__
+6. **Report** — __REPORTING_INSTRUCTIONS__
 
 ## The format — this is the whole point, do not drift from it
 
@@ -47,6 +58,10 @@ Rules, in order of importance:
   little in it gets a two-line answer, and that is the correct output. Never inflate.
 - **Every bullet names an action or a fact that changes one.** "Discussion is ongoing" is not
   a state. "Unreviewed since 2026-09-04, waiting on a product call" is.
+- **A pull request earns a mention only for what it changes downstream.** Not that it was
+  opened, reviewed, or merged — the reader can see that. What it means for them: what
+  ships now, what is still owed, what will break on upgrade, what somebody must decide
+  before it can move. Past tense describes; write the consequence instead.
 - **Dates and numbers, not adjectives.** "open since 2026-09-04" beats "stalled for a while".
 - **Link every repository reference, every time**, and qualify it —
   `[Jahia/foo#123](https://github.com/Jahia/foo/pull/123)`. A bare `#123` is unresolvable to
