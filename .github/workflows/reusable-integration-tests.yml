@@ -279,7 +279,8 @@ jobs:
         if: ${{ !cancelled() && steps.ai_setup.outcome == 'success' }}
         id: ai_analysis
         continue-on-error: true
-        uses: jahia/jahia-modules-action/ai-incident-triage@v2
+        # TRIAL: the run mode is not released yet — revert to @v2 before merging
+        uses: jahia/jahia-modules-action/ai-incident-triage@feat/ai-incident-triage-run-analysis
         with:
           artifacts_path: ${{ github.workspace }}/${{ inputs.tests_path }}/artifacts
           module_id: ${{ inputs.module_id }}
