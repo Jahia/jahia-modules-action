@@ -1,0 +1,175 @@
+# On-demand TL;DR of an issue or pull request: a Claude Code agent (cortex harness, LiteLLM
+# through the IT mTLS bastion) reads the whole thread plus every pull request it links, and
+# posts ONE short comment saying where the thread stands and what happens next — then removes
+# the label that requested it, so the label is always free for the next request.
+#
+# Trigger filtering (which event, which label) belongs to the caller, typically
+# reusable-delivery-issue-chores.yml and reusable-delivery-pr-chores.yml.
+#
+# Two jobs, deliberately: a cheap LLM-free guard on ubuntu-slim decides whether a TL;DR is
+# owed, and only then does the agent instance start. Re-labelling a thread that was just
+# summarized costs one ubuntu-slim job, not an agent run. Requirements: ai-tldr/README.md.
+name: AI TL;DR
+
+on:
+  workflow_call:
+    inputs:
+      target_url:
+        description: "URL of the issue or pull request to summarize"
+        type: string
+        required: true
+      number:
+        description: "Issue or pull-request number (both are issues to the REST API used by the guard)"
+        type: number
+        required: true
+      label:
+        description: "Label that requests a TL;DR, and that this workflow removes once one is posted"
+        type: string
+        required: false
+        default: "🤖 TL;DR"
+      lookback:
+        description: "How many of the most recent comments are scanned for a previous TL;DR. One among them refuses the request."
+        type: number
+        required: false
+        default: 3
+      post_comment:
+        description: "Post the TL;DR on the thread (false = review mode: store the would-be comment in the run artifact instead)"
+        type: boolean
+        required: false
+        default: true
+      debug:
+        description: "Run the Claude Code CLI with --debug (API/CLI detail in the logs artifact's tldr.stderr.log)"
+        type: boolean
+        required: false
+        default: false
+      instance_type:
+        description: "Type of instances to run the agent job on"
+        type: string
+        required: false
+        default: "self-hosted"
+      timeout_job:
+        description: "Timeout (in minutes) of the agent job"
+        type: number
+        required: false
+        default: 20
+      cortex_ref:
+        description: "Git ref of the cortex harness to use"
+        type: string
+        required: false
+        default: "main"
+      claude_code_version:
+        description: "Claude Code CLI version to install"
+        type: string
+        required: false
+        default: "stable"
+      tunnel_hosts:
+        description: "Internal hosts to reach through the mTLS tunnel (space-separated); must be allowlisted on IT's side"
+        type: string
+        required: false
+        default: "litellm-prod.int.jahia.com"
+
+jobs:
+  # Cheap LLM-free guard. It also owns the refusal path end to end: when a TL;DR was posted
+  # too recently it removes the label and says why, right here, with no agent instance started.
+  check-request:
+    name: Check a TL;DR is owed
+    runs-on: ubuntu-slim
+    outputs:
+      eligible: ${{ steps.check.outputs.eligible }}
+    steps:
+      - id: check
+        uses: jahia/jahia-modules-action/ai-tldr/check-request@v2
+        with:
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          number: ${{ inputs.number }}
+          label: ${{ inputs.label }}
+          lookback: ${{ inputs.lookback }}
+
+  tldr:
+    name: Summarize the thread with Claude Code
+    needs: check-request
+    if: needs.check-request.outputs.eligible == 'true'
+    runs-on: ${{ inputs.instance_type }}
+    timeout-minutes: ${{ inputs.timeout_job }}
+    # One TL;DR at a time per thread: a label re-applied while one is in flight waits, and the
+    # guard then sees the comment the first run posted.
+    concurrency:
+      group: ai-tldr-${{ github.repository }}-${{ inputs.number }}
+      cancel-in-progress: false
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Open the mTLS tunnel to internal Jahia services
+        uses: jahia/jahia-modules-action/mtls-tunnel@v2
+        with:
+          hosts: ${{ inputs.tunnel_hosts }}
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
+          server-name: ci-egress.jahia.com
+          audience: jahia-ci-egress
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
+          canary-url: ${{ vars.AI_LITELLM_BASE_URL }}/health/liveliness
+
+      - name: Set up Claude Code and the cortex harness
+        id: setup
+        uses: jahia/jahia-modules-action/ai-agent-setup@v2
+        with:
+          claude_code_version: ${{ inputs.claude_code_version }}
+          anthropic_base_url: ${{ vars.AI_LITELLM_BASE_URL }}
+          anthropic_auth_token: ${{ secrets.AI_LITELLM_AUTH_TOKEN }}
+          default_opus_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_OPUS_MODEL }}
+          default_sonnet_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_SONNET_MODEL }}
+          default_haiku_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_HAIKU_MODEL }}
+          cortex_ref: ${{ inputs.cortex_ref }}
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+
+      - name: Summarize the issue or pull request
+        id: tldr
+        uses: jahia/jahia-modules-action/ai-tldr@v2
+        with:
+          target_url: ${{ inputs.target_url }}
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          cortex_path: ${{ steps.setup.outputs.cortex_path }}
+          label: ${{ inputs.label }}
+          post_comment: ${{ inputs.post_comment }}
+          debug: ${{ inputs.debug }}
+
+      # outcome != 'skipped': no logs exist when an earlier step already failed
+      - name: Upload TL;DR logs to GitHub
+        if: always() && steps.tldr.outcome != 'skipped'
+        uses: jahia/jahia-modules-action/upload-artifact@v2
+        with:
+          destination: "github"
+          name: ai-tldr-logs
+          path: ${{ runner.temp }}/tldr-logs
+          retention-days: 1
+
+      - name: Upload TL;DR logs to Jahia servers
+        if: always() && steps.tldr.outcome != 'skipped'
+        uses: jahia/jahia-modules-action/upload-artifact@v2
+        with:
+          destination: "jahia"
+          name: ai-tldr-logs
+          path: ${{ runner.temp }}/tldr-logs
+          retention-days: 7
+          ssh-key: ${{ secrets.BASTION_SSH_PRIVATE_KEY_JAHIACI }}
+
+      # The label is the retry handle: a failed run leaves it on, and a human sees why here.
+      - name: Report a failed TL;DR on the thread
+        if: failure() && inputs.post_comment
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          NUMBER: ${{ inputs.number }}
+          LABEL: ${{ inputs.label }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          github-token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.NUMBER),
+              body: `⚠️ The [TL;DR run](${process.env.RUN_URL}) failed before posting a summary. I left the \`${process.env.LABEL}\` label on — re-run the job, or remove and re-apply the label, to retry.`,
+            })

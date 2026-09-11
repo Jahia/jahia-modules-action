@@ -227,3 +227,19 @@ jobs:
           jira_link_icon_open: https://support.jahia.com/images/icons/ico_task.png
           jira_link_icon_closed: https://support.jahia.com/images/icons/accept.png
           jira_link_icon_prefix: https://support.jahia.com/images/icons/tools_20.png
+
+  # A human labelled this issue asking for a short, action-driven summary of where it stands.
+  # The called workflow guards the request on ubuntu-slim first, and only then starts an agent.
+  # It removes the label itself, so the label is free again for the next request.
+  ai-tldr:
+    name: AI TL;DR
+    if: ${{ github.event.action == 'labeled' && github.event.label.name == '🤖 TL;DR' && github.event.sender.login != 'jahia-ci' }}
+    uses: jahia/jahia-modules-action/.github/workflows/reusable-ai-tldr.yml@v2
+    permissions:
+      id-token: write
+      contents: read
+      issues: write
+    with:
+      target_url: ${{ github.event.issue.html_url }}
+      number: ${{ github.event.issue.number }}
+    secrets: inherit
