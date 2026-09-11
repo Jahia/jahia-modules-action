@@ -86,7 +86,7 @@ runs:
 
           core.setOutput('eligible', 'false')
           const position = recent.length - recent.indexOf(previous)
-          const ago = position === 1 ? 'the latest comment' : `${position} comments ago`
+          const ago = position === 1 ? 'as the latest comment' : `${position} comments ago`
           core.notice(`${process.env.REPOSITORY}#${issue_number}: refusing TL;DR — one was posted ${ago}`)
 
           await github.rest.issues.createComment({
