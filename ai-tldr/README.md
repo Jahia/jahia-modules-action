@@ -14,7 +14,7 @@ across repositories; the summary exists for the person who has to act on one wit
 label added ──▶ check-request (ubuntu-slim, no LLM)
                  │
                  ├─ stale (closed, or label already gone) ──▶ stop, silently
-                 ├─ a TL;DR sits in the last 3 comments ───▶ remove the label, say why, stop
+                 ├─ a TL;DR sits in the last 3 comments ───▶ remove the label, say why once, stop
                  └─ a TL;DR is owed
                       │
                       ▼
@@ -24,6 +24,11 @@ label added ──▶ check-request (ubuntu-slim, no LLM)
                       ├─ the action posts that file  ─┐
                       └─ the action removes the label ┘ only after a comment exists
 ```
+
+The refusal explains itself **once**. If the thread's latest comment is already that notice,
+a further request just takes the label off in silence — a row of identical cancellations helps
+nobody, and it would push the original TL;DR out of the lookback window, which would eventually
+let a duplicate summary through.
 
 Two jobs, deliberately. Re-labelling a thread that was just summarized costs one `ubuntu-slim`
 job, not an agent run — and that refusal is the common case once people start using the label.

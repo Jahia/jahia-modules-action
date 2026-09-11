@@ -20,6 +20,10 @@ inputs:
     description: 'Hidden marker string carried by every TL;DR comment this agent posts'
     required: false
     default: '<!-- cortex-tldr -->'
+  cancel_marker:
+    description: 'Hidden marker string carried by the cancellation notice. Distinct from `marker` so a refusal is never mistaken for a summary, and so the notice is only ever posted once.'
+    required: false
+    default: '<!-- cortex-tldr-cancelled -->'
   lookback:
     description: 'How many of the most recent comments to scan for a previous TL;DR. A TL;DR among them refuses the request.'
     required: false
@@ -44,6 +48,7 @@ runs:
         NUMBER: ${{ inputs.number }}
         LABEL: ${{ inputs.label }}
         MARKER: ${{ inputs.marker }}
+        CANCEL_MARKER: ${{ inputs.cancel_marker }}
         LOOKBACK: ${{ inputs.lookback }}
         RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       with:
@@ -54,6 +59,7 @@ runs:
           const issue_number = Number(process.env.NUMBER)
           const label = process.env.LABEL
           const marker = process.env.MARKER
+          const cancelMarker = process.env.CANCEL_MARKER
           const lookback = Number(process.env.LOOKBACK)
 
           const { data: item } = await github.rest.issues.get({ owner, repo, issue_number })
@@ -89,17 +95,27 @@ runs:
           const ago = position === 1 ? 'as the latest comment' : `${position} comments ago`
           core.notice(`${process.env.REPOSITORY}#${issue_number}: refusing TL;DR — one was posted ${ago}`)
 
-          await github.rest.issues.createComment({
-            owner, repo, issue_number,
-            body: [
-              `🤖 **TL;DR request cancelled** — [one was already posted](${previous.html_url}) ${ago}, so this thread has barely moved since.`,
-              '',
-              `I removed the \`${label}\` label rather than post a near-identical summary. Add it again once the discussion has advanced, and I'll write a fresh one.`,
-              '',
-              `<sub>[Run](${process.env.RUN_URL}) · no agent was started, so this cost nothing.</sub>`,
-            ].join('\n'),
-          })
+          // One notice is enough. Re-labelling a thread that already carries the explanation
+          // adds nothing but noise, so from then on the label simply comes off in silence.
+          // Capping it at one also keeps the original TL;DR inside the lookback window, which
+          // a stream of cancellation comments would otherwise push out of it.
+          const last = comments[comments.length - 1]
+          if ((last?.body ?? '').includes(cancelMarker)) {
+            core.info(`${process.env.REPOSITORY}#${issue_number}: the cancellation notice is already the latest comment — removing the label without commenting again`)
+          } else {
+            await github.rest.issues.createComment({
+              owner, repo, issue_number,
+              body: [
+                cancelMarker,
+                `🤖 **TL;DR request cancelled** — [one was already posted](${previous.html_url}) ${ago}, so this thread has barely moved since.`,
+                '',
+                `I removed the \`${label}\` label rather than post a near-identical summary. Add it again once the discussion has advanced, and I'll write a fresh one.`,
+                '',
+                `<sub>[Run](${process.env.RUN_URL}) · no agent was started, so this cost nothing.</sub>`,
+              ].join('\n'),
+            })
+          }
 
-          // Last: the label must survive long enough for the comment above to explain its removal.
+          // Last: the label must survive long enough for any comment above to explain its removal.
           await github.rest.issues.removeLabel({ owner, repo, issue_number, name: label })
             .catch(e => core.warning(`Could not remove the '${label}' label: ${e.message}`))
