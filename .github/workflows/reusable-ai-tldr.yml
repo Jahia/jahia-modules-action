@@ -68,11 +68,6 @@ on:
         required: false
         default: "litellm-prod.int.jahia.com"
 
-# ⚠️ ITERATION STATE — the two ai-tldr actions below are pinned to @feat/ai-tldr, not @v2.
-# `uses:` takes no expression, so a branch test cannot parametrize the ref. BOTH must go back
-# to @v2 before this merges, or every consumer resolves a branch that will be deleted:
-#   sed -i 's#/ai-tldr\(/check-request\)\?@feat/ai-tldr#/ai-tldr\1@v2#' .github/workflows/reusable-ai-tldr.yml
-
 jobs:
   # Cheap LLM-free guard. It also owns the refusal path end to end: when a TL;DR was posted
   # too recently it removes the label and says why, right here, with no agent instance started.
@@ -83,7 +78,7 @@ jobs:
       eligible: ${{ steps.check.outputs.eligible }}
     steps:
       - id: check
-        uses: jahia/jahia-modules-action/ai-tldr/check-request@feat/ai-tldr
+        uses: jahia/jahia-modules-action/ai-tldr/check-request@v2
         with:
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           number: ${{ inputs.number }}
@@ -132,7 +127,7 @@ jobs:
 
       - name: Summarize the issue or pull request
         id: tldr
-        uses: jahia/jahia-modules-action/ai-tldr@feat/ai-tldr
+        uses: jahia/jahia-modules-action/ai-tldr@v2
         with:
           target_url: ${{ inputs.target_url }}
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
