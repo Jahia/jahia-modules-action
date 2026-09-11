@@ -78,7 +78,7 @@ jobs:
       eligible: ${{ steps.check.outputs.eligible }}
     steps:
       - id: check
-        uses: jahia/jahia-modules-action/ai-tldr/check-request@v2
+        uses: jahia/jahia-modules-action/ai-tldr/check-request@feat/ai-tldr
         with:
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           number: ${{ inputs.number }}
@@ -127,7 +127,7 @@ jobs:
 
       - name: Summarize the issue or pull request
         id: tldr
-        uses: jahia/jahia-modules-action/ai-tldr@v2
+        uses: jahia/jahia-modules-action/ai-tldr@feat/ai-tldr
         with:
           target_url: ${{ inputs.target_url }}
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
