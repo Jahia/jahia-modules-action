@@ -233,7 +233,7 @@ jobs:
   # It removes the label itself, so the label is free again for the next request.
   ai-tldr:
     name: AI TL;DR
-    if: ${{ github.event.action == 'labeled' && github.event.label.name == '🤖 TL;DR' && github.event.sender.login != 'jahia-ci' }}
+    if: ${{ github.event.action == 'labeled' && github.event.label.name == '🤖 TL;DR' }}
     uses: jahia/jahia-modules-action/.github/workflows/reusable-ai-tldr.yml@v2
     permissions:
       id-token: write
