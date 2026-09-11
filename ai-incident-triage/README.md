@@ -1,13 +1,24 @@
 # ai-incident-triage
 
-Automated analysis of nightly test-failure issues (label `automated-incident`): a
-deterministic, LLM-free action selects the issues worth analyzing, then a headless
-[Claude Code](https://code.claude.com) agent — running from inside the
-[cortex harness](https://github.com/Jahia/cortex), over the Jahia VPN — analyzes each failed
-run's logs and posts its conclusion as a comment on the issue.
+A headless [Claude Code](https://code.claude.com) agent — running from inside the
+[cortex harness](https://github.com/Jahia/cortex), reaching internal services over the IT
+mTLS bastion — that analyzes Jahia integration-test runs with cortex's `analyze-jahia-ci`
+skill and `jahia-ci-triage` tool. The same action works in two modes, chosen by its inputs:
+
+- **Issues mode** (`issues` set): automated analysis of nightly test-failure issues (label
+  `automated-incident`). A deterministic, LLM-free action selects the issues worth analyzing,
+  then the agent fetches each failed run's logs and posts its conclusion as a comment on the
+  issue. This is the centralized nightly run described in most of this document.
+- **Run mode** (`artifacts_path` set): analysis of the integration-tests run that **just
+  finished in the same job**, from its artifacts on disk — on every outcome. On a failed run
+  it answers *why the tests failed*; on a green run it scans the Jahia logs for anything
+  unexpected (a startup or provisioning `ERROR`, a failed provisioning op, a stale module
+  version, an OOM). The report is written to the **job summary**, readable from the run page.
+  Nothing is posted anywhere. See [Run mode](#run-mode-analyze-the-run-that-just-finished).
 
 **v1 is analysis-only.** The agent never changes code, never opens or merges PRs, never
-closes or labels issues — it only posts comments.
+closes or labels issues — in issues mode it only posts comments, in run mode it only writes
+the job summary.
 
 The whole organization is triaged by ONE workflow running in this repository —
 [`ai-incident-triage.yml`](../.github/workflows/ai-incident-triage.yml) — which searches all
@@ -63,15 +74,61 @@ installs the CLI, exports the LiteLLM env, and clones cortex) and an established
 
 | Input | Required | Default | Description |
 |---|---|---|---|
-| `issues` | yes | — | JSON array produced by `select-issues` |
-| `github_token` | yes | — | Token used by the agent to read issues/runs and post comments |
+| `issues` | issues mode | `''` | JSON array produced by `select-issues`; setting it selects issues mode |
+| `artifacts_path` | run mode | `''` | Folder exported by the integration-tests action (holds `results/`); setting it selects run mode |
+| `module_id` | no | `''` | Run mode: id of the tested module, named in the report |
+| `tests_outcome` | no | `''` | Run mode: outcome of the tests step as GitHub saw it (`steps.<id>.outcome`) |
+| `github_token` | yes | — | Token used by the agent to read issues/runs and, in issues mode, post comments |
 | `cortex_path` | yes | — | Absolute path of the cortex checkout (from `ai-agent-setup`) |
-| `marker` | no | `<!-- cortex-incident-triage -->` | Marker the agent must put in every triage comment |
+| `marker` | no | `<!-- cortex-incident-triage -->` | Issues mode: marker the agent must put in every triage comment |
+| `post_comments` | no | `true` | Issues mode: post the comments (`false` = review mode) |
 | `allowed_tools` | no | see `action.yml` | Claude Code `--allowedTools` value |
 
 | Output | Description |
 |---|---|
-| `logs_dir` | Directory holding all triage run logs — upload it as an artifact |
+| `logs_dir` | Directory holding all agent run logs — upload it as an artifact |
+| `report_file` | Run mode: path of the markdown report the agent wrote (also appended to the job summary) |
+
+## Run mode: analyze the run that just finished
+
+The [`reusable-integration-tests.yml`](../.github/workflows/reusable-integration-tests.yml)
+workflow calls this action right after the `integration-tests` step, before the Test Report,
+when the caller sets **`ai_analysis_enabled: true`** (off by default). It runs on **every
+outcome**: after a failure the report says why the tests failed; after a success it says
+whether the Jahia logs hold anything unexpected, or confirms they are clean.
+
+Everything the agent needs is already on the runner — the `tests/artifacts` folder the
+integration-tests action exported (Cypress results, `jahia*.log`, every container log and the
+timestamped `all-containers.log`) and the module checkout for the provisioning cross-check — so
+the agent fetches nothing and has no write surface at all: `gh issue comment` and `gh run
+rerun` are explicitly disallowed in this mode, and the only file it writes is the report.
+
+The report (`analysis/run-analysis.md` in `logs_dir`) is appended to the **job summary**, so
+it is read from the run page in the GitHub UI, next to the Test Report. The full agent trace is
+uploaded as the `<artifact_prefix>-<run_number>-ai-analysis` artifact. The three AI steps are
+`continue-on-error`: a gateway outage or an agent crash never turns a green test run red.
+
+Opting a module in:
+
+```yaml
+jobs:
+  integration-tests:
+    uses: Jahia/jahia-modules-action/.github/workflows/reusable-integration-tests.yml@v2
+    secrets: inherit
+    permissions:
+      id-token: write        # the mTLS tunnel mints its client certificate from the run's OIDC token
+      contents: read
+      checks: write          # the Test Report step
+      pull-requests: write
+    with:
+      ai_analysis_enabled: true
+      # ...the usual inputs
+```
+
+The calling repository must be allowlisted with the mTLS broker (deny-by-default, on IT's
+side), and the org secrets/vars listed under [Requirements](#requirements) must be visible
+to it. `ai_cortex_ref`, `ai_claude_code_version` and `ai_tunnel_hosts` are exposed for
+development iteration.
 
 ## Determinism & observability
 
