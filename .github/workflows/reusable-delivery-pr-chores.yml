@@ -154,3 +154,19 @@ jobs:
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           pr_number: ${{ github.event.pull_request.number }}
           label: ${{ github.event.label.name }}
+
+  # A human labelled this pull request asking for a short, action-driven summary of where it
+  # stands. The called workflow guards the request on ubuntu-slim first, and only then starts
+  # an agent. It removes the label itself, so the label is free again for the next request.
+  ai-tldr:
+    name: AI TL;DR
+    if: ${{ github.event.action == 'labeled' && github.event.label.name == '🤖 TL;DR' }}
+    uses: jahia/jahia-modules-action/.github/workflows/reusable-ai-tldr.yml@v2
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    with:
+      target_url: ${{ github.event.pull_request.html_url }}
+      number: ${{ github.event.pull_request.number }}
+    secrets: inherit
