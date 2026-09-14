@@ -31,7 +31,7 @@ inputs:
 
 outputs:
   eligible:
-    description: '"true" when a TL;DR is owed — the item is open, still labelled, and carries no recent TL;DR'
+    description: '"true" when a TL;DR is owed — the item is still labelled and carries no recent TL;DR. Open or closed makes no difference: a closed thread is often exactly the one worth summarizing.'
     value: ${{ steps.check.outputs.eligible }}
 
 runs:
@@ -65,15 +65,16 @@ runs:
           const { data: item } = await github.rest.issues.get({ owner, repo, issue_number })
           const labelled = (item.labels ?? []).some(l => (l.name ?? l) === label)
 
-          // Refusal splits in two. A stale request (closed, or the label already gone) is not
-          // the user's doing, so it passes silently. A too-soon request is, so it gets an answer.
-          let stale = ''
-          if (item.state !== 'open') stale = `the ${item.pull_request ? 'pull request' : 'issue'} is ${item.state}`
-          else if (!labelled) stale = `the '${label}' label is no longer present`
-
-          if (stale) {
+          // A closed thread is summarized like any other. Closing is usually the moment the
+          // answer is worth having — what was decided, what shipped, what is still owed
+          // elsewhere — and the label is often applied precisely because someone arrived late
+          // to a thread that is already over.
+          //
+          // Only a withdrawn request passes silently: the label is gone, so nobody is waiting
+          // on an answer. A too-soon request is the user's doing, so that one gets an answer.
+          if (!labelled) {
             core.setOutput('eligible', 'false')
-            core.notice(`${process.env.REPOSITORY}#${issue_number}: skipping TL;DR — ${stale}`)
+            core.notice(`${process.env.REPOSITORY}#${issue_number}: skipping TL;DR — the '${label}' label is no longer present`)
             return
           }
 

@@ -53,6 +53,11 @@ failed. **Target 120 words. Never exceed 200.**
 
 Rules, in order of importance:
 
+- **A closed thread is a normal subject, not a mistake.** It is often the one most worth
+  summarizing, because the reader arrived after it ended. Say how it was resolved, and let
+  `Next` name the work that outlived it — a follow-up issue, a backport still owed, a release
+  that has not gone out — or say plainly that nothing is outstanding. Never manufacture a next
+  step for a thread that genuinely has none.
 - **Cut before you pad.** Three bullets is the maximum, not a quota. Drop `Watch out` when
   nothing is actually wrong — a manufactured one is worse than none. A quiet thread with
   little in it gets a two-line answer, and that is the correct output. Never inflate.
