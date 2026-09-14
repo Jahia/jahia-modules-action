@@ -13,7 +13,7 @@ across repositories; the summary exists for the person who has to act on one wit
 ```
 label added ──▶ check-request (ubuntu-slim, no LLM)
                  │
-                 ├─ stale (closed, or label already gone) ──▶ stop, silently
+                 ├─ the label is already gone ─────────────▶ stop, silently
                  ├─ a TL;DR sits in the last 3 comments ───▶ remove the label, say why once, stop
                  └─ a TL;DR is owed
                       │
