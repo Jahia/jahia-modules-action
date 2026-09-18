@@ -38,6 +38,14 @@ except OSError as error:
     print(f'[warn] could not read stream file: {error}')
 
 result = None
+# Every model that actually answered, in the order each was first seen. The run is
+# configured with one, but a fallback or a downgrade under load substitutes another without
+# the agent being told -- so the summary reports what answered rather than what was asked
+# for, and a reader weighing the review can see when it was not written by a single model.
+# A subagent answering on its own model is a delegation, not the main thread switching, so
+# the two are counted apart: folded together they would read as a switch that never happened.
+models = []
+subagent_models = []
 if trace:
     print(f'--- Agent trace ({key}) ---')
 for event in events:
@@ -45,6 +53,11 @@ for event in events:
     if etype == 'result':
         result = event
         continue
+    if etype == 'assistant':
+        model = event.get('message', {}).get('model')
+        seen = subagent_models if event.get('parent_tool_use_id') else models
+        if model and model not in seen:
+            seen.append(model)
     if not trace:
         continue
     if etype == 'system' and event.get('subtype') == 'init':
@@ -55,6 +68,11 @@ for event in events:
                 print(f"[say ] {compact(block.get('text', ''))}")
             elif block.get('type') == 'tool_use':
                 print(f"[tool] {block.get('name')} {compact(block.get('input', {}))}")
+
+models_text = ' → '.join(models) if models else 'unknown'
+if subagent_models:
+    models_text += f" (subagents: {', '.join(subagent_models)})"
+print(f'[model] {models_text}' + (' — the main thread SWITCHED models' if len(models) > 1 else ''))
 
 if result is None:
     outcome, turns, duration, cost = 'no result (crash/kill)', 'n/a', 'n/a', 'n/a'
@@ -77,4 +95,5 @@ else:
 summary_path = os.environ.get('GITHUB_STEP_SUMMARY')
 if summary_path:
     with open(summary_path, 'a', encoding='utf-8') as fh:
-        fh.write(f'| {key} | {outcome} | {turns} | {duration} | {cost} | {exit_code} |\n')
+        fh.write(f'| {key} | {outcome} | {models_text} | {turns} | {duration} | {cost} | '
+                 f'{exit_code} |\n')
