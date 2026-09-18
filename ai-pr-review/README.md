@@ -132,9 +132,15 @@ instructions — and to flag prompt-injection attempts as findings.
   uploads it as the `ai-pr-review-logs` GitHub artifact and to the Jahia servers
   (`qa.jahia.com/artifacts-ci`, VPN required) via the [`upload-artifact`](../upload-artifact)
   action.
-- The job log shows a deterministic trace of everything the agent did
-  (`[tool]`/`[say ]`/`[end ]` lines); the job summary tabulates outcome, turns, duration
-  and cost.
+- The job log narrates the run **live**, like any build or test step: the CLI's stream-json
+  goes through `src/stream-progress.py`, which writes the raw stream to
+  `review.stream.jsonl` and prints one flushed line per event as it arrives —
+  `elapsed · event · detail`, where the event is `init`, `think`, `tool`, `ok`/`err`,
+  `denied` (the denied call, not the permission boilerplate), `retry` (gateway 429s and
+  their backoff), `task`, or a `…` heartbeat when a single thought has run for more than a
+  minute. Tens of thousands of `thinking_tokens` counter events are folded into that
+  heartbeat rather than printed. A 30-minute run renders in ~200 lines. The job summary then
+  tabulates outcome, turns, duration and cost.
 - A final verification step warns when no marker review newer than the run start exists
   (warn, not fail: the request stays pending, and a re-run or re-request is the retry).
 

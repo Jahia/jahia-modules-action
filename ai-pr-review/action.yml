@@ -97,17 +97,21 @@ runs:
           echo "|---|---|---|---|---|---|"
         } >> "$GITHUB_STEP_SUMMARY"
         echo "Reviewing: $PR_KEY"
-        # Nothing streams to this log during the run; the trace is printed after it completes.
         echo "::group::Prompt given to the agent"
         cat "$LOG_DIR/review.prompt.md"
         echo "::endgroup::"
         STREAM_FILE="$LOG_DIR/review.stream.jsonl"
-        EXIT_CODE=0
         DEBUG_FLAG=""
         [ "$CLAUDE_DEBUG" = "true" ] && DEBUG_FLAG="--debug"
         echo "Agent budget: ${TIMEOUT_MINUTES}m of wall clock"
+        echo "--- Agent progress (elapsed · event · detail), live ---"
         # --add-dir: the log dir lives outside the cortex cwd, which Claude Code otherwise refuses
         # timeout: SIGTERM at the budget, SIGKILL 30s later if the CLI does not exit on its own.
+        # The stream-json stdout goes through stream-progress.py rather than straight to a file:
+        # it writes the raw stream to $STREAM_FILE *and* narrates it here as it arrives, so this
+        # step reads like any build step instead of staying silent until the agent is done.
+        # set +e / PIPESTATUS: the pipeline must report the agent's exit code, not the narrator's.
+        set +e
         timeout --signal=TERM --kill-after=30s "${TIMEOUT_MINUTES}m" \
           claude -p "$(cat "$LOG_DIR/review.prompt.md")" \
           --allowedTools "$ALLOWED_TOOLS" \
@@ -116,8 +120,12 @@ runs:
           --permission-mode dontAsk \
           --output-format stream-json \
           --verbose $DEBUG_FLAG \
-          > "$STREAM_FILE" 2> "$LOG_DIR/review.stderr.log" || EXIT_CODE=$?
-        python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "$PR_KEY" "$EXIT_CODE"
+          2> "$LOG_DIR/review.stderr.log" \
+          | python3 -u "$GITHUB_ACTION_PATH/src/stream-progress.py" "$STREAM_FILE"
+        EXIT_CODE=${PIPESTATUS[0]}
+        set -e
+        # --no-trace: the run was just narrated live, no need to replay every event here.
+        python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "$PR_KEY" "$EXIT_CODE" --no-trace
         # The artifact gets the full human-readable transcript (the console shows the compact trace)
         python3 "$GITHUB_ACTION_PATH/src/render-transcript.py" "$STREAM_FILE" "$LOG_DIR/review.transcript.log"
         # 124/137: `timeout` stopped the agent. It had not finished reviewing — that is a budget
