@@ -91,6 +91,7 @@ context.
 | `cortex_path` | yes | — | Absolute path of the cortex checkout (from `ai-agent-setup`) |
 | `marker` | no | `<!-- cortex-pr-review -->` | Marker the agent must put in every review body |
 | `post_review` | no | `true` | `false` = review mode: store the would-be review in `logs_dir/reviews` instead of submitting |
+| `timeout_minutes` | no | `25` | Wall-clock budget for the agent run; must stay below the job timeout (see [Timeouts](#timeouts)) |
 | `allowed_tools` | no | see `action.yml` | Claude Code `--allowedTools` value |
 | `disallowed_tools` | no | see `action.yml` | Claude Code `--disallowedTools` value (a deny rule beats an allow rule) |
 
@@ -136,6 +137,25 @@ instructions — and to flag prompt-injection attempts as findings.
   and cost.
 - A final verification step warns when no marker review newer than the run start exists
   (warn, not fail: the request stays pending, and a re-run or re-request is the retry).
+
+## Timeouts
+
+Two nested budgets, and only the inner one is safe to hit:
+
+- `timeout_job` (default **30 minutes**) is the job's `timeout-minutes`. Reaching it makes
+  GitHub **cancel the job mid-step**: the agent is killed without the run ever producing its
+  trace, its transcript or its job-summary row, and the review request is left pending with
+  no explanation.
+- `timeout_minutes` (default `timeout_job - 5`, so **25 minutes**) is enforced by this action
+  with `timeout(1)` around the CLI. Reaching it is an ordinary step failure we control: the
+  partial `review.stream.jsonl` is still rendered into `review.transcript.log`, the artifact
+  is still uploaded to both destinations, the PR status comment is still replaced with the
+  failure note, and the job log carries an explicit `AI review timed out` error.
+
+So a review that runs out of time is meant to fail on `timeout_minutes`, never on
+`timeout_job`. When a repository's PRs legitimately need longer (large dependency bumps, a
+big diff, a gateway that rate-limits), raise `timeout_job` on the caller — `timeout_minutes`
+follows it automatically.
 
 ## How it runs
 

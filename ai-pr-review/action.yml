@@ -23,6 +23,10 @@ inputs:
     description: 'Run the Claude Code CLI with --debug: API/CLI-level detail lands in review.stderr.log inside the logs artifact'
     required: false
     default: 'false'
+  timeout_minutes:
+    description: 'Wall-clock budget for the agent run itself. MUST stay below the job timeout: the agent is stopped here, by this action, so the trace, the transcript and the logs artifact are still produced. Letting the job timeout hit instead cancels the job mid-step and loses all of that.'
+    required: false
+    default: '25'
   allowed_tools:
     description: 'Claude Code --allowedTools value for the agent: read/search tools, local file writes (the review body file), read-only git/gh, and the throwaway clone surface. The agent never posts — submitting the review file is a deterministic step of this action.'
     required: false
@@ -50,13 +54,15 @@ runs:
         RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
+        # First thing, before anything that can fail: the upload steps need this directory to
+        # exist even when this step dies, otherwise the failure costs us the logs too.
+        LOG_DIR="$RUNNER_TEMP/pr-review-logs"
+        mkdir -p "$LOG_DIR"
         AGENT="Claude Code $(claude --version 2>/dev/null | head -1 || echo '(version unknown)')"
         if [ -n "$ANTHROPIC_DEFAULT_SONNET_MODEL" ]; then
           AGENT="$AGENT · model: $ANTHROPIC_DEFAULT_SONNET_MODEL"
         fi
         export AGENT
-        LOG_DIR="$RUNNER_TEMP/pr-review-logs"
-        mkdir -p "$LOG_DIR"
         PR_KEY=$(python3 "$GITHUB_ACTION_PATH/src/build-prompt.py" "$GITHUB_ACTION_PATH/prompt.md" "$LOG_DIR")
         echo "Prepared the review prompt for $PR_URL"
         # Reviews submitted by this run must be newer than this instant (verification step).
@@ -72,10 +78,18 @@ runs:
         ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
         DISALLOWED_TOOLS: ${{ inputs.disallowed_tools }}
         CLAUDE_DEBUG: ${{ inputs.debug }}
+        TIMEOUT_MINUTES: ${{ inputs.timeout_minutes }}
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
         PR_KEY: ${{ steps.prep.outputs.pr_key }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
+        # The agent gets a budget of its own, below the job timeout. Reaching it is a plain
+        # step failure we control: the steps below still render the trace and the transcript,
+        # and the workflow still uploads the artifact. A job timeout instead cancels the job
+        # mid-step and none of that survives.
+        case "$TIMEOUT_MINUTES" in
+          ''|*[!0-9]*|0) echo "::warning::timeout_minutes='$TIMEOUT_MINUTES' is not a positive integer, falling back to 25"; TIMEOUT_MINUTES=25 ;;
+        esac
         {
           echo "### AI PR review run"
           echo ""
@@ -91,8 +105,11 @@ runs:
         EXIT_CODE=0
         DEBUG_FLAG=""
         [ "$CLAUDE_DEBUG" = "true" ] && DEBUG_FLAG="--debug"
+        echo "Agent budget: ${TIMEOUT_MINUTES}m of wall clock"
         # --add-dir: the log dir lives outside the cortex cwd, which Claude Code otherwise refuses
-        claude -p "$(cat "$LOG_DIR/review.prompt.md")" \
+        # timeout: SIGTERM at the budget, SIGKILL 30s later if the CLI does not exit on its own.
+        timeout --signal=TERM --kill-after=30s "${TIMEOUT_MINUTES}m" \
+          claude -p "$(cat "$LOG_DIR/review.prompt.md")" \
           --allowedTools "$ALLOWED_TOOLS" \
           --disallowedTools "$DISALLOWED_TOOLS" \
           --add-dir "$LOG_DIR" \
@@ -103,6 +120,12 @@ runs:
         python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "$PR_KEY" "$EXIT_CODE"
         # The artifact gets the full human-readable transcript (the console shows the compact trace)
         python3 "$GITHUB_ACTION_PATH/src/render-transcript.py" "$STREAM_FILE" "$LOG_DIR/review.transcript.log"
+        # 124/137: `timeout` stopped the agent. It had not finished reviewing — that is a budget
+        # problem, not a broken run, so say so and fail the step (the logs are already collected).
+        if [ "$EXIT_CODE" -eq 124 ] || [ "$EXIT_CODE" -eq 137 ]; then
+          echo "::error title=AI review timed out::The agent was stopped after ${TIMEOUT_MINUTES}m without delivering a review. The partial session is in the run's ai-pr-review-logs artifact (review.transcript.log). Raise timeout_job on the calling workflow if this PR legitimately needs longer, then re-request the review."
+          exit 1
+        fi
         if [ "$EXIT_CODE" -ne 0 ]; then
           echo "::warning::Agent exited with code $EXIT_CODE — the review request stays pending; re-run this workflow or re-request the review to retry"
         fi
