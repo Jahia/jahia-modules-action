@@ -27,14 +27,18 @@ inputs:
     description: 'The timeout-minutes of the job running this action. The agent is stopped a few minutes BEFORE it, by this action, so the trace, the transcript and the logs artifact are still produced — letting the job timeout hit instead cancels the job mid-step and loses all of that. Pass the job timeout unchanged: the reserve is subtracted here, because GitHub Actions expressions have no arithmetic operators.'
     required: false
     default: '30'
+  prefetch_checkout:
+    description: 'true: the pre-fetch step also checks the pull request head out (blobless clone under the cortex checkout''s sources/), so the agent can read a changed file with its callers around it. The agent cannot do this itself — cortex denies `cd`, so it has no way into a clone it creates. Set false to review from the diff alone on a repository too large to clone inside the budget.'
+    required: false
+    default: 'true'
   allowed_tools:
-    description: 'Claude Code --allowedTools value for the agent: read/search tools, local file writes (the review body file), read-only git/gh, and the throwaway clone surface. The agent never posts — submitting the review file is a deterministic step of this action.'
+    description: 'Claude Code --allowedTools value for the agent: read/search tools, local file writes (the review body file), read-only git/gh, and the pre-fetched checkout surface. The agent never posts — submitting the review file is a deterministic step of this action. It carries each read twice, as `gh …` and as `tools/gh-wrapper/bin/gh-wrapper …`: the agent works from inside cortex, whose CLAUDE.md routes gh through that wrapper, and a list that names only one of the two routes denies the agent''s first call for a reason it cannot see. The prompt states this list verbatim (build-prompt.py renders it), so widening it here widens what the agent is told it may do.'
     required: false
-    default: 'Read,Write,Grep,Glob,Skill,Task,Agent,TodoWrite,ReportFindings,Bash(git log:*),Bash(git diff:*),Bash(git show:*),Bash(git status:*),Bash(git branch --show-current),Bash(git branch --list),Bash(git branch -a),Bash(git branch -r),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(git blame:*),Bash(git cat-file:*),Bash(git fetch:*),Bash(git merge-base:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr checkout:*),Bash(gh issue view:*),Bash(gh repo view:*),Bash(gh repo clone:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(mkdir:*),Bash(python3 -m json.tool:*)'
+    default: 'Read,Write,Grep,Glob,Skill,Task,Agent,TodoWrite,ReportFindings,Bash(git log:*),Bash(git diff:*),Bash(git show:*),Bash(git status:*),Bash(git branch --show-current),Bash(git branch --list),Bash(git branch -a),Bash(git branch -r),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(git blame:*),Bash(git cat-file:*),Bash(git fetch:*),Bash(git merge-base:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr checkout:*),Bash(gh issue view:*),Bash(gh repo view:*),Bash(gh repo clone:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr view:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr diff:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr checks:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue view:*),Bash(tools/gh-wrapper/bin/gh-wrapper repo view:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(sed -n:*),Bash(sort:*),Bash(uniq:*),Bash(cut:*),Bash(diff:*),Bash(mkdir:*),Bash(python3 -m json.tool:*)'
   disallowed_tools:
-    description: 'Claude Code --disallowedTools value. A deny rule beats an allow rule, including one the cloned repository''s own settings could carry: editing tools, every way a review could reach the forge or rewrite history, and the options of allowed commands that write (--output) or execute (--upload-pack).'
+    description: 'Claude Code --disallowedTools value. A deny rule beats an allow rule, including one the cloned repository''s own settings could carry: editing tools, every way a review could reach the forge or rewrite history, and the options of allowed commands that write (--output) or execute (--upload-pack). Each write is denied in every spelling that reaches it — `git push`, `git -C <dir> push`, `gh pr comment` and `gh-wrapper pr comment` are four prefixes, and a rule matches one prefix, so leaving any of them out leaves the write reachable.'
     required: false
-    default: 'Edit,NotebookEdit,MultiEdit,Bash(git push:*),Bash(git commit:*),Bash(git switch:*),Bash(git checkout:*),Bash(git reset:*),Bash(git remote:*),Bash(git * --output*),Bash(git * --upload-pack*),Bash(gh pr create:*),Bash(gh pr comment:*),Bash(gh pr review:*),Bash(gh pr edit:*),Bash(gh pr ready:*),Bash(gh pr merge:*),Bash(gh pr close:*),Bash(gh issue create:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh api:*),Bash(gh release:*),Bash(gh workflow:*),Bash(gh secret:*)'
+    default: 'Edit,NotebookEdit,MultiEdit,Bash(git push:*),Bash(git commit:*),Bash(git switch:*),Bash(git checkout:*),Bash(git reset:*),Bash(git remote:*),Bash(git * --output*),Bash(git * --upload-pack*),Bash(git -C * push:*),Bash(git -C * commit:*),Bash(git -C * switch:*),Bash(git -C * checkout:*),Bash(git -C * reset:*),Bash(git -C * remote:*),Bash(gh pr create:*),Bash(gh pr comment:*),Bash(gh pr review:*),Bash(gh pr edit:*),Bash(gh pr ready:*),Bash(gh pr merge:*),Bash(gh pr close:*),Bash(gh issue create:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh api:*),Bash(gh release:*),Bash(gh workflow:*),Bash(gh secret:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr create:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr comment:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr review:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr edit:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr ready:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr merge:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr close:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue create:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue comment:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue edit:*),Bash(tools/gh-wrapper/bin/gh-wrapper api:*)'
 
 outputs:
   logs_dir:
@@ -52,6 +56,13 @@ runs:
         MARKER: ${{ inputs.marker }}
         POST_REVIEW: ${{ inputs.post_review }}
         RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        GH_TOKEN: ${{ inputs.github_token }}
+        CORTEX_PATH: ${{ inputs.cortex_path }}
+        PREFETCH_CHECKOUT: ${{ inputs.prefetch_checkout }}
+        # build-prompt.py renders these into the prompt's tool-surface section: the agent is
+        # told what it may run instead of discovering it one denial at a time.
+        ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
+        DISALLOWED_TOOLS: ${{ inputs.disallowed_tools }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
         # First thing, before anything that can fail: the upload steps need this directory to
@@ -63,6 +74,20 @@ runs:
           AGENT="$AGENT · model: $ANTHROPIC_DEFAULT_SONNET_MODEL"
         fi
         export AGENT
+        # Fetch the pull request BEFORE the agent starts, not through it. Every fetch the
+        # agent makes costs a turn, and the ones its allowlist refuses cost far more: a
+        # headless agent reads a denial as "the tool is gone" and spends the budget looking
+        # for a way around. This step runs with a plain shell, so it also reaches the one
+        # source the agent's surface will never carry — the inline review threads, which
+        # live behind `gh api` (denied, because that is the one write no wrapper repairs).
+        echo "::group::Pre-fetching the pull request context"
+        CHECKOUT_ROOT=""
+        [ "$PREFETCH_CHECKOUT" = "true" ] && CHECKOUT_ROOT="$CORTEX_PATH/sources"
+        export CHECKOUT_ROOT
+        # Best-effort by design (see the script): a review missing the CI state beats no
+        # review, so a failed fetch is recorded in the index the agent reads, not raised.
+        python3 "$GITHUB_ACTION_PATH/src/prefetch-context.py" "$LOG_DIR/context"
+        echo "::endgroup::"
         PR_KEY=$(python3 "$GITHUB_ACTION_PATH/src/build-prompt.py" "$GITHUB_ACTION_PATH/prompt.md" "$LOG_DIR")
         echo "Prepared the review prompt for $PR_URL"
         # Reviews submitted by this run must be newer than this instant (verification step).
@@ -105,8 +130,8 @@ runs:
         {
           echo "### AI PR review run"
           echo ""
-          echo "| Scope | Outcome | Turns | Duration | Cost (USD) | Exit code |"
-          echo "|---|---|---|---|---|---|"
+          echo "| Scope | Outcome | Models | Turns | Duration | Cost (USD) | Exit code |"
+          echo "|---|---|---|---|---|---|---|"
         } >> "$GITHUB_STEP_SUMMARY"
         echo "Reviewing: $PR_KEY"
         echo "::group::Prompt given to the agent"
@@ -140,6 +165,10 @@ runs:
         python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "$PR_KEY" "$EXIT_CODE" --no-trace
         # The artifact gets the full human-readable transcript (the console shows the compact trace)
         python3 "$GITHUB_ACTION_PATH/src/render-transcript.py" "$STREAM_FILE" "$LOG_DIR/review.transcript.log"
+        # Every call the permission layer refused, read off the stream rather than reported by
+        # the agent: a refusal tells the agent nothing it can act on, so the tally is only ever
+        # useful to the humans who decide what the NEXT allowlist carries.
+        python3 "$GITHUB_ACTION_PATH/src/denied-calls.py" "$STREAM_FILE" "$LOG_DIR/denied-calls.md" --label "$PR_KEY"
         # 124/137: `timeout` stopped the agent. It had not finished reviewing — that is a budget
         # problem, not a broken run, so say so and fail the step (the logs are already collected).
         if [ "$EXIT_CODE" -eq 124 ] || [ "$EXIT_CODE" -eq 137 ]; then

@@ -30,6 +30,11 @@ denied_ids = set()
 # tool_use_id -> what that call was doing. A permission_denied event names the tool and the
 # reason but not the call, and "Bash was denied" is useless next to the command that was.
 pending_calls = {}
+# Which model each thread of the run is answering on: None for the main one, the spawning
+# tool_use_id for a subagent's. Asking the agent to narrate its own model is not enough --
+# a fallback, or a downgrade under load, is done TO it and it has no reason to notice. Every
+# message states the model it came from, so the switch is read from the stream instead.
+seen_models = {}
 
 
 def elapsed():
@@ -64,6 +69,25 @@ def describe_tool(tool_input):
     return compact(tool_input)
 
 
+def note_model(event):
+    """Report the model a message came from, the first time and on every change."""
+    model = (event.get('message') or {}).get('model')
+    if not model:
+        return
+    # A subagent answering on its own model is not the main thread switching, so each
+    # thread is tracked apart; the tool_use_id that spawned it names it in the log.
+    parent = event.get('parent_tool_use_id')
+    if seen_models.get(parent, ...) == model:
+        return
+    previous = seen_models.get(parent)
+    seen_models[parent] = model
+    where = f'subagent {parent}' if parent else 'main'
+    if previous is None:
+        emit('model', f'{where} · running on {model}')
+    else:
+        emit('model', f'{where} · SWITCHED from {previous} to {model}')
+
+
 def render(event):
     if not isinstance(event, dict):
         return
@@ -72,6 +96,10 @@ def render(event):
     if etype == 'system' and subtype == 'init':
         tools = event.get('tools') or []
         emit('init', f"model {event.get('model')} · cwd {event.get('cwd')} · {len(tools)} tools")
+        # The init model is what was requested; the first assistant message says what
+        # actually answered. Recording it here keeps the two comparable, so a run that
+        # starts on something other than the configured model says so on its first turn.
+        seen_models[None] = event.get('model')
 
     elif etype == 'system' and subtype == 'thinking_tokens':
         # Pure counter events (tens of thousands per run) — never printed one for one,
@@ -102,6 +130,7 @@ def render(event):
         emit('task', f"{event.get('status')} · {compact(event.get('summary', ''), 160)}")
 
     elif etype == 'assistant':
+        note_model(event)
         for block in (event.get('message') or {}).get('content') or []:
             if not isinstance(block, dict):
                 continue

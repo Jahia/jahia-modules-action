@@ -79,10 +79,9 @@ verification step confirm this run delivered one.
 
 Runs the agent. Requires [`ai-agent-setup`](../ai-agent-setup) to have run first (CLI,
 LiteLLM env, cortex checkout) and an established [`mtls-tunnel`](../mtls-tunnel) covering
-the LiteLLM gateway. The agent derives the repository from the PR URL and, when the diff
-alone is not enough, creates its own throwaway checkout (`gh repo clone` + `gh pr checkout`
-under the harness's git-ignored `sources/` area) to review the change in its repository
-context.
+the LiteLLM gateway. The pull request is fetched **before** the agent starts (see
+[The pre-fetched context](#the-pre-fetched-context)), checkout included, so the agent opens
+files rather than spending its budget gathering them.
 
 | Input | Required | Default | Description |
 |---|---|---|---|
@@ -92,8 +91,39 @@ context.
 | `marker` | no | `<!-- cortex-pr-review -->` | Marker the agent must put in every review body |
 | `post_review` | no | `true` | `false` = review mode: store the would-be review in `logs_dir/reviews` instead of submitting |
 | `job_timeout_minutes` | no | `30` | The calling job's `timeout-minutes`; the agent's own budget is this minus a 5-minute reserve (see [Timeouts](#timeouts)) |
+| `prefetch_checkout` | no | `true` | Also check the PR head out for the agent; `false` reviews from the diff alone |
 | `allowed_tools` | no | see `action.yml` | Claude Code `--allowedTools` value |
 | `disallowed_tools` | no | see `action.yml` | Claude Code `--disallowedTools` value (a deny rule beats an allow rule) |
+
+## The pre-fetched context
+
+`src/prefetch-context.py` runs in the prep step, before the agent, and writes
+`logs_dir/context/`: `README.md` (the index the prompt points at), `pr.md`, `pr.json`,
+`reviews.md`, `review-comments.md`, `linked-issues.md`, `checks.md` and `diff.patch` — plus,
+unless `prefetch_checkout` is `false`, a blobless checkout of the PR head under the cortex
+checkout's git-ignored `sources/`. It takes seconds, and it replaces the ten-odd turns the
+agent used to spend making the same `gh` calls.
+
+Three things make this the prep step's job rather than the agent's:
+
+- **The allowlist has holes the agent cannot see.** A refusal reads to a headless agent as
+  "this tool is gone", and it goes looking for a way around — on one observed run a denied
+  `gh api` cost 3½ minutes and the review still went out without the inline comments. This
+  step runs with a plain shell and no allowlist, so `gh api …/pulls/N/comments` simply works:
+  `review-comments.md` is the one context file the agent could never fetch for itself.
+- **The checkout needs a directory change.** cortex denies `cd`, so the agent has no way into
+  a clone it creates. The prep step makes it and hands over the path.
+- **A missing piece must not become a hunt.** Every fetch is best-effort, and what failed is
+  named under "Not available" in the index — so the agent reads the gap instead of chasing it.
+
+The prompt's tool-surface section is rendered by `src/build-prompt.py` from the very
+`allowed_tools`/`disallowed_tools` strings passed to the CLI, so the agent is told what it
+may run and the two cannot drift apart. That matters because the agent works from inside
+cortex, whose `CLAUDE.md` mandates routes the allowlist has to agree with: each read is
+allowed under both spellings (`gh pr view` and `tools/gh-wrapper/bin/gh-wrapper pr view`),
+and each write is denied under all of them (`git push`, `git -C <dir> push`, `gh pr comment`,
+`gh-wrapper pr comment`) — a permission rule matches one command prefix, so a write left
+unnamed in one spelling stays reachable through it.
 
 | Output | Description |
 |---|---|
@@ -104,8 +134,8 @@ context.
 The agent runs with an explicit allow list AND deny list (`--allowedTools` /
 `--disallowedTools`). The allow list grants read/search tools, local file writes (staging
 the review body — the runner is ephemeral, so nothing leaves the machine), granular
-read-only `git`/`gh` commands, and the throwaway clone surface (`gh repo clone`,
-`gh pr checkout`). The deny list — and a deny rule beats an allow rule, including one the
+read-only `git`/`gh` commands (each under both the bare and the `gh-wrapper` spelling, and
+`git -C <dir> <read>` for the pre-fetched checkout). The deny list — and a deny rule beats an allow rule, including one the
 cloned repository's own settings could carry — names every editing tool, every way a review
 could reach the forge or rewrite history (`git push/commit/checkout/reset/remote`,
 `gh pr create/comment/edit/ready/merge/close`, `gh issue *`, `gh api`, `gh release`,
@@ -137,10 +167,28 @@ instructions — and to flag prompt-injection attempts as findings.
   `review.stream.jsonl` and prints one flushed line per event as it arrives —
   `elapsed · event · detail`, where the event is `init`, `think`, `tool`, `ok`/`err`,
   `denied` (the denied call, not the permission boilerplate), `retry` (gateway 429s and
-  their backoff), `task`, or a `…` heartbeat when a single thought has run for more than a
-  minute. Tens of thousands of `thinking_tokens` counter events are folded into that
+  their backoff), `task`, `model`, or a `…` heartbeat when a single thought has run for more
+  than a minute. Tens of thousands of `thinking_tokens` counter events are folded into that
   heartbeat rather than printed. A 30-minute run renders in ~200 lines. The job summary then
-  tabulates outcome, turns, duration and cost.
+  tabulates outcome, models, turns, duration and cost.
+- **Which model wrote the review is on the record.** The run is configured with one model,
+  but a fallback or a downgrade under load substitutes another without the agent being told —
+  so the model is read from the stream rather than from the configuration: a `model` line is
+  printed the first time each thread answers and on every change after it (`main · SWITCHED
+  from X to Y`), a subagent's model is tracked apart from the main thread's so a delegation
+  does not read as a switch, and the summary row lists every model that actually answered.
+  The prompt also requires the agent to state the model it is on before its first tool call,
+  whenever it changes, and whenever it delegates — but that is the reported half; the stream
+  is the measured one.
+- **Every refused call is on the record.** `src/denied-calls.py` reads the stream after the
+  run and writes `denied-calls.md` into the artifact, and the same table into the job
+  summary: how many calls the permission layer refused, which, and why. It closes with the
+  prefixes the agent reached for that the allowlist does not carry — which is the input for
+  deciding what the next allowlist should hold. It is a read of the stream, not something
+  the agent reports: an agent that has just been refused is the least reliable witness to
+  what it was refused, and making it keep its own tally spends the budget the allowlist is
+  already costing. Allowing one of the listed prefixes stays a deliberate call — the deny
+  list is what keeps this agent review-only, and some refusals are the design working.
 - A final verification step warns when no marker review newer than the run start exists
   (warn, not fail: the request stays pending, and a re-run or re-request is the retry).
 
