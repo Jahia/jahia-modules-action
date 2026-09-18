@@ -153,9 +153,18 @@ def make_checkout(root):
         print(f'  ! checkout: {first_line(out)}', file=sys.stderr)
         return ('No checkout is available (it could not be created: '
                 f'{first_line(out)}). Review from `diff.patch` alone.')
-    print(f'  - checkout at {target}', file=sys.stderr)
-    return (f'The pull request head is checked out at `{target}` (detached, blobless clone). '
-            'Read, Grep and Glob work there; run git in it with `git -C` — never `cd`.')
+    # The clone is the one thing the agent reads that the run artifact does not carry -- it
+    # is large, and it is reproducible. Reproducible only from its commit, though, so the
+    # index records that: without it the artifact cannot say what the agent actually read.
+    resolved, sha = run(['git', '-C', target, 'rev-parse', 'HEAD'], timeout=30)
+    sha = sha.strip() if resolved else 'unknown'
+    print(f'  - checkout at {target} ({sha[:12]})', file=sys.stderr)
+    return (f'The pull request head is checked out at `{target}`, at commit `{sha}` '
+            '(detached, blobless clone). Read, Grep and Glob work there; run git in it with '
+            '`git -C` — never `cd`.\n\n'
+            'This clone is NOT in the run artifact — it is large, and this commit reproduces '
+            f'it: `git clone {slug} && git checkout {sha}`. Everything else in this directory '
+            'is uploaded.')
 
 
 print(f'Pre-fetching the context of {slug}#{number}', file=sys.stderr)
@@ -186,7 +195,11 @@ checkout_note = make_checkout(checkout_root) if checkout_root else ''
 lines = [f'# Pre-fetched context for {slug}#{number}', '',
          'Every file below was fetched for you before you started. Read them instead of',
          'running the equivalent `gh` command: they are already here, they cost you no turn,',
-         'and they include a source your tool surface cannot reach (`review-comments.md`).', '']
+         'and they include a source your tool surface cannot reach (`review-comments.md`).',
+         '',
+         'This whole directory is uploaded as the run artifact, so what you read here is what',
+         'a human re-reading the run later sees. Nothing you need has to be copied elsewhere.',
+         '']
 lines += [f'- `{name}` — {description}' for name, description in index]
 if checkout_note:
     lines += ['', '## Checkout', '', checkout_note]
