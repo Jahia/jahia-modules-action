@@ -87,9 +87,11 @@ runs:
         # step failure we control: the steps below still render the trace and the transcript,
         # and the workflow still uploads the artifact. A job timeout instead cancels the job
         # mid-step and none of that survives.
-        # The subtraction lives here and not in the caller's `with:` on purpose — GitHub
-        # Actions expressions have no arithmetic operators, so `${{ x - 5 }}` is a workflow
-        # syntax error, not a value.
+        # The subtraction lives here and not in the caller's `with:` on purpose: GitHub
+        # Actions expressions have no arithmetic operators, so subtracting in a template
+        # expression is a syntax error rather than a value.
+        # (Careful writing that out: GitHub expands template expressions inside `run:`
+        # bodies before the shell sees them, so even one in a comment is evaluated.)
         RESERVE_MINUTES=5
         case "$JOB_TIMEOUT_MINUTES" in
           ''|*[!0-9]*|0) echo "::warning::job_timeout_minutes='$JOB_TIMEOUT_MINUTES' is not a positive integer, falling back to 30"; JOB_TIMEOUT_MINUTES=30 ;;
