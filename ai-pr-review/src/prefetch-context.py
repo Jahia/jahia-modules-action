@@ -146,6 +146,13 @@ def make_checkout(root):
     if os.path.exists(target):
         return f'A checkout already exists at `{target}`.'
     os.makedirs(root, exist_ok=True)
+    # `gh repo clone` authenticates its own API calls, but the `git clone` it shells out to
+    # goes through git's credential helper -- which on a bare runner asks for a username on
+    # a terminal that is not there, and fails. This teaches git to use the gh token; without
+    # it the clone fails on every private repository, and the review loses its checkout.
+    ok, out = run(['gh', 'auth', 'setup-git'], timeout=60)
+    if not ok:
+        print(f'  ! git credential setup: {first_line(out)}', file=sys.stderr)
     ok, out = run(['gh', 'repo', 'clone', slug, target, '--',
                    '--filter=blob:none', '--no-tags'], timeout=300)
     if ok:
