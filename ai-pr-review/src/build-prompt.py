@@ -117,8 +117,10 @@ surface += [
     '- cortex routes every `gh` write through `tools/gh-wrapper/bin/gh-wrapper`. You make no',
     '  write, and the list above carries the reads under both spellings, so either route',
     '  works. Use the one the list names; never retry a denied call through the other.',
-    '- cortex denies `cd`, and it is not on the list above. Reach another directory by naming',
-    '  it — `git -C <dir> …`, or Read/Grep/Glob with an absolute path.',
+    '- cortex denies `cd`, and it is not on the list above, so a directory is reached by',
+    '  naming it: Read, Grep and Glob all take an absolute path. `git` is NOT available',
+    '  inside the pre-fetched checkout — read the history from `diff.patch` and `pr.json`',
+    '  instead, and the files themselves with Read/Grep/Glob.',
 ]
 TOOL_SURFACE = '\n'.join(surface)
 
