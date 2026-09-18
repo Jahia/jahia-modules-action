@@ -91,7 +91,7 @@ context.
 | `cortex_path` | yes | — | Absolute path of the cortex checkout (from `ai-agent-setup`) |
 | `marker` | no | `<!-- cortex-pr-review -->` | Marker the agent must put in every review body |
 | `post_review` | no | `true` | `false` = review mode: store the would-be review in `logs_dir/reviews` instead of submitting |
-| `timeout_minutes` | no | `25` | Wall-clock budget for the agent run; must stay below the job timeout (see [Timeouts](#timeouts)) |
+| `job_timeout_minutes` | no | `30` | The calling job's `timeout-minutes`; the agent's own budget is this minus a 5-minute reserve (see [Timeouts](#timeouts)) |
 | `allowed_tools` | no | see `action.yml` | Claude Code `--allowedTools` value |
 | `disallowed_tools` | no | see `action.yml` | Claude Code `--disallowedTools` value (a deny rule beats an allow rule) |
 
@@ -152,16 +152,22 @@ Two nested budgets, and only the inner one is safe to hit:
   GitHub **cancel the job mid-step**: the agent is killed without the run ever producing its
   trace, its transcript or its job-summary row, and the review request is left pending with
   no explanation.
-- `timeout_minutes` (default `timeout_job - 5`, so **25 minutes**) is enforced by this action
-  with `timeout(1)` around the CLI. Reaching it is an ordinary step failure we control: the
-  partial `review.stream.jsonl` is still rendered into `review.transcript.log`, the artifact
-  is still uploaded to both destinations, the PR status comment is still replaced with the
-  failure note, and the job log carries an explicit `AI review timed out` error.
+- The **agent budget** is `job_timeout_minutes` minus a 5-minute reserve (so **25 minutes**
+  by default), enforced by this action with `timeout(1)` around the CLI. Reaching it is an
+  ordinary step failure we control: the partial `review.stream.jsonl` is still rendered into
+  `review.transcript.log`, the artifact is still uploaded to both destinations, the PR status
+  comment is still replaced with the failure note, and the job log carries an explicit
+  `AI review timed out` error.
 
-So a review that runs out of time is meant to fail on `timeout_minutes`, never on
+So a review that runs out of time is meant to fail on the agent budget, never on
 `timeout_job`. When a repository's PRs legitimately need longer (large dependency bumps, a
-big diff, a gateway that rate-limits), raise `timeout_job` on the caller — `timeout_minutes`
-follows it automatically.
+big diff, a gateway that rate-limits), raise `timeout_job` on the caller — the workflow
+forwards it as `job_timeout_minutes` and the agent budget follows.
+
+The reserve is subtracted inside the action rather than in the workflow's `with:` block on
+purpose: **GitHub Actions expressions have no arithmetic operators**, so `${{ inputs.x - 5 }}`
+is not a value but a workflow syntax error, and a workflow that fails to compile takes every
+job in the calling run down with it.
 
 ## How it runs
 

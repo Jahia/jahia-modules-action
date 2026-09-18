@@ -23,10 +23,10 @@ inputs:
     description: 'Run the Claude Code CLI with --debug: API/CLI-level detail lands in review.stderr.log inside the logs artifact'
     required: false
     default: 'false'
-  timeout_minutes:
-    description: 'Wall-clock budget for the agent run itself. MUST stay below the job timeout: the agent is stopped here, by this action, so the trace, the transcript and the logs artifact are still produced. Letting the job timeout hit instead cancels the job mid-step and loses all of that.'
+  job_timeout_minutes:
+    description: 'The timeout-minutes of the job running this action. The agent is stopped a few minutes BEFORE it, by this action, so the trace, the transcript and the logs artifact are still produced — letting the job timeout hit instead cancels the job mid-step and loses all of that. Pass the job timeout unchanged: the reserve is subtracted here, because GitHub Actions expressions have no arithmetic operators.'
     required: false
-    default: '25'
+    default: '30'
   allowed_tools:
     description: 'Claude Code --allowedTools value for the agent: read/search tools, local file writes (the review body file), read-only git/gh, and the throwaway clone surface. The agent never posts — submitting the review file is a deterministic step of this action.'
     required: false
@@ -78,7 +78,7 @@ runs:
         ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
         DISALLOWED_TOOLS: ${{ inputs.disallowed_tools }}
         CLAUDE_DEBUG: ${{ inputs.debug }}
-        TIMEOUT_MINUTES: ${{ inputs.timeout_minutes }}
+        JOB_TIMEOUT_MINUTES: ${{ inputs.job_timeout_minutes }}
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
         PR_KEY: ${{ steps.prep.outputs.pr_key }}
       run: |
@@ -87,9 +87,19 @@ runs:
         # step failure we control: the steps below still render the trace and the transcript,
         # and the workflow still uploads the artifact. A job timeout instead cancels the job
         # mid-step and none of that survives.
-        case "$TIMEOUT_MINUTES" in
-          ''|*[!0-9]*|0) echo "::warning::timeout_minutes='$TIMEOUT_MINUTES' is not a positive integer, falling back to 25"; TIMEOUT_MINUTES=25 ;;
+        # The subtraction lives here and not in the caller's `with:` on purpose — GitHub
+        # Actions expressions have no arithmetic operators, so `${{ x - 5 }}` is a workflow
+        # syntax error, not a value.
+        RESERVE_MINUTES=5
+        case "$JOB_TIMEOUT_MINUTES" in
+          ''|*[!0-9]*|0) echo "::warning::job_timeout_minutes='$JOB_TIMEOUT_MINUTES' is not a positive integer, falling back to 30"; JOB_TIMEOUT_MINUTES=30 ;;
         esac
+        TIMEOUT_MINUTES=$((JOB_TIMEOUT_MINUTES - RESERVE_MINUTES))
+        if [ "$TIMEOUT_MINUTES" -lt 1 ]; then
+          # Job timeout too small to reserve anything from — still give the agent a minute,
+          # so the failure is ours (with logs) rather than a job cancellation.
+          TIMEOUT_MINUTES=1
+        fi
         {
           echo "### AI PR review run"
           echo ""

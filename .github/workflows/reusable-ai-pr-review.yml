@@ -127,10 +127,12 @@ jobs:
           cortex_path: ${{ steps.setup.outputs.cortex_path }}
           post_review: ${{ inputs.post_review }}
           debug: ${{ inputs.debug }}
-          # Stop the agent 5 minutes before the job timeout would: the action then still renders
-          # the trace and the transcript, and the upload steps below still run with time to spare.
-          # Hitting timeout-minutes instead cancels the job mid-step and loses the whole session.
-          timeout_minutes: ${{ inputs.timeout_job > 6 && inputs.timeout_job - 5 || 1 }}
+          # The action stops the agent a few minutes before this budget is up, so it still
+          # renders the trace and the transcript and the upload steps below still run with time
+          # to spare. Hitting timeout-minutes instead cancels the job mid-step and loses the
+          # whole session. The reserve is subtracted inside the action: GitHub Actions
+          # expressions have no arithmetic operators, so doing it here would not even parse.
+          job_timeout_minutes: ${{ inputs.timeout_job }}
 
       # outcome != 'skipped': no logs exist when an earlier step already failed
       - name: Upload review logs to GitHub
