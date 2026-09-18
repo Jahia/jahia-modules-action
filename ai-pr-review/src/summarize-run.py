@@ -1,10 +1,12 @@
 """Summarize one headless Claude Code run from its stream-json output.
 
-Usage: summarize-run.py <stream-file> <label> <exit-code>
+Usage: summarize-run.py <stream-file> <label> <exit-code> [--no-trace]
 
 Prints a deterministic trace of everything the agent did (tool calls, messages,
 final result) to stdout, writes the final result event next to the stream file
 (<name>.result.json), and appends one row to $GITHUB_STEP_SUMMARY.
+With --no-trace, only the outcome is reported: use it when stream-progress.py has
+already narrated the run live and replaying it here would just double the log.
 Always exits 0 — reporting must not mask the agent's own exit code.
 """
 import json
@@ -12,6 +14,7 @@ import os
 import sys
 
 stream_path, key, exit_code = sys.argv[1], sys.argv[2], sys.argv[3]
+trace = '--no-trace' not in sys.argv[4:]
 
 
 def compact(value, limit=300):
@@ -35,9 +38,15 @@ except OSError as error:
     print(f'[warn] could not read stream file: {error}')
 
 result = None
-print(f'--- Agent trace ({key}) ---')
+if trace:
+    print(f'--- Agent trace ({key}) ---')
 for event in events:
     etype = event.get('type')
+    if etype == 'result':
+        result = event
+        continue
+    if not trace:
+        continue
     if etype == 'system' and event.get('subtype') == 'init':
         print(f"[init] model={event.get('model')} cwd={event.get('cwd')}")
     elif etype == 'assistant':
@@ -46,8 +55,6 @@ for event in events:
                 print(f"[say ] {compact(block.get('text', ''))}")
             elif block.get('type') == 'tool_use':
                 print(f"[tool] {block.get('name')} {compact(block.get('input', {}))}")
-    elif etype == 'result':
-        result = event
 
 if result is None:
     outcome, turns, duration, cost = 'no result (crash/kill)', 'n/a', 'n/a', 'n/a'

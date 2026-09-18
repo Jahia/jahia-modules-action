@@ -29,7 +29,7 @@ on:
         required: false
         default: "self-hosted"
       timeout_job:
-        description: "Timeout (in minutes) of the agent job"
+        description: "Timeout (in minutes) of the agent job. The agent itself is stopped 5 minutes earlier, so the logs artifact is still collected — this is also the knob to raise when a review keeps getting cut short."
         type: number
         required: false
         default: 30
@@ -127,6 +127,10 @@ jobs:
           cortex_path: ${{ steps.setup.outputs.cortex_path }}
           post_review: ${{ inputs.post_review }}
           debug: ${{ inputs.debug }}
+          # Stop the agent 5 minutes before the job timeout would: the action then still renders
+          # the trace and the transcript, and the upload steps below still run with time to spare.
+          # Hitting timeout-minutes instead cancels the job mid-step and loses the whole session.
+          timeout_minutes: ${{ inputs.timeout_job > 6 && inputs.timeout_job - 5 || 1 }}
 
       # outcome != 'skipped': no logs exist when an earlier step already failed
       - name: Upload review logs to GitHub
@@ -157,12 +161,16 @@ jobs:
           number: ${{ github.event.pull_request.number }}
           delete: true
 
+      # cancelled() too: a job timeout or a cancelled run is neither success() nor failure(),
+      # and without this branch the "on it" comment stays on the PR forever.
       - name: Replace the status comment with a failure note
-        if: failure() && inputs.post_review
+        if: (failure() || cancelled()) && inputs.post_review
         uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 #v3.0.2
         with:
           GITHUB_TOKEN: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           header: ai-pr-review-status
           number: ${{ github.event.pull_request.number }}
           message: |
-            ⚠️ The [review run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) failed before delivering a review — the request stays pending. Re-request a review from this account (or re-run the job) to retry.
+            ⚠️ The [review run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) ended before delivering a review — the request stays pending. Re-request a review from this account (or re-run the job) to retry.
+
+            _The session up to that point is in the run's `ai-pr-review-logs` artifact (start with `review.transcript.log`)._
