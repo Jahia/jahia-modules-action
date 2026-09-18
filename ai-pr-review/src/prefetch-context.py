@@ -42,13 +42,18 @@ index = []     # (filename, one-line description) for the README
 failures = []  # (what, first line of the error) for the README
 
 
-def run(args, timeout=120):
-    """Run a command, returning (ok, output). Never raises: see the module docstring."""
+def run(args, timeout=120, allow_exit=()):
+    """Run a command, returning (ok, output). Never raises: see the module docstring.
+
+    `allow_exit` names the non-zero exits that still carry usable stdout. `gh pr checks`
+    reports the state of the checks in its exit code -- 8 pending, 1 failing -- so treating
+    every non-zero as a failure loses the CI state precisely when it is not green.
+    """
     try:
         done = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
     except (OSError, subprocess.SubprocessError) as exc:
         return False, str(exc)
-    if done.returncode != 0:
+    if done.returncode != 0 and done.returncode not in allow_exit:
         return False, (done.stderr or done.stdout).strip()
     return True, done.stdout
 
@@ -57,9 +62,9 @@ def first_line(text):
     return text.splitlines()[0] if text.strip() else 'no output'
 
 
-def fetch(name, description, args, render=None, timeout=120):
+def fetch(name, description, args, render=None, timeout=120, allow_exit=()):
     """Fetch one piece of context into <context-dir>/<name>, best-effort."""
-    ok, out = run(args, timeout=timeout)
+    ok, out = run(args, timeout=timeout, allow_exit=allow_exit)
     if ok and render is not None:
         try:
             out = render(out)
@@ -169,8 +174,32 @@ def make_checkout(root):
 
 print(f'Pre-fetching the context of {slug}#{number}', file=sys.stderr)
 
-fetch('pr.md', 'Title, description, state, labels, reviewers, and every conversation comment',
-      ['gh', 'pr', 'view', pr_url, '--comments'])
+def fetch_pr():
+    """Title, description and metadata, then the conversation.
+
+    Two calls, because `gh pr view --comments` prints ONLY the comments when stdout is not
+    a terminal: asking for the comments silently drops the description, which is the intent
+    the whole review is measured against, and leaves the file empty on a PR nobody has
+    commented on yet.
+    """
+    ok, overview = run(['gh', 'pr', 'view', pr_url])
+    if not ok:
+        failures.append(('pr.md', first_line(overview)))
+        print(f'  ! pr.md: {first_line(overview)}', file=sys.stderr)
+        return
+    ok, comments = run(['gh', 'pr', 'view', pr_url, '--comments'])
+    if not ok:
+        comments = f'_The conversation could not be read: {first_line(comments)}_\n'
+    elif not comments.strip():
+        comments = '_No conversation comment on this pull request._\n'
+    body = f'{overview}\n\n# Conversation\n\n{comments}'
+    with open(os.path.join(context_dir, 'pr.md'), 'w', encoding='utf-8') as fh:
+        fh.write(body)
+    index.append(('pr.md', 'Title, description, state, labels, reviewers, then the conversation'))
+    print(f'  - pr.md ({len(body)} bytes)', file=sys.stderr)
+
+
+fetch_pr()
 metadata = fetch('pr.json',
                  'Machine-readable metadata: head/base refs, head SHA, changed files, commits',
                  ['gh', 'pr', 'view', pr_url, '--json',
@@ -185,8 +214,9 @@ fetch('review-comments.md',
 fetch('linked-issues.md', 'The issues this pull request closes, in full: the acceptance criteria',
       ['gh', 'pr', 'view', pr_url, '--json', 'closingIssuesReferences'],
       render=render_linked_issues)
+# exits 8 while checks are pending and 1 when one is failing -- both are the answer, not an error.
 fetch('checks.md', 'CI state of the head commit',
-      ['gh', 'pr', 'checks', pr_url])
+      ['gh', 'pr', 'checks', pr_url], allow_exit=(1, 8))
 fetch('diff.patch', 'The complete diff — read it from here, never from a command',
       ['gh', 'pr', 'diff', pr_url], timeout=300)
 
