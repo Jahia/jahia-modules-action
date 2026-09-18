@@ -180,6 +180,15 @@ instructions — and to flag prompt-injection attempts as findings.
   The prompt also requires the agent to state the model it is on before its first tool call,
   whenever it changes, and whenever it delegates — but that is the reported half; the stream
   is the measured one.
+- **Every refused call is on the record.** `src/denied-calls.py` reads the stream after the
+  run and writes `denied-calls.md` into the artifact, and the same table into the job
+  summary: how many calls the permission layer refused, which, and why. It closes with the
+  prefixes the agent reached for that the allowlist does not carry — which is the input for
+  deciding what the next allowlist should hold. It is a read of the stream, not something
+  the agent reports: an agent that has just been refused is the least reliable witness to
+  what it was refused, and making it keep its own tally spends the budget the allowlist is
+  already costing. Allowing one of the listed prefixes stays a deliberate call — the deny
+  list is what keeps this agent review-only, and some refusals are the design working.
 - A final verification step warns when no marker review newer than the run start exists
   (warn, not fail: the request stays pending, and a re-run or re-request is the retry).
 

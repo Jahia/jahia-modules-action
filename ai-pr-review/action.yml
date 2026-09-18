@@ -165,6 +165,10 @@ runs:
         python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "$PR_KEY" "$EXIT_CODE" --no-trace
         # The artifact gets the full human-readable transcript (the console shows the compact trace)
         python3 "$GITHUB_ACTION_PATH/src/render-transcript.py" "$STREAM_FILE" "$LOG_DIR/review.transcript.log"
+        # Every call the permission layer refused, read off the stream rather than reported by
+        # the agent: a refusal tells the agent nothing it can act on, so the tally is only ever
+        # useful to the humans who decide what the NEXT allowlist carries.
+        python3 "$GITHUB_ACTION_PATH/src/denied-calls.py" "$STREAM_FILE" "$LOG_DIR/denied-calls.md" --label "$PR_KEY"
         # 124/137: `timeout` stopped the agent. It had not finished reviewing — that is a budget
         # problem, not a broken run, so say so and fail the step (the logs are already collected).
         if [ "$EXIT_CODE" -eq 124 ] || [ "$EXIT_CODE" -eq 137 ]; then
