@@ -5,7 +5,12 @@ Provisions a self-hosted runner to run [Claude Code](https://code.claude.com) he
 1. Installs the Claude Code CLI (native installer, no Node.js required).
 2. Points it at the Jahia **LiteLLM gateway** by exporting `ANTHROPIC_BASE_URL`,
    `ANTHROPIC_AUTH_TOKEN` and the `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL` aliases to
-   `$GITHUB_ENV` (they apply to all subsequent steps of the job).
+   `$GITHUB_ENV` (they apply to all subsequent steps of the job). Those three **map, they do
+   not choose**: they say which deployment the gateway serves for each alias, while which
+   alias a duty asks for is that duty's own `model` input (see
+   [ai-pr-review's "Which model runs"](../ai-pr-review/README.md#which-model-runs)). Leave a
+   duty's `model` empty and the CLI's own default decides — which moves with
+   `claude_code_version`.
 3. Verifies the gateway is reachable from the runner (DNS + HTTP), failing fast with DNS
    diagnostics instead of letting the agent retry against an unreachable endpoint.
 4. Clones the [cortex agentic harness](https://github.com/Jahia/cortex) — Claude Code is meant

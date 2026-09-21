@@ -88,6 +88,7 @@ files rather than spending its budget gathering them.
 | `pr_url` | yes | — | URL of the pull request to review |
 | `github_token` | yes | — | Token of the AI reviewer account (submitting with it clears the review request) |
 | `cortex_path` | yes | — | Absolute path of the cortex checkout (from `ai-agent-setup`) |
+| `model` | no | `opus` | Claude Code `--model` value: an `opus`/`sonnet`/`haiku` alias the gateway maps, or a model name it serves verbatim (see [Which model runs](#which-model-runs)) |
 | `marker` | no | `<!-- cortex-pr-review -->` | Marker the agent must put in every review body |
 | `post_review` | no | `true` | `false` = review mode: store the would-be review in `logs_dir/reviews` instead of submitting |
 | `job_timeout_minutes` | no | `30` | The calling job's `timeout-minutes`; the agent's own budget is this minus a 5-minute reserve (see [Timeouts](#timeouts)) |
@@ -128,6 +129,27 @@ unnamed in one spelling stays reachable through it.
 | Output | Description |
 |---|---|
 | `logs_dir` | Directory holding the review run logs — upload it as an artifact |
+
+## Which model runs
+
+The `model` input is the Claude Code `--model` value, and it is the only thing that decides
+which model answers. Leave it empty and there is no `--model` at all: the CLI falls back to its
+own built-in default, which moves with `claude_code_version` — so an unpinned duty can change
+model under you on a CLI upgrade. Each duty therefore pins one:
+
+| Duty | Default | Why |
+|---|---|---|
+| [`ai-pr-review`](../ai-pr-review) | `opus` | Reading a diff for real defects is the reasoning-heaviest of the three |
+| [`ai-tldr`](../ai-tldr) | `sonnet` | Summarizing a thread that has already been read |
+| [`ai-incident-triage`](../ai-incident-triage) | `sonnet` | Reading logs and matching known failure signatures |
+
+The `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL` variables that
+[`ai-agent-setup`](../ai-agent-setup) exports do **not** select a model — they only tell the CLI
+which LiteLLM deployment each alias resolves to. Passing a deployment name here instead of an
+alias bypasses them.
+
+Two models normally appear in one run: the one named here, plus the small model Claude Code uses
+for its own background work, which always comes from the haiku alias.
 
 ## Review-only guarantee
 
@@ -255,5 +277,5 @@ pull-request read/write on the repository), `AI_LITELLM_AUTH_TOKEN`, `AI_LITELLM
 
 Tuning inputs on `reusable-ai-pr-review.yml` (all optional — `reusable-delivery-pr-chores.yml`
 calls it with the defaults): `reviewer` (default `jahia-ai`), `post_review` (default `true`;
-`false` = review mode), `instance_type`, `timeout_job`, `cortex_ref`, `claude_code_version`,
-`tunnel_hosts`.
+`false` = review mode), `model` (default `opus`), `instance_type`, `timeout_job`,
+`cortex_ref`, `claude_code_version`, `tunnel_hosts`.
