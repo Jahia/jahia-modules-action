@@ -111,6 +111,22 @@ on:
         type: boolean
         default: false
         description: "Establish a WireGuard VPN tunnel before running the tests"
+      ai_analysis_enabled:
+        type: boolean
+        default: false
+        description: "After the tests, whatever their outcome, run a Claude Code agent (cortex harness) over the run's artifacts and write its analysis — why the tests failed, or anything unexpected in the Jahia logs — to the job summary. Requires the calling job to grant `id-token: write` and the calling repository to be allowlisted with the mTLS broker. Never fails the job."
+      ai_cortex_ref:
+        type: string
+        default: "main"
+        description: "Git ref of the cortex harness the analysis agent runs from"
+      ai_claude_code_version:
+        type: string
+        default: "stable"
+        description: "Claude Code CLI version installed for the analysis agent"
+      ai_tunnel_hosts:
+        type: string
+        default: "litellm-prod.int.jahia.com"
+        description: "Internal hosts the analysis agent reaches through the mTLS tunnel (space-separated); must be allowlisted on IT's side"
 
 jobs:
   integration-tests:
@@ -172,6 +188,7 @@ jobs:
           node-version: "lts/*"
 
       - uses: jahia/jahia-modules-action/integration-tests@v2
+        id: tests
         with:
           module_id: ${{ inputs.module_id }}
           incident_service: ${{ steps.deprecated_inputs.outputs.incident_service }}
@@ -221,6 +238,66 @@ jobs:
           docker_build_cache_enabled: ${{ inputs.docker_build_cache_enabled }}
           # the cache will be shared by all workflows using this reusable workflow in a given repository
           docker_build_cache_scope: "integration-tests"
+
+      # AI analysis of the run that just finished, on every outcome (a green run still gets its
+      # Jahia logs scanned for anything unexpected). Opt-in, and never the reason a job goes red:
+      # each step is continue-on-error, and the report lands in the job summary.
+      # Every `if` below carries `!cancelled()`: without a status function GitHub implies
+      # `success()`, and the tests step has just marked the job failed in exactly the case the
+      # analysis is for. A skipped tests step means an earlier step failed: nothing to analyze.
+      - name: Open the mTLS tunnel to internal Jahia services (AI analysis)
+        if: ${{ inputs.ai_analysis_enabled && !cancelled() && steps.tests.outcome != 'skipped' }}
+        id: ai_tunnel
+        continue-on-error: true
+        uses: jahia/jahia-modules-action/mtls-tunnel@v2
+        with:
+          hosts: ${{ inputs.ai_tunnel_hosts }}
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
+          server-name: ci-egress.jahia.com
+          audience: jahia-ci-egress
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
+          canary-url: ${{ vars.AI_LITELLM_BASE_URL }}/health/liveliness
+
+      - name: Set up Claude Code and the cortex harness (AI analysis)
+        if: ${{ !cancelled() && steps.ai_tunnel.outcome == 'success' }}
+        id: ai_setup
+        continue-on-error: true
+        uses: jahia/jahia-modules-action/ai-agent-setup@v2
+        with:
+          claude_code_version: ${{ inputs.ai_claude_code_version }}
+          anthropic_base_url: ${{ vars.AI_LITELLM_BASE_URL }}
+          anthropic_auth_token: ${{ secrets.AI_LITELLM_AUTH_TOKEN }}
+          default_opus_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_OPUS_MODEL }}
+          default_sonnet_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_SONNET_MODEL }}
+          default_haiku_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_HAIKU_MODEL }}
+          cortex_ref: ${{ inputs.ai_cortex_ref }}
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+
+      - name: Analyze the run with Claude Code (AI analysis)
+        if: ${{ !cancelled() && steps.ai_setup.outcome == 'success' }}
+        id: ai_analysis
+        continue-on-error: true
+        # TRIAL: the run mode is not released yet — revert to @v2 before merging
+        uses: jahia/jahia-modules-action/ai-incident-triage@feat/ai-incident-triage-run-analysis
+        with:
+          artifacts_path: ${{ github.workspace }}/${{ inputs.tests_path }}/artifacts
+          module_id: ${{ inputs.module_id }}
+          tests_outcome: ${{ steps.tests.outcome }}
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          cortex_path: ${{ steps.ai_setup.outputs.cortex_path }}
+
+      # outcome != 'skipped': no logs exist when the setup never ran
+      - name: Upload the AI analysis logs (AI analysis)
+        if: ${{ !cancelled() && steps.ai_analysis.outcome != 'skipped' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: ${{ inputs.artifact_prefix }}-${{ github.run_number }}-ai-analysis
+          path: ${{ runner.temp }}/triage-logs
+          retention-days: 2
+          if-no-files-found: ignore
 
       - name: Test Report
         uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
