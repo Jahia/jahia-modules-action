@@ -47,7 +47,7 @@ and put it back.
 
 Same as [`ai-pr-review`](../ai-pr-review/README.md): the caller needs `id-token: write` for the
 mTLS tunnel, the organization variables `AI_LITELLM_*` / `INFRAJAHIA_MTLS_*`, and the secrets
-`AI_LITELLM_AUTH_TOKEN`, `AI_AGENT_GH_ISSUES_PRS_CHORES`, `INFRAJAHIA_MTLS_*`,
+`AI_LITELLM_AUTH_TOKEN_USAGE_TLDR`, `AI_AGENT_GH_ISSUES_PRS_CHORES`, `INFRAJAHIA_MTLS_*`,
 `BASTION_SSH_PRIVATE_KEY_JAHIACI`.
 
 The repository must carry the label. Create it once per repository:

@@ -270,7 +270,8 @@ deny-by-default on both the tunneled hosts and the calling repository).
 Requirements otherwise mirror [`ai-incident-triage`](../ai-incident-triage): a self-hosted
 (typically ephemeral) Ubuntu runner providing `gh`, `python3`, `git`, `curl`, and the org
 secrets/vars `AI_AGENT_GH_ISSUES_PRS_CHORES` (the `jahia-ai` account token, with
-pull-request read/write on the repository), `AI_LITELLM_AUTH_TOKEN`, `AI_LITELLM_BASE_URL`,
+pull-request read/write on the repository), `AI_LITELLM_AUTH_TOKEN_USAGE_PRS`,
+`AI_LITELLM_BASE_URL`,
 `AI_LITELLM_ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL`, plus the mTLS bastion surface
 (`INFRAJAHIA_MTLS_CA_URL`, `INFRAJAHIA_MTLS_BASTION`, `INFRAJAHIA_MTLS_STEP_ROOT`,
 `INFRAJAHIA_MTLS_SERVER_CA`).
