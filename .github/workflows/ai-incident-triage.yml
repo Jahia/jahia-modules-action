@@ -39,6 +39,11 @@ on:
         type: number
         required: false
         default: 60
+      model:
+        description: "Model the agent runs on (an `opus`/`sonnet`/`haiku` alias the LiteLLM gateway maps, or a model name it serves verbatim). Empty leaves the installed CLI's own default, which moves with claude_code_version."
+        type: string
+        required: false
+        default: "sonnet"
       cortex_ref:
         description: "Git ref of the cortex harness to use"
         type: string
@@ -81,6 +86,11 @@ on:
         type: number
         required: false
         default: 60
+      model:
+        description: "Model the agent runs on (an `opus`/`sonnet`/`haiku` alias the LiteLLM gateway maps, or a model name it serves verbatim). Empty leaves the installed CLI's own default, which moves with claude_code_version."
+        type: string
+        required: false
+        default: "sonnet"
       cortex_ref:
         description: "Git ref of the cortex harness to use"
         type: string
@@ -155,6 +165,7 @@ jobs:
           issues: ${{ needs.select-issues.outputs.issues }}
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           cortex_path: ${{ steps.setup.outputs.cortex_path }}
+          model: ${{ inputs.model || 'sonnet' }}
           post_comments: ${{ inputs.post_comments }}
 
       - name: Upload triage logs

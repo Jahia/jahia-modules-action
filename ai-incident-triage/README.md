@@ -66,6 +66,7 @@ installs the CLI, exports the LiteLLM env, and clones cortex) and an established
 | `issues` | yes | — | JSON array produced by `select-issues` |
 | `github_token` | yes | — | Token used by the agent to read issues/runs and post comments |
 | `cortex_path` | yes | — | Absolute path of the cortex checkout (from `ai-agent-setup`) |
+| `model` | no | `sonnet` | Claude Code `--model` value: an `opus`/`sonnet`/`haiku` alias the gateway maps, or a model name it serves verbatim (see [ai-pr-review's "Which model runs"](../ai-pr-review/README.md#which-model-runs)) |
 | `marker` | no | `<!-- cortex-incident-triage -->` | Marker the agent must put in every triage comment |
 | `allowed_tools` | no | see `action.yml` | Claude Code `--allowedTools` value |
 

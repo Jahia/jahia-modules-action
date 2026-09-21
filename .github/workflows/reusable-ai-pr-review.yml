@@ -33,6 +33,11 @@ on:
         type: number
         required: false
         default: 30
+      model:
+        description: "Model the agent runs on (an `opus`/`sonnet`/`haiku` alias the LiteLLM gateway maps, or a model name it serves verbatim). Empty leaves the installed CLI's own default, which moves with claude_code_version."
+        type: string
+        required: false
+        default: "opus"
       cortex_ref:
         description: "Git ref of the cortex harness to use"
         type: string
@@ -125,6 +130,7 @@ jobs:
           pr_url: ${{ github.event.pull_request.html_url }}
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           cortex_path: ${{ steps.setup.outputs.cortex_path }}
+          model: ${{ inputs.model }}
           post_review: ${{ inputs.post_review }}
           debug: ${{ inputs.debug }}
           # The action stops the agent a few minutes before this budget is up, so it still

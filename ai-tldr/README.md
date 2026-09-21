@@ -66,6 +66,11 @@ tunnel step.
 Wired by [`reusable-ai-tldr.yml`](../.github/workflows/reusable-ai-tldr.yml); see that file for
 the caller-facing inputs (`lookback`, `post_comment`, `instance_type`, …).
 
+`model` (default `sonnet`) is the Claude Code `--model` value — an `opus`/`sonnet`/`haiku` alias
+the gateway maps, or a model name it serves verbatim. See
+[ai-pr-review's "Which model runs"](../ai-pr-review/README.md#which-model-runs) for how the alias
+resolves and why every duty pins one.
+
 `post_comment: false` is review mode: the agent runs, nothing is posted, the label stays, and the
 comment it *would* have posted lands in the job summary and the run artifact. Use it to iterate on
 the prompt without writing to a real thread.

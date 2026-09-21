@@ -11,6 +11,10 @@ inputs:
   cortex_path:
     description: 'Absolute path of the cortex checkout (from ai-agent-setup)'
     required: true
+  model:
+    description: 'Model the agent runs on, passed to the Claude Code CLI as --model: either an alias the gateway maps (`opus`, `sonnet`, `haiku` — see ai-agent-setup''s `default_*_model` inputs) or a model name it serves verbatim. Empty means no --model at all, leaving whatever the installed CLI defaults to — and that default moves with `claude_code_version`, which is why this duty pins it here instead. Summarizing a thread is not reasoning-heavy, so it runs on sonnet.'
+    required: false
+    default: 'sonnet'
   label:
     description: 'Label that requested the TL;DR — removed once the comment is posted, so the same label can request the next one'
     required: false
@@ -51,13 +55,22 @@ runs:
         TARGET_URL: ${{ inputs.target_url }}
         MARKER: ${{ inputs.marker }}
         POST_COMMENT: ${{ inputs.post_comment }}
+        AGENT_MODEL: ${{ inputs.model }}
         RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
         AGENT="Claude Code $(claude --version 2>/dev/null | head -1 || echo '(version unknown)')"
-        if [ -n "$ANTHROPIC_DEFAULT_SONNET_MODEL" ]; then
-          AGENT="$AGENT · model: $ANTHROPIC_DEFAULT_SONNET_MODEL"
-        fi
+        # Name the model that answers, not the alias we asked for: the alias is ours, the
+        # deployment behind it is the gateway's, and only the latter tells a reader of the
+        # comment which model wrote it. An unset alias variable means the CLI sends the alias
+        # through untranslated, so the alias is then the honest answer.
+        case "$AGENT_MODEL" in
+          opus)   MODEL_LABEL="${ANTHROPIC_DEFAULT_OPUS_MODEL:-$AGENT_MODEL}" ;;
+          sonnet) MODEL_LABEL="${ANTHROPIC_DEFAULT_SONNET_MODEL:-$AGENT_MODEL}" ;;
+          haiku)  MODEL_LABEL="${ANTHROPIC_DEFAULT_HAIKU_MODEL:-$AGENT_MODEL}" ;;
+          *)      MODEL_LABEL="$AGENT_MODEL" ;;
+        esac
+        [ -n "$MODEL_LABEL" ] && AGENT="$AGENT · model: $MODEL_LABEL"
         export AGENT
         LOG_DIR="$RUNNER_TEMP/tldr-logs"
         mkdir -p "$LOG_DIR"
@@ -76,6 +89,7 @@ runs:
         ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
         DISALLOWED_TOOLS: ${{ inputs.disallowed_tools }}
         CLAUDE_DEBUG: ${{ inputs.debug }}
+        AGENT_MODEL: ${{ inputs.model }}
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
         KEY: ${{ steps.prep.outputs.key }}
       run: |
@@ -95,6 +109,10 @@ runs:
         EXIT_CODE=0
         DEBUG_FLAG=""
         [ "$CLAUDE_DEBUG" = "true" ] && DEBUG_FLAG="--debug"
+        # --model rather than ANTHROPIC_MODEL: the flag is scoped to this one invocation, so a
+        # job that later runs another agent does not silently inherit this duty's choice.
+        MODEL_FLAG=""
+        [ -n "$AGENT_MODEL" ] && MODEL_FLAG="--model $AGENT_MODEL"
         # --add-dir: the log dir lives outside the cortex cwd, which Claude Code otherwise refuses
         claude -p "$(cat "$LOG_DIR/tldr.prompt.md")" \
           --allowedTools "$ALLOWED_TOOLS" \
@@ -102,7 +120,7 @@ runs:
           --add-dir "$LOG_DIR" \
           --permission-mode dontAsk \
           --output-format stream-json \
-          --verbose $DEBUG_FLAG \
+          --verbose $DEBUG_FLAG $MODEL_FLAG \
           > "$STREAM_FILE" 2> "$LOG_DIR/tldr.stderr.log" || EXIT_CODE=$?
         python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "$KEY" "$EXIT_CODE"
         # The artifact gets the full human-readable transcript (the console shows the compact trace)
