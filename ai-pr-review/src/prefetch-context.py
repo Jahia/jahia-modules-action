@@ -48,9 +48,14 @@ def run(args, timeout=120, allow_exit=()):
     `allow_exit` names the non-zero exits that still carry usable stdout. `gh pr checks`
     reports the state of the checks in its exit code -- 8 pending, 1 failing -- so treating
     every non-zero as a failure loses the CI state precisely when it is not green.
+
+    Decoding replaces what it cannot read instead of raising. A diff is whatever bytes the
+    branch holds -- a latin-1 properties file is enough -- and a UnicodeDecodeError here
+    would escape the try below and kill the whole prefetch over one byte in one hunk.
     """
     try:
-        done = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+        done = subprocess.run(args, capture_output=True, timeout=timeout,
+                              encoding='utf-8', errors='replace')
     except (OSError, subprocess.SubprocessError) as exc:
         return False, str(exc)
     if done.returncode != 0 and done.returncode not in allow_exit:
