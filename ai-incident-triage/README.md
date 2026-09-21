@@ -110,7 +110,8 @@ granted only when `post_comments` is true; review mode stays strictly observatio
   with the job.
 - Runner image must provide `gh`, `python3`, `unzip`, `git`, `curl` (checked by
   `ai-agent-setup`, which warns on gaps).
-- Org secrets/vars: `GH_ISSUES_PRS_CHORES`, `AI_LITELLM_AUTH_TOKEN`, `AI_LITELLM_BASE_URL`,
+- Org secrets/vars: `GH_ISSUES_PRS_CHORES`, `AI_LITELLM_AUTH_TOKEN_USAGE_INCIDENTS`,
+  `AI_LITELLM_BASE_URL`,
   `AI_LITELLM_ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL`, plus the mTLS bastion surface
   (`INFRAJAHIA_MTLS_CA_URL`, `INFRAJAHIA_MTLS_BASTION`, `INFRAJAHIA_MTLS_STEP_ROOT`,
   `INFRAJAHIA_MTLS_SERVER_CA`).
