@@ -58,4 +58,5 @@ The check blocks no merge until the branch ruleset of the repository lists it as
 
 - The action detects a secret after the push, when a public repository has already published it. Only GitHub push protection blocks the push itself.
 - A branch that is pushed without a pull request is not scanned.
+- A pull request can still change the workflows of its own repository, and remove or replace the check that way. A required workflow in an organization ruleset closes that gap, because the pull request cannot change the workflow it names.
 - The pinned gitleaks archive runs on `x86_64` runners only.
