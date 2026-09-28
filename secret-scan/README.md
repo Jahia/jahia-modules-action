@@ -14,7 +14,7 @@ The `PR Chores` reusable workflow runs the action on every pull request event ex
       - uses: jahia/jahia-modules-action/secret-scan@v2
 ```
 
-The action checks the repository out into `.secret-scan`, so the job needs no checkout step and keeps its own sources. The action needs no secret, and it runs on a pull request from a fork.
+The action checks the repository out into `.secret-scan`, and it removes that directory at the end. The job therefore needs no checkout step, and it keeps its own sources. The action needs no secret, and it runs on a pull request from a fork.
 
 ## Inputs
 

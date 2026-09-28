@@ -92,3 +92,9 @@ runs:
       shell: bash
       run: |
         echo "When the scan reports a secret, apply the first case that matches in [When the scan reports a secret](https://github.com/Jahia/jahia-modules-action/blob/main/secret-scan/README.md#when-the-scan-reports-a-secret)." >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Remove the checkout of the scan
+      # A later step of the job would otherwise find a nested repository, and its token, in the workspace.
+      if: always()
+      shell: bash
+      run: rm -rf .secret-scan

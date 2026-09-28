@@ -125,8 +125,8 @@ jobs:
     steps:
       - uses: jahia/jahia-modules-action/delivery/check-changelog@v2
 
-  # Scan the commits of the pull request for secrets. It runs on every event, not only on a push:
-  # a skipped run on a later event would stand in for a failed one on the same commit.
+  # Scan the commits of the pull request for secrets. It runs on every event, not only when commits
+  # arrive, because a skipped run on a later event would stand in for a failed one on the same commit.
   secret-scan:
     name: Secret Scan
     runs-on: ubuntu-slim
