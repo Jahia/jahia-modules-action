@@ -41,7 +41,10 @@ The job log names the file, the commit and the rule of each finding, and it hide
 
 1. **The value is a real secret.** Stop, and tell its owner, who rotates it. A public repository has already published it, and removing it from the branch does not remove it from the history.
 2. **The value is a test fixture in a commit you can still rewrite.** Build the value by concatenation, such as `"gh" + "p_" + body`, then rewrite the commit and push again.
-3. **The value is a test fixture that must stay as written.** First merge a pull request that adds a regex for the fixture to `.gitleaks.toml`, with a comment that names the test. Then push the branch of the fixture again, so that a new scan reads the new base. The regex applies to every file of the repository, so anchor it with `^` and `$` to match the fixture and nothing wider.
+3. **The value is a test fixture that must stay as written.** The pull request of the fixture cannot allowlist it, because the scan reads the configuration of the base. Add the regex in a pull request of its own first:
+   1. Open a pull request that adds a regex for the fixture to `.gitleaks.toml`, with a comment that names the test. The regex applies to every file of the repository, so anchor it with `^` and `$` to match the fixture and nothing wider.
+   2. To get a green scan before the regex merges, make the branch of the regex the base of the pull request of the fixture. The scan then reads the regex from that base.
+   3. Once the regex merges, start a new scan of the fixture with a push, the **Update branch** button or an edit of the title. A re-run of the failed job reads the old base again.
 
 ## Cost
 
