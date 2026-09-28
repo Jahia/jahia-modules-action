@@ -31,7 +31,7 @@ The scan reads its configuration from the base commit, so a pull request cannot 
 
 - `.gitleaks.toml` replaces the configuration of the action and does not add to it, so start it from a copy of [`gitleaks.toml`](gitleaks.toml).
 - `.gitleaksignore` lists the fingerprints of the findings to skip.
-- Without a `.gitleaks.toml`, the scan uses [`gitleaks.toml`](gitleaks.toml). That file keeps the default gitleaks rules and allowlists the public Jahia local-development defaults, such as the root password of the Jahia Docker image.
+- Without a `.gitleaks.toml`, the scan uses [`gitleaks.toml`](gitleaks.toml). That file keeps the default gitleaks rules and allowlists the public Jahia local-development defaults, such as the root password of the Jahia Docker image. It also allowlists a quoted shell variable used as a curl user, such as `-u "$SONAR_TOKEN:"`, which gitleaks reads as a credential.
 
 The [gitleaks documentation](https://github.com/gitleaks/gitleaks#configuration) describes both formats. A pull request that changes either file gets a warning in its checks. A `CODEOWNERS` entry for the two files makes a reviewer read every change to them.
 

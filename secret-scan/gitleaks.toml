@@ -12,4 +12,6 @@ regexes = [
   '''^(root:)?root1234$''',
   # The default third-party key of Apache Unomi, used by local jCustomer setups.
   '''^670c26d1cc413346c3b2fd9ce65dab41$''',
+  # A quoted shell variable as a curl user with no password, such as `-u "$SONAR_TOKEN:"`.
+  '''^"\$\{?[A-Za-z_][A-Za-z0-9_]*\}?:"$''',
 ]
