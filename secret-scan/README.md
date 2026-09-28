@@ -18,7 +18,7 @@ To call the action from another workflow:
       - uses: jahia/jahia-modules-action/secret-scan@v2
 ```
 
-The action checks the repository out itself, so the job needs no `actions/checkout` step. It needs no secret, so it also runs on a pull request from a fork.
+The action checks the repository out itself, into a `.secret-scan` directory of the workspace. The job therefore needs no `actions/checkout` step, and a job that already checked its sources out keeps them. The action needs no secret, so it also runs on a pull request from a fork.
 
 ## Inputs
 
@@ -31,11 +31,15 @@ Outside a pull request event, both inputs are required.
 
 ## Configuration
 
-A repository with a `.gitleaks.toml` at its root scans with that file, and a `.gitleaksignore` at its root applies too. See the [gitleaks configuration](https://github.com/gitleaks/gitleaks#configuration) for both formats.
+The scan reads its configuration from the base commit of the pull request, and never from the pull request itself. A pull request therefore cannot relax the scan of its own commits, and a change to the configuration applies once it merges.
 
-A repository without a `.gitleaks.toml` scans with [`gitleaks.toml`](gitleaks.toml) beside this action. That file keeps the default gitleaks rules. It also allowlists the public local-development defaults that Jahia repositories carry, such as the root password of the Jahia Docker image.
+- A `.gitleaks.toml` at the root of the base commit replaces the configuration of the action.
+- A `.gitleaksignore` at the root of the base commit lists the fingerprints of findings to skip.
+- A base commit without a `.gitleaks.toml` scans with [`gitleaks.toml`](gitleaks.toml) beside this action. That file keeps the default gitleaks rules. It also allowlists the public local-development defaults that Jahia repositories carry, such as the root password of the Jahia Docker image.
 
-A repository file replaces the base file, and it does not add to it. Start a repository file from a copy of `gitleaks.toml`, then add the entries of the repository.
+See the [gitleaks configuration](https://github.com/gitleaks/gitleaks#configuration) for both formats. A repository file replaces the file of the action, and it does not add to it. Start a repository file from a copy of `gitleaks.toml`, then add the entries of the repository.
+
+A pull request that changes `.gitleaks.toml` or `.gitleaksignore` gets a warning in its checks, because the change does not apply to its own scan. To have a reviewer read every change to these two files, name an owner for them in the `CODEOWNERS` file of the repository.
 
 ## When the scan reports a secret
 
@@ -43,7 +47,7 @@ The job log names the file, the commit and the rule of each finding, and it hide
 
 1. **The value is a real secret.** Stop, and tell the owner of the secret. The secret is already public on a public repository, so its owner rotates it. Removing it from the branch does not remove it from the history.
 2. **The value is a test fixture in a commit you can still rewrite.** Build the value in the test by concatenation, such as `"gh" + "p_" + body`, so that no commit carries the literal value. Rewrite the commit, and push again.
-3. **The value is a test fixture that must stay as written.** Add a `.gitleaks.toml` at the root of the repository, or add to the existing one, in the same pull request. Give the fixture a narrow regex in an allowlist, with a comment that names the test. A regex allowlists its match in every file of the repository, so it matches the fixture and nothing wider.
+3. **The value is a test fixture that must stay as written.** Open a first pull request that adds a regex for the fixture to the `.gitleaks.toml` of the repository. Give the regex a comment that names the test. Once that pull request merges, push to the branch of the fixture again, so that a new scan reads the new base. A regex allowlists its match in every file of the repository. Anchor it with `^` and `$`, so that it matches the fixture and nothing wider.
 
 ## Cost
 
