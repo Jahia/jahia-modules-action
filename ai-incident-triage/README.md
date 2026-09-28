@@ -113,7 +113,9 @@ granted only when `post_comments` is true; review mode stays strictly observatio
   `ai-agent-setup`, which warns on gaps).
 - Org secrets/vars: `GH_ISSUES_PRS_CHORES`, `AI_LITELLM_AUTH_TOKEN_USAGE_INCIDENTS`,
   `AI_LITELLM_BASE_URL`,
-  `AI_LITELLM_ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL`, plus the mTLS bastion surface
+  `AI_LITELLM_ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL`,
+  `CORTEX_TELEMETRY_TOKEN` (cortex's own usage reporting; a run without it still succeeds and reports nothing),
+  plus the mTLS bastion surface
   (`INFRAJAHIA_MTLS_CA_URL`, `INFRAJAHIA_MTLS_BASTION`, `INFRAJAHIA_MTLS_STEP_ROOT`,
   `INFRAJAHIA_MTLS_SERVER_CA`).
 - The agent job needs `permissions: id-token: write` (the tunnel mints a short-lived client
