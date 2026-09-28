@@ -1,0 +1,78 @@
+name: Secret Scan
+description: |
+  Scans the commits of a pull request with gitleaks, and fails when one of them adds a secret.
+
+  The scan reads the commits between the base and the head of the pull request, so its cost
+  follows the size of the pull request, and a finding on another branch never fails this one.
+  A repository with a `.gitleaks.toml` at its root scans with that file. Any other repository
+  scans with the Jahia base configuration beside this action. See README.md.
+
+inputs:
+  base_sha:
+    description: The commit the scanned range starts after. Defaults to the base of the pull request.
+    required: false
+    default: ${{ github.event.pull_request.base.sha }}
+  head_sha:
+    description: The last commit of the scanned range. Defaults to the head of the pull request.
+    required: false
+    default: ${{ github.event.pull_request.head.sha }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check the range
+      shell: bash
+      env:
+        BASE_SHA: ${{ inputs.base_sha }}
+        HEAD_SHA: ${{ inputs.head_sha }}
+      run: |
+        if [ -z "$BASE_SHA" ] || [ -z "$HEAD_SHA" ]; then
+          echo "::error::No range to scan: run on a pull request event, or set base_sha and head_sha"
+          exit 1
+        fi
+
+    - name: Checkout the history without the file contents
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+      with:
+        # Every commit and tree, and only the blobs the scan reads, fetched on demand.
+        fetch-depth: 0
+        filter: blob:none
+        sparse-checkout: |
+          /.gitleaks.toml
+          /.gitleaksignore
+        sparse-checkout-cone-mode: false
+
+    - name: Install gitleaks
+      shell: bash
+      env:
+        VERSION: 8.30.1
+        SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+      run: |
+        if [ "$(uname -m)" != "x86_64" ]; then
+          echo "::error::The pinned gitleaks archive is for x86_64, and this runner is $(uname -m)"
+          exit 1
+        fi
+        TARBALL="gitleaks_${VERSION}_linux_x64.tar.gz"
+        curl -fsSL -o "$RUNNER_TEMP/$TARBALL" "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/${TARBALL}"
+        echo "$SHA256  $RUNNER_TEMP/$TARBALL" | sha256sum --check --quiet
+        mkdir -p "$RUNNER_TEMP/gitleaks"
+        tar -xzf "$RUNNER_TEMP/$TARBALL" -C "$RUNNER_TEMP/gitleaks" gitleaks
+        echo "$RUNNER_TEMP/gitleaks" >> "$GITHUB_PATH"
+
+    - name: Scan the commits of the range
+      id: scan
+      shell: bash
+      env:
+        RANGE: ${{ inputs.base_sha }}..${{ inputs.head_sha }}
+        BASE_CONFIG: ${{ github.action_path }}/gitleaks.toml
+      run: |
+        # gitleaks reads the `.gitleaks.toml` of the repository it scans without being told.
+        CONFIG=()
+        [ -f .gitleaks.toml ] || CONFIG=(--config "$BASE_CONFIG")
+        gitleaks git . "${CONFIG[@]}" --log-opts="$RANGE" --redact --verbose --no-banner
+
+    - name: Point at the rule for a finding
+      if: failure() && steps.scan.outcome == 'failure'
+      shell: bash
+      run: |
+        echo "When the scan reports a secret, apply the first case that matches in [When the scan reports a secret](https://github.com/Jahia/jahia-modules-action/blob/main/secret-scan/README.md#when-the-scan-reports-a-secret)." >> "$GITHUB_STEP_SUMMARY"
