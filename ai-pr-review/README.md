@@ -272,7 +272,9 @@ Requirements otherwise mirror [`ai-incident-triage`](../ai-incident-triage): a s
 secrets/vars `AI_AGENT_GH_ISSUES_PRS_CHORES` (the `jahia-ai` account token, with
 pull-request read/write on the repository), `AI_LITELLM_AUTH_TOKEN_USAGE_PRS`,
 `AI_LITELLM_BASE_URL`,
-`AI_LITELLM_ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL`, plus the mTLS bastion surface
+`AI_LITELLM_ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL`,
+`CORTEX_TELEMETRY_TOKEN` (cortex's own usage reporting; a run without it still succeeds and reports nothing),
+plus the mTLS bastion surface
 (`INFRAJAHIA_MTLS_CA_URL`, `INFRAJAHIA_MTLS_BASTION`, `INFRAJAHIA_MTLS_STEP_ROOT`,
 `INFRAJAHIA_MTLS_SERVER_CA`).
 

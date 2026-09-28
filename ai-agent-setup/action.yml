@@ -36,6 +36,10 @@ inputs:
     description: 'Path (relative to the workspace) to clone cortex into'
     required: false
     default: 'cortex'
+  cortex_telemetry_token:
+    description: 'Credential cortex sends with its own usage telemetry (leave empty to report nothing)'
+    required: false
+    default: ''
   github_token:
     description: 'Token able to clone the cortex repository'
     required: true
@@ -110,6 +114,23 @@ runs:
         token: ${{ inputs.github_token }}
         path: ${{ inputs.cortex_path }}
         persist-credentials: false
+
+    - name: Configure the cortex harness environment
+      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.cortex_path }}
+      env:
+        CORTEX_TELEMETRY_TOKEN: ${{ inputs.cortex_telemetry_token }}
+      run: |
+        # cortex reads both keys from .env, a file no clone carries because it is never committed.
+        # The status line is also the reporting switch: a session that draws none reports no usage
+        # either (cortex ADR-0022), so the theme is what lets the credential below do anything.
+        printf 'CORTEX_STATUSLINE_THEME=default\n' >> .env
+        if [ -z "$CORTEX_TELEMETRY_TOKEN" ]; then
+          echo "::notice::No cortex telemetry credential supplied - this run reports nothing"
+          exit 0
+        fi
+        printf 'CORTEX_TELEMETRY_TOKEN=%s\n' "$CORTEX_TELEMETRY_TOKEN" >> .env
+        echo "Telemetry credential written to $(pwd)/.env"
 
     - name: Install the GitHub CLI if missing
       shell: bash

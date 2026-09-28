@@ -16,7 +16,13 @@ Provisions a self-hosted runner to run [Claude Code](https://code.claude.com) he
 4. Clones the [cortex agentic harness](https://github.com/Jahia/cortex) — Claude Code is meant
    to be started **from inside that checkout** so cortex's skills and instructions auto-load,
    and pre-trusts that checkout so its `.claude/settings.json` permissions apply.
-5. Runs two live checks and fails fast if either breaks: a hello-world round trip through the
+5. Writes the `.env` no cortex clone carries, so the harness reports its own usage — tokens,
+   cost, model, skills and tools, never prompts or outputs. Two keys:
+   `CORTEX_STATUSLINE_THEME=default` always, because a cortex session that draws no status line
+   reports nothing either, and `CORTEX_TELEMETRY_TOKEN` when `cortex_telemetry_token` is
+   supplied. The collector is committed in cortex's `.claude/settings.json`, so those two keys
+   are the whole of the configuration; leave the input empty and the run reports nothing.
+6. Runs two live checks and fails fast if either breaks: a hello-world round trip through the
    gateway (auth, model aliases, network path), then a cortex-awareness question the agent can
    only answer if the harness actually loaded (it must name the `analyze-jahia-ci` skill).
 
@@ -47,6 +53,7 @@ Claude-on-runner duty should reuse it as-is.
 | `cortex_repository` | no | `Jahia/cortex` | Repository holding the cortex agentic harness |
 | `cortex_ref` | no | `main` | Git ref of cortex to check out |
 | `cortex_path` | no | `cortex` | Path (relative to the workspace) to clone cortex into |
+| `cortex_telemetry_token` | no | `''` | Credential cortex sends with its own usage telemetry, written to the checkout's `.env`. Empty means the run reports nothing. The reusable workflows in this repository pass `secrets.CORTEX_TELEMETRY_TOKEN` |
 | `github_token` | yes | — | Token able to clone the cortex repository |
 
 ## Outputs
@@ -82,6 +89,7 @@ gateway smoke test below, before any agent starts, so the job says so instead of
           default_opus_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_OPUS_MODEL }}
           default_sonnet_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_SONNET_MODEL }}
           default_haiku_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_HAIKU_MODEL }}
+          cortex_telemetry_token: ${{ secrets.CORTEX_TELEMETRY_TOKEN }}
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
 
       - name: Do something with the agent
