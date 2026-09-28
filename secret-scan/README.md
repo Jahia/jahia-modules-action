@@ -1,14 +1,10 @@
 # Secret Scan
 
-Scans the commits of a pull request with [gitleaks](https://github.com/gitleaks/gitleaks), and fails when one of them adds a secret. A secret is a value such as a token, a password or a private key.
-
-The action scans the commits between the base and the head of the pull request, and no other commit. A finding on another branch therefore never fails this pull request. The cost of the scan follows the size of the pull request, and not the size of the repository.
+Fails a pull request when one of its commits adds a secret, such as a token, a password or a private key. The action runs [gitleaks](https://github.com/gitleaks/gitleaks) on the commits between the base and the head of the pull request only. A finding on another branch therefore never fails the pull request, and the cost follows the size of the pull request.
 
 ## Usage
 
-The `PR Chores` reusable workflow runs this action on every pull request event except `closed`. A repository that calls that workflow needs nothing else.
-
-To call the action from another workflow:
+The `PR Chores` reusable workflow runs the action on every pull request event except `closed`, so a repository that calls that workflow needs nothing else. To call the action from another workflow:
 
 ```yaml
     runs-on: ubuntu-latest
@@ -18,7 +14,7 @@ To call the action from another workflow:
       - uses: jahia/jahia-modules-action/secret-scan@v2
 ```
 
-The action checks the repository out itself, into a `.secret-scan` directory of the workspace. The job therefore needs no `actions/checkout` step, and a job that already checked its sources out keeps them. The action needs no secret, so it also runs on a pull request from a fork.
+The action checks the repository out into `.secret-scan`, so the job needs no checkout step and keeps its own sources. The action needs no secret, and it runs on a pull request from a fork.
 
 ## Inputs
 
@@ -27,38 +23,36 @@ The action checks the repository out itself, into a `.secret-scan` directory of 
 | `base_sha` | the base of the pull request | The commit the scanned range starts after. |
 | `head_sha` | the head of the pull request | The last commit of the scanned range. |
 
-Outside a pull request event, both inputs are required.
+Both inputs are required outside a pull request event.
 
 ## Configuration
 
-The scan reads its configuration from the base commit of the pull request, and never from the pull request itself. A pull request therefore cannot relax the scan of its own commits, and a change to the configuration applies once it merges.
+The scan reads its configuration from the base commit, so a pull request cannot relax its own scan. A change to the configuration applies once it merges.
 
-- A `.gitleaks.toml` at the root of the base commit replaces the configuration of the action.
-- A `.gitleaksignore` at the root of the base commit lists the fingerprints of findings to skip.
-- A base commit without a `.gitleaks.toml` scans with [`gitleaks.toml`](gitleaks.toml) beside this action. That file keeps the default gitleaks rules. It also allowlists the public local-development defaults that Jahia repositories carry, such as the root password of the Jahia Docker image.
+- `.gitleaks.toml` replaces the configuration of the action and does not add to it, so start it from a copy of [`gitleaks.toml`](gitleaks.toml).
+- `.gitleaksignore` lists the fingerprints of the findings to skip.
+- Without a `.gitleaks.toml`, the scan uses [`gitleaks.toml`](gitleaks.toml). That file keeps the default gitleaks rules and allowlists the public Jahia local-development defaults, such as the root password of the Jahia Docker image.
 
-See the [gitleaks configuration](https://github.com/gitleaks/gitleaks#configuration) for both formats. A repository file replaces the file of the action, and it does not add to it. Start a repository file from a copy of `gitleaks.toml`, then add the entries of the repository.
-
-A pull request that changes `.gitleaks.toml` or `.gitleaksignore` gets a warning in its checks, because the change does not apply to its own scan. To have a reviewer read every change to these two files, name an owner for them in the `CODEOWNERS` file of the repository.
+The [gitleaks documentation](https://github.com/gitleaks/gitleaks#configuration) describes both formats. A pull request that changes either file gets a warning in its checks. A `CODEOWNERS` entry for the two files makes a reviewer read every change to them.
 
 ## When the scan reports a secret
 
 The job log names the file, the commit and the rule of each finding, and it hides the value. Apply the first case that matches:
 
-1. **The value is a real secret.** Stop, and tell the owner of the secret. The secret is already public on a public repository, so its owner rotates it. Removing it from the branch does not remove it from the history.
-2. **The value is a test fixture in a commit you can still rewrite.** Build the value in the test by concatenation, such as `"gh" + "p_" + body`, so that no commit carries the literal value. Rewrite the commit, and push again.
-3. **The value is a test fixture that must stay as written.** Open a first pull request that adds a regex for the fixture to the `.gitleaks.toml` of the repository. Give the regex a comment that names the test. Once that pull request merges, push to the branch of the fixture again, so that a new scan reads the new base. A regex allowlists its match in every file of the repository. Anchor it with `^` and `$`, so that it matches the fixture and nothing wider.
+1. **The value is a real secret.** Stop, and tell its owner, who rotates it. A public repository has already published it, and removing it from the branch does not remove it from the history.
+2. **The value is a test fixture in a commit you can still rewrite.** Build the value by concatenation, such as `"gh" + "p_" + body`, then rewrite the commit and push again.
+3. **The value is a test fixture that must stay as written.** First merge a pull request that adds a regex for the fixture to `.gitleaks.toml`, with a comment that names the test. Then push the branch of the fixture again, so that a new scan reads the new base. The regex applies to every file of the repository, so anchor it with `^` and `$` to match the fixture and nothing wider.
 
 ## Cost
 
-The checkout fetches every commit and tree, and no file content. The scan then fetches the file contents of the scanned commits only. One private Jahia repository holds 38,000 commits in a 440 MB pack. Its history without file contents weighed 54 MB and took 11 seconds to fetch. A scan of a pull request of one or two commits then took 2 to 4 seconds.
+The checkout fetches the commits and trees without file contents, and the scan fetches only the contents of the scanned commits. On a private Jahia repository of 38,000 commits and a 440 MB pack, the checkout fetched 54 MB in 11 seconds. The scan of a pull request of one or two commits then took 2 to 4 seconds.
 
 ## Making the check required
 
-A job of the `PR Chores` workflow blocks no merge by itself. To block a pull request that adds a secret, add the check to the required status checks of the branch ruleset of the repository. The check is named after the calling job, such as `WF / Secret Scan` for the `Delivery - PR Chores` workflow that `Jahia/.github` manages.
+The check blocks no merge until the branch ruleset of the repository lists it as a required status check. Its name follows the calling job, such as `WF / Secret Scan` for the `Delivery - PR Chores` workflow that `Jahia/.github` manages.
 
 ## Limits
 
-- The action detects a secret after the push. A secret on a public repository is public from the moment of the push, and only GitHub push protection keeps it unpublished.
-- The action reads the commits of pull requests only. A branch that is pushed without a pull request is not scanned.
-- The pinned gitleaks archive is for `x86_64` runners.
+- The action detects a secret after the push, when a public repository has already published it. Only GitHub push protection blocks the push itself.
+- A branch that is pushed without a pull request is not scanned.
+- The pinned gitleaks archive runs on `x86_64` runners only.
