@@ -16,12 +16,17 @@ Provisions a self-hosted runner to run [Claude Code](https://code.claude.com) he
 4. Clones the [cortex agentic harness](https://github.com/Jahia/cortex) — Claude Code is meant
    to be started **from inside that checkout** so cortex's skills and instructions auto-load,
    and pre-trusts that checkout so its `.claude/settings.json` permissions apply.
-5. Writes the `.env` no cortex clone carries, so the harness reports its own usage — tokens,
-   cost, model, skills and tools, never prompts or outputs. Two keys:
-   `CORTEX_STATUSLINE_THEME=default` always, because a cortex session that draws no status line
-   reports nothing either, and `CORTEX_TELEMETRY_TOKEN` when `cortex_telemetry_token` is
-   supplied. The collector is committed in cortex's `.claude/settings.json`, so those two keys
-   are the whole of the configuration; leave the input empty and the run reports nothing.
+5. Configures cortex usage telemetry — tokens, cost, model, skills and tools, never prompts or
+   outputs. Two layers, because since Claude Code 2.1.282 the exporter reads its configuration
+   from the **launch environment** alone, not from project-scoped settings (cortex ADR-0022):
+   the `.env` no cortex clone carries gets `CORTEX_STATUSLINE_THEME=default` (a cortex session
+   that draws no status line reports nothing either) and the `CORTEX_TELEMETRY_TOKEN`
+   credential, while the telemetry environment itself — the same block a developer's shell gets
+   from cortex's `mise.toml` through `mise activate` — is exported to `$GITHUB_ENV`, hardcoded
+   collector included, so every later `claude` step of the job launches under it. Leave the
+   input empty and the run reports nothing: the action then writes cortex's standing refusal
+   (`CORTEX_TELEMETRY=off`) instead, so the harness's session-start notice does not ask the
+   headless agent a question nobody is there to answer.
 6. Runs two live checks and fails fast if either breaks: a hello-world round trip through the
    gateway (auth, model aliases, network path), then a cortex-awareness question the agent can
    only answer if the harness actually loaded (it must name the `analyze-jahia-ci` skill).

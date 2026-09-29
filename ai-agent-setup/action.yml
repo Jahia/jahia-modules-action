@@ -126,11 +126,40 @@ runs:
         # either (cortex ADR-0022), so the theme is what lets the credential below do anything.
         printf 'CORTEX_STATUSLINE_THEME=default\n' >> .env
         if [ -z "$CORTEX_TELEMETRY_TOKEN" ]; then
+          # The standing refusal cortex understands. Without it, the harness's session-start
+          # notice asks the agent a question nobody is there to answer.
+          printf 'CORTEX_TELEMETRY=off\n' >> .env
           echo "::notice::No cortex telemetry credential supplied - this run reports nothing"
           exit 0
         fi
         printf 'CORTEX_TELEMETRY_TOKEN=%s\n' "$CORTEX_TELEMETRY_TOKEN" >> .env
         echo "Telemetry credential written to $(pwd)/.env"
+        # Since Claude Code 2.1.282 the assistant reads its telemetry from its LAUNCH ENVIRONMENT
+        # alone: project-scoped settings files no longer set it (cortex ADR-0022, 2026-09-29
+        # amendments). A developer's shell gets this block from cortex's mise.toml [env] table via
+        # `mise activate`; this headless runner gets the same block from the job environment,
+        # hardcoded because no interactive setup exists here. It is a mirror of the map cortex
+        # states in tools/cortex-telemetry/lib/telemetry_env.py - a change starts there.
+        {
+          echo "CLAUDE_CODE_ENABLE_TELEMETRY=1"
+          echo "CLAUDE_CODE_OTEL_HEADERS_HELPER_DEBOUNCE_MS=60000"
+          echo "OTEL_EXPORTER_OTLP_ENDPOINT=https://telemetry.ai.sandbox.jahia.com"
+          echo "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative"
+          echo "OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf"
+          echo "OTEL_LOGS_EXPORTER=otlp"
+          echo "OTEL_LOG_TOOL_CONTENT=0"
+          echo "OTEL_LOG_TOOL_DETAILS=0"
+          echo "OTEL_LOG_USER_PROMPTS=0"
+          echo "OTEL_METRICS_EXPORTER=otlp"
+          echo "OTEL_METRICS_INCLUDE_ACCOUNT_UUID=false"
+          echo "OTEL_METRICS_INCLUDE_REPOSITORY=true"
+          echo "OTEL_METRICS_INCLUDE_SESSION_ID=false"
+          echo "OTEL_METRICS_INCLUDE_VERSION=true"
+          echo "OTEL_METRIC_EXPORT_INTERVAL=60000"
+          echo "OTEL_RESOURCE_ATTRIBUTES=harness=cortex,provider=anthropic"
+          echo "OTEL_TRACES_EXPORTER=none"
+        } >> "$GITHUB_ENV"
+        echo "Telemetry launch environment exported to the job"
 
     - name: Install the GitHub CLI if missing
       shell: bash
