@@ -1,0 +1,79 @@
+name: Wait for the patches to settle
+description: >-
+  Wait until a node has finished running the patch scripts an upgrade leaves for it, rather than
+  only until it answers HTTP.
+
+inputs:
+  install_root:
+    description: 'Absolute path of the install'
+    required: true
+  timeout_seconds:
+    description: 'How long to wait for the Patcher to finish'
+    required: false
+    default: '900'
+  verdict_dir:
+    description: 'Where to record a timeout, for the gate and the summary to read'
+    required: false
+    default: '.'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Wait for the patches to settle
+      shell: bash
+      env:
+        INSTALL_ROOT: ${{ inputs.install_root }}
+        TIMEOUT_SECONDS: ${{ inputs.timeout_seconds }}
+        VERDICTS: ${{ inputs.verdict_dir }}
+      run: |
+        set -uo pipefail
+        echo "::group::Wait for the patches to settle"
+        # "The processing node comes up first" has to mean more than "it answers HTTP". The Patcher
+        # runs on a timer and across lifecycle phases, so a node keeps applying an upgrade's scripts
+        # long after it reports itself ready. Starting the second node during that window puts two
+        # of them on the same tables, and the one that loses the race dies on a lock wait timeout --
+        # which is how an upgrade patch failed here with nothing wrong in it.
+        PATCHES="${INSTALL_ROOT}/digital-factory-data/patches"
+
+        # Only the scripts this node can still pick up. The Patcher names a script for the startup
+        # phase it belongs to, and a node that reports itself ready has passed all of them, so one
+        # still bearing a phase name is not pending -- it has already run. Some of them never lose
+        # their name at all: 0.modules.beforeContextInitializing.groovy ends with "keep", which is
+        # the Patcher's word for run me again next boot. Waiting on those is waiting forever, and it
+        # cost this lane fifteen minutes twice over before the wait was told to leave them alone.
+        PHASES='beforeContextInitializing|contextInitializing|contextInitialized|rootContextInitialized|jcrStoreProviderStarted'
+        pending() {
+          find "${PATCHES}" -type f \( -name '*.groovy' -o -name '*.yaml' -o -name '*.sql' \) 2>/dev/null \
+            | grep -vE "\.(${PHASES})\.[a-z]+$" || true
+        }
+
+        DEADLINE=$(( $(date +%s) + TIMEOUT_SECONDS ))
+        while [ "$(date +%s)" -lt "${DEADLINE}" ]; do
+          COUNT=$(pending | wc -l | tr -d ' ')
+          if [ "${COUNT}" = "0" ]; then
+            echo "the Patcher has nothing left to do"
+            # The phase-named ones are named rather than ignored: a reader should see that they were
+            # looked at and why they did not count.
+            KEPT=$(find "${PATCHES}" -type f \( -name '*.groovy' -o -name '*.yaml' -o -name '*.sql' \) \
+                   2>/dev/null | grep -cE "\.(${PHASES})\.[a-z]+$" || true)
+            mkdir -p "${VERDICTS}"
+            echo "patches: the Patcher had nothing left to run; ${KEPT:-0} script(s) named for a startup phase already passed" \
+              >> "${VERDICTS}/evidence.txt"
+            exit 0
+          fi
+          echo "waiting: ${COUNT} script(s) still to run"
+          sleep 10
+        done
+        echo "WARNING: ${COUNT} patch script(s) still pending after ${TIMEOUT_SECONDS}s"
+        # Recorded, because a wait that quietly gave up leaves the next node racing exactly as it
+        # did before this step existed, and a green run would say nothing about it.
+        mkdir -p "${VERDICTS}"
+        {
+          echo "the Patcher still had ${COUNT} script(s) to run after ${TIMEOUT_SECONDS}s,"
+          echo "so the node that joins next may be contending with it:"
+          pending | head -10
+        } | tee -a "${VERDICTS}/patches-verdict.txt"
+        echo "the Patcher did not settle before the next node joined" \
+          >> "${VERDICTS}/patches-pending"
+        # Not fatal here: the boot checks judge whether it mattered, and failing now would hide them.
+        exit 0

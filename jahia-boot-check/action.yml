@@ -1,0 +1,345 @@
+name: Jahia boot check
+description: >-
+  Start an installed Jahia, wait for it, and prove the boot is healthy rather than merely started.
+  Leaves the instance running, so a caller can read from it before stopping it with jahia-stop.
+  With start=false it only runs the checks, which is how a caller asks again after changing
+  something -- an error that appears only in the second answer belongs to what happened between.
+
+inputs:
+  install_root:
+    description: 'Absolute path of the install'
+    required: true
+  jahia_webapp_name:
+    description: 'Servlet context the webapp is deployed under'
+    required: false
+    default: 'ROOT'
+  jahia_tomcat_port:
+    description: 'Tomcat HTTP port'
+    required: false
+    default: '8080'
+  lane:
+    description: 'Which run this belongs to, so several of them on one runner do not collide'
+    required: false
+    default: 'lane'
+  label:
+    description: 'Name of this check, used in the logs and in the artifact name'
+    required: false
+    default: 'boot'
+  timeout_seconds:
+    description: 'How long to wait for the instance to report itself ready'
+    required: false
+    default: '900'
+  licensed:
+    description: 'false when the instance runs unlicensed, which excludes licence errors'
+    required: false
+    default: 'true'
+  start:
+    description: 'false to check an instance that is already running, without starting it'
+    required: false
+    default: 'true'
+  line_exclusions:
+    description: >-
+      Error lines the lane has judged to be noise, as one regex. The same list the post-upgrade log
+      parse uses: two readers of one log with two different ideas of what counts is how an error
+      fails one check and passes the other.
+    required: false
+    default: ''
+  verdict_dir:
+    description: 'Where to record what this check found, for the gate and the summary to read'
+    required: false
+    default: '.'
+  installed_version:
+    description: >-
+      true for a boot of the version the lane installed, before the upgrade. Its log errors and
+      error dumps are then reported as known issues of that version instead of failing the lane.
+      A webapp that does not serve, or a Spring context that failed, still fails it.
+    required: false
+    default: 'false'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Start Jahia (${{ inputs.label }})
+      if: ${{ inputs.start == 'true' }}
+      shell: bash
+      env:
+        INSTALL_ROOT: ${{ inputs.install_root }}
+        LABEL: ${{ inputs.label }}
+      run: |
+        set -euo pipefail
+        echo "::group::Start Jahia (${LABEL})"
+        cd "${INSTALL_ROOT}/tomcat/bin"
+        # `catalina.bat start` opens its own console on Windows and writes no catalina.out, so the
+        # log the checks read would not exist. `run` in the background gives both OSes the same file.
+        if [ "${RUNNER_OS}" = "Windows" ]; then
+          CATALINA="./catalina.bat"
+        else
+          CATALINA="./catalina.sh"
+          chmod +x ./*.sh
+        fi
+        rm -f "${INSTALL_ROOT}/tomcat/logs/catalina.out"
+        # Where this boot's log begins. jahia.log survives a restart, so every later scan needs to
+        # know which lines belong to the instance being checked rather than to the one replaced.
+        #
+        # Recorded here, at the moment of starting, because that is the only moment that is
+        # certainly after the previous JVM finished writing. Marking it when the lane asked for a
+        # stop was not: on Windows the shutdown is still in progress, and the errors it logs then
+        # land after the mark and get read as this boot's.
+        if [ -f "${INSTALL_ROOT}/tomcat/logs/jahia.log" ]; then
+          wc -l < "${INSTALL_ROOT}/tomcat/logs/jahia.log" | tr -d ' ' \
+            > "${INSTALL_ROOT}/tomcat/logs/jahia.log.offset"
+          echo "this boot's log starts after line $(cat "${INSTALL_ROOT}/tomcat/logs/jahia.log.offset")"
+        else
+          rm -f "${INSTALL_ROOT}/tomcat/logs/jahia.log.offset"
+        fi
+        # The same boundary for the error dumps, which also outlive a restart: a file whose
+        # modification time is the start of this boot, for the check to compare each dump with.
+        touch "${INSTALL_ROOT}/tomcat/logs/jahia.boot.started"
+        nohup "${CATALINA}" run > "${INSTALL_ROOT}/tomcat/logs/catalina.out" 2>&1 &
+        # `run` writes no pid file, but Jahia's setenv points CATALINA_PID at this path and
+        # `catalina stop` refuses when it is set and missing. Recording it here is what makes the
+        # shutdown below work at all.
+        mkdir -p "${INSTALL_ROOT}/tomcat/temp"
+        echo $! > "${INSTALL_ROOT}/tomcat/temp/tomcat.pid"
+        echo "started, pid $!"
+        echo "::endgroup::"
+
+    - name: Wait for Jahia (${{ inputs.label }})
+      if: ${{ inputs.start == 'true' }}
+      shell: bash
+      env:
+        INSTALL_ROOT: ${{ inputs.install_root }}
+        TIMEOUT_SECONDS: ${{ inputs.timeout_seconds }}
+        LABEL: ${{ inputs.label }}
+      run: |
+        set -uo pipefail
+        echo "::group::Wait for Jahia (${LABEL})"
+        LOG="${INSTALL_ROOT}/tomcat/logs/catalina.out"
+        DEADLINE=$(( $(date +%s) + TIMEOUT_SECONDS ))
+        while [ "$(date +%s)" -lt "${DEADLINE}" ]; do
+          if grep -qa "is now ready" "${LOG}" 2>/dev/null; then
+            echo "Jahia reported itself ready"
+            exit 0
+          fi
+          # A boot that died leaves the JVM gone; waiting out the timeout would only delay the
+          # report, and the log is already the evidence.
+          if ! grep -qa "Server startup in" "${LOG}" 2>/dev/null; then
+            sleep 10
+            continue
+          fi
+          if grep -qaE "Context initialization failed|BeanCreationException|Couldn't mount provider" "${LOG}"; then
+            echo "ERROR: the Spring context failed during startup"
+            exit 1
+          fi
+          sleep 10
+        done
+        echo "ERROR: Jahia did not report itself ready within ${TIMEOUT_SECONDS}s"
+        tail -n 100 "${LOG}" || true
+        exit 1
+
+    - name: Check the boot (${{ inputs.label }})
+      shell: bash
+      env:
+        INSTALL_ROOT: ${{ inputs.install_root }}
+        CONTEXT: ${{ inputs.jahia_webapp_name }}
+        HTTP_PORT: ${{ inputs.jahia_tomcat_port }}
+        LICENSED: ${{ inputs.licensed }}
+        LINE_EXCLUSIONS: ${{ inputs.line_exclusions }}
+        LABEL: ${{ inputs.label }}
+        VERDICTS: ${{ inputs.verdict_dir }}
+        INSTALLED_VERSION: ${{ inputs.installed_version }}
+      run: |
+        set -uo pipefail
+        echo "::group::Check the boot (${LABEL})"
+        L="${INSTALL_ROOT}/tomcat/logs"
+        STATUS=0
+        # Collected as well as printed: a step that fails prints into a log nobody reads until they
+        # go looking, and the run summary is where the answer is read first.
+        FINDINGS=$(mktemp)
+        # What the installed version logged or dumped, before the upgrade. It is not what the lane
+        # tests, and failing on it stopped the Windows lane on Jahia's own startup races -- a lock
+        # timeout, a duplicate JGroups registration -- before the fix applier had been applied. So
+        # it is reported, the way the crawl reports an error the installed version already had.
+        KNOWN=$(mktemp)
+        ENTRY=$(mktemp)
+        # Where a finding goes: the known issues before the upgrade, a failure after it. Fed from a
+        # file, not a pipe: a function at the end of a pipe runs in a subshell, and STATUS set there
+        # never reaches this one.
+        judge() {
+          if [ "${INSTALLED_VERSION}" = "true" ]; then
+            cat >> "${KNOWN}"
+          else
+            cat >> "${FINDINGS}"
+            STATUS=1
+          fi
+        }
+
+        # Tomcat prints "Server startup in" even when Jahia's context failed and the webapp is dead,
+        # so each of the checks below covers a channel the others miss.
+
+        if [ "${CONTEXT}" = "ROOT" ]; then URL_PATH=""; else URL_PATH="/${CONTEXT}"; fi
+        CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${HTTP_PORT}${URL_PATH}/cms/login" || echo 000)
+        echo "HTTP ${CODE} on ${URL_PATH}/cms/login"
+        if [ "${CODE}" != "200" ]; then
+          echo "ERROR: the webapp is not serving"
+          echo "the webapp answered HTTP ${CODE} on ${URL_PATH}/cms/login" >> "${FINDINGS}"
+          STATUS=1
+        fi
+
+        # Unlicensed, Jahia logs a licence error on every boot. Excluding it keeps the check usable
+        # without a licence, and the exclusion is reported so nobody reads this as a clean boot.
+        # '^$' matches nothing, so an empty list excludes nothing rather than everything.
+        EXCLUDE='^$'
+        if [ -n "${LINE_EXCLUSIONS}" ]; then
+          EXCLUDE="${LINE_EXCLUSIONS}"
+        fi
+        if [ "${LICENSED}" != "true" ]; then
+          echo "NOTICE: unlicensed instance — licence errors are excluded from this check"
+          EXCLUDE="${EXCLUDE}|LicenseChecker|[Ll]icense"
+        fi
+
+        # Only the lines this boot wrote. jahia.log survives a restart, so without a mark the
+        # post-upgrade check reads the previous instance's shutdown and blames the upgrade for it.
+        # A line offset rather than a renamed file: Windows will not move a log a JVM still holds,
+        # and the rotation that tried died with "Device or resource busy".
+        SCAN="${L}/jahia.log"
+        if [ -f "${L}/jahia.log.offset" ] && [ -f "${L}/jahia.log" ]; then
+          FROM=$(cat "${L}/jahia.log.offset" 2>/dev/null || echo 0)
+          tail -n "+$((FROM + 1))" "${L}/jahia.log" > jahia.window.log 2>/dev/null || true
+          SCAN="jahia.window.log"
+          echo "reading jahia.log from line $((FROM + 1))"
+        fi
+
+        if [ -f "${SCAN}" ]; then
+          grep -a "ERROR" "${SCAN}" | grep -Eva "${EXCLUDE}" > jahia.errors.log || true
+          if [ -s jahia.errors.log ]; then
+            echo "ERROR: jahia.log carries errors"
+            cat jahia.errors.log
+            {
+              echo "jahia.log carries errors:"
+              echo '```'
+              head -20 jahia.errors.log
+              echo '```'
+            } > "${ENTRY}"
+            judge < "${ENTRY}"
+          fi
+        fi
+
+        # The channel people forget: Jahia writes formatted FATAL dumps here while catalina.out
+        # scrolls past looking busy.
+        # One dump is startup noise rather than a fault: Karaf's SSH shell activator asks for
+        # ConfigurationAdmin before the tracker has it, throws "Service not tracked", and the boot
+        # continues to a working instance -- HTTP 200, no error in jahia.log. It appears on the 8.1
+        # line, on both nodes, before the upgrade has run, so failing on it would mean no 8.1
+        # transition can ever be tested. Matched on its own stack, not on the file, so a dump that
+        # merely happens to be written at the same time is still a failure.
+        #
+        # Only the dumps this boot wrote. The directory survives a restart, so a dump from before it --
+        # written while the previous instance was being tested -- was otherwise charged to this boot:
+        # a race in the pre-upgrade Cypress pass failed the post-upgrade boot of a 8.2.3.2 lane, and
+        # skipped every check of the upgraded instance. Listed, not dropped, since it is still a dump.
+        DUMPS=0
+        COUNTED=()
+        if compgen -G "${L}/jahia-errors/*/error-*.txt" > /dev/null; then
+          for dump in "${L}"/jahia-errors/*/error-*.txt; do
+            if [ -f "${L}/jahia.boot.started" ] && [ ! "${dump}" -nt "${L}/jahia.boot.started" ]; then
+              echo "not this boot's: $(basename "${dump}"), written before it started --" \
+                "$(grep -ahm1 -E "^(Error|[a-z.]+(Exception|Error):)" "${dump}" | cut -c1-200)"
+              continue
+            fi
+            if grep -qa "Service not tracked for class interface org.osgi.service.cm.ConfigurationAdmin" "${dump}" \
+               && grep -qa "org.apache.karaf.shell.ssh.Activator" "${dump}"; then
+              echo "ignoring $(basename "${dump}"): the Karaf SSH activator's ConfigurationAdmin race"
+              continue
+            fi
+            DUMPS=$((DUMPS + 1))
+            COUNTED+=("${dump}")
+          done
+        fi
+
+        if [ "${DUMPS}" -gt 0 ]; then
+          echo "ERROR: Jahia wrote ${DUMPS} error dump(s) under jahia-errors/ during this boot"
+          ls -la "${COUNTED[@]}"
+          {
+            echo "Jahia wrote error dumps under \`tomcat/logs/jahia-errors/\`, first message:"
+            echo '```'
+            # The first Error/Exception line of each dump: the dumps are hundreds of kilobytes and
+            # what identifies them is the top of the trace.
+            for dump in "${COUNTED[@]}"; do
+              grep -ahm1 -E "^(Error|[a-z.]+(Exception|Error):)" "${dump}"
+            done | head -5
+            echo '```'
+          } > "${ENTRY}"
+          judge < "${ENTRY}"
+        fi
+
+        if grep -aE "Context initialization failed|BeanCreationException|Couldn't mount provider" "${L}/catalina.out"; then
+          echo "ERROR: the Spring context failed"
+          echo "the Spring context failed during startup" >> "${FINDINGS}"
+          STATUS=1
+        fi
+
+        if [ -s "${KNOWN}" ]; then
+          echo "NOTICE: the installed version logged or dumped errors on this boot; reported as" \
+            "known issues, not as a failure of the upgrade"
+          mkdir -p "${VERDICTS}"
+          {
+            echo "Boot of the installed version (${LABEL}):"
+            cat "${KNOWN}"
+            echo ""
+          } >> "${VERDICTS}/boot-known.txt"
+        fi
+
+        if [ "${STATUS}" -eq 0 ]; then
+          # What was actually examined, so a reader does not have to take "passed" on trust.
+          SCANNED=$(wc -l < "${SCAN}" 2>/dev/null | tr -d ' ')
+          mkdir -p "${VERDICTS}"
+          if [ -s "${KNOWN}" ]; then
+            SEEN="errors reported as known issues of the installed version"
+          else
+            SEEN="0 errors after exclusions; no unexplained dumps under jahia-errors/"
+          fi
+          echo "boot (${LABEL}): HTTP ${CODE} on ${URL_PATH}/cms/login; ${SCANNED} log lines scanned, ${SEEN}" \
+            >> "${VERDICTS}/evidence.txt"
+        fi
+
+        if [ "${STATUS}" -ne 0 ]; then
+          {
+            echo "### Boot check failed (${LABEL})"
+            echo ""
+            cat "${FINDINGS}"
+            echo ""
+          } >> "${GITHUB_STEP_SUMMARY}"
+          # Recorded as well, so both lanes answer the summary's questions from the same markers
+          # rather than one of them failing silently into a step result.
+          mkdir -p "${VERDICTS}"
+          echo "a boot did not come up clean (${LABEL})" >> "${VERDICTS}/boot-errors"
+          cat "${FINDINGS}" >> "${VERDICTS}/boot-verdict.txt"
+        fi
+        rm -f "${FINDINGS}" "${KNOWN}" "${ENTRY}"
+        exit ${STATUS}
+
+    # Copied into the workspace first: install_root is a shell path, and on Windows that is
+    # /d/a/... , which the upload action cannot resolve. Nothing was archived there, which is
+    # precisely the lane whose logs are hardest to get at otherwise.
+    - name: Collect the logs (${{ inputs.label }})
+      if: always()
+      shell: bash
+      env:
+        INSTALL_ROOT: ${{ inputs.install_root }}
+        LABEL: ${{ inputs.label }}
+      run: |
+        mkdir -p "jahia-logs-${LABEL}"
+        cp -r "${INSTALL_ROOT}/tomcat/logs/." "jahia-logs-${LABEL}/" 2>/dev/null || true
+        ls -la "jahia-logs-${LABEL}" || true
+
+    - name: Keep this output with the lane's others
+      if: always()
+      shell: bash
+      run: |
+        # One package per lane, uploaded once at the end, instead of an artifact per install, boot and
+        # Cypress pass. Everything goes under lane-output/ in the workspace, which is also the one place
+        # the upload action can read on Windows.
+        mkdir -p "lane-output/jahia-logs/${{ inputs.label }}"
+        cp -r "jahia-logs-${{ inputs.label }}/." "lane-output/jahia-logs/${{ inputs.label }}/" 2>/dev/null || true
+

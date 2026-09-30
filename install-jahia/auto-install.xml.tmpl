@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  Auto-install descriptor replayed by the Jahia distribution installer.
+
+  The installer replays one element per wizard panel, IN THE ORDER THE WIZARD SHOWS THEM. Every
+  panel must be present, including the ones that contribute nothing (a bare <userInput/>): a missing
+  panel desynchronises the replay and the install fails or silently skips configuration.
+
+  Placeholders are upper-case names between at-signs, substituted by the install-jahia action.
+-->
+<AutomatedInstallation langpack="eng">
+    <com.izforge.izpack.panels.HelloPanel id="UNKNOWN (com.izforge.izpack.panels.HelloPanel)"/>
+    <com.izforge.izpack.panels.LicencePanel id="UNKNOWN (com.izforge.izpack.panels.LicencePanel)"/>
+    <com.izforge.izpack.panels.TargetPanel id="UNKNOWN (com.izforge.izpack.panels.TargetPanel)">
+        <installpath>@INSTALL_ROOT@</installpath>
+    </com.izforge.izpack.panels.TargetPanel>
+    <com.izforge.izpack.panels.UserInputPanel id="installType">
+        <userInput><entry key="installation.type" value="advanced"/></userInput>
+    </com.izforge.izpack.panels.UserInputPanel>
+    <com.izforge.izpack.panels.PacksPanel id="packsPanel">
+        <pack index="0" name="jahia" selected="true"/>
+        <pack index="1" name="tomcat" selected="true"/>
+    </com.izforge.izpack.panels.PacksPanel>
+    <com.izforge.izpack.panels.UserInputPanel id="dbMode">
+        <userInput><entry key="dbSettings.mode" value="@DB_MODE@"/></userInput>
+    </com.izforge.izpack.panels.UserInputPanel>
+    <com.izforge.izpack.panels.UserInputPanel id="dbType">
+        <userInput><entry key="dbSettings.dbms.type" value="@DB_TYPE@"/></userInput>
+    </com.izforge.izpack.panels.UserInputPanel>
+    <!-- Always present, even on a DBMS that is not MySQL: this is where the driver jar goes for the
+         ones whose driver Jahia does not bundle. The action fills it only when it has one. -->
+    <com.izforge.izpack.panels.UserInputPanel id="dbTypeMySQL">
+        <userInput>@DB_DRIVER_ENTRIES@</userInput>
+    </com.izforge.izpack.panels.UserInputPanel>
+    <!-- The connection keys are suffixed by the dbms type, so the action writes the ones that match
+         rather than the template carrying a set per DBMS. -->
+    <com.izforge.izpack.panels.UserInputPanel id="dbSettings">
+        <userInput>@DB_SETTINGS_ENTRIES@
+            <!-- Only the first node creates the schema the others then share. -->
+            <entry key="dbSettings.dbms.createTables" value="@CREATE_TABLES@"/>
+            <entry key="dbSettings.dbms.storeFilesInDB" value="true"/>
+        </userInput>
+    </com.izforge.izpack.panels.UserInputPanel>
+    <com.izforge.izpack.panels.UserInputPanel id="webApp">
+        <userInput>
+            <entry key="jahia.war.contextName" value="@CONTEXT@"/>
+            <entry key="karaf.remoteShell.port" value="@KARAF_PORT@"/>
+        </userInput>
+    </com.izforge.izpack.panels.UserInputPanel>
+    <com.izforge.izpack.panels.UserInputPanel id="appServer">
+        <userInput>
+            <entry key="tomcat.httpPort" value="@HTTP_PORT@"/>
+            <entry key="tomcat.sslPort" value="@SSL_PORT@"/>
+            <entry key="tomcat.serverPort" value="@SHUTDOWN_PORT@"/>
+            <entry key="tomcat.ajpPort" value="@AJP_PORT@"/>
+            <entry key="tomcat.jvmRoute" value=""/>
+            <entry key="catalina.heapSize" value="@HEAP_SIZE@"/>
+            <entry key="catalina.otherOptions" value="@CATALINA_OPTIONS@"/>
+        </userInput>
+    </com.izforge.izpack.panels.UserInputPanel>
+    <com.izforge.izpack.panels.UserInputPanel id="operatingMode">
+        <userInput>
+            <entry key="operatingMode" value="@OPERATING_MODE@"/>
+            <!-- This gates whether the cluster panel below is read at all. -->
+            <entry key="operatingMode.configure.cluster" value="@CLUSTER@"/>
+            <entry key="operatingMode.configure.ldap" value="false"/>
+        </userInput>
+    </com.izforge.izpack.panels.UserInputPanel>
+    <com.izforge.izpack.panels.UserInputPanel id="ldap"><userInput/></com.izforge.izpack.panels.UserInputPanel>
+    <!-- Filled by the action only for a clustered node. Nodes share one database and discover each
+         other through it, so each needs its own ports and its own server id, and exactly one of
+         them is the processing server. -->
+    <com.izforge.izpack.panels.UserInputPanel id="cluster">
+        <userInput>@CLUSTER_ENTRIES@</userInput>
+    </com.izforge.izpack.panels.UserInputPanel>
+    <com.izforge.izpack.panels.UserInputPanel id="superUser">
+        <userInput>
+            <entry key="superUser.password" value="@SUPER_USER_PASSWORD@"/>
+            <!-- Empty, on purpose: the installer copies ${superUser.*} through verbatim into
+                 root-user.xml, and JCR rejects the placeholder against its e-mail constraint, which
+                 fails the Spring context on first boot. The constraint accepts an empty value. -->
+            <entry key="superUser.firstname" value=""/>
+            <entry key="superUser.lastname" value=""/>
+            <entry key="superUser.email" value=""/>
+            <entry key="superUser.preferredLang" value="en"/>
+        </userInput>
+    </com.izforge.izpack.panels.UserInputPanel>
+    <com.izforge.izpack.panels.UserInputPanel id="mailSettings">
+        <userInput>
+            <entry key="mailSettings.server" value=""/>
+            <entry key="mailSettings.from" value=""/>
+            <entry key="mailSettings.administrator" value=""/>
+        </userInput>
+    </com.izforge.izpack.panels.UserInputPanel>
+    <com.izforge.izpack.panels.UserInputPanel id="studioToolSettings">
+        <userInput>
+            <!-- Resolved to absolute paths by the action, not left as bare names. Jahia looks for
+                 a maven executable at boot and logs an ERROR with a dump beside it when it finds
+                 none, and the PATH Tomcat runs with is not the one the runner's shell had. On
+                 Windows the executable is mvn.cmd, which a bare "mvn" does not name. -->
+            <entry key="studioToolSettings.svnPath" value="@SVN_PATH@"/>
+            <entry key="studioToolSettings.mvnPath" value="@MVN_PATH@"/>
+            <entry key="studioToolSettings.gitPath" value="@GIT_PATH@"/>
+        </userInput>
+    </com.izforge.izpack.panels.UserInputPanel>
+    <com.izforge.izpack.panels.UserInputPanel id="externalToolSettings">
+        <userInput>
+            <entry key="dmConfig.imagemagickPath" value=""/>
+            <entry key="dmConfig.officePath" value=""/>
+            <entry key="dmConfig.ffmpegPath" value=""/>
+            <entry key="dmConfig.pdf2swfPath" value=""/>
+            <entry key="dmConfig.validate" value="false"/>
+        </userInput>
+    </com.izforge.izpack.panels.UserInputPanel>
+    <com.izforge.izpack.panels.UserInputPanel id="additionalSettings">
+        <userInput>
+            <entry key="defaultLanguageCode" value="en"/>
+            <entry key="additionalModulesPath" value=""/>
+            <entry key="licensePath" value="@LICENSE_PATH@"/>
+        </userInput>
+    </com.izforge.izpack.panels.UserInputPanel>
+    <com.izforge.izpack.panels.UserInputPanel id="externalizedConfig">
+        <userInput>
+            <!-- Absolute, on purpose: a relative data.dir is not resolved and the installer creates a
+                 literal ${data.dir} directory next to the working directory instead. -->
+            <entry key="externalizedConfigTargetPath" value="@CONFIG_DIR@"/>
+            <entry key="data.dir" value="@DATA_DIR@"/>
+        </userInput>
+    </com.izforge.izpack.panels.UserInputPanel>
+    <com.izforge.izpack.panels.SummaryPanel id="UNKNOWN (com.izforge.izpack.panels.SummaryPanel)"/>
+    <com.izforge.izpack.panels.ExtendedInstallPanel id="UNKNOWN (com.izforge.izpack.panels.ExtendedInstallPanel)"/>
+    <com.izforge.izpack.panels.ShortcutPanel id="shortcutPanel"/>
+    <com.izforge.izpack.panels.UserInputPanel id="afterInstall">
+        <userInput>
+            <!-- Off, on purpose: the ProcessPanel's "Start Apache Tomcat" job is Windows-only, so
+                 leaving this panel empty installs quietly on Linux and leaves a running Jahia behind
+                 on Windows. The test starts and stops the instance itself, and a second Tomcat on
+                 the same ports comes up with a failed Spring context. -->
+            <entry key="afterInstall.startTomcat" value="false"/>
+            <entry key="afterInstall.launchJahia" value="false"/>
+        </userInput>
+    </com.izforge.izpack.panels.UserInputPanel>
+    <com.izforge.izpack.panels.ProcessPanel id="UNKNOWN (com.izforge.izpack.panels.ProcessPanel)"/>
+    <com.izforge.izpack.panels.FinishPanel id="UNKNOWN (com.izforge.izpack.panels.FinishPanel)"/>
+</AutomatedInstallation>
