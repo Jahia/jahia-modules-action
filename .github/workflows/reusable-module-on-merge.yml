@@ -131,10 +131,10 @@ jobs:
     # Nested reusable call: `uses` takes no expression, so this ref is edited by hand at release (@v2).
     uses: Jahia/jahia-modules-action/.github/workflows/reusable-integration-tests.yml@reusable-module-workflows
     with:
-      instance_type: ${{ needs.metadata.outputs.runner }}
       module_id: ${{ needs.metadata.outputs.module-id }}
       jahia_image: ${{ needs.metadata.outputs.jahia-image }}
       jahia_cluster_enabled: ${{ needs.metadata.outputs.cluster == 'true' }}
+      docker_build_cache_enabled: true
       provisioning_manifest: ${{ needs.metadata.outputs.manifest-merge }}
       tests_profile: ${{ matrix.profile }}
       artifact_prefix: merge-${{ needs.metadata.outputs.module-id }}${{ matrix.profile && format('-{0}', matrix.profile) || '' }}

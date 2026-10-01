@@ -76,7 +76,7 @@ jobs:
     name: Static analysis
     needs: metadata
     if: needs.metadata.outputs.has-frontend == 'true' || needs.metadata.outputs.has-tests == 'true'
-    runs-on: ${{ needs.metadata.outputs.runner }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
@@ -139,7 +139,7 @@ jobs:
   sonar-analysis:
     name: Sonar analysis
     needs: [metadata, build]
-    runs-on: ${{ needs.metadata.outputs.runner }}
+    runs-on: ubuntu-latest
     container:
       image: ${{ needs.metadata.outputs.cache-image }}
     env:
@@ -172,10 +172,10 @@ jobs:
     # Nested reusable call: `uses` takes no expression, so this ref is edited by hand at release (@v2).
     uses: Jahia/jahia-modules-action/.github/workflows/reusable-integration-tests.yml@reusable-module-workflows
     with:
-      instance_type: ${{ needs.metadata.outputs.runner }}
       module_id: ${{ needs.metadata.outputs.module-id }}
       jahia_image: ${{ needs.metadata.outputs.jahia-image }}
       jahia_cluster_enabled: ${{ needs.metadata.outputs.cluster == 'true' }}
+      docker_build_cache_enabled: true
       provisioning_manifest: ${{ needs.metadata.outputs.manifest-pr }}
       tests_profile: ${{ matrix.profile }}
       artifact_prefix: pr-${{ needs.metadata.outputs.module-id }}${{ matrix.profile && format('-{0}', matrix.profile) || '' }}

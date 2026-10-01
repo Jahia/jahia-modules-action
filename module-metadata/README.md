@@ -45,7 +45,7 @@ repository:
     incident-service: my-module
 branch:
   ci:
-    runner: self-hosted
+    runner: self-hosted          # the build job; integration tests keep their own default
   audit:
     level: high                    # low, moderate, high, critical
   lint:
