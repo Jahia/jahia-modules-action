@@ -1,0 +1,129 @@
+name: Module metadata
+description: >
+  Reads what a Jahia module repository states about itself (pom.xml, package.json, mise.toml, the
+  tests/ folder, .jahia.yml) and emits it as outputs, so a reusable workflow derives its jobs instead
+  of asking for inputs. The `repository:` section of .jahia.yml is read from the default branch's
+  copy whatever branch the run is on; the `branch:` section from the checkout.
+
+inputs:
+  path:
+    description: Root of the module checkout
+    default: '.'
+  token:
+    description: Token used to read .jahia.yml on the default branch
+    default: ${{ github.token }}
+  image-os:
+    description: OS suffix of the jahia-docker-mvn-cache tag the build runs in
+    default: 'resolute'
+
+outputs:
+  build-tool:
+    description: maven or javascript
+    value: ${{ steps.read.outputs.build-tool }}
+  module-id:
+    description: The module's artifactId (Maven) or package name without scope (JavaScript)
+    value: ${{ steps.read.outputs.module-id }}
+  parent-version:
+    description: Version of the org.jahia.modules:jahia-modules parent, empty when none
+    value: ${{ steps.read.outputs.parent-version }}
+  java:
+    description: The java spec of mise.toml (e.g. temurin-11)
+    value: ${{ steps.read.outputs.java }}
+  node:
+    description: The node spec of mise.toml
+    value: ${{ steps.read.outputs.node }}
+  yarn:
+    description: The yarn spec of mise.toml
+    value: ${{ steps.read.outputs.yarn }}
+  cache-image:
+    description: The jahia-docker-mvn-cache image a Maven build runs in
+    value: ${{ steps.read.outputs.cache-image }}
+  jahia-image:
+    description: The Jahia image integration tests run against
+    value: ${{ steps.read.outputs.jahia-image }}
+  signature-poms:
+    description: JSON list of the poms carrying a module signature
+    value: ${{ steps.read.outputs.signature-poms }}
+  has-frontend:
+    description: true when the module builds JavaScript
+    value: ${{ steps.read.outputs.has-frontend }}
+  has-tests:
+    description: true when tests/ holds a Cypress configuration
+    value: ${{ steps.read.outputs.has-tests }}
+  test-module:
+    description: mvn, javascript or none, from tests/jahia-module
+    value: ${{ steps.read.outputs.test-module }}
+  cypress-profiles:
+    description: JSON list of the tests/cypress.config-*.ts files to run as a matrix, exclusions applied
+    value: ${{ steps.read.outputs.cypress-profiles }}
+  manifest-pr:
+    description: The provisioning manifest of a pull-request run, relative to tests/
+    value: ${{ steps.read.outputs.manifest-pr }}
+  manifest-merge:
+    description: The provisioning manifest of a merge run, relative to tests/
+    value: ${{ steps.read.outputs.manifest-merge }}
+  cluster:
+    description: true when the tests run a Jahia cluster
+    value: ${{ steps.read.outputs.cluster }}
+  runner:
+    description: Runner label for the build and test jobs
+    value: ${{ steps.read.outputs.runner }}
+  audit-level:
+    description: audit-ci level the static analysis fails on
+    value: ${{ steps.read.outputs.audit-level }}
+  max-warnings:
+    description: Lint warnings tolerated
+    value: ${{ steps.read.outputs.max-warnings }}
+  timeout-job:
+    description: Integration tests job timeout, minutes
+    value: ${{ steps.read.outputs.timeout-job }}
+  timeout-step:
+    description: Integration tests step timeout, minutes
+    value: ${{ steps.read.outputs.timeout-step }}
+  testrail-project:
+    description: TestRail project the merge and nightly runs publish to, empty to skip
+    value: ${{ steps.read.outputs.testrail-project }}
+  incident-service:
+    description: Incident service the merge and nightly runs notify, empty to skip
+    value: ${{ steps.read.outputs.incident-service }}
+  maintenance-branches:
+    description: JSON list of the active maintenance branches, from the default branch's .jahia.yml
+    value: ${{ steps.read.outputs.maintenance-branches }}
+  release-line:
+    description: true on the default branch and on a listed maintenance branch
+    value: ${{ steps.read.outputs.release-line }}
+
+runs:
+  using: composite
+  steps:
+    - name: Python with PyYAML
+      shell: bash
+      run: python3 -c 'import yaml' 2>/dev/null || python3 -m pip install --quiet --user pyyaml
+
+    - name: Fetch .jahia.yml from the default branch
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      run: |
+        set -u
+        DEFAULT_CONFIG="$RUNNER_TEMP/jahia.default.yml"
+        if gh api "repos/$GITHUB_REPOSITORY/contents/.jahia.yml?ref=$DEFAULT_BRANCH" -H 'Accept: application/vnd.github.raw' > "$DEFAULT_CONFIG" 2>/dev/null; then
+          echo "DEFAULT_CONFIG=$DEFAULT_CONFIG" >> "$GITHUB_ENV"
+        else
+          rm -f "$DEFAULT_CONFIG"
+          echo "no .jahia.yml on $DEFAULT_BRANCH"
+        fi
+
+    - name: Read the module
+      id: read
+      shell: bash
+      env:
+        DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      run: |
+        python3 "$GITHUB_ACTION_PATH/src/metadata.py" "${{ inputs.path }}" \
+          --ref-name "$GITHUB_REF_NAME" \
+          --default-branch "$DEFAULT_BRANCH" \
+          --default-config "${DEFAULT_CONFIG:-}" \
+          --image-os "${{ inputs.image-os }}" \
+          --output "$GITHUB_OUTPUT"

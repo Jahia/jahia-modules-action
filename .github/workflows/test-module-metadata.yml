@@ -1,0 +1,29 @@
+name: Test module-metadata
+on:
+  pull_request:
+    paths:
+      - 'module-metadata/**'
+      - '.github/workflows/test-module-metadata.yml'
+  workflow_dispatch:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+      - run: python3 -c 'import yaml' 2>/dev/null || python3 -m pip install --quiet --user pyyaml
+      - run: python3 -m unittest discover -s module-metadata/tests -v
+
+  on-itself:
+    name: The action on a synthetic checkout
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+      - id: meta
+        uses: ./module-metadata
+        with:
+          path: module-metadata/tests/fixtures/synthetic-jdk17
+      - run: |
+          test "${{ steps.meta.outputs.module-id }}" = synthetic-jdk17
+          test "${{ steps.meta.outputs.cache-image }}" = ghcr.io/jahia/jahia-docker-mvn-cache:17-jdk-resolute-mvn-loaded
+          test "${{ steps.meta.outputs.has-tests }}" = true

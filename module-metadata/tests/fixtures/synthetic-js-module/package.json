@@ -1,0 +1,11 @@
+{
+  "name": "@jahia/synthetic-templates",
+  "version": "1.0.0",
+  "jahia": {
+    "module-type": "templatesSet",
+    "server": "dist/server/index.js",
+    "maven": { "groupId": "org.jahia.modules.npm" }
+  },
+  "scripts": { "build": "vite build" },
+  "packageManager": "yarn@4.10.3"
+}
