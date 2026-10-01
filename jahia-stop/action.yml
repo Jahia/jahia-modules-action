@@ -1,0 +1,63 @@
+name: Stop Jahia
+description: Shut an installed Jahia down and wait for it, on Linux or Windows.
+
+inputs:
+  install_root:
+    description: 'Absolute path of the install'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Stop Jahia
+      shell: bash
+      env:
+        INSTALL_ROOT: ${{ inputs.install_root }}
+      run: |
+        set -uo pipefail
+        echo "::group::Stop Jahia"
+        cd "${INSTALL_ROOT}/tomcat/bin"
+        if [ "${RUNNER_OS}" = "Windows" ]; then CATALINA="./catalina.bat"; else CATALINA="./catalina.sh"; fi
+        # Killing Jahia early corrupts the Lucene index, which costs a full rebuild on the next
+        # boot — and the next boot here is the one under test.
+        "${CATALINA}" stop 180 -force || true
+        # The upgrade patches a directory tree, so a JVM still holding those files would make the
+        # result depend on timing. The shutdown is waited out rather than assumed.
+        #
+        # Waited out by PID, because the previous test -- `! pgrep -f catalina...` -- was a no-op on
+        # Windows: git-bash ships no pgrep, so the command failed, its negation was true, and the
+        # step reported the JVM gone the instant it was asked. Windows will not delete a file a
+        # running process holds and the applier does not complain, so the upgrade left the old jars
+        # beside the new ones and Spring found two ChannelHolderImpl beans on the next boot.
+        # Windows is asked about the JVM itself, by its command line. The PID recorded at start is
+        # the shell that launched catalina.bat, not the java process it spawns, so waiting on it
+        # returns at once -- and Windows will not let the applier delete a jar the JVM still holds,
+        # without saying so. The lane then boots an install carrying both jahia-impl-8.1.9.3.jar and
+        # jahia-impl-8.1.9.5.jar, and Spring fails on the duplicate beans three steps later.
+        PIDFILE="${INSTALL_ROOT}/tomcat/temp/tomcat.pid"
+        ROOT_ABS=$(cd "${INSTALL_ROOT}" && pwd)
+        alive() {
+          if [ "${RUNNER_OS}" = "Windows" ]; then
+            WIN_ROOT=$(cygpath -w "${ROOT_ABS}" 2>/dev/null || echo "${ROOT_ABS}")
+            # -like needs the path escaped for the wildcard match; backslashes are literal here.
+            powershell -NoProfile -Command \
+              "\$p = Get-CimInstance Win32_Process -Filter \"Name='java.exe'\" |
+                     Where-Object { \$_.CommandLine -like '*${WIN_ROOT}*' };
+               if (\$p) { exit 0 } else { exit 1 }" 2>/dev/null
+          else
+            [ -f "${PIDFILE}" ] || return 1
+            PID=$(cat "${PIDFILE}" 2>/dev/null)
+            [ -n "${PID}" ] || return 1
+            kill -0 "${PID}" 2>/dev/null
+          fi
+        }
+        for _ in $(seq 1 60); do
+          if ! alive; then
+            echo "Jahia stopped"
+            rm -f "${PIDFILE}"
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "WARNING: Jahia is still running two minutes after shutdown was requested"
+        exit 0

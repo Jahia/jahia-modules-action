@@ -1,0 +1,432 @@
+name: Install Jahia
+description: >-
+  Install a Jahia distribution installer unattended, on Linux or Windows, and drop the licence in.
+  Several calls against one database, with cluster=true, build a cluster on a single runner.
+
+inputs:
+  install_timeout_seconds:
+    description: 'How long the installer may run before it is judged stuck'
+    required: false
+    default: '1200'
+  jahia_version:
+    description: >-
+      Version being installed. Below 8.2.3.2 a Windows host installs from the .exe rather than the
+      jar, which cannot validate the files it writes there.
+    required: false
+    default: ''
+  installer_path:
+    description: 'Path of the Jahia distribution installer jar'
+    required: true
+  install_root:
+    description: 'Directory to install into (created; must not already hold an install)'
+    required: true
+  jahia_webapp_name:
+    description: 'Servlet context the webapp is deployed under'
+    required: false
+    default: 'ROOT'
+  jahia_tomcat_port:
+    description: 'Tomcat HTTP port'
+    required: false
+    default: '8080'
+  super_user_password:
+    description: 'Password of the root user'
+    required: false
+    default: 'root1234'
+  license_file:
+    description: 'Path to the Jahia licence; empty installs unlicensed'
+    required: false
+    default: ''
+  db_mode:
+    description: 'embedded (Derby, no external service) or standalone'
+    required: false
+    default: 'embedded'
+  db_type:
+    description: 'derby_embedded, mariadb, mysql, postgresql, mssql or oracle'
+    required: false
+    default: 'derby_embedded'
+  db_url:
+    description: 'JDBC URL, for a standalone database'
+    required: false
+    default: ''
+  db_driver_class:
+    description: 'JDBC driver class, for a standalone database'
+    required: false
+    default: ''
+  db_user:
+    description: 'Database user'
+    required: false
+    default: ''
+  db_password:
+    description: 'Database password'
+    required: false
+    default: ''
+  db_driver_jar:
+    description: 'Path to the JDBC driver jar, for a DBMS whose driver Jahia does not bundle'
+    required: false
+    default: ''
+  lane:
+    description: 'Which run this belongs to, so several of them on one runner do not collide'
+    required: false
+    default: 'lane'
+  label:
+    description: 'Name of this node, used in the artifact name so two installs do not collide'
+    required: false
+    default: 'node'
+  heap_size:
+    description: 'Tomcat heap size, in MB'
+    required: false
+    default: '2048'
+  production_mode:
+    description: 'true to install in production mode, false in development mode'
+    required: false
+    default: 'false'
+  cluster:
+    description: 'true to install this node as part of a cluster'
+    required: false
+    default: 'false'
+  processing_server:
+    description: 'true when this node runs the background jobs; exactly one node in a cluster does'
+    required: false
+    default: 'true'
+  cluster_node_port:
+    description: 'Port this node listens on for the cluster journal'
+    required: false
+    default: '7870'
+  cluster_hazelcast_port:
+    description: 'Port this node listens on for Hazelcast'
+    required: false
+    default: '7860'
+  cluster_server_id:
+    description: 'Identity of this node in the cluster'
+    required: false
+    default: ''
+  create_tables:
+    description: 'false for a node joining a database another node already populated'
+    required: false
+    default: 'true'
+
+outputs:
+  install_root:
+    description: 'Absolute path of the install, in the shell flavour of the runner'
+    value: ${{ steps.install.outputs.install_root }}
+  webapp_path:
+    description: 'Absolute path of the deployed webapp'
+    value: ${{ steps.install.outputs.webapp_path }}
+  licensed:
+    description: 'true when a licence was installed'
+    value: ${{ steps.install.outputs.licensed }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Jahia from the distribution installer
+      id: install
+      shell: bash
+      env:
+        INSTALLER_PATH: ${{ inputs.installer_path }}
+        JAHIA_VERSION: ${{ inputs.jahia_version }}
+        INSTALL_TIMEOUT_SECONDS: ${{ inputs.install_timeout_seconds }}
+        INSTALL_ROOT: ${{ inputs.install_root }}
+        CONTEXT: ${{ inputs.jahia_webapp_name }}
+        HTTP_PORT: ${{ inputs.jahia_tomcat_port }}
+        SUPER_USER_PASSWORD: ${{ inputs.super_user_password }}
+        LICENSE_FILE: ${{ inputs.license_file }}
+        HEAP_SIZE: ${{ inputs.heap_size }}
+        DB_MODE: ${{ inputs.db_mode }}
+        DB_TYPE: ${{ inputs.db_type }}
+        DB_URL: ${{ inputs.db_url }}
+        DB_DRIVER_CLASS: ${{ inputs.db_driver_class }}
+        DB_USER: ${{ inputs.db_user }}
+        DB_PASSWORD: ${{ inputs.db_password }}
+        DB_DRIVER_JAR: ${{ inputs.db_driver_jar }}
+        CLUSTER: ${{ inputs.cluster }}
+        PRODUCTION_MODE: ${{ inputs.production_mode }}
+        PROCESSING_SERVER: ${{ inputs.processing_server }}
+        CLUSTER_NODE_PORT: ${{ inputs.cluster_node_port }}
+        CLUSTER_HAZELCAST_PORT: ${{ inputs.cluster_hazelcast_port }}
+        CLUSTER_SERVER_ID: ${{ inputs.cluster_server_id }}
+        CREATE_TABLES: ${{ inputs.create_tables }}
+      run: |
+        set -euo pipefail
+        echo "::group::Install Jahia"
+
+        mkdir -p "${INSTALL_ROOT}"
+        ROOT_ABS=$(cd "${INSTALL_ROOT}" && pwd)
+        INSTALLER_ABS=$(cd "$(dirname "${INSTALLER_PATH}")" && pwd)/$(basename "${INSTALLER_PATH}")
+
+        # IzPack writes the paths it is given straight into the generated configuration, so on
+        # Windows they have to be native paths rather than the runner shell's /c/... form.
+        native() { if [ "${RUNNER_OS}" = "Windows" ]; then cygpath -w "$1"; else echo "$1"; fi; }
+
+        LICENSE_PATH=""
+        LICENSED=false
+        if [ -n "${LICENSE_FILE}" ] && [ -f "${LICENSE_FILE}" ]; then
+          cp "${LICENSE_FILE}" "${ROOT_ABS}/license.xml"
+          LICENSE_PATH=$(native "${ROOT_ABS}/license.xml")
+          LICENSED=true
+          echo "Licence supplied, installing licensed"
+        else
+          echo "NOTICE: no licence supplied, installing unlicensed — the boot check excludes the"
+          echo "NOTICE: licence errors this produces, so it proves less than a licensed run."
+        fi
+
+        # Jahia runs Tomcat with its own environment, so a bare tool name is resolved against a PATH
+        # this step cannot see. Each is resolved here and written absolute; on Windows the real
+        # executable is the .cmd wrapper, which "mvn" does not name.
+        resolve_tool() {
+          local name=$1 found=""
+          if [ "${RUNNER_OS}" = "Windows" ]; then
+            found=$(command -v "${name}.cmd" 2>/dev/null || command -v "${name}" 2>/dev/null || true)
+          else
+            found=$(command -v "${name}" 2>/dev/null || true)
+          fi
+          if [ -n "${found}" ]; then
+            native "${found}"
+          else
+            echo "NOTICE: ${name} is not on PATH; Jahia will report it missing at boot" >&2
+            echo "${name}"
+          fi
+        }
+        SVN_PATH=$(resolve_tool svn)
+        MVN_PATH=$(resolve_tool mvn)
+        GIT_PATH=$(resolve_tool git)
+        echo "studio tools: svn=${SVN_PATH} mvn=${MVN_PATH} git=${GIT_PATH}"
+
+        DB_DRIVER_JAR_NATIVE=""
+        if [ -n "${DB_DRIVER_JAR}" ] && [ -f "${DB_DRIVER_JAR}" ]; then
+          DB_DRIVER_JAR_NATIVE=$(native "$(cd "$(dirname "${DB_DRIVER_JAR}")" && pwd)/$(basename "${DB_DRIVER_JAR}")")
+        fi
+
+        # Substituted in Python: a Windows path is full of backslashes, which a sed replacement
+        # would read as escapes.
+        TEMPLATE="${GITHUB_ACTION_PATH}/auto-install.xml.tmpl" \
+        INSTALL_ROOT_NATIVE="$(native "${ROOT_ABS}")" \
+        CONFIG_DIR_NATIVE="$(native "${ROOT_ABS}/digital-factory-config")" \
+        DATA_DIR_NATIVE="$(native "${ROOT_ABS}/digital-factory-data")" \
+        LICENSE_PATH="${LICENSE_PATH}" \
+        DB_DRIVER_JAR_NATIVE="${DB_DRIVER_JAR_NATIVE}" \
+        SVN_PATH="${SVN_PATH}" MVN_PATH="${MVN_PATH}" GIT_PATH="${GIT_PATH}" \
+        python - <<'EOF'
+        import os
+
+        http = int(os.environ["HTTP_PORT"])
+        values = {
+            "INSTALL_ROOT": os.environ["INSTALL_ROOT_NATIVE"],
+            "CONTEXT": os.environ["CONTEXT"],
+            "HTTP_PORT": str(http),
+            # Offsets from the HTTP port, so a second install on one runner cannot collide.
+            "SSL_PORT": str(http + 363),
+            "SHUTDOWN_PORT": str(http - 75),
+            "AJP_PORT": str(http - 71),
+            "KARAF_PORT": str(http + 21),
+            "HEAP_SIZE": os.environ["HEAP_SIZE"],
+            "SUPER_USER_PASSWORD": os.environ["SUPER_USER_PASSWORD"],
+            "LICENSE_PATH": os.environ["LICENSE_PATH"],
+            "CONFIG_DIR": os.environ["CONFIG_DIR_NATIVE"],
+            "DATA_DIR": os.environ["DATA_DIR_NATIVE"],
+            "DB_MODE": os.environ["DB_MODE"],
+            "DB_TYPE": os.environ["DB_TYPE"],
+            "CLUSTER": os.environ["CLUSTER"],
+            "OPERATING_MODE": ("production" if os.environ["PRODUCTION_MODE"] == "true"
+                               else "development"),
+            # A node joining a cluster replays the journal as its repository comes up, and an
+            # upgrade's journal carries node-type changes. Jackrabbit refuses to unregister a type
+            # unless this is set, and it reads it once, from a system property, in the static
+            # initialiser of NodeTypeRegistry -- Boolean.getBoolean, at class load. Jahia sets the
+            # equivalent field in JackrabbitStoreProvider.start(), which is after the replay has
+            # already happened on a node that was down for the upgrade. The property is the only
+            # place it can be set early enough.
+            "CATALINA_OPTIONS": ("-DdisableCheckForReferencesInContentException=true"
+                                 if os.environ["CLUSTER"] == "true" else ""),
+            "CREATE_TABLES": os.environ["CREATE_TABLES"],
+            "SVN_PATH": os.environ["SVN_PATH"],
+            "MVN_PATH": os.environ["MVN_PATH"],
+            "GIT_PATH": os.environ["GIT_PATH"],
+        }
+
+        from xml.sax.saxutils import escape
+
+        def xml(value):
+            # Every substituted value lands inside an XML attribute, and several of them carry
+            # characters XML reserves: a JDBC URL separates its parameters with &, and a password
+            # may hold anything at all. Unescaped, the installer refuses the descriptor outright.
+            return escape(value, {'"': "&quot;"})
+
+        def entry(key, value):
+            return f'\n            <entry key="{key}" value="{xml(value)}"/>'
+
+        # Nothing is written for an embedded database: Derby needs no connection and no driver, and
+        # an empty key here is not the same as an absent one to the installer.
+        settings, driver = "", ""
+        if os.environ["DB_MODE"] != "embedded":
+            dbms = os.environ["DB_TYPE"]
+            settings += entry(f"dbSettings.connection.url.{dbms}", os.environ["DB_URL"])
+            settings += entry(f"dbSettings.connection.driver.{dbms}", os.environ["DB_DRIVER_CLASS"])
+            settings += entry("dbSettings.connection.username", os.environ["DB_USER"])
+            settings += entry("dbSettings.connection.password", os.environ["DB_PASSWORD"])
+            if os.environ["DB_DRIVER_JAR_NATIVE"]:
+                # Jahia does not ship the MySQL/MariaDB driver, and the installer takes it here
+                # along with the acknowledgement that goes with it.
+                driver += entry("mysql.driver.path", os.environ["DB_DRIVER_JAR_NATIVE"])
+                driver += entry("mysql.driver.license", "true")
+        cluster = ""
+        if os.environ["CLUSTER"] == "true":
+            cluster += entry("cluster.processingServer", os.environ["PROCESSING_SERVER"])
+            cluster += entry("cluster.node.ipAddress", "127.0.0.1")
+            cluster += entry("cluster.node.port", os.environ["CLUSTER_NODE_PORT"])
+            cluster += entry("cluster.hazelcast.port", os.environ["CLUSTER_HAZELCAST_PORT"])
+            if os.environ["CLUSTER_SERVER_ID"]:
+                cluster += entry("cluster.node.serverId", os.environ["CLUSTER_SERVER_ID"])
+
+        values["DB_SETTINGS_ENTRIES"] = settings
+        values["DB_DRIVER_ENTRIES"] = driver
+        values["CLUSTER_ENTRIES"] = cluster
+
+        text = open(os.environ["TEMPLATE"], encoding="utf-8").read()
+        for key, value in values.items():
+            # The two entry blocks are already-escaped XML; everything else is a bare value.
+            text = text.replace(f"@{key}@",
+                                value if key.endswith("_ENTRIES") else xml(value))
+        # A placeholder left in the descriptor reaches the installer as a literal, which it accepts
+        # and writes into the configuration; catching it here is cheaper than debugging first boot.
+        import re, sys
+        leftover = sorted(set(re.findall(r"@[A-Z_]+@", text)))
+        if leftover:
+            sys.exit(f"ERROR: unsubstituted placeholders in the descriptor: {leftover}")
+        open("auto-install.xml", "w", encoding="utf-8").write(text)
+        EOF
+
+        # Never drive the installer interactively: its console mode assumes a TTY and throws in
+        # PanelConsoleHelper.askEndOfConsolePanel before the first panel completes when stdin is a
+        # pipe. Replaying a descriptor is the supported unattended path.
+        # Below 8.2.3.2 the jar installer cannot validate the files it writes on Windows, so that
+        # lane installs from the native .exe published beside it. The two carry the same revision
+        # of the same release; the .exe is a launcher around the same IzPack installer, so it takes
+        # the same descriptor. Everywhere else, and from 8.2.3.2 on, the jar is what runs.
+        INSTALL_CMD=(java -jar "${INSTALLER_ABS}")
+        INSTALLED_FROM_EXE=false
+        if [ "${RUNNER_OS}" = "Windows" ] \
+           && [ "$(printf '%s\n' "${JAHIA_VERSION}" 8.2.3.2 | sort -V | head -1)" = "${JAHIA_VERSION}" ] \
+           && [ "${JAHIA_VERSION}" != "8.2.3.2" ]; then
+          EXE="${INSTALLER_ABS%.jar}.exe"
+          if [ ! -f "${EXE}" ]; then
+            # Named, not guessed around: installing from the jar here produces an install whose
+            # files were never validated, which is not something a later check would notice.
+            echo "ERROR: ${JAHIA_VERSION} is below 8.2.3.2, so this Windows lane has to install"
+            echo "ERROR: from the .exe -- the jar installer cannot validate what it writes before"
+            echo "ERROR: that version. Looked for: ${EXE}"
+            ls -la "$(dirname "${INSTALLER_ABS}")"
+            exit 1
+          fi
+          chmod +x "${EXE}" 2>/dev/null || true
+
+          # The .exe is a Launch4j wrapper around the same IzPack installer, compiled as a 32-bit
+          # GUI program. Two consequences, both of which cost a six-hour run:
+          #
+          # It finds Java through the registry, not JAVA_HOME -- and setup-java writes nothing
+          # there. With no JRE it accepts (any 1.8.0 or later), it raises a modal "This application
+          # requires a Java Runtime Environment" box, which on a runner nobody will ever dismiss.
+          # So the JDK this step already runs on is registered, under the key names both old and
+          # new Launch4j search, and in both registry views: a 32-bit process reads WOW6432Node.
+          JDK_MAJOR=$(java -version 2>&1 | sed -nE 's/.*version "(1\.)?([0-9]+).*/\2/p' | head -1)
+          JH_WIN=$(cygpath -w "${JAVA_HOME}")
+          for view in 64 32; do
+            for key in "JDK" "JRE" "Java Development Kit" "Java Runtime Environment"; do
+              MSYS2_ARG_CONV_EXCL='*' reg add "HKLM\\SOFTWARE\\JavaSoft\\${key}\\${JDK_MAJOR}" \
+                /v JavaHome /t REG_SZ /d "${JH_WIN}" /f /reg:${view} >/dev/null
+              MSYS2_ARG_CONV_EXCL='*' reg add "HKLM\\SOFTWARE\\JavaSoft\\${key}" \
+                /v CurrentVersion /t REG_SZ /d "${JDK_MAJOR}" /f /reg:${view} >/dev/null
+            done
+          done
+          echo "Registered JDK ${JDK_MAJOR} (${JH_WIN}) where Launch4j looks for one"
+
+          # And being a GUI program it has no console, so nothing it or IzPack prints reaches this
+          # shell -- not even on success. --l4j-debug makes Launch4j write launch4j.log beside the
+          # .exe: the JRE it chose, the command it ran, and why it stopped if it did.
+          INSTALL_CMD=("${EXE}" --l4j-debug)
+          INSTALLED_FROM_EXE=true
+          echo "Installing from the Windows executable: $(basename "${EXE}")"
+        fi
+        # Bounded. An unattended install finishes in a few minutes or not at all: the Windows .exe
+        # ran six hours without writing a line and was stopped only by GitHub's job limit, because
+        # nothing here could tell a slow install from one that is waiting for a window nobody will
+        # see. /usr/bin/timeout rather than timeout: on Windows the bare name can resolve to
+        # System32's timeout.exe, which is a sleep, not a limit.
+        set +e
+        /usr/bin/timeout --kill-after=60 "${INSTALL_TIMEOUT_SECONDS}" \
+          "${INSTALL_CMD[@]}" auto-install.xml 2>&1 | tee install.log
+        RC=${PIPESTATUS[0]}
+        set -e
+        if [ "${RC}" -eq 124 ] || [ "${RC}" -eq 137 ]; then
+          echo "ERROR: the installer did not finish within ${INSTALL_TIMEOUT_SECONDS}s and was stopped."
+          echo "ERROR: it wrote $(wc -l < install.log | tr -d ' ') line(s) of output before that."
+          if [ "${RUNNER_OS}" = "Windows" ]; then
+            # What was left running, and whatever IzPack logged where it logs on Windows. A GUI
+            # launcher shows up here as a javaw.exe with a window title and no console.
+            echo "--- processes left behind ---"
+            tasklist //V //FO LIST 2>/dev/null | grep -iE -A8 "Image Name:\s+(java|javaw|Jahia)" | head -60 || true
+            echo "--- IzPack logs under %TEMP% ---"
+            find "$(cygpath -u "${TEMP:-/tmp}")" -maxdepth 2 -iname "*izpack*" -o -maxdepth 2 -iname "*install*.log" 2>/dev/null | head -10 || true
+            taskkill //F //IM javaw.exe >/dev/null 2>&1 || true
+            taskkill //F //IM java.exe >/dev/null 2>&1 || true
+          fi
+          exit 1
+        fi
+        if [ "${INSTALLED_FROM_EXE}" = "true" ]; then
+          # The only account the .exe path gives of itself, success or not.
+          L4J="$(dirname "${EXE}")/launch4j.log"
+          echo "--- launch4j.log ---"
+          cat "${L4J}" 2>/dev/null || echo "(Launch4j wrote no log: it never got as far as searching)"
+          cp "${L4J}" launch4j.log 2>/dev/null || true
+        fi
+        [ "${RC}" -eq 0 ] || { echo "ERROR: the installer exited ${RC}"; exit "${RC}"; }
+
+        # "[ Automated installation done ]" means files were unpacked. It says nothing about whether
+        # the instance can boot — that is what the boot check is for. The .exe cannot say it at
+        # all, having no console, so that path is judged by what it left instead: the webapp check
+        # below.
+        if [ "${INSTALLED_FROM_EXE}" != "true" ] && ! grep -q "Automated installation done" install.log; then
+          echo "ERROR: the installer did not report a completed automated installation"
+          exit 1
+        fi
+
+        # The descriptor's licensePath is not enough on its own: the instance still boots reporting
+        # "Could not find license file". Putting the licence where Jahia reads it is what makes the
+        # install licensed, and it is what the environment used to do by hand after restoring one.
+        if [ "${LICENSED}" = "true" ]; then
+          mkdir -p "${ROOT_ABS}/digital-factory-config/jahia"
+          cp "${LICENSE_FILE}" "${ROOT_ABS}/digital-factory-config/jahia/license.xml"
+          echo "Licence installed in digital-factory-config/jahia/license.xml"
+        fi
+
+        WEBAPP="${ROOT_ABS}/tomcat/webapps/${CONTEXT}"
+        if [ ! -d "${WEBAPP}" ]; then
+          echo "ERROR: no webapp at ${WEBAPP}; what was deployed is:"
+          ls -la "${ROOT_ABS}/tomcat/webapps/"
+          exit 1
+        fi
+
+        # The descriptor holds the super-user password in clear, and the step below publishes it as
+        # an artifact for anyone who can read the run. What is useful there is the configuration,
+        # not the credential, so the copy that leaves the runner does not carry it.
+        sed 's|\(<entry key="superUser.password" value="\)[^"]*|\1***|' \
+          auto-install.xml > auto-install.redacted.xml
+
+        {
+          echo "install_root=${ROOT_ABS}"
+          echo "webapp_path=${WEBAPP}"
+          echo "licensed=${LICENSED}"
+        } >> $GITHUB_OUTPUT
+        echo "Installed ${CONTEXT} at ${ROOT_ABS}"
+        echo "::endgroup::"
+
+    - name: Keep this output with the lane's others
+      if: always()
+      shell: bash
+      run: |
+        # One package per lane, uploaded once at the end, instead of an artifact per install, boot and
+        # Cypress pass. Everything goes under lane-output/ in the workspace, which is also the one place
+        # the upload action can read on Windows.
+        mkdir -p "lane-output/install/${{ inputs.label }}"
+        cp install.log auto-install.redacted.xml launch4j.log "lane-output/install/${{ inputs.label }}/" 2>/dev/null || true
+
