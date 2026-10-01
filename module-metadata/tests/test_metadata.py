@@ -40,6 +40,7 @@ class MavenModule(unittest.TestCase):
         out = collect("synthetic-jdk17")
         self.assertTrue(out["has-tests"])
         self.assertEqual(out["cypress-profiles"], [])
+        self.assertEqual(out["cypress-matrix"], [""])
         self.assertEqual(out["manifest-pr"], "provisioning-manifest-build.yml")
         self.assertEqual(out["manifest-merge"], "provisioning-manifest-snapshot.yml")
         self.assertFalse(out["cluster"])
@@ -141,6 +142,7 @@ class JahiaYml(unittest.TestCase):
                 f.write("branch:\n  tests:\n    exclude-profiles: [performance]\n")
             out = metadata.collect(d, "main", "main", None)
             self.assertEqual(out["cypress-profiles"], ["cypress.config-a.ts", "cypress.config-b.ts"])
+            self.assertEqual(out["cypress-matrix"], out["cypress-profiles"])
 
 
 class ReleaseLine(unittest.TestCase):

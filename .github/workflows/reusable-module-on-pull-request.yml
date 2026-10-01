@@ -1,0 +1,169 @@
+# The pull-request workflow of a Jahia module. No input: every job derives what it needs from the
+# module-metadata action (pom.xml, package.json, mise.toml, tests/, .jahia.yml). A consumer calls it
+# with a 6-line workflow and `secrets: inherit`.
+#
+# Every action this workflow uses is taken from the checkout of jahia-modules-action at the commit
+# this workflow file comes from (github.workflow_sha), so a consumer that points at a branch tests
+# that branch's actions too, and a released alias runs the released actions.
+name: Reusable module workflow (pull request)
+on:
+  workflow_call:
+
+env:
+  ACTIONS_DIR: .jahia-modules-action
+
+jobs:
+  metadata:
+    name: Module metadata
+    runs-on: ubuntu-latest
+    outputs:
+      build-tool: ${{ steps.meta.outputs.build-tool }}
+      module-id: ${{ steps.meta.outputs.module-id }}
+      java: ${{ steps.meta.outputs.java }}
+      cache-image: ${{ steps.meta.outputs.cache-image }}
+      jahia-image: ${{ steps.meta.outputs.jahia-image }}
+      signature-poms: ${{ steps.meta.outputs.signature-poms }}
+      has-frontend: ${{ steps.meta.outputs.has-frontend }}
+      has-tests: ${{ steps.meta.outputs.has-tests }}
+      cypress-matrix: ${{ steps.meta.outputs.cypress-matrix }}
+      manifest-pr: ${{ steps.meta.outputs.manifest-pr }}
+      cluster: ${{ steps.meta.outputs.cluster }}
+      runner: ${{ steps.meta.outputs.runner }}
+      audit-level: ${{ steps.meta.outputs.audit-level }}
+      max-warnings: ${{ steps.meta.outputs.max-warnings }}
+      timeout-job: ${{ steps.meta.outputs.timeout-job }}
+      timeout-step: ${{ steps.meta.outputs.timeout-step }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+        with:
+          repository: Jahia/jahia-modules-action
+          ref: ${{ github.workflow_sha }}
+          path: ${{ env.ACTIONS_DIR }}
+      - id: meta
+        uses: ./.jahia-modules-action/module-metadata
+      - name: What this workflow derived
+        run: |
+          echo "actions from Jahia/jahia-modules-action@${{ github.workflow_sha }} (${{ github.workflow_ref }})"
+          echo '${{ toJSON(steps.meta.outputs) }}'
+
+  signature:
+    name: Module signature
+    needs: metadata
+    if: needs.metadata.outputs.build-tool == 'maven' && needs.metadata.outputs.signature-poms != '[]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+        with:
+          repository: Jahia/jahia-modules-action
+          ref: ${{ github.workflow_sha }}
+          path: ${{ env.ACTIONS_DIR }}
+      - uses: ./.jahia-modules-action/signature-verify
+        with:
+          poms: ${{ needs.metadata.outputs.signature-poms }}
+          nexus_internal_releases_url: ${{ secrets.NEXUS_INTERNAL_RELEASES_URL || 'https://devtools.jahia.com/nexus/content/repositories/jahia-internal-releases' }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+
+  static-analysis:
+    name: Static analysis
+    needs: metadata
+    if: needs.metadata.outputs.has-frontend == 'true' || needs.metadata.outputs.has-tests == 'true'
+    runs-on: ${{ needs.metadata.outputs.runner }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+        with:
+          repository: Jahia/jahia-modules-action
+          ref: ${{ github.workflow_sha }}
+          path: ${{ env.ACTIONS_DIR }}
+      - uses: ./.jahia-modules-action/static-analysis
+        with:
+          auditci_level: ${{ needs.metadata.outputs.audit-level }}
+          max_warning: ${{ needs.metadata.outputs.max-warnings }}
+          primary_release_branch: ${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
+
+  build:
+    name: Build
+    needs: metadata
+    if: needs.metadata.outputs.build-tool == 'maven'
+    runs-on: ${{ needs.metadata.outputs.runner }}
+    container:
+      image: ${{ needs.metadata.outputs.cache-image }}
+    env:
+      NEXUS_INTERNAL_URL: ${{ secrets.NEXUS_INTERNAL_URL }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+        with:
+          repository: Jahia/jahia-modules-action
+          ref: ${{ github.workflow_sha }}
+          path: ${{ env.ACTIONS_DIR }}
+      - uses: ./.jahia-modules-action/build
+        with:
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+
+  build-javascript:
+    name: Build (JavaScript)
+    needs: metadata
+    if: needs.metadata.outputs.build-tool == 'javascript'
+    runs-on: ${{ needs.metadata.outputs.runner }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+        with:
+          repository: Jahia/jahia-modules-action
+          ref: ${{ github.workflow_sha }}
+          path: ${{ env.ACTIONS_DIR }}
+      - uses: ./.jahia-modules-action/build-step-javascript
+
+  sonar-analysis:
+    name: Sonar analysis
+    needs: [metadata, build]
+    runs-on: ${{ needs.metadata.outputs.runner }}
+    container:
+      image: ${{ needs.metadata.outputs.cache-image }}
+    env:
+      NEXUS_INTERNAL_URL: ${{ secrets.NEXUS_INTERNAL_URL }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+        with:
+          repository: Jahia/jahia-modules-action
+          ref: ${{ github.workflow_sha }}
+          path: ${{ env.ACTIONS_DIR }}
+      - uses: ./.jahia-modules-action/sonar-analysis
+        with:
+          primary_release_branch: ${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
+          github_pr_id: ${{ github.event.number }}
+          sonar_url: ${{ secrets.SONAR_URL }}
+          sonar_token: ${{ secrets.SONAR_TOKEN }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+
+  integration-tests:
+    name: Integration tests ${{ matrix.profile }}
+    needs: [metadata, build]
+    if: needs.metadata.outputs.has-tests == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: ${{ fromJSON(needs.metadata.outputs.cypress-matrix) }}
+    secrets: inherit
+    # Nested reusable call: `uses` takes no expression, so this ref is edited by hand at release (@v2).
+    uses: Jahia/jahia-modules-action/.github/workflows/reusable-integration-tests.yml@reusable-module-workflows
+    with:
+      instance_type: ${{ needs.metadata.outputs.runner }}
+      module_id: ${{ needs.metadata.outputs.module-id }}
+      jahia_image: ${{ needs.metadata.outputs.jahia-image }}
+      jahia_cluster_enabled: ${{ needs.metadata.outputs.cluster == 'true' }}
+      provisioning_manifest: ${{ needs.metadata.outputs.manifest-pr }}
+      tests_profile: ${{ matrix.profile }}
+      artifact_prefix: pr-${{ needs.metadata.outputs.module-id }}${{ matrix.profile && format('-{0}', matrix.profile) || '' }}
+      module_branch: ${{ github.ref }}
+      timeout_job: ${{ fromJSON(needs.metadata.outputs.timeout-job) }}
+      timeout_step: ${{ fromJSON(needs.metadata.outputs.timeout-step) }}
+      should_skip_testrail: true
+      skip_notifications: true

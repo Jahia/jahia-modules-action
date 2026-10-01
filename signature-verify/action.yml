@@ -1,0 +1,49 @@
+name: Verify module signatures
+description: >
+  Checks that each listed pom carries a valid Jahia module signature, with the keymaker CLI the
+  update-signature action uses, and fails when one does not. Reads the poms only: no Maven, no build.
+
+inputs:
+  poms:
+    description: JSON list of pom paths to verify, relative to the checkout (the module-metadata output signature-poms)
+    required: true
+  nexus_internal_releases_url:
+    description: Nexus repository holding the keymaker CLI
+    default: 'https://devtools.jahia.com/nexus/content/repositories/jahia-internal-releases'
+  nexus_username:
+    required: true
+  nexus_password:
+    required: true
+  keymaker_version:
+    default: '2.0'
+
+runs:
+  using: composite
+  steps:
+    - name: Download the keymaker CLI
+      shell: bash
+      run: |
+        set -euo pipefail
+        JAR="$RUNNER_TEMP/keymaker-cli.jar"
+        URL="${{ inputs.nexus_internal_releases_url }}/org/jahia/keymaker/keymaker-cli/${{ inputs.keymaker_version }}/keymaker-cli-${{ inputs.keymaker_version }}-jar-with-dependencies.jar"
+        curl -fsS -u "${{ inputs.nexus_username }}:${{ inputs.nexus_password }}" -o "$JAR" "$URL"
+        echo "KEYMAKER_CLI_JAR=$JAR" >> "$GITHUB_ENV"
+
+    - name: Verify each pom
+      shell: bash
+      run: |
+        set -uo pipefail
+        STALE=()
+        for POM in $(echo '${{ inputs.poms }}' | python3 -c 'import json,sys; print(" ".join(json.load(sys.stdin)))'); do
+          OUT=$(java -jar "$KEYMAKER_CLI_JAR" pom -f "$POM" -s 2>&1 | tail -1)
+          if echo "$OUT" | grep -q "Signature valid"; then
+            echo "$POM: signature valid"
+          else
+            echo "::error file=$POM::signature out of date; push a commit whose message contains [ci sign] on the target branch, or run update-signature locally"
+            STALE+=("$POM")
+          fi
+        done
+        if [ ${#STALE[@]} -gt 0 ]; then
+          echo "::error::${#STALE[@]} pom(s) with an out-of-date signature: ${STALE[*]}"
+          exit 1
+        fi

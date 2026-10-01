@@ -1,5 +1,7 @@
 name: Test module-metadata
 on:
+  push:
+    branches: [reusable-module-workflows]   # dev branch; a dispatch is refused until the file is on main
   pull_request:
     paths:
       - 'module-metadata/**'

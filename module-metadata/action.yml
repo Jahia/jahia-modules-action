@@ -56,6 +56,9 @@ outputs:
   cypress-profiles:
     description: JSON list of the tests/cypress.config-*.ts files to run as a matrix, exclusions applied
     value: ${{ steps.read.outputs.cypress-profiles }}
+  cypress-matrix:
+    description: cypress-profiles, or a single empty string when there is none, so a matrix always has a leg
+    value: ${{ steps.read.outputs.cypress-matrix }}
   manifest-pr:
     description: The provisioning manifest of a pull-request run, relative to tests/
     value: ${{ steps.read.outputs.manifest-pr }}

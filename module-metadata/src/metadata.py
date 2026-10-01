@@ -256,6 +256,8 @@ def collect(root_dir, ref_name, default_branch, default_config, image_os="resolu
     tests = read_tests(root_dir, set(tests_cfg.get("exclude-profiles") or []))
     out.update({k: tests[k] for k in ("has-tests", "manifest-pr", "manifest-merge", "cluster", "test-module")})
     out["cypress-profiles"] = tests["profiles"]
+    # A matrix needs at least one leg: an empty string runs the default cypress.config.ts.
+    out["cypress-matrix"] = tests["profiles"] or [""]
 
     out["runner"] = (branch_cfg.get("ci") or {}).get("runner") or DEFAULTS["runner"]
     out["audit-level"] = (branch_cfg.get("audit") or {}).get("level") or DEFAULTS["audit-level"]
