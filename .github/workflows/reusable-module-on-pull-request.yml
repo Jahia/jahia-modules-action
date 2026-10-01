@@ -2,9 +2,9 @@
 # module-metadata action (pom.xml, package.json, mise.toml, tests/, .jahia.yml). A consumer calls it
 # with a 6-line workflow and `secrets: inherit`.
 #
-# Every action this workflow uses is taken from the checkout of jahia-modules-action at the commit
-# this workflow file comes from (github.job_workflow_sha), so a consumer that points at a branch tests
-# that branch's actions too, and a released alias runs the released actions.
+# Every action this workflow uses is taken from a checkout of jahia-modules-action at ACTIONS_REF
+# (below), so a consumer that points at the dev branch tests that branch's actions too, and the
+# release edits one line.
 name: Reusable module workflow (pull request)
 on:
   workflow_call:
