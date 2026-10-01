@@ -3,7 +3,7 @@
 # with a 6-line workflow and `secrets: inherit`.
 #
 # Every action this workflow uses is taken from the checkout of jahia-modules-action at the commit
-# this workflow file comes from (github.workflow_sha), so a consumer that points at a branch tests
+# this workflow file comes from (github.job_workflow_sha), so a consumer that points at a branch tests
 # that branch's actions too, and a released alias runs the released actions.
 name: Reusable module workflow (pull request)
 on:
@@ -38,13 +38,13 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           repository: Jahia/jahia-modules-action
-          ref: ${{ github.workflow_sha }}
+          ref: ${{ github.job_workflow_sha }}
           path: ${{ env.ACTIONS_DIR }}
       - id: meta
         uses: ./.jahia-modules-action/module-metadata
       - name: What this workflow derived
         run: |
-          echo "actions from Jahia/jahia-modules-action@${{ github.workflow_sha }} (${{ github.workflow_ref }})"
+          echo "actions from Jahia/jahia-modules-action@${{ github.job_workflow_sha }} (${{ github.workflow_ref }})"
           echo '${{ toJSON(steps.meta.outputs) }}'
 
   signature:
@@ -57,7 +57,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           repository: Jahia/jahia-modules-action
-          ref: ${{ github.workflow_sha }}
+          ref: ${{ github.job_workflow_sha }}
           path: ${{ env.ACTIONS_DIR }}
       - uses: ./.jahia-modules-action/signature-verify
         with:
@@ -76,7 +76,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           repository: Jahia/jahia-modules-action
-          ref: ${{ github.workflow_sha }}
+          ref: ${{ github.job_workflow_sha }}
           path: ${{ env.ACTIONS_DIR }}
       - uses: ./.jahia-modules-action/static-analysis
         with:
@@ -98,7 +98,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           repository: Jahia/jahia-modules-action
-          ref: ${{ github.workflow_sha }}
+          ref: ${{ github.job_workflow_sha }}
           path: ${{ env.ACTIONS_DIR }}
       - uses: ./.jahia-modules-action/build
         with:
@@ -115,7 +115,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           repository: Jahia/jahia-modules-action
-          ref: ${{ github.workflow_sha }}
+          ref: ${{ github.job_workflow_sha }}
           path: ${{ env.ACTIONS_DIR }}
       - uses: ./.jahia-modules-action/build-step-javascript
 
@@ -132,7 +132,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           repository: Jahia/jahia-modules-action
-          ref: ${{ github.workflow_sha }}
+          ref: ${{ github.job_workflow_sha }}
           path: ${{ env.ACTIONS_DIR }}
       - uses: ./.jahia-modules-action/sonar-analysis
         with:

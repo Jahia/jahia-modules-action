@@ -1,7 +1,7 @@
 # The merge workflow of a Jahia module. The consumer triggers it on every branch push (tags
 # ignored); the metadata job reads .jahia.yml on the default branch and gates every other job on
 # `release-line`: the default branch, or a branch listed under repository.maintenance-branches.
-# See reusable-module-on-pull-request.yml for how the actions are pinned to github.workflow_sha.
+# See reusable-module-on-pull-request.yml for how the actions are pinned to github.job_workflow_sha.
 name: Reusable module workflow (merge)
 on:
   workflow_call:
@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           repository: Jahia/jahia-modules-action
-          ref: ${{ github.workflow_sha }}
+          ref: ${{ github.job_workflow_sha }}
           path: ${{ env.ACTIONS_DIR }}
       - id: meta
         uses: ./.jahia-modules-action/module-metadata
@@ -52,7 +52,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           repository: Jahia/jahia-modules-action
-          ref: ${{ github.workflow_sha }}
+          ref: ${{ github.job_workflow_sha }}
           path: ${{ env.ACTIONS_DIR }}
       - uses: ./.jahia-modules-action/update-signature
         with:
@@ -74,7 +74,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           repository: Jahia/jahia-modules-action
-          ref: ${{ github.workflow_sha }}
+          ref: ${{ github.job_workflow_sha }}
           path: ${{ env.ACTIONS_DIR }}
       - uses: ./.jahia-modules-action/build
         with:
@@ -91,7 +91,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           repository: Jahia/jahia-modules-action
-          ref: ${{ github.workflow_sha }}
+          ref: ${{ github.job_workflow_sha }}
           path: ${{ env.ACTIONS_DIR }}
       - uses: ./.jahia-modules-action/build-step-javascript
 
@@ -106,7 +106,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           repository: Jahia/jahia-modules-action
-          ref: ${{ github.workflow_sha }}
+          ref: ${{ github.job_workflow_sha }}
           path: ${{ env.ACTIONS_DIR }}
       - uses: ./.jahia-modules-action/sbom-processing
         with:
@@ -155,7 +155,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           repository: Jahia/jahia-modules-action
-          ref: ${{ github.workflow_sha }}
+          ref: ${{ github.job_workflow_sha }}
           path: ${{ env.ACTIONS_DIR }}
       - uses: ./.jahia-modules-action/publish
         with:
