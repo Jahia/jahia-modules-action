@@ -47,6 +47,9 @@ outputs:
   has-frontend:
     description: true when the module builds JavaScript
     value: ${{ steps.read.outputs.has-frontend }}
+  has-js-tests:
+    description: true when the root package.json has a `test` script
+    value: ${{ steps.read.outputs.has-js-tests }}
   has-tests:
     description: true when tests/ holds a Cypress configuration
     value: ${{ steps.read.outputs.has-tests }}
@@ -66,7 +69,7 @@ outputs:
     description: The provisioning manifest of a merge run, relative to tests/
     value: ${{ steps.read.outputs.manifest-merge }}
   cluster:
-    description: true when the tests run a Jahia cluster
+    description: true when the default tests/docker-compose.yml runs two jahia-browsing nodes
     value: ${{ steps.read.outputs.cluster }}
   runner:
     description: Runner label for the build and test jobs

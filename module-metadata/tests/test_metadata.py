@@ -103,6 +103,7 @@ class JavaScriptModule(unittest.TestCase):
         self.assertEqual(out["cache-image"], "")
         self.assertEqual(out["node"], "22")
         self.assertTrue(out["has-frontend"])
+        self.assertFalse(out["has-js-tests"], "no test script")
         self.assertFalse(out["has-tests"])
 
 
@@ -143,6 +144,16 @@ class JahiaYml(unittest.TestCase):
             out = metadata.collect(d, "main", "main", None)
             self.assertEqual(out["cypress-profiles"], ["cypress.config-a.ts", "cypress.config-b.ts"])
             self.assertEqual(out["cypress-matrix"], out["cypress-profiles"])
+
+
+class Cluster(unittest.TestCase):
+    def test_cluster_is_what_the_default_compose_runs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = shutil.copytree(os.path.join(FIX, "synthetic-jdk17"), os.path.join(tmp, "r"))
+            open(os.path.join(d, "tests", "docker-compose-cluster.yml"), "w").write("services:\n  jahia-browsing-a: {}\n  jahia-browsing-b: {}\n")
+            self.assertFalse(metadata.collect(d, "main", "main", None)["cluster"], "a cluster file serves other workflows")
+            open(os.path.join(d, "tests", "docker-compose.yml"), "w").write("services:\n  jahia-browsing-a: {}\n  jahia-browsing-b: {}\n  mariadb: {}\n")
+            self.assertTrue(metadata.collect(d, "main", "main", None)["cluster"])
 
 
 class ReleaseLine(unittest.TestCase):

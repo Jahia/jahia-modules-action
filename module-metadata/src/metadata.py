@@ -190,7 +190,8 @@ def read_tests(root_dir, excluded_profiles):
             browsing = sum(1 for s in services if str(s).startswith("jahia-browsing"))
         except Exception:
             browsing = 0
-    out["cluster"] = "docker-compose-cluster.yml" in names or browsing >= 2
+    # Only what the default compose runs counts: a docker-compose-cluster.yml serves other workflows.
+    out["cluster"] = browsing >= 2
     return out
 
 
@@ -209,6 +210,7 @@ def collect(root_dir, ref_name, default_branch, default_config, image_os="resolu
         raise MetadataError("neither pom.xml nor package.json at the repository root: not a module")
 
     out["build-tool"] = "maven" if pom else "javascript"
+    out["has-js-tests"] = bool(pkg) and "test" in (pkg.get("scripts") or {})
     out["java"] = mise.get("java", "")
     out["node"] = mise.get("node", "")
     out["yarn"] = mise.get("yarn", "")
