@@ -29,11 +29,17 @@ jobs:
       testrail-project: ${{ steps.meta.outputs.testrail-project }}
       incident-service: ${{ steps.meta.outputs.incident-service }}
     steps:
+      - name: Which workflow refs the context carries (debug)
+        run: |
+          echo "workflow_ref=${{ github.workflow_ref }}"
+          echo "workflow_sha=${{ github.workflow_sha }}"
+          echo "job_workflow_ref=${{ github.job_workflow_ref }}"
+          echo "job_workflow_sha=${{ github.job_workflow_sha }}"
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           repository: Jahia/jahia-modules-action
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ github.job_workflow_sha || 'reusable-module-workflows' }}
           path: ${{ env.ACTIONS_DIR }}
       - id: meta
         uses: ./.jahia-modules-action/module-metadata
@@ -52,7 +58,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           repository: Jahia/jahia-modules-action
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ github.job_workflow_sha || 'reusable-module-workflows' }}
           path: ${{ env.ACTIONS_DIR }}
       - uses: ./.jahia-modules-action/update-signature
         with:
@@ -74,7 +80,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           repository: Jahia/jahia-modules-action
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ github.job_workflow_sha || 'reusable-module-workflows' }}
           path: ${{ env.ACTIONS_DIR }}
       - uses: ./.jahia-modules-action/build
         with:
@@ -91,7 +97,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           repository: Jahia/jahia-modules-action
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ github.job_workflow_sha || 'reusable-module-workflows' }}
           path: ${{ env.ACTIONS_DIR }}
       - uses: ./.jahia-modules-action/build-step-javascript
 
@@ -106,7 +112,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           repository: Jahia/jahia-modules-action
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ github.job_workflow_sha || 'reusable-module-workflows' }}
           path: ${{ env.ACTIONS_DIR }}
       - uses: ./.jahia-modules-action/sbom-processing
         with:
@@ -155,7 +161,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           repository: Jahia/jahia-modules-action
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ github.job_workflow_sha || 'reusable-module-workflows' }}
           path: ${{ env.ACTIONS_DIR }}
       - uses: ./.jahia-modules-action/publish
         with:
