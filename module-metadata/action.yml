@@ -47,6 +47,9 @@ outputs:
   has-frontend:
     description: true when the module builds JavaScript
     value: ${{ steps.read.outputs.has-frontend }}
+  has-lint:
+    description: true when the root package.json has a `lint` script
+    value: ${{ steps.read.outputs.has-lint }}
   has-js-tests:
     description: true when the root package.json has a `test` script
     value: ${{ steps.read.outputs.has-js-tests }}

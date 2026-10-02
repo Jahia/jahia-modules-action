@@ -210,7 +210,9 @@ def collect(root_dir, ref_name, default_branch, default_config, image_os="resolu
         raise MetadataError("neither pom.xml nor package.json at the repository root: not a module")
 
     out["build-tool"] = "maven" if pom else "javascript"
-    out["has-js-tests"] = bool(pkg) and "test" in (pkg.get("scripts") or {})
+    scripts = (pkg.get("scripts") or {}) if pkg else {}
+    out["has-js-tests"] = "test" in scripts
+    out["has-lint"] = "lint" in scripts  # the static-analysis action runs `yarn lint`, which needs the script
     out["java"] = mise.get("java", "")
     out["node"] = mise.get("node", "")
     out["yarn"] = mise.get("yarn", "")

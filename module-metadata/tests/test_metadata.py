@@ -104,6 +104,7 @@ class JavaScriptModule(unittest.TestCase):
         self.assertEqual(out["node"], "22")
         self.assertTrue(out["has-frontend"])
         self.assertFalse(out["has-js-tests"], "no test script")
+        self.assertFalse(out["has-lint"], "no lint script")
         self.assertFalse(out["has-tests"])
 
 

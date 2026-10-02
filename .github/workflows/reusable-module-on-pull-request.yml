@@ -24,6 +24,7 @@ jobs:
       jahia-image: ${{ steps.meta.outputs.jahia-image }}
       signature-poms: ${{ steps.meta.outputs.signature-poms }}
       has-frontend: ${{ steps.meta.outputs.has-frontend }}
+      has-lint: ${{ steps.meta.outputs.has-lint }}
       has-js-tests: ${{ steps.meta.outputs.has-js-tests }}
       has-tests: ${{ steps.meta.outputs.has-tests }}
       cypress-matrix: ${{ steps.meta.outputs.cypress-matrix }}
@@ -68,6 +69,7 @@ jobs:
         with:
           auditci_level: ${{ needs.metadata.outputs.audit-level }}
           max_warning: ${{ needs.metadata.outputs.max-warnings }}
+          skip_lint_modules: ${{ needs.metadata.outputs.has-lint != 'true' }}
           primary_release_branch: ${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
 
   unit-tests-javascript:
