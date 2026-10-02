@@ -14,6 +14,7 @@ jobs:
     outputs:
       release-line: ${{ steps.meta.outputs.release-line }}
       build-tool: ${{ steps.meta.outputs.build-tool }}
+      signature-poms: ${{ steps.meta.outputs.signature-poms }}
       module-id: ${{ steps.meta.outputs.module-id }}
       cache-image: ${{ steps.meta.outputs.cache-image }}
       jahia-image: ${{ steps.meta.outputs.jahia-image }}
@@ -36,6 +37,9 @@ jobs:
           echo '${{ toJSON(steps.meta.outputs) }}'
 
   signature:
+    # The fixer first, so a `[ci sign]` commit repairs the branch; then the verification, so a
+    # stale signature on a release line is a red run and not a silent one. The fixer only acts on a
+    # commit that asks for it, which is why the verification is still needed after it.
     name: Module signature
     needs: metadata
     if: needs.metadata.outputs.release-line == 'true' && needs.metadata.outputs.build-tool == 'maven'
@@ -44,6 +48,14 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
       - uses: jahia/jahia-modules-action/update-signature@reusable-module-workflows
         with:
+          nexus_internal_releases_url: ${{ secrets.NEXUS_INTERNAL_RELEASES_URL || 'https://devtools.jahia.com/nexus/content/repositories/jahia-internal-releases' }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+      - name: Verify the signatures, after the fix
+        if: needs.metadata.outputs.signature-poms != '[]'
+        uses: jahia/jahia-modules-action/signature-verify@reusable-module-workflows
+        with:
+          poms: ${{ needs.metadata.outputs.signature-poms }}
           nexus_internal_releases_url: ${{ secrets.NEXUS_INTERNAL_RELEASES_URL || 'https://devtools.jahia.com/nexus/content/repositories/jahia-internal-releases' }}
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
