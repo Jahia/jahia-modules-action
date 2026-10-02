@@ -147,6 +147,18 @@ class JahiaYml(unittest.TestCase):
             self.assertEqual(out["cypress-matrix"], out["cypress-profiles"])
 
 
+class LegacyCypress(unittest.TestCase):
+    def test_cypress_json_counts_as_tests(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = shutil.copytree(os.path.join(FIX, "synthetic-jdk17"), os.path.join(tmp, "r"))
+            os.remove(os.path.join(d, "tests", "cypress.config.ts"))
+            self.assertFalse(metadata.collect(d, "main", "main", None)["has-tests"])
+            open(os.path.join(d, "tests", "cypress.json"), "w").write("{}")
+            out = metadata.collect(d, "main", "main", None)
+            self.assertTrue(out["has-tests"])
+            self.assertEqual(out["cypress-matrix"], [""])
+
+
 class Cluster(unittest.TestCase):
     def test_cluster_is_what_the_default_compose_runs(self):
         with tempfile.TemporaryDirectory() as tmp:

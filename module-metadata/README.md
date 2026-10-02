@@ -25,7 +25,7 @@ workflow derives its jobs instead of asking for inputs.
 | `has-frontend` | `pom.xml`, `package.json` | `frontend-maven-plugin`, or a root `package.json` |
 | `has-js-tests` | `package.json` | a `test` script; the pull-request workflow runs `yarn test` when true |
 | `has-lint` | `package.json` | a `lint` script; without one the static analysis skips the module lint and keeps the vulnerability audit |
-| `has-tests`, `cypress-profiles`, `manifest-pr`, `manifest-merge`, `cluster`, `test-module` | `tests/` | a `cypress.config*.ts`; the `cypress.config-*.ts` files minus `branch.tests.exclude-profiles`; `provisioning-manifest-build.yml` and `-snapshot.yml` by exact name; two `jahia-browsing-*` services in `docker-compose.yml` (a `docker-compose-cluster.yml` serves other workflows); `tests/jahia-module/pom.xml` or `package.json` |
+| `has-tests`, `cypress-profiles`, `manifest-pr`, `manifest-merge`, `cluster`, `test-module` | `tests/` | a `cypress.config*.ts` or a legacy `cypress.json`; the `cypress.config-*.ts` files minus `branch.tests.exclude-profiles`; `provisioning-manifest-build.yml` and `-snapshot.yml` by exact name; two `jahia-browsing-*` services in `docker-compose.yml` (a `docker-compose-cluster.yml` serves other workflows); `tests/jahia-module/pom.xml` or `package.json` |
 | `runner`, `audit-level`, `max-warnings`, `timeout-job`, `timeout-step` | `.jahia.yml` `branch:` | defaults `ubuntu-latest`, `critical`, `1`, `75`, `60` |
 | `testrail-project`, `incident-service`, `maintenance-branches` | `.jahia.yml` `repository:` | read from the default branch's copy, whatever branch the run is on |
 | `release-line` | context | `true` on the default branch and on a listed maintenance branch |

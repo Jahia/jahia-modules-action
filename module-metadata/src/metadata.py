@@ -171,7 +171,7 @@ def read_tests(root_dir, excluded_profiles):
         return out
     names = sorted(os.listdir(tests))
     configs = [n for n in names if re.fullmatch(r"cypress\.config[^/]*\.(ts|js)", n)]
-    out["has-tests"] = bool(configs)
+    out["has-tests"] = bool(configs) or "cypress.json" in names  # cypress.json: a suite on Cypress 9 or older
     out["profiles"] = [n for n in names if re.fullmatch(r"cypress\.config-[^/]+\.(ts|js)", n)
                        and n not in excluded_profiles and re.sub(r"^cypress\.config-|\.(ts|js)$", "", n) not in excluded_profiles]
     if "provisioning-manifest-build.yml" in names:
