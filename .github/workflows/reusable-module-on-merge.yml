@@ -1,5 +1,6 @@
-# The merge workflow of a Jahia module. The consumer triggers it on every branch push (tags
-# ignored); the metadata job reads .jahia.yml on the default branch and gates every other job on
+# The merge workflow of a Jahia module. The consumer triggers it with `on.push.branches: ['**']`
+# (every branch; a filter on branches alone also leaves tags out, and a trigger with only
+# `tags-ignore` would never run for a branch push); the metadata job reads .jahia.yml on the default branch and gates every other job on
 # `release-line`: the default branch, or a branch listed under repository.maintenance-branches.
 # See reusable-module-on-pull-request.yml for how the actions are pinned to github.job_workflow_sha.
 name: Reusable module workflow (merge)
