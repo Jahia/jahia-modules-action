@@ -103,7 +103,7 @@ jobs:
   sbom:
     name: SBOM
     needs: [metadata, build]
-    if: needs.metadata.outputs.release-line == 'true'
+    if: needs.metadata.outputs.release-line == 'true' && needs.metadata.outputs.build-tool == 'maven'
     runs-on: ubuntu-latest
     container:
       image: cyclonedx/cyclonedx-cli:0.24.2
@@ -149,7 +149,7 @@ jobs:
   publish:
     name: Publish
     needs: [metadata, build]
-    if: needs.metadata.outputs.release-line == 'true'
+    if: needs.metadata.outputs.release-line == 'true' && needs.metadata.outputs.build-tool == 'maven'
     runs-on: ubuntu-latest
     container:
       image: ${{ needs.metadata.outputs.cache-image }}
@@ -163,6 +163,23 @@ jobs:
           ref: ${{ env.ACTIONS_REF }}
           path: ${{ env.ACTIONS_DIR }}
       - uses: ./.jahia-modules-action/publish
+        with:
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+
+  publish-javascript:
+    name: Publish (JavaScript)
+    needs: [metadata, build-javascript]
+    if: needs.metadata.outputs.release-line == 'true' && needs.metadata.outputs.build-tool == 'javascript'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+        with:
+          repository: Jahia/jahia-modules-action
+          ref: ${{ env.ACTIONS_REF }}
+          path: ${{ env.ACTIONS_DIR }}
+      - uses: ./.jahia-modules-action/publish-javascript
         with:
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
