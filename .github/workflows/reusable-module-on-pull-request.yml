@@ -2,20 +2,15 @@
 # module-metadata action (pom.xml, package.json, mise.toml, tests/, .jahia.yml). A consumer calls it
 # with a 6-line workflow and `secrets: inherit`.
 #
-# Every action this workflow uses is taken from a checkout of jahia-modules-action at ACTIONS_REF
-# (below), so a consumer that points at the dev branch tests that branch's actions too, and the
-# release edits one line.
+# Every action and nested workflow is referenced at the same ref of jahia-modules-action as this
+# file (`@reusable-module-workflows` while in development, the released alias afterwards), so a
+# consumer pointing at the dev branch tests the branch's actions too. `uses:` takes no expression
+# and the github context has no field for the called workflow's own commit, so the ref is a
+# literal, replaced in one pass at release. The actions are not checked out into the module's
+# workspace: anything placed there is indexed by Sonar, eslint and audit-ci.
 name: Reusable module workflow (pull request)
 on:
   workflow_call:
-
-env:
-  ACTIONS_DIR: .jahia-modules-action
-  # The ref of jahia-modules-action the actions below are taken from. `uses:` takes no expression and
-  # the github context carries no field for the called workflow's own commit (job_workflow_sha is
-  # empty), so this is a literal: the dev branch now, the released tag at release, like the nested
-  # `uses: …/reusable-integration-tests.yml@…` further down.
-  ACTIONS_REF: reusable-module-workflows
 
 jobs:
   metadata:
@@ -41,16 +36,11 @@ jobs:
       timeout-step: ${{ steps.meta.outputs.timeout-step }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
-        with:
-          repository: Jahia/jahia-modules-action
-          ref: ${{ env.ACTIONS_REF }}
-          path: ${{ env.ACTIONS_DIR }}
       - id: meta
-        uses: ./.jahia-modules-action/module-metadata
+        uses: jahia/jahia-modules-action/module-metadata@reusable-module-workflows
       - name: What this workflow derived
         run: |
-          echo "actions from Jahia/jahia-modules-action@${{ env.ACTIONS_REF }}, called by ${{ github.workflow_ref }}"
+          echo "called by ${{ github.workflow_ref }}"
           echo '${{ toJSON(steps.meta.outputs) }}'
 
   signature:
@@ -60,12 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
-        with:
-          repository: Jahia/jahia-modules-action
-          ref: ${{ env.ACTIONS_REF }}
-          path: ${{ env.ACTIONS_DIR }}
-      - uses: ./.jahia-modules-action/signature-verify
+      - uses: jahia/jahia-modules-action/signature-verify@reusable-module-workflows
         with:
           poms: ${{ needs.metadata.outputs.signature-poms }}
           nexus_internal_releases_url: ${{ secrets.NEXUS_INTERNAL_RELEASES_URL || 'https://devtools.jahia.com/nexus/content/repositories/jahia-internal-releases' }}
@@ -79,12 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
-        with:
-          repository: Jahia/jahia-modules-action
-          ref: ${{ env.ACTIONS_REF }}
-          path: ${{ env.ACTIONS_DIR }}
-      - uses: ./.jahia-modules-action/static-analysis
+      - uses: jahia/jahia-modules-action/static-analysis@reusable-module-workflows
         with:
           auditci_level: ${{ needs.metadata.outputs.audit-level }}
           max_warning: ${{ needs.metadata.outputs.max-warnings }}
@@ -112,12 +92,7 @@ jobs:
       NEXUS_INTERNAL_URL: ${{ secrets.NEXUS_INTERNAL_URL }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
-        with:
-          repository: Jahia/jahia-modules-action
-          ref: ${{ env.ACTIONS_REF }}
-          path: ${{ env.ACTIONS_DIR }}
-      - uses: ./.jahia-modules-action/build
+      - uses: jahia/jahia-modules-action/build@reusable-module-workflows
         with:
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
@@ -129,12 +104,7 @@ jobs:
     runs-on: ${{ needs.metadata.outputs.runner }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
-        with:
-          repository: Jahia/jahia-modules-action
-          ref: ${{ env.ACTIONS_REF }}
-          path: ${{ env.ACTIONS_DIR }}
-      - uses: ./.jahia-modules-action/build-step-javascript
+      - uses: jahia/jahia-modules-action/build-step-javascript@reusable-module-workflows
 
   sonar-analysis:
     name: Sonar analysis
@@ -146,12 +116,7 @@ jobs:
       NEXUS_INTERNAL_URL: ${{ secrets.NEXUS_INTERNAL_URL }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
-        with:
-          repository: Jahia/jahia-modules-action
-          ref: ${{ env.ACTIONS_REF }}
-          path: ${{ env.ACTIONS_DIR }}
-      - uses: ./.jahia-modules-action/sonar-analysis
+      - uses: jahia/jahia-modules-action/sonar-analysis@reusable-module-workflows
         with:
           primary_release_branch: ${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
           github_pr_id: ${{ github.event.number }}
