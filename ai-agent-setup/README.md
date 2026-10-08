@@ -27,7 +27,12 @@ Provisions a self-hosted runner to run [Claude Code](https://code.claude.com) he
    input empty and the run reports nothing: the action then writes cortex's standing refusal
    (`CORTEX_TELEMETRY=off`) instead, so the harness's session-start notice does not ask the
    headless agent a question nobody is there to answer.
-6. Runs two live checks and fails fast if either breaks: a hello-world round trip through the
+6. Installs [mise](https://mise.jdx.dev) and runs `mise install` and `mise run libraries` in
+   the cortex checkout. Every cortex tool launches through `mise exec` (cortex ADR-0031),
+   including the fail-closed guards cortex runs before every file write — without mise the
+   harness refuses every `Write`, and an agent that finished its work cannot deliver its
+   result file.
+7. Runs two live checks and fails fast if either breaks: a hello-world round trip through the
    gateway (auth, model aliases, network path), then a cortex-awareness question the agent can
    only answer if the harness actually loaded (it must name the `analyze-jahia-ci` skill).
 
