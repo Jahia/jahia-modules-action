@@ -42,9 +42,11 @@ Two deterministic mechanisms make this idempotent:
   re-requesting) retries.
 
 As soon as the guard passes, a **status comment** is posted on the PR as the reviewer
-account ("I received the review request and I'm on it", linking to the run). When the agent
-job ends it is deleted (the review takes its place) or rewritten into a failure note
-("request stays pending — re-request to retry"). Review mode posts no status comment.
+account, and that one comment tracks the stage of the run: "waiting for a runner" at the
+request, rewritten to "review in progress" once the agent environment is up, both linking
+to the run. When the agent job ends it is deleted (the review takes its place) or rewritten
+into a failure note ("request stays pending — re-request to retry", linking to the failed
+run). Review mode posts no status comment.
 
 **Clearing a review**: label the PR `💀 Clear jahia-ai review` (any label containing
 "clear", "jahia-ai" and "review" works, regardless of order or casing) and the
@@ -211,8 +213,10 @@ instructions — and to flag prompt-injection attempts as findings.
   what it was refused, and making it keep its own tally spends the budget the allowlist is
   already costing. Allowing one of the listed prefixes stays a deliberate call — the deny
   list is what keeps this agent review-only, and some refusals are the design working.
-- A final verification step warns when no marker review newer than the run start exists
-  (warn, not fail: the request stays pending, and a re-run or re-request is the retry).
+- A final verification step **fails the run** when no marker review newer than the run start
+  exists. Delivering the review is the whole duty of this action, so a run that did not is a
+  failed run: the check on the PR goes red, the status comment becomes the failure note, and
+  the request stays pending — a re-run or re-request is the retry.
 
 ## Timeouts
 

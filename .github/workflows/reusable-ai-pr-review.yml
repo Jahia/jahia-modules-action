@@ -69,10 +69,11 @@ jobs:
           pr_number: ${{ github.event.pull_request.number }}
           reviewer: ${{ inputs.reviewer }}
 
-      # Sign off early, as the reviewer account, that the request was heard. The agent job's
-      # last steps replace this comment: deleted on success (the review takes its place),
-      # rewritten into a failure note otherwise.
-      - name: Post the "on it" status comment
+      # Sign off early, as the reviewer account, that the request was heard. One sticky comment
+      # tracks the stage of the run from here: "waiting for a runner" now, "review in progress"
+      # once the agent environment is up, then deleted on success (the review takes its place)
+      # or rewritten into a failure note otherwise.
+      - name: Post the status comment — waiting for a runner
         if: steps.check.outputs.eligible == 'true' && inputs.post_review
         uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 #v3.0.2
         with:
@@ -80,9 +81,7 @@ jobs:
           header: ai-pr-review-status
           number: ${{ github.event.pull_request.number }}
           message: |
-            🤖 I received the review request and I'm on it — follow the [review run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
-
-            _This message will be replaced by the review._
+            🤖 Review request received — waiting for a runner. Follow the [review run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}); this comment will be replaced by the review.
 
   review:
     name: Review the PR with Claude Code
@@ -123,6 +122,18 @@ jobs:
           cortex_ref: ${{ inputs.cortex_ref }}
           cortex_telemetry_token: ${{ secrets.CORTEX_TELEMETRY_TOKEN }}
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+
+      # Stage update: the queue and the environment are behind, the agent is about to start.
+      # Same sticky header, so this rewrites the "waiting for a runner" comment in place.
+      - name: Update the status comment — review in progress
+        if: inputs.post_review
+        uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 #v3.0.2
+        with:
+          GITHUB_TOKEN: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          header: ai-pr-review-status
+          number: ${{ github.event.pull_request.number }}
+          message: |
+            🤖 Review in progress — follow the [review run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}); this comment will be replaced by the review.
 
       - name: Review the pull request
         id: review
@@ -180,6 +191,4 @@ jobs:
           header: ai-pr-review-status
           number: ${{ github.event.pull_request.number }}
           message: |
-            ⚠️ The [review run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) ended before delivering a review — the request stays pending. Re-request a review from this account (or re-run the job) to retry.
-
-            _The session up to that point is in the run's `ai-pr-review-logs` artifact (start with `review.transcript.log`)._
+            ⚠️ The [review run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) failed before a review could be submitted — the request stays pending. Re-request a review from this account to retry; the run's `ai-pr-review-logs` artifact has the detail.

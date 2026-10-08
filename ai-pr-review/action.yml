@@ -256,4 +256,7 @@ runs:
             (r.body ?? '').includes(process.env.MARKER) &&
             new Date(r.submitted_at) > new Date(process.env.STARTED_AT))
           if (done) core.info(`${process.env.PR_URL}: review submitted`)
-          else core.warning(`${process.env.PR_URL}: NO review was submitted by this run — the review request stays pending; re-run this workflow or re-request the review to retry`)
+          // Fail, do not warn: delivering the review is the whole duty of this action, so a
+          // run that did not is a failed run. Failing also keeps the "on it" status comment
+          // from being deleted — the caller's failure branch rewrites it into a failure note.
+          else core.setFailed(`${process.env.PR_URL}: NO review was submitted by this run — the review request stays pending; re-run this workflow or re-request the review to retry`)
