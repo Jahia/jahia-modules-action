@@ -125,6 +125,17 @@ jobs:
     steps:
       - uses: jahia/jahia-modules-action/delivery/check-changelog@v2
 
+  # Scan the commits of the pull request for secrets. It runs on every event, not only when commits
+  # arrive, because a skipped run on a later event would stand in for a failed one on the same commit.
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-slim
+    if: ${{ github.event.action != 'closed' }}
+    permissions:
+      contents: read
+    steps:
+      - uses: jahia/jahia-modules-action/secret-scan@v2
+
   # AI review, only when explicitly requested from the jahia-ai account (never on PR updates).
   # All the logic lives in reusable-ai-pr-review.yml; requirements in ai-pr-review/README.md.
   ai-review:
