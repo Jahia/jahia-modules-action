@@ -161,6 +161,33 @@ runs:
         } >> "$GITHUB_ENV"
         echo "Telemetry launch environment exported to the job"
 
+    - name: Install mise and the programs the cortex harness pins
+      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.cortex_path }}
+      run: |
+        # Every cortex tool launches through `mise exec` (cortex ADR-0031), including the
+        # fail-closed PreToolUse guards its .claude/settings.json runs before every file
+        # write. On a runner without mise those guards exit 127 and the harness refuses
+        # EVERY Write — the agent then finishes its work but cannot deliver its result file
+        # (that is exactly how a review run goes green without posting a review). So mise is
+        # not optional tooling here: it is what makes the harness writable at all.
+        export PATH="$HOME/.local/bin:$PATH"
+        if ! command -v mise >/dev/null; then
+          echo "::group::Installing mise"
+          curl -fsSL https://mise.run | MISE_INSTALL_PATH="$HOME/.local/bin/mise" sh
+          echo "::endgroup::"
+        fi
+        mise --version
+        # A fresh headless clone: trust its mise.toml (nobody is here to answer the prompt),
+        # then run the two installs cortex's README asks for after every clone.
+        mise trust
+        echo "::group::mise install — the programs mise.toml pins"
+        mise install
+        echo "::endgroup::"
+        echo "::group::mise run libraries — the tools' Python libraries into the venv"
+        mise run libraries
+        echo "::endgroup::"
+
     - name: Install the GitHub CLI if missing
       shell: bash
       run: |

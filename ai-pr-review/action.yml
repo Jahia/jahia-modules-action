@@ -212,8 +212,11 @@ runs:
         export PATH="$HOME/.local/bin:$PATH"
         FILE="$LOG_DIR/reviews/pr-$PR_KEY.review.json"
         if [ ! -s "$FILE" ]; then
-          echo "::warning::The agent produced no review file — nothing to submit (the review request stays pending)"
-          exit 0
+          # Fail, do not warn: a green job here deletes the "on it" status comment and the
+          # lost review becomes invisible. Failing lets the caller's failure branch replace
+          # that comment with a note saying the request is still pending.
+          echo "::error title=No review produced::The agent ended without writing the review file — nothing to submit, the review request stays pending. Start with denied-calls.md and review.transcript.log in the run's ai-pr-review-logs artifact: a refused Write (for example a harness prerequisite missing on the runner) is the usual cause."
+          exit 1
         fi
         python3 "$GITHUB_ACTION_PATH/src/submit-review.py" post "$FILE" "$PR_URL"
 
