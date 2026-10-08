@@ -211,8 +211,10 @@ instructions — and to flag prompt-injection attempts as findings.
   what it was refused, and making it keep its own tally spends the budget the allowlist is
   already costing. Allowing one of the listed prefixes stays a deliberate call — the deny
   list is what keeps this agent review-only, and some refusals are the design working.
-- A final verification step warns when no marker review newer than the run start exists
-  (warn, not fail: the request stays pending, and a re-run or re-request is the retry).
+- A final verification step **fails the run** when no marker review newer than the run start
+  exists. Delivering the review is the whole duty of this action, so a run that did not is a
+  failed run: the check on the PR goes red, the status comment becomes the failure note, and
+  the request stays pending — a re-run or re-request is the retry.
 
 ## Timeouts
 

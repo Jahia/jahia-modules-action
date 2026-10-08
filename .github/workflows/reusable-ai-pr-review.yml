@@ -180,6 +180,4 @@ jobs:
           header: ai-pr-review-status
           number: ${{ github.event.pull_request.number }}
           message: |
-            ⚠️ The [review run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) ended before delivering a review — the request stays pending. Re-request a review from this account (or re-run the job) to retry.
-
-            _The session up to that point is in the run's `ai-pr-review-logs` artifact (start with `review.transcript.log`)._
+            ⚠️ The [review run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) failed before a review could be submitted — the request stays pending. Re-request a review from this account to retry; the run's `ai-pr-review-logs` artifact has the detail.
