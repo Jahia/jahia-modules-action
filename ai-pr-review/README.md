@@ -42,9 +42,11 @@ Two deterministic mechanisms make this idempotent:
   re-requesting) retries.
 
 As soon as the guard passes, a **status comment** is posted on the PR as the reviewer
-account ("I received the review request and I'm on it", linking to the run). When the agent
-job ends it is deleted (the review takes its place) or rewritten into a failure note
-("request stays pending — re-request to retry"). Review mode posts no status comment.
+account, and that one comment tracks the stage of the run: "waiting for a runner" at the
+request, rewritten to "review in progress" once the agent environment is up, both linking
+to the run. When the agent job ends it is deleted (the review takes its place) or rewritten
+into a failure note ("request stays pending — re-request to retry", linking to the failed
+run). Review mode posts no status comment.
 
 **Clearing a review**: label the PR `💀 Clear jahia-ai review` (any label containing
 "clear", "jahia-ai" and "review" works, regardless of order or casing) and the
