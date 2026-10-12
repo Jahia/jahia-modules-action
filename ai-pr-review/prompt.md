@@ -9,7 +9,7 @@ when the code is clean; merging, and blocking a PR, stay human decisions.
 - **Its context is already on disk, in `__CONTEXT_DIR__`** — fetched for you before you
   started. `__CONTEXT_DIR__/README.md` indexes every file and names anything that could not
   be fetched. Start there.
-
+__WORDING_NOTICE__
 ## Your tool surface
 
 __TOOL_SURFACE__

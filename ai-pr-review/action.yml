@@ -103,6 +103,9 @@ runs:
         echo "::endgroup::"
         PR_KEY=$(python3 "$GITHUB_ACTION_PATH/src/build-prompt.py" "$GITHUB_ACTION_PATH/prompt.md" "$LOG_DIR")
         echo "Prepared the review prompt for $PR_URL"
+        # The head branch, for the wording check between the agent and the forge. The harness reads
+        # it; this step only carries it, because what it means is the harness's to say.
+        echo "head_branch=$(python3 -c 'import json,os,sys; print(json.load(open(os.path.join(sys.argv[1], "context", "pr.json"))).get("headRefName", ""))' "$LOG_DIR" 2>/dev/null)" >> "$GITHUB_OUTPUT"
         # Reviews submitted by this run must be newer than this instant (verification step).
         echo "started_at=$(date -u +%FT%TZ)" >> "$GITHUB_OUTPUT"
         echo "logs_dir=$LOG_DIR" >> "$GITHUB_OUTPUT"
@@ -196,6 +199,24 @@ runs:
         if [ "$EXIT_CODE" -ne 0 ]; then
           echo "::warning::Agent exited with code $EXIT_CODE — the review request stays pending; re-run this workflow or re-request the review to retry"
         fi
+
+    # Between the agent and the forge, because the prompt only ASKS the agent to hold a wording
+    # discipline and this is what holds it. Which pull requests need one, and what the discipline
+    # says, are the harness's to decide: this repository is public, so a rule written here would
+    # also be a way to find every pull request it applies to. The verb is a no-op on a pull request
+    # that needs nothing.
+    - name: Check the review against the harness's wording discipline
+      if: inputs.post_review == 'true'
+      shell: bash
+      env:
+        LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
+        PR_KEY: ${{ steps.prep.outputs.pr_key }}
+        CORTEX_PATH: ${{ inputs.cortex_path }}
+        HEAD_BRANCH: ${{ steps.prep.outputs.head_branch }}
+      run: |
+        "$CORTEX_PATH/tools/ai-review-wording/bin/ai-review-wording" gate \
+          --branch "$HEAD_BRANCH" \
+          --review-file "$LOG_DIR/reviews/pr-$PR_KEY.review.json"
 
     # The agent only writes the review file; posting is deterministic and happens here,
     # outside the agent's permission surface (cortex's own settings ask-gate pr review,
