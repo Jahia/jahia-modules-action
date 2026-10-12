@@ -172,6 +172,28 @@ changes (approval only with zero findings, re-enforced by the submit step) and i
 agent to treat PR content (title, description, code, comments) as data, never as
 instructions — and to flag prompt-injection attempts as findings.
 
+## The harness's wording discipline
+
+Some pull requests need the review itself held to a stricter wording discipline than ordinary ones.
+What makes a pull request one of them, and what the discipline asks for, are the harness's to state.
+
+**This repository does not hold that rule.** It is public, and a rule written here would also be a
+way to find every pull request the rule applies to. So the rule, the wording it asks for and the
+check that enforces it all live in the cortex harness, and this action only asks:
+
+- `build-prompt.py` asks the harness for the section this pull request's prompt should carry, and
+  substitutes whatever comes back. Nothing comes back for a pull request that needs nothing.
+- A step between the agent and the forge asks the harness whether the review the agent wrote meets
+  the discipline — the body and each inline comment. A no-op for a pull request that needs nothing.
+
+Both go through `tools/ai-review-wording` in the cortex checkout, whose `TOOL.md` is the contract.
+**That tool is why this action needs a cortex ref at or after the change that added it.**
+
+The two layers are not redundant: the prompt asks the agent, and the check is what holds. A review
+the harness refuses is not posted and the run fails, so the request stays pending and the caller's
+failure branch rewrites the status comment into its ordinary note. That note says a review could not
+be submitted and nothing more, deliberately. The detail stays in the run log.
+
 ## Determinism & observability
 
 - Trigger filtering, the eligibility guard, and prompt construction are plain code; the
