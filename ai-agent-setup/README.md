@@ -19,14 +19,14 @@ Provisions a self-hosted runner to run [Claude Code](https://code.claude.com) he
 5. Configures cortex usage telemetry — tokens, cost, model, skills and tools, never prompts or
    outputs. Two layers, because since Claude Code 2.1.282 the exporter reads its configuration
    from the **launch environment** alone, not from project-scoped settings (cortex ADR-0022):
-   the `.env` no cortex clone carries gets `CORTEX_STATUSLINE_THEME=default` (a cortex session
-   that draws no status line reports nothing either) and the `CORTEX_TELEMETRY_TOKEN`
-   credential, while the telemetry environment itself — the same block a developer's shell gets
-   from cortex's `mise.toml` through `mise activate` — is exported to `$GITHUB_ENV`, hardcoded
-   collector included, so every later `claude` step of the job launches under it. Leave the
-   input empty and the run reports nothing: the action then writes cortex's standing refusal
-   (`CORTEX_TELEMETRY=off`) instead, so the harness's session-start notice does not ask the
-   headless agent a question nobody is there to answer.
+   the `.env` no cortex clone carries gets the `CORTEX_TELEMETRY_TOKEN` credential and nothing
+   else (cortex reads only credentials there, and its session-start migration wakes the agent to
+   move any other key), while the telemetry environment itself — the same block a developer's
+   shell gets from cortex's `mise.toml` through `mise activate` — is exported to `$GITHUB_ENV`,
+   hardcoded collector included, so every later `claude` step of the job launches under it.
+   Leave the input empty and the run reports nothing: the action then exports cortex's standing
+   refusal (`CORTEX_TELEMETRY=off`) to `$GITHUB_ENV` instead, so the harness's session-start
+   notice does not ask the headless agent a question nobody is there to answer.
 6. Installs [mise](https://mise.jdx.dev) and runs `mise install` and `mise run libraries` in
    the cortex checkout. Every cortex tool launches through `mise exec` (cortex ADR-0031),
    including the fail-closed guards cortex runs before every file write — without mise the
