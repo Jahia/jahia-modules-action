@@ -121,14 +121,13 @@ runs:
       env:
         CORTEX_TELEMETRY_TOKEN: ${{ inputs.cortex_telemetry_token }}
       run: |
-        # cortex reads both keys from .env, a file no clone carries because it is never committed.
-        # The status line is also the reporting switch: a session that draws none reports no usage
-        # either (cortex ADR-0022), so the theme is what lets the credential below do anything.
-        printf 'CORTEX_STATUSLINE_THEME=default\n' >> .env
+        # cortex's .env holds credentials only (cortex ADR-0012): any other key there is a leftover
+        # its session-start migration wakes the agent to move, which hijacks a headless prompt. The
+        # status line, which is also the reporting switch (cortex ADR-0022), is on by default.
         if [ -z "$CORTEX_TELEMETRY_TOKEN" ]; then
           # The standing refusal cortex understands. Without it, the harness's session-start
           # notice asks the agent a question nobody is there to answer.
-          printf 'CORTEX_TELEMETRY=off\n' >> .env
+          echo "CORTEX_TELEMETRY=off" >> "$GITHUB_ENV"
           echo "::notice::No cortex telemetry credential supplied - this run reports nothing"
           exit 0
         fi
