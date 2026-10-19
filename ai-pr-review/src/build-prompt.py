@@ -2,6 +2,8 @@
 
 Usage: build-prompt.py <template-path> <log-dir>
 Env:   PR_URL            - URL of the pull request to review
+       CORTEX_PATH       - the cortex checkout, asked whether this pull request
+                           needs a stricter wording discipline (see below)
        MARKER            - hidden marker string for review bodies
        AGENT             - human-readable identity of the agent (CLI + model)
        RUN_URL           - URL of the workflow run performing this review
@@ -26,8 +28,10 @@ true) is a deterministic action step.
 Writes <log-dir>/review.prompt.md, then prints the PR key (owner-repo-number,
 used for file names) to stdout.
 """
+import json
 import os
 import re
+import subprocess
 import sys
 
 template_path, log_dir = sys.argv[1], sys.argv[2]
@@ -48,6 +52,33 @@ collect_dir = os.path.join(log_dir, 'collected')
 os.makedirs(collect_dir, exist_ok=True)
 # Written by prefetch-context.py before this script runs.
 context_dir = os.path.join(log_dir, 'context')
+
+
+def head_branch():
+    """The head branch of the pull request, from the metadata already fetched."""
+    try:
+        with open(os.path.join(context_dir, 'pr.json'), encoding='utf-8') as fh:
+            return json.load(fh).get('headRefName') or ''
+    except (OSError, json.JSONDecodeError):
+        return ''
+
+
+def wording_notice():
+    """The section the harness wants in this prompt, empty when it wants none.
+
+    Some pull requests need the review itself to be written to a stricter wording discipline. What
+    makes a pull request one of them, and what the discipline says, are the harness's to state and
+    not this repository's: this one is public, and a rule written here would also be a way to find
+    every pull request it applies to. So the call is here and the knowledge is there.
+    """
+    tool = os.path.join(os.environ.get('CORTEX_PATH', ''), 'tools', 'ai-review-wording', 'bin',
+                        'ai-review-wording')
+    result = subprocess.run([tool, 'notice', '--branch', head_branch()],
+                            capture_output=True, text=True)
+    if result.returncode != 0:
+        # Never silently: a prompt that lost its notice is a review nobody is holding to anything.
+        sys.exit(f'The harness could not be asked about this pull request: {result.stderr.strip()}')
+    return result.stdout
 
 
 def split_tools(value):
@@ -147,7 +178,8 @@ prompt = (template
           .replace('__TOOL_SURFACE__', TOOL_SURFACE)
           .replace('__AGENT__', os.environ.get('AGENT', 'Claude Code'))
           .replace('__RUN_URL__', os.environ.get('RUN_URL', ''))
-          .replace('__MARKER__', marker))
+          .replace('__MARKER__', marker)
+          .replace('__WORDING_NOTICE__', wording_notice()))
 
 os.makedirs(log_dir, exist_ok=True)
 with open(os.path.join(log_dir, 'review.prompt.md'), 'w', encoding='utf-8') as fh:
