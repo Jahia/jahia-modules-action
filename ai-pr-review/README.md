@@ -45,7 +45,9 @@ As soon as the guard passes, a **status comment** is posted on the PR as the rev
 account, and that one comment tracks the stage of the run: "waiting for a runner" at the
 request, rewritten to "review in progress" once the agent environment is up, both linking
 to the run. While the agent works, the same comment is then rewritten every ~90 seconds
-with the run's progress — elapsed time, tool calls, last activity — by a small Node
+with the run's progress — elapsed time, tool calls, last activity, when the update was
+posted and when the next one is due (a "next update" time well past means the run is
+hanging: the comment is replaced on success and failure alike) — by a small Node
 sidecar (`src/status-comment.mjs`) that reads the stream file the narrator tees to disk,
 so the updates cost GitHub API calls and no model tokens; GitHub notifies nobody on an
 edit, so they only serve someone who has the PR open (the job log stays the live view). When the agent job ends the comment
