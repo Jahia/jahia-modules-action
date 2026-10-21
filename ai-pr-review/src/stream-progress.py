@@ -11,18 +11,10 @@ run ends.
 Writing the raw line always happens first and rendering can never raise: a display
 bug must not cost us the session record. Always exits 0 — narrating must not mask
 the agent's own exit code (the caller reads it from PIPESTATUS).
-
-When STATUS_COMMENT_MARKER is set (with GH_TOKEN and PR_URL), a background thread
-also rewrites the PR's status comment with the run's progress every
-STATUS_UPDATE_SECONDS — see StatusCommentUpdater.
 """
 import json
-import os
-import re
 import sys
-import threading
 import time
-import urllib.request
 
 stream_path = sys.argv[1]
 
@@ -54,118 +46,9 @@ def elapsed():
     return f'{minutes}:{seconds:02d}'
 
 
-class StatusCommentUpdater:
-    """Rewrite the PR's status comment periodically with the run's progress.
-
-    Purely mechanical: the stats come from the stream this script already parses,
-    so an update costs GitHub API calls and no model tokens. It runs on a daemon
-    thread so a slow or failing GitHub API can never stall the tee loop (a stalled
-    loop fills the pipe buffer and blocks the agent itself), and it is best-effort
-    throughout: it goes quiet after FAILURES_TOLERATED consecutive errors, and the
-    comment's final state stays the calling workflow's job — deleted on success,
-    rewritten into a failure note otherwise — which also sweeps away whatever
-    stats the last update left.
-
-    Off unless STATUS_COMMENT_MARKER, GH_TOKEN and PR_URL are all set. The marker
-    both finds the comment and must survive every rewrite: it is how the sticky
-    comment steps of the workflow find the comment after this run.
-    """
-
-    FAILURES_TOLERATED = 3
-
-    def __init__(self):
-        self.marker = os.environ.get('STATUS_COMMENT_MARKER', '').strip()
-        self.token = os.environ.get('GH_TOKEN', '')
-        match = re.search(r'/([^/]+)/([^/]+)/pull/(\d+)$', os.environ.get('PR_URL', ''))
-        self.enabled = bool(self.marker and self.token and match)
-        if not self.enabled:
-            return
-        self.owner, self.repo, self.number = match.groups()
-        self.api = os.environ.get('GITHUB_API_URL', 'https://api.github.com').rstrip('/')
-        try:
-            interval = int(os.environ.get('STATUS_UPDATE_SECONDS', '90'))
-        except ValueError:
-            interval = 90
-        # Floor, not a default: a sub-30s cadence spends API quota to animate a
-        # comment nobody is notified about (GitHub notifies no one on an edit).
-        self.interval = max(30, interval)
-        self.tools = 0
-        self.denied = 0
-        self.last = ''
-        self.comment_id = None
-        self.base_body = ''
-        threading.Thread(target=self._loop, daemon=True).start()
-
-    def note(self, tag, text):
-        """Called by emit() for every narrated line; must stay trivially cheap."""
-        if not self.enabled:
-            return
-        if tag == 'tool':
-            self.tools += 1
-        elif tag == 'denied':
-            self.denied += 1
-        if tag in ('tool', 'say', 'task'):
-            # Backticks swapped out so the text cannot escape its code span.
-            self.last = text.replace('`', "'")[:160]
-
-    def _request(self, method, path, payload=None):
-        data = json.dumps(payload).encode('utf-8') if payload is not None else None
-        request = urllib.request.Request(
-            f'{self.api}{path}', data=data, method=method,
-            headers={'Authorization': f'Bearer {self.token}',
-                     'Accept': 'application/vnd.github+json',
-                     'User-Agent': 'jahia-ai-pr-review'})
-        with urllib.request.urlopen(request, timeout=10) as response:
-            return json.load(response)
-
-    def _find_comment(self):
-        """Locate the sticky comment by its marker; remember its text as the base."""
-        for page in range(1, 11):
-            comments = self._request(
-                'GET', f'/repos/{self.owner}/{self.repo}/issues/{self.number}'
-                       f'/comments?per_page=100&page={page}')
-            for comment in comments:
-                if self.marker in (comment.get('body') or ''):
-                    self.comment_id = comment['id']
-                    self.base_body = comment['body'].replace(self.marker, '').strip()
-                    return True
-            if len(comments) < 100:
-                return False
-        return False
-
-    def _loop(self):
-        failures = 0
-        while True:
-            time.sleep(self.interval)
-            try:
-                if self.comment_id is None and not self._find_comment():
-                    # No comment carries the marker: the workflow chose not to post
-                    # one (review mode), so there is nothing to update, ever.
-                    return
-                denied = f' ({self.denied} denied)' if self.denied else ''
-                stats = f'⏱ {elapsed()} elapsed · {self.tools} tool calls{denied}'
-                if self.last:
-                    stats += f'\nLast activity: `{self.last}`'
-                self._request(
-                    'PATCH',
-                    f'/repos/{self.owner}/{self.repo}/issues/comments/{self.comment_id}',
-                    {'body': f'{self.base_body}\n\n{stats}\n{self.marker}'})
-                failures = 0
-            except Exception as error:  # noqa: BLE001 — best-effort by contract
-                failures += 1
-                if failures >= self.FAILURES_TOLERATED:
-                    print(f'{elapsed():>7}  {"warn":<7} status-comment updates stopped '
-                          f'({error})', flush=True)
-                    return
-
-
-status = StatusCommentUpdater()
-
-
 def emit(tag, text):
     global last_line_at
     last_line_at = time.monotonic()
-    status.note(tag, text)
     print(f'{elapsed():>7}  {tag:<7} {text}', flush=True)
 
 

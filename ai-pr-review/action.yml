@@ -32,7 +32,7 @@ inputs:
     required: false
     default: '30'
   status_comment_marker:
-    description: 'Hidden marker of the PR status comment this run keeps rewriting with its progress (elapsed time, tool calls, last activity) while the agent works. The updates are written by the stream narrator from events it already parses — no model call, so they cost no tokens — and are best-effort: a failing GitHub API never fails the review. Empty (the default) disables them; the calling workflow passes the marker of the sticky comment it posted, and every rewrite preserves it so the workflow still finds the comment afterwards.'
+    description: 'Hidden marker of the PR status comment this run keeps rewriting with its progress (elapsed time, tool calls, last activity) while the agent works. The updates are written by a small Node sidecar (src/status-comment.mjs) reading the stream file the narrator tees to disk — no model call, so they cost no tokens — and are best-effort: a failing GitHub API never fails the review. Empty (the default) disables them; the calling workflow passes the marker of the sticky comment it posted, and every rewrite preserves it so the workflow still finds the comment afterwards.'
     required: false
     default: ''
   status_update_seconds:
@@ -116,6 +116,52 @@ runs:
         echo "logs_dir=$LOG_DIR" >> "$GITHUB_OUTPUT"
         echo "pr_key=$PR_KEY" >> "$GITHUB_OUTPUT"
 
+    # A composite step cannot run beside the agent step, so the periodic rewriting is a
+    # detached Node sidecar: this step resolves the sticky comment with the authenticated
+    # client, spawns src/status-comment.mjs on github-script's own Node (process.execPath —
+    # a self-hosted runner guarantees no `node` on PATH) and returns at once. The sidecar
+    # reads its stats off the stream file the narrator tees to disk, so the updates cost
+    # GitHub API calls and no model tokens; the step after the agent kills it.
+    - name: Start the status-comment progress updater
+      id: progress
+      if: inputs.status_comment_marker != '' && inputs.post_review == 'true'
+      uses: actions/github-script@v9
+      env:
+        PR_URL: ${{ inputs.pr_url }}
+        GH_TOKEN: ${{ inputs.github_token }}
+        STATUS_COMMENT_MARKER: ${{ inputs.status_comment_marker }}
+        STATUS_UPDATE_SECONDS: ${{ inputs.status_update_seconds }}
+        JOB_TIMEOUT_MINUTES: ${{ inputs.job_timeout_minutes }}
+        LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
+        ACTION_PATH: ${{ github.action_path }}
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const [, owner, repo, number] = process.env.PR_URL.match(/([^/]+)\/([^/]+)\/pull\/(\d+)$/)
+          const marker = process.env.STATUS_COMMENT_MARKER
+          const comments = await github.paginate(github.rest.issues.listComments,
+            { owner, repo, issue_number: Number(number), per_page: 100 })
+          const comment = comments.find(c => (c.body ?? '').includes(marker))
+          if (!comment) {
+            // The comment is the calling workflow's to post; absent means nothing to update.
+            core.info('No status comment carries the marker — no progress updates for this run.')
+            return
+          }
+          const { spawn } = require('child_process')
+          const child = spawn(process.execPath, [`${process.env.ACTION_PATH}/src/status-comment.mjs`], {
+            detached: true,
+            stdio: 'ignore',
+            env: { ...process.env,
+              COMMENT_URL: comment.url,
+              BASE_BODY: comment.body.replace(marker, '').trim(),
+              STREAM_FILE: `${process.env.LOG_DIR}/review.stream.jsonl`,
+              UPDATER_LOG: `${process.env.LOG_DIR}/status-comment.log`,
+            },
+          })
+          child.unref()
+          core.setOutput('pid', child.pid)
+          core.info(`Updating comment ${comment.html_url} every ${process.env.STATUS_UPDATE_SECONDS}s (pid ${child.pid})`)
+
     - name: Run the review agent
       shell: bash
       working-directory: ${{ inputs.cortex_path }}
@@ -128,11 +174,6 @@ runs:
         JOB_TIMEOUT_MINUTES: ${{ inputs.job_timeout_minutes }}
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
         PR_KEY: ${{ steps.prep.outputs.pr_key }}
-        # Read by stream-progress.py: with a marker, the narrator also rewrites the
-        # PR's status comment with the run's progress as it goes (no model call).
-        PR_URL: ${{ inputs.pr_url }}
-        STATUS_COMMENT_MARKER: ${{ inputs.status_comment_marker }}
-        STATUS_UPDATE_SECONDS: ${{ inputs.status_update_seconds }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
         # The agent gets a budget of its own, below the job timeout. Reaching it is a plain
@@ -209,6 +250,16 @@ runs:
         if [ "$EXIT_CODE" -ne 0 ]; then
           echo "::warning::Agent exited with code $EXIT_CODE — the review request stays pending; re-run this workflow or re-request the review to retry"
         fi
+
+    # always(): the sidecar must not keep rewriting the comment while the workflow's
+    # sticky-comment steps conclude it — nor after a failed agent step. Its lifetime
+    # deadline covers the one case this step cannot: a hard-cancelled job.
+    - name: Stop the status-comment progress updater
+      if: always() && steps.progress.outputs.pid != ''
+      shell: bash
+      env:
+        UPDATER_PID: ${{ steps.progress.outputs.pid }}
+      run: kill "$UPDATER_PID" 2>/dev/null || true
 
     # The agent only writes the review file; posting is deterministic and happens here,
     # outside the agent's permission surface (cortex's own settings ask-gate pr review,
