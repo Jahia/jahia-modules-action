@@ -31,6 +31,14 @@ inputs:
     description: 'The timeout-minutes of the job running this action. The agent is stopped a few minutes BEFORE it, by this action, so the trace, the transcript and the logs artifact are still produced — letting the job timeout hit instead cancels the job mid-step and loses all of that. Pass the job timeout unchanged: the reserve is subtracted here, because GitHub Actions expressions have no arithmetic operators.'
     required: false
     default: '30'
+  status_comment_marker:
+    description: 'Hidden marker of the PR status comment this run keeps rewriting with its progress (elapsed time, tool calls, last activity) while the agent works. The updates are written by the stream narrator from events it already parses — no model call, so they cost no tokens — and are best-effort: a failing GitHub API never fails the review. Empty (the default) disables them; the calling workflow passes the marker of the sticky comment it posted, and every rewrite preserves it so the workflow still finds the comment afterwards.'
+    required: false
+    default: ''
+  status_update_seconds:
+    description: 'Seconds between two progress rewrites of the status comment (floor: 30). Only read when status_comment_marker is set.'
+    required: false
+    default: '90'
   prefetch_checkout:
     description: 'true: the pre-fetch step also checks the pull request head out (blobless clone under the cortex checkout''s sources/), so the agent can read a changed file with its callers around it. The agent cannot do this itself — cortex denies `cd`, so it has no way into a clone it creates. Set false to review from the diff alone on a repository too large to clone inside the budget.'
     required: false
@@ -120,6 +128,11 @@ runs:
         JOB_TIMEOUT_MINUTES: ${{ inputs.job_timeout_minutes }}
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
         PR_KEY: ${{ steps.prep.outputs.pr_key }}
+        # Read by stream-progress.py: with a marker, the narrator also rewrites the
+        # PR's status comment with the run's progress as it goes (no model call).
+        PR_URL: ${{ inputs.pr_url }}
+        STATUS_COMMENT_MARKER: ${{ inputs.status_comment_marker }}
+        STATUS_UPDATE_SECONDS: ${{ inputs.status_update_seconds }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
         # The agent gets a budget of its own, below the job timeout. Reaching it is a plain
