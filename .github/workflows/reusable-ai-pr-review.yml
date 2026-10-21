@@ -145,6 +145,11 @@ jobs:
           model: ${{ inputs.model }}
           post_review: ${{ inputs.post_review }}
           debug: ${{ inputs.debug }}
+          # The action keeps the status comment above fresh while the agent works
+          # (elapsed, tool calls, last activity — no model call). The marker is how
+          # the sticky-comment action identifies its comment: its fixed prefix
+          # followed by the `header` used on every status step of this workflow.
+          status_comment_marker: ${{ inputs.post_review && '<!-- Sticky Pull Request Commentai-pr-review-status -->' || '' }}
           # The action stops the agent a few minutes before this budget is up, so it still
           # renders the trace and the transcript and the upload steps below still run with time
           # to spare. Hitting timeout-minutes instead cancels the job mid-step and loses the
