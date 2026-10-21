@@ -125,6 +125,10 @@ runs:
     - name: Start the status-comment progress updater
       id: progress
       if: inputs.status_comment_marker != '' && inputs.post_review == 'true'
+      # Best-effort by contract: the try/catch below downgrades any failure to a warning,
+      # and continue-on-error is the backstop for what it cannot catch (the runner itself) —
+      # a hiccup starting a cosmetic updater must never cost the review.
+      continue-on-error: true
       uses: actions/github-script@v9
       env:
         PR_URL: ${{ inputs.pr_url }}
@@ -137,30 +141,36 @@ runs:
       with:
         github-token: ${{ inputs.github_token }}
         script: |
-          const [, owner, repo, number] = process.env.PR_URL.match(/([^/]+)\/([^/]+)\/pull\/(\d+)$/)
-          const marker = process.env.STATUS_COMMENT_MARKER
-          const comments = await github.paginate(github.rest.issues.listComments,
-            { owner, repo, issue_number: Number(number), per_page: 100 })
-          const comment = comments.find(c => (c.body ?? '').includes(marker))
-          if (!comment) {
-            // The comment is the calling workflow's to post; absent means nothing to update.
-            core.info('No status comment carries the marker — no progress updates for this run.')
-            return
+          try {
+            const [, owner, repo, number] = process.env.PR_URL.match(/([^/]+)\/([^/]+)\/pull\/(\d+)$/)
+            const marker = process.env.STATUS_COMMENT_MARKER
+            const comments = await github.paginate(github.rest.issues.listComments,
+              { owner, repo, issue_number: Number(number), per_page: 100 })
+            const comment = comments.find(c => (c.body ?? '').includes(marker))
+            if (!comment) {
+              // The comment is the calling workflow's to post; absent means nothing to update.
+              core.info('No status comment carries the marker — no progress updates for this run.')
+              return
+            }
+            const { spawn } = require('child_process')
+            const child = spawn(process.execPath, [`${process.env.ACTION_PATH}/src/status-comment.mjs`], {
+              detached: true,
+              stdio: 'ignore',
+              env: { ...process.env,
+                COMMENT_URL: comment.url,
+                BASE_BODY: comment.body.replace(marker, '').trim(),
+                STREAM_FILE: `${process.env.LOG_DIR}/review.stream.jsonl`,
+                UPDATER_LOG: `${process.env.LOG_DIR}/status-comment.log`,
+              },
+            })
+            child.unref()
+            core.setOutput('pid', child.pid)
+            core.info(`Updating comment ${comment.html_url} every ${process.env.STATUS_UPDATE_SECONDS}s (pid ${child.pid})`)
+          } catch (error) {
+            // `pid` stays unset, so the stop step skips cleanly; a child spawned just
+            // before a late failure is covered by the sidecar's lifetime deadline.
+            core.warning(`Status-comment progress updates disabled for this run: ${error}`)
           }
-          const { spawn } = require('child_process')
-          const child = spawn(process.execPath, [`${process.env.ACTION_PATH}/src/status-comment.mjs`], {
-            detached: true,
-            stdio: 'ignore',
-            env: { ...process.env,
-              COMMENT_URL: comment.url,
-              BASE_BODY: comment.body.replace(marker, '').trim(),
-              STREAM_FILE: `${process.env.LOG_DIR}/review.stream.jsonl`,
-              UPDATER_LOG: `${process.env.LOG_DIR}/status-comment.log`,
-            },
-          })
-          child.unref()
-          core.setOutput('pid', child.pid)
-          core.info(`Updating comment ${comment.html_url} every ${process.env.STATUS_UPDATE_SECONDS}s (pid ${child.pid})`)
 
     - name: Run the review agent
       shell: bash
