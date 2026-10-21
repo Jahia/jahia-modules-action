@@ -105,8 +105,15 @@ async function readNewEvents() {
 
 async function updateComment() {
   const deniedText = denied ? ` (${denied} denied)` : ''
+  // Absolute times, because they are what tells a hung run from a quiet one: the comment
+  // is replaced on success and on failure alike, so one whose "next update" time is well
+  // past means the run itself is hanging (or this updater died — the job log then says so).
+  const utc = (date) => date.toISOString().slice(0, 19).replace('T', ' ')
+  const now = new Date()
+  const next = new Date(now.getTime() + intervalMs)
   let stats = `⏱ ${elapsed()} elapsed · ${tools} tool calls${deniedText}`
   if (last) stats += `\nLast activity: \`${last}\``
+  stats += `\nUpdated ${utc(now)} UTC · next update expected by ${utc(next).slice(11)} UTC`
   const response = await fetch(commentUrl, {
     method: 'PATCH',
     headers: {
