@@ -1,0 +1,42 @@
+name: AI Issue Agent — Check request
+description: Deterministic (LLM-free) guard deciding whether an agent session is owed on an issue — trigger filter, single-agent lock and cumulative budget ledger — before any agent instance is started. The state lives in the issue's overall-status comment (format in ../README.md).
+
+inputs:
+  github_token:
+    description: 'Token used to read the issue and create/update the overall-status comment. Use the AI agent account''s token, so the comment is authored by it.'
+    required: true
+  repository:
+    description: 'Repository holding the issue (owner/repo)'
+    required: false
+    default: ${{ github.repository }}
+  issue_number:
+    description: 'Number of the issue the event belongs to'
+    required: true
+  agent_login:
+    description: 'GitHub username of the AI agent account — assignments of it and @-mentions of it qualify, nothing else does'
+    required: false
+    default: 'jahia-ai'
+  budget_seconds:
+    description: 'Cumulative agent-runtime budget for one issue, across all sessions. Only read on the FIRST session: afterwards the budget stored in the issue state wins, so a changed default never resurrects an exhausted issue.'
+    required: false
+    default: '7200'
+  timeout_job:
+    description: 'timeout-minutes of the agent job, feeding the stale-lock rule: a lock older than this plus a 10-minute margin belonged to a run that could not finalize, and is reclaimed.'
+    required: false
+    default: '30'
+
+outputs:
+  eligible:
+    description: '"true" when an agent session is owed — the event qualifies, no live session holds the lock, and the budget is not exhausted. A blocked duplicate is refused silently (no trace on the issue).'
+  remaining_seconds:
+    description: 'Seconds left in the issue budget (only when eligible)'
+  session_index:
+    description: '1-based index of the session this run starts (only when eligible)'
+  trigger:
+    description: '"assigned" or "mentioned" (only when eligible)'
+  comment_id:
+    description: 'ID of the overall-status comment (only when eligible)'
+
+runs:
+  using: 'node24'
+  main: 'dist/index.js'
