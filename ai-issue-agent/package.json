@@ -8,7 +8,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"__tests__/**/*.ts\"",
     "format-check": "prettier --check \"src/**/*.ts\" \"__tests__/**/*.ts\"",
     "lint": "eslint src __tests__",
-    "package": "ncc build src/guard/main.ts -o check-request/dist --license licenses.txt && ncc build src/finalize/main.ts -o finalize/dist --license licenses.txt",
+    "package": "ncc build src/guard/main.ts -o check-request/dist --license licenses.txt && ncc build src/finalize/main.ts -o finalize/dist --license licenses.txt && ncc build src/hygiene/main.ts -o project-hygiene/dist --license licenses.txt",
     "test": "jest",
     "all": "npm run build && npm run format-check && npm run lint && npm test && npm run package"
   },

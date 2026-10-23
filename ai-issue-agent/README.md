@@ -65,3 +65,14 @@ the provisional definition; refine deliberately when the agent job stops being a
 When `ledgerSeconds >= budgetSeconds`, the guard refuses every further session, notes it
 once in the visible summary, and stays silent from then on. There is no reset mechanism:
 raising the budget is a deliberate config change, not a runtime feature.
+
+## Board hygiene
+
+The **project-hygiene** action runs at the start of every agent session: it attaches the
+issue to the delivery board (an organization ProjectsV2, `project_url`), sets `Priority`
+to its configured value every time, sets `Status` to what the session is about to do, and
+gives `Squad` a default value only when no squad owns the issue yet — an assigned squad is
+never overwritten. It is idempotent, and it fails loud with the board's actual fields and
+options when the board does not match, so a renamed option is a readable annotation rather
+than a silent no-op. The token it needs carries organization project scope — the chores
+token the `add-to-project` jobs already use, not the agent account's issue token.

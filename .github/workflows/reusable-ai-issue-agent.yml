@@ -37,6 +37,16 @@ on:
         type: number
         required: false
         default: 7200
+      project_url:
+        description: "Organization project the issue is attached to at session start (board hygiene)"
+        type: string
+        required: false
+        default: "https://github.com/orgs/Jahia/projects/50"
+      status_on_start:
+        description: "Value the board's Status field takes when a session starts (empty leaves Status untouched)"
+        type: string
+        required: false
+        default: "In Progress"
       model:
         description: "Model the agent will run on (an `opus`/`sonnet`/`haiku` alias the LiteLLM gateway maps, or a model name it serves verbatim). Unused while the agent job is a stub."
         type: string
@@ -107,7 +117,19 @@ jobs:
         shell: bash
         run: echo "started_epoch=$(date -u +%s)" >> "$GITHUB_OUTPUT"
 
-      # Phase 2 seam: project hygiene (Engineering - Delivery board fields) runs here.
+      # Board hygiene: the issue the session works on is always on the delivery board,
+      # prioritized, truthfully statused, with a default squad when none is set.
+      # GH_ISSUES_PRS_CHORES is the token the other chores jobs already use against this
+      # project. continue-on-error: a board mismatch is an annotation to fix, never a
+      # reason to lose the session.
+      - name: Project hygiene — the delivery board reflects this session
+        continue-on-error: true
+        uses: jahia/jahia-modules-action/ai-issue-agent/project-hygiene@v2
+        with:
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          issue_number: ${{ github.event.issue.number }}
+          project_url: ${{ inputs.project_url }}
+          status: ${{ inputs.status_on_start }}
 
       # Phase 3 replaces this stub with mtls-tunnel + ai-agent-setup + the agent run.
       - name: Agent session (stub)
