@@ -1,0 +1,25 @@
+name: AI Issue Agent — Finalize session
+description: Deterministic session closer — releases the issue's agent lock and adds the session's runtime to the cumulative budget ledger in the overall-status comment. Best-effort by contract — it never fails the job; a finalize lost to a hard cancel is healed by the guard's stale-lock rule.
+
+inputs:
+  github_token:
+    description: 'Token used to read and update the overall-status comment. Use the AI agent account''s token, the same one the guard used.'
+    required: true
+  repository:
+    description: 'Repository holding the issue (owner/repo)'
+    required: false
+    default: ${{ github.repository }}
+  issue_number:
+    description: 'Number of the issue this session worked on'
+    required: true
+  session_started_epoch:
+    description: 'Unix epoch (seconds) stamped by the agent job''s first step — the session''s runtime is measured from there to now, so runner queue time never bills the budget.'
+    required: true
+  outcome:
+    description: 'success, failure or cancelled — pass the agent job''s job.status'
+    required: false
+    default: 'failure'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

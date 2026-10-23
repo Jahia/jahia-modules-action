@@ -1,0 +1,132 @@
+# On-demand agent session on a GitHub issue: assigning the AI agent account to an issue, or
+# mentioning it in a fresh issue comment, starts one bounded session working that issue.
+#
+# Trigger filtering (which event, which account) belongs to the caller, typically
+# reusable-delivery-issue-chores.yml. Two jobs, deliberately: a cheap LLM-free guard on
+# ubuntu-slim owns eligibility — the trigger filter, the single-agent lock and the issue's
+# cumulative runtime budget — and only then does an agent instance start. A duplicate
+# trigger, a re-run or an exhausted budget all land on the guard and cost nothing more.
+# State, lock and ledger live in the issue's overall-status comment: ai-issue-agent/README.md.
+#
+# The agent job is still a STUB: it proves the spine (lock taken, session accounted,
+# lock released) end to end. A later phase replaces the stub with mtls-tunnel +
+# ai-agent-setup + the Claude Code agent run — the inputs those steps need are already
+# declared here so the consumer-facing shape does not churn.
+name: AI Issue Agent
+
+on:
+  workflow_call:
+    inputs:
+      agent_login:
+        description: "GitHub username of the AI agent account (assignments and mentions of this login qualify)"
+        type: string
+        required: false
+        default: "jahia-ai"
+      instance_type:
+        description: "Type of instances to run the agent job on"
+        type: string
+        required: false
+        default: "self-hosted"
+      timeout_job:
+        description: "Timeout (in minutes) of the agent job. Also feeds the guard's stale-lock rule."
+        type: number
+        required: false
+        default: 30
+      budget_seconds:
+        description: "Cumulative agent-runtime budget for one issue, across all sessions (fixed on the issue's first session)"
+        type: number
+        required: false
+        default: 7200
+      model:
+        description: "Model the agent will run on (an `opus`/`sonnet`/`haiku` alias the LiteLLM gateway maps, or a model name it serves verbatim). Unused while the agent job is a stub."
+        type: string
+        required: false
+        default: "opus"
+      cortex_ref:
+        description: "Git ref of the cortex harness to use. Unused while the agent job is a stub."
+        type: string
+        required: false
+        default: "main"
+      claude_code_version:
+        description: "Claude Code CLI version to install. Unused while the agent job is a stub."
+        type: string
+        required: false
+        default: "stable"
+      tunnel_hosts:
+        description: "Internal hosts to reach through the mTLS tunnel (space-separated); must be allowlisted on IT's side. Unused while the agent job is a stub."
+        type: string
+        required: false
+        default: "litellm-prod.int.jahia.com"
+      debug:
+        description: "Run the agent with debug detail in the logs. Unused while the agent job is a stub."
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  # Cheap LLM-free guard: trigger filter, single-agent lock, budget ledger. The concurrency
+  # group is the actual mutual exclusion — one guard at a time per issue — and the lock it
+  # writes into the status comment is that mutex's durable record between runs.
+  check-request:
+    name: Check an agent session is owed
+    runs-on: ubuntu-slim
+    concurrency:
+      group: ai-issue-agent-guard-${{ github.event.issue.number }}
+      cancel-in-progress: false
+    outputs:
+      eligible: ${{ steps.check.outputs.eligible }}
+      remaining_seconds: ${{ steps.check.outputs.remaining_seconds }}
+      session_index: ${{ steps.check.outputs.session_index }}
+      trigger: ${{ steps.check.outputs.trigger }}
+    steps:
+      - id: check
+        uses: jahia/jahia-modules-action/ai-issue-agent/check-request@v2
+        with:
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          issue_number: ${{ github.event.issue.number }}
+          agent_login: ${{ inputs.agent_login }}
+          budget_seconds: ${{ inputs.budget_seconds }}
+          timeout_job: ${{ inputs.timeout_job }}
+
+  # No concurrency group here, on purpose: the guard's lock already guarantees one session
+  # per issue, and an Actions group would QUEUE a duplicate instead of preventing it.
+  agent:
+    name: Run the agent session
+    needs: check-request
+    if: needs.check-request.outputs.eligible == 'true'
+    runs-on: ${{ inputs.instance_type }}
+    timeout-minutes: ${{ inputs.timeout_job }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      # The ledger bills the session from this instant: runner queue time is free,
+      # everything from here to finalize is not.
+      - name: Stamp the session start
+        id: session
+        shell: bash
+        run: echo "started_epoch=$(date -u +%s)" >> "$GITHUB_OUTPUT"
+
+      # Phase 2 seam: project hygiene (Engineering - Delivery board fields) runs here.
+
+      # Phase 3 replaces this stub with mtls-tunnel + ai-agent-setup + the agent run.
+      - name: Agent session (stub)
+        shell: bash
+        env:
+          SESSION_INDEX: ${{ needs.check-request.outputs.session_index }}
+          TRIGGER: ${{ needs.check-request.outputs.trigger }}
+          REMAINING: ${{ needs.check-request.outputs.remaining_seconds }}
+        run: |
+          echo "Stub agent session #$SESSION_INDEX on ${{ github.repository }}#${{ github.event.issue.number }}"
+          echo "Trigger: $TRIGGER — remaining issue budget: ${REMAINING}s"
+          sleep 15
+
+      # always(): the lock must be released and the session billed whatever the stub did.
+      - name: Finalize the session — release the lock, settle the ledger
+        if: always()
+        uses: jahia/jahia-modules-action/ai-issue-agent/finalize@v2
+        with:
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          issue_number: ${{ github.event.issue.number }}
+          session_started_epoch: ${{ steps.session.outputs.started_epoch }}
+          outcome: ${{ job.status }}
