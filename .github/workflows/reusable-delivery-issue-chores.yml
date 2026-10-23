@@ -272,7 +272,7 @@ jobs:
   ai-issue-agent:
     name: AI Issue Agent
     if: ${{ (github.event_name == 'issues' && github.event.action == 'assigned' && github.event.assignee.login == 'jahia-ai') || (github.event_name == 'issue_comment' && github.event.action == 'created' && contains(github.event.comment.body, '@jahia-ai') && github.event.sender.login != 'jahia-ai' && github.event.sender.login != 'jahia-ci') }}
-    uses: jahia/jahia-modules-action/.github/workflows/reusable-ai-issue-agent.yml@ai-issue-agent-guard
+    uses: jahia/jahia-modules-action/.github/workflows/reusable-ai-issue-agent.yml@v2
     permissions:
       id-token: write
       contents: read

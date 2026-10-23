@@ -80,7 +80,7 @@ jobs:
       trigger: ${{ steps.check.outputs.trigger }}
     steps:
       - id: check
-        uses: jahia/jahia-modules-action/ai-issue-agent/check-request@ai-issue-agent-guard
+        uses: jahia/jahia-modules-action/ai-issue-agent/check-request@v2
         with:
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           issue_number: ${{ github.event.issue.number }}
@@ -124,7 +124,7 @@ jobs:
       # always(): the lock must be released and the session billed whatever the stub did.
       - name: Finalize the session — release the lock, settle the ledger
         if: always()
-        uses: jahia/jahia-modules-action/ai-issue-agent/finalize@ai-issue-agent-guard
+        uses: jahia/jahia-modules-action/ai-issue-agent/finalize@v2
         with:
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           issue_number: ${{ github.event.issue.number }}
