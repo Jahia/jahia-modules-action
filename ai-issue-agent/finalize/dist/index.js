@@ -30200,6 +30200,14 @@ const renderStateBlock = (state) => {
         : latest?.outcome
             ? `Session #${String(sessionCount)} finished (${latest.outcome}) — ${(0, formatDuration_1.formatDuration)(latest.seconds ?? 0)}`
             : 'Idle — no agent session in flight';
+    // "2026-10-23T14:00:00.000Z" -> "2026-10-23 14:00" (the seconds say nothing a reader needs)
+    const instant = (iso) => iso.slice(0, 16).replace('T', ' ');
+    const inFlight = (runId) => state.lock?.runId === runId;
+    const rows = state.sessions.map((session, index) => {
+        const duration = session.seconds === null ? '—' : (0, formatDuration_1.formatDuration)(session.seconds);
+        const outcome = session.outcome ?? (inFlight(session.runId) ? 'in progress' : 'unknown');
+        return `| [#${String(index + 1)}](${session.runUrl}) | ${session.trigger} | ${instant(session.startedAt)} | ${duration} | ${outcome} |`;
+    });
     const lines = [
         markers_1.STATUS_MARKER,
         markers_1.STATE_MARKER_OPEN,
@@ -30209,11 +30217,15 @@ const renderStateBlock = (state) => {
         '🤖 **AI Issue Agent — overall status**',
         '',
         statusLine,
-        `Budget used: ${(0, formatDuration_1.formatDuration)(state.ledgerSeconds)} of ${(0, formatDuration_1.formatDuration)(state.budgetSeconds)}`,
     ];
+    if (rows.length > 0) {
+        lines.push('', '| Session | Trigger | Started (UTC) | Duration | Outcome |', '|---|---|---|---|---|', ...rows);
+    }
+    lines.push('', `**Budget used**: ${(0, formatDuration_1.formatDuration)(state.ledgerSeconds)} of ${(0, formatDuration_1.formatDuration)(state.budgetSeconds)} (cumulative, across all sessions)`);
     if (state.budgetExhaustedNotedAt !== null) {
         lines.push('', '⛔ The agent budget for this issue is exhausted — no further sessions will start.');
     }
+    lines.push('', '_This comment tracks all agent activity on this issue; the agent runtime keeps it up to date._');
     return lines.join('\n');
 };
 exports.renderStateBlock = renderStateBlock;
