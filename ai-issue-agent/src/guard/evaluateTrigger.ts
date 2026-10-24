@@ -5,6 +5,7 @@ export interface TriggerEvaluation {
   qualifies: boolean
   trigger?: TriggerKind
   instruction?: string
+  commentId?: number
   reason?: string
 }
 
@@ -12,35 +13,23 @@ export interface TriggerEvent {
   eventName: string
   payload: {
     action?: string
-    assignee?: { login?: string }
-    comment?: { body?: string; user?: { login?: string } }
+    comment?: { id?: number; body?: string; user?: { login?: string } }
     issue?: { pull_request?: unknown }
   }
   agentLogin: string
 }
 
-// The authoritative trigger filter. The workflow-level `if` is only a cheap pre-filter:
-// it cannot match a mention on a login boundary, and it cannot see that an issue_comment
-// event actually belongs to a pull request.
+// The authoritative trigger filter: ONLY a fresh issue comment mentioning the agent
+// qualifies — assignment (or any other issue event) never starts a session. The
+// workflow-level `if` is only a cheap pre-filter: it cannot match a mention on a login
+// boundary, and it cannot see that an issue_comment event actually belongs to a pull
+// request.
 export const evaluateTrigger = ({
   eventName,
   payload,
   agentLogin,
 }: TriggerEvent): TriggerEvaluation => {
   const agent = agentLogin.toLowerCase()
-  if (eventName === 'issues') {
-    if (payload.action !== 'assigned') {
-      return {
-        qualifies: false,
-        reason: `issues event action '${payload.action ?? 'unknown'}' is not 'assigned'`,
-      }
-    }
-    const assignee = payload.assignee?.login ?? ''
-    if (assignee.toLowerCase() !== agent) {
-      return { qualifies: false, reason: `assigned to '${assignee}', not to '${agentLogin}'` }
-    }
-    return { qualifies: true, trigger: 'assigned' }
-  }
   if (eventName === 'issue_comment') {
     if (payload.action !== 'created') {
       return {
@@ -62,7 +51,12 @@ export const evaluateTrigger = ({
     if (!mention.test(body)) {
       return { qualifies: false, reason: `the comment does not mention @${agentLogin}` }
     }
-    return { qualifies: true, trigger: 'mentioned', instruction: body }
+    return {
+      qualifies: true,
+      trigger: 'mentioned',
+      instruction: body,
+      commentId: payload.comment?.id,
+    }
   }
   return { qualifies: false, reason: `event '${eventName}' never starts an agent` }
 }

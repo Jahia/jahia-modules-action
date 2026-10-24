@@ -13,7 +13,7 @@ inputs:
     description: 'Number of the issue the event belongs to'
     required: true
   agent_login:
-    description: 'GitHub username of the AI agent account — assignments of it and @-mentions of it qualify, nothing else does'
+    description: 'GitHub username of the AI agent account — only a fresh issue comment @-mentioning it qualifies, nothing else does'
     required: false
     default: 'jahia-ai'
   budget_seconds:
@@ -33,7 +33,7 @@ outputs:
   session_index:
     description: '1-based index of the session this run starts (only when eligible)'
   trigger:
-    description: '"assigned" or "mentioned" (only when eligible)'
+    description: '"mentioned" (only when eligible; kept as an output for forward compatibility)'
   comment_id:
     description: 'ID of the overall-status comment (only when eligible)'
 

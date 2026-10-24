@@ -1,5 +1,7 @@
-# On-demand agent session on a GitHub issue: assigning the AI agent account to an issue, or
-# mentioning it in a fresh issue comment, starts one bounded session working that issue.
+# On-demand agent session on a GitHub issue: mentioning the AI agent account in a fresh
+# issue comment (`@jahia-ai do something`) starts one bounded session working that issue,
+# with the whole issue as context. Assigning the account triggers nothing. The guard
+# reacts 👍 on the triggering comment once the session is admitted.
 #
 # Trigger filtering (which event, which account) belongs to the caller, typically
 # reusable-delivery-issue-chores.yml. Two jobs, deliberately: a cheap LLM-free guard on
@@ -18,7 +20,7 @@ on:
   workflow_call:
     inputs:
       agent_login:
-        description: "GitHub username of the AI agent account (assignments and mentions of this login qualify)"
+        description: "GitHub username of the AI agent account (only fresh issue comments mentioning this login qualify)"
         type: string
         required: false
         default: "jahia-ai"
