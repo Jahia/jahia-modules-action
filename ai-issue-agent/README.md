@@ -115,17 +115,21 @@ skills live in the cortex `jahia-issue-agent` skill (`references/profiles.md`); 
 action only states the floor.
 
 The permission surface is one list for all profiles, because the profile is only known once
-the session runs. The runner is ephemeral, so local operations (file writes, local git in
-every spelling) are allowed generously; the `disallowed_tools` default is the floor no
+the session runs. The runner is ephemeral, so local operations (file writes, read-only plain
+git) are allowed generously; the `disallowed_tools` default is the floor no
 profile may cross — merge/ready/review/close, issue writes outside the issue-agent tool,
 arbitrary forge writes (`gh api`, releases, workflows, secrets), force/mirror/delete pushes,
-and `git remote`. Which profile *uses* the write verbs is governed by the skill: only the
+`git remote`, and `EnterWorktree`, which would mint a worktree outside `cortex-sources`.
+A permission rule matches a command prefix only, so a `git -C <dir>` spelling can never be
+allowed, and no git write is allowed in any spelling: commits and pushes run through
+`tools/jahia-pr`. Which profile *uses* the write verbs is governed by the skill: only the
 Software Developer ships code.
 
 A pull request opens only through cortex's `tools/jahia-pr` — allowed as a tool while raw
 `gh pr create` stays denied in both spellings — which commits, runs `pr-lint`, pushes and
 opens a **draft**, so draft-only is enforced by construction and merging stays human-gated.
-Iteration on an open pull request happens with plain `git push` and `gh-wrapper pr
+Iteration on an open pull request happens with `jahia-pr push`, which commits the worktree's
+changes under a Conventional-Commit title and pushes without force, and with `gh-wrapper pr
 edit`/`pr comment`; another person's branch is touched only when the triggering human asked
 for it. Pushes authenticate as the agent account: the run action wires git to gh's
 credential helper (`gh auth setup-git`) with the same `github_token` the session uses, the
