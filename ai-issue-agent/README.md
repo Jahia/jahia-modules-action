@@ -37,7 +37,14 @@ short human-readable summary regenerated from the state on every write.
 🤖 **AI Issue Agent — overall status**
 
 Session #1 in progress — [run](https://github.com/Jahia/sandbox/actions/runs/42)
-Budget used: 1m 35s of 2h 00m
+
+| Session | Trigger | Started (UTC) | Duration | Outcome |
+|---|---|---|---|---|
+| [#1](https://github.com/Jahia/sandbox/actions/runs/42) | mentioned | 2026-10-23 14:00 | — | in progress |
+
+**Budget used**: 1m 35s of 2h 00m (cumulative, across all sessions)
+
+_This comment tracks all agent activity on this issue; the agent runtime keeps it up to date._
 ```
 
 Schema (`version: 1`):

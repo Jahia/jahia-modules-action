@@ -12,10 +12,17 @@ describe('renderStateBlock', () => {
     }).not.toThrow()
   })
 
-  it('summarizes an in-flight session and the budget', () => {
+  it('summarizes an in-flight session, the session table and the budget', () => {
     const body = renderStateBlock(sampleState())
     expect(body).toContain('Session #1 in progress')
-    expect(body).toContain('Budget used: 1m 35s of 2h 00m')
+    expect(body).toContain('| Session | Trigger | Started (UTC) | Duration | Outcome |')
+    expect(body).toMatch(
+      /\| \[#1\]\(.+\) \| \w+ \| \d{4}-\d{2}-\d{2} \d{2}:\d{2} \| .+ \| in progress \|/,
+    )
+    expect(body).toContain('**Budget used**: 1m 35s of 2h 00m')
+    expect(body.split('\n').at(-1)).toBe(
+      '_This comment tracks all agent activity on this issue; the agent runtime keeps it up to date._',
+    )
   })
 
   it('summarizes a finished session once the lock is released', () => {
