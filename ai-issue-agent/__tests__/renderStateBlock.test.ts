@@ -21,7 +21,7 @@ describe('renderStateBlock', () => {
     )
     expect(body).toContain('**Budget used**: 1m 35s of 2h 00m')
     expect(body.split('\n').at(-1)).toBe(
-      '_This comment tracks all agent activity on this issue; the agent runtime keeps it up to date._',
+      '_This comment tracks all agent activity on this issue; the agent runtime keeps it up to date. The 2h 00m budget is set in the action configuration and can be changed._',
     )
   })
 

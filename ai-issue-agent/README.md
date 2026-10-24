@@ -44,7 +44,7 @@ Session #1 in progress — [run](https://github.com/Jahia/sandbox/actions/runs/4
 
 **Budget used**: 1m 35s of 2h 00m (cumulative, across all sessions)
 
-_This comment tracks all agent activity on this issue; the agent runtime keeps it up to date._
+_This comment tracks all agent activity on this issue; the agent runtime keeps it up to date. The 2h 00m budget is set in the action configuration and can be changed._
 ```
 
 Schema (`version: 1`):
