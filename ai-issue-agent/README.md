@@ -102,3 +102,33 @@ A mid-run mention also reaches the guard, which finds the lock held and silently
 second session — so the comment steers the running session and never starts, nor later
 retriggers, another one. A session that never polls is bounded by its own budget and the job
 timeout; those are the backstops, not a runner-side kill.
+
+## Profiles and the write path
+
+The session works as one of six SDLC profiles — Product Owner, Engineering Manager, Software
+Developer, DevOps, QA, Security Engineer — picked by the model from the triggering comment
+and the issue, and named in its opening task comment. The routing table and each profile's
+skills live in the cortex `jahia-issue-agent` skill (`references/profiles.md`); the run
+action only states the floor.
+
+The permission surface is one list for all profiles, because the profile is only known once
+the session runs. The runner is ephemeral, so local operations (file writes, local git in
+every spelling) are allowed generously; the `disallowed_tools` default is the floor no
+profile may cross — merge/ready/review/close, issue writes outside the issue-agent tool,
+arbitrary forge writes (`gh api`, releases, workflows, secrets), force/mirror/delete pushes,
+and `git remote`. Which profile *uses* the write verbs is governed by the skill: only the
+Software Developer ships code.
+
+A pull request opens only through cortex's `tools/jahia-pr` — allowed as a tool while raw
+`gh pr create` stays denied in both spellings — which commits, runs `pr-lint`, pushes and
+opens a **draft**, so draft-only is enforced by construction and merging stays human-gated.
+Iteration on an open pull request happens with plain `git push` and `gh-wrapper pr
+edit`/`pr comment`; another person's branch is touched only when the triggering human asked
+for it. Pushes authenticate as the agent account: the run action wires git to gh's
+credential helper (`gh auth setup-git`) with the same `github_token` the session uses, the
+chores token `AI_AGENT_GH_ISSUES_PRS_CHORES`.
+
+Per-profile model and runner defaults are not wired: `model` and `instance_type` are
+workflow inputs a consumer can already tune, and profile-based tuning is a rollout
+(Phase 7) knob, not a dispatch-time decision — the profile is picked after the runner
+exists.

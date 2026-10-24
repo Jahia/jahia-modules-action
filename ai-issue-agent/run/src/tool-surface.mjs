@@ -38,7 +38,8 @@ export const renderToolSurface = (allowedTools, disallowedTools) => {
     '',
     '- cortex routes every `gh` write through `tools/gh-wrapper/bin/gh-wrapper`, but YOUR',
     '  one write route to the issue is `tools/jahia-issue-agent/bin/jahia-issue-agent` —',
-    '  the list above carries the reads under both gh spellings and no gh write under any.',
+    '  the list above carries the reads under both gh spellings, and the only wrapper',
+    '  writes it carries are `pr edit` and `pr comment`.',
     '- cortex denies `cd`, and it is not on the list above, so a directory is reached by',
     '  naming it: Read, Grep and Glob all take an absolute path.',
   )
