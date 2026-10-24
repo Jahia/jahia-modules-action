@@ -3,7 +3,10 @@
 Mentioning the AI agent account (`jahia-ai` by default) in a fresh issue comment —
 `@jahia-ai do something` — asks for an agent session on that issue; assigning the account
 changes nothing. Once the guard admits a session it reacts 👍 on the triggering comment:
-the sign that what the comment asks is being handled. This package holds the
+the sign that what the comment asks is being handled. It also clears the
+`🧠 Human needed !` escalation label when the issue carries it — a fresh mention means a
+human answered — and the session's own `escalate` puts it back when the issue still
+needs a person. This package holds the
 deterministic (LLM-free) spine of that duty — the **check-request** guard that decides
 whether a session is owed, and the **finalize** closer that settles the session afterwards —
 plus the **run** action that executes the agent session itself: pre-fetched issue context,
