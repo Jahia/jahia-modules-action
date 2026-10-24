@@ -151,6 +151,9 @@ runs:
           })
           core.setOutput('issue_key', `${owner}-${repo}-${number}`)
           core.setOutput('issue_number', number)
+          // The agent step pipes its stream through src/stream-progress.mjs, and a
+          // self-hosted runner guarantees no `node` on PATH — this step's own Node is the one.
+          core.setOutput('node_bin', process.execPath)
 
     # A composite step cannot run beside the agent step, so the periodic progress append is
     # a detached Node sidecar on github-script's own Node (process.execPath — a self-hosted
@@ -207,6 +210,8 @@ runs:
         REMAINING_SECONDS: ${{ inputs.remaining_seconds }}
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
         ISSUE_KEY: ${{ steps.context.outputs.issue_key }}
+        NODE_BIN: ${{ steps.context.outputs.node_bin }}
+        ACTION_PATH: ${{ github.action_path }}
         # The issue-agent tool appends this to every comment it posts, so each one names the
         # model that wrote it and links the run that posted it.
         ISSUE_AGENT_COMMENT_FOOTER: '<sub>${{ steps.prep.outputs.agent_label }} · [session run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})</sub>'
@@ -239,10 +244,14 @@ runs:
         # --model rather than ANTHROPIC_MODEL: the flag is scoped to this one invocation.
         MODEL_FLAG=""
         [ -n "$AGENT_MODEL" ] && MODEL_FLAG="--model $AGENT_MODEL"
-        echo "Progress lands on the issue's task comment; the full stream goes to the run artifact."
+        echo "--- Agent progress (elapsed · event · detail), live ---"
         # --add-dir: the log dir lives outside the cortex cwd, which Claude Code otherwise refuses.
         # timeout: SIGTERM at the budget, SIGKILL 30s later if the CLI does not exit on its own.
-        # The raw stream goes to the artifact; the sidecar reads it for the progress stats.
+        # The stream-json stdout goes through src/stream-progress.mjs rather than straight to
+        # a file: it writes the raw stream to $STREAM_FILE (the sidecar and the denied-calls
+        # tally read it there) *and* narrates it here as it arrives, so this step reads like
+        # any build step instead of staying silent until the agent is done.
+        # set +e / PIPESTATUS: the pipeline must report the agent's exit code, not the narrator's.
         set +e
         timeout --signal=TERM --kill-after=30s "${TIMEOUT_MINUTES}m" \
           claude -p "$(cat "$LOG_DIR/session.prompt.md")" \
@@ -253,8 +262,8 @@ runs:
           --output-format stream-json \
           --verbose $DEBUG_FLAG $MODEL_FLAG \
           2> "$LOG_DIR/session.stderr.log" \
-          > "$STREAM_FILE"
-        EXIT_CODE=$?
+          | "$NODE_BIN" "$ACTION_PATH/src/stream-progress.mjs" "$STREAM_FILE"
+        EXIT_CODE=${PIPESTATUS[0]}
         set -e
         {
           echo "### AI issue agent session"
@@ -296,9 +305,16 @@ runs:
         github-token: ${{ inputs.github_token }}
         script: |
           const { tallyDeniedCalls } = await import(`${process.env.ACTION_PATH}/src/denied-calls.mjs`)
+          const outputFile = `${process.env.LOG_DIR}/denied-calls.md`
           const denied = tallyDeniedCalls({
             streamFile: `${process.env.LOG_DIR}/session.stream.jsonl`,
-            outputFile: `${process.env.LOG_DIR}/denied-calls.md`,
+            outputFile,
             label: process.env.ISSUE_KEY,
           })
           core.info(`${denied} denied call(s) — denied-calls.md is in the logs artifact`)
+          // A denial is a candidate for the next allowlist, so it must be one click away:
+          // the table lands on the run's summary page, not only inside the artifact.
+          if (denied > 0) {
+            const { readFileSync } = require('node:fs')
+            await core.summary.addRaw(readFileSync(outputFile, 'utf8')).write()
+          }
