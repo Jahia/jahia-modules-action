@@ -87,3 +87,18 @@ never overwritten. It is idempotent, and it fails loud with the board's actual f
 options when the board does not match, so a renamed option is a readable annotation rather
 than a silent no-op. The token it needs carries organization project scope — the chores
 token the `add-to-project` jobs already use, not the agent account's issue token.
+
+## Steering and STOP
+
+A fresh comment mentioning the agent while a session runs is a **steering instruction**: the
+running session polls for such comments between steps and once more before closing, reacts 👍
+on each, reads the **entire comment** and does what it asks — redirect the work, take in new
+input, or stop. There is no reserved keyword or comment format: a stop request in any phrasing
+ends the session cleanly, with the closing task comment stating what was done and what
+remains, and the logs artifact holding what the session collected. The ledger bills a stopped
+session like any other.
+
+A mid-run mention also reaches the guard, which finds the lock held and silently prevents a
+second session — so the comment steers the running session and never starts, nor later
+retriggers, another one. A session that never polls is bounded by its own budget and the job
+timeout; those are the backstops, not a runner-side kill.
