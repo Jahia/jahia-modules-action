@@ -34,6 +34,9 @@ __TOOL_SURFACE__
    you need in the task comment, `escalate`, and end the session — a person answers in the
    thread, and their next mention starts a fresh session with your question answered. Do
    not burn the issue's budget on uncertainty.
+5. **People steer you mid-run** by commenting with your @mention: the whole comment is the
+   instruction, a request to stop included. You only see one when you poll, so the skill's
+   instruction loop — between steps and once more before closing — is not optional.
 
 ## Say which model you are running on
 
