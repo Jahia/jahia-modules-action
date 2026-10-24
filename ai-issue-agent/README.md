@@ -1,7 +1,9 @@
 # AI Issue Agent — guard, lock and budget ledger
 
-Assigning the AI agent account (`jahia-ai` by default) to an issue, or mentioning it in a
-fresh issue comment, asks for an agent session on that issue. This package holds the
+Mentioning the AI agent account (`jahia-ai` by default) in a fresh issue comment —
+`@jahia-ai do something` — asks for an agent session on that issue; assigning the account
+changes nothing. Once the guard admits a session it reacts 👍 on the triggering comment:
+the sign that what the comment asks is being handled. This package holds the
 deterministic (LLM-free) spine of that duty: the **check-request** guard that decides
 whether a session is owed, and the **finalize** closer that settles the session afterwards.
 The agent session itself is not here yet — the agent job of
@@ -27,7 +29,7 @@ short human-readable summary regenerated from the state on every write.
 ```markdown
 <!-- cortex-issue-agent-status -->
 <!-- cortex-issue-agent-state
-{"version":1,"budgetSeconds":7200,"ledgerSeconds":95,"firstRunAt":"2026-10-23T14:00:00.000Z","budgetExhaustedNotedAt":null,"lock":{"runId":42,"runUrl":"https://github.com/Jahia/sandbox/actions/runs/42","lockedAt":"2026-10-23T14:00:00.000Z"},"sessions":[{"runId":42,"runUrl":"https://github.com/Jahia/sandbox/actions/runs/42","trigger":"assigned","startedAt":"2026-10-23T14:00:00.000Z","endedAt":null,"seconds":null,"outcome":null}]}
+{"version":1,"budgetSeconds":7200,"ledgerSeconds":95,"firstRunAt":"2026-10-23T14:00:00.000Z","budgetExhaustedNotedAt":null,"lock":{"runId":42,"runUrl":"https://github.com/Jahia/sandbox/actions/runs/42","lockedAt":"2026-10-23T14:00:00.000Z"},"sessions":[{"runId":42,"runUrl":"https://github.com/Jahia/sandbox/actions/runs/42","trigger":"mentioned","startedAt":"2026-10-23T14:00:00.000Z","endedAt":null,"seconds":null,"outcome":null}]}
 -->
 
 🤖 **AI Issue Agent — overall status**

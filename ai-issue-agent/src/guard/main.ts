@@ -117,6 +117,24 @@ const run = async (): Promise<void> => {
     })
     commentId = created.data.id
   }
+  // 👍 on the triggering comment: the visible sign that what it asks is being handled.
+  // Only after the lock is taken, so a silently prevented duplicate stays traceless.
+  if (evaluation.commentId !== undefined) {
+    try {
+      await octokit.rest.reactions.createForIssueComment({
+        owner,
+        repo,
+        comment_id: evaluation.commentId,
+        content: '+1',
+      })
+    } catch (error: unknown) {
+      // The session matters more than the reaction: failing here would strand the lock.
+      core.warning(
+        `${key}: could not react to comment ${String(evaluation.commentId)} — ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
+  }
+
   const remaining = next.budgetSeconds - next.ledgerSeconds
   core.setOutput('eligible', 'true')
   core.setOutput('remaining_seconds', String(remaining))

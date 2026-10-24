@@ -1,3 +1,5 @@
+// 'assigned' is historical: only a mention triggers a session now, but ledgers written
+// before that change may still carry assignment-triggered entries.
 export type TriggerKind = 'assigned' | 'mentioned'
 export type SessionOutcome = 'success' | 'failure' | 'cancelled'
 

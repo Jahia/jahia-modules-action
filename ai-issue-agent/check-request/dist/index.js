@@ -29943,24 +29943,13 @@ exports.escapeRegex = escapeRegex;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.evaluateTrigger = void 0;
 const escapeRegex_1 = __nccwpck_require__(2887);
-// The authoritative trigger filter. The workflow-level `if` is only a cheap pre-filter:
-// it cannot match a mention on a login boundary, and it cannot see that an issue_comment
-// event actually belongs to a pull request.
+// The authoritative trigger filter: ONLY a fresh issue comment mentioning the agent
+// qualifies — assignment (or any other issue event) never starts a session. The
+// workflow-level `if` is only a cheap pre-filter: it cannot match a mention on a login
+// boundary, and it cannot see that an issue_comment event actually belongs to a pull
+// request.
 const evaluateTrigger = ({ eventName, payload, agentLogin, }) => {
     const agent = agentLogin.toLowerCase();
-    if (eventName === 'issues') {
-        if (payload.action !== 'assigned') {
-            return {
-                qualifies: false,
-                reason: `issues event action '${payload.action ?? 'unknown'}' is not 'assigned'`,
-            };
-        }
-        const assignee = payload.assignee?.login ?? '';
-        if (assignee.toLowerCase() !== agent) {
-            return { qualifies: false, reason: `assigned to '${assignee}', not to '${agentLogin}'` };
-        }
-        return { qualifies: true, trigger: 'assigned' };
-    }
     if (eventName === 'issue_comment') {
         if (payload.action !== 'created') {
             return {
@@ -29982,7 +29971,12 @@ const evaluateTrigger = ({ eventName, payload, agentLogin, }) => {
         if (!mention.test(body)) {
             return { qualifies: false, reason: `the comment does not mention @${agentLogin}` };
         }
-        return { qualifies: true, trigger: 'mentioned', instruction: body };
+        return {
+            qualifies: true,
+            trigger: 'mentioned',
+            instruction: body,
+            commentId: payload.comment?.id,
+        };
     }
     return { qualifies: false, reason: `event '${eventName}' never starts an agent` };
 };
@@ -30147,6 +30141,22 @@ const run = async () => {
             body,
         });
         commentId = created.data.id;
+    }
+    // 👍 on the triggering comment: the visible sign that what it asks is being handled.
+    // Only after the lock is taken, so a silently prevented duplicate stays traceless.
+    if (evaluation.commentId !== undefined) {
+        try {
+            await octokit.rest.reactions.createForIssueComment({
+                owner,
+                repo,
+                comment_id: evaluation.commentId,
+                content: '+1',
+            });
+        }
+        catch (error) {
+            // The session matters more than the reaction: failing here would strand the lock.
+            core.warning(`${key}: could not react to comment ${String(evaluation.commentId)} — ${error instanceof Error ? error.message : String(error)}`);
+        }
     }
     const remaining = next.budgetSeconds - next.ledgerSeconds;
     core.setOutput('eligible', 'true');

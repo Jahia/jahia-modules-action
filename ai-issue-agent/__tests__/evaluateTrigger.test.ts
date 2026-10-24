@@ -3,38 +3,30 @@ import { evaluateTrigger } from '../src/guard/evaluateTrigger'
 const agentLogin = 'jahia-ai'
 
 describe('evaluateTrigger', () => {
-  it('qualifies an assignment to the agent, case-insensitively', () => {
-    const result = evaluateTrigger({
-      eventName: 'issues',
-      payload: { action: 'assigned', assignee: { login: 'Jahia-AI' } },
-      agentLogin,
-    })
-    expect(result).toEqual({ qualifies: true, trigger: 'assigned' })
-  })
-
-  it('qualifies a fresh comment mentioning the agent, carrying the instruction', () => {
+  it('qualifies a fresh comment mentioning the agent, carrying the instruction and the comment id', () => {
     const result = evaluateTrigger({
       eventName: 'issue_comment',
       payload: {
         action: 'created',
         issue: {},
-        comment: { body: '@jahia-ai please reproduce this', user: { login: 'a-developer' } },
+        comment: {
+          id: 77,
+          body: '@jahia-ai please reproduce this',
+          user: { login: 'a-developer' },
+        },
       },
       agentLogin,
     })
     expect(result.qualifies).toBe(true)
     expect(result.trigger).toBe('mentioned')
     expect(result.instruction).toBe('@jahia-ai please reproduce this')
+    expect(result.commentId).toBe(77)
   })
 
   it.each([
     [
-      'an assignment to someone else',
-      { eventName: 'issues', payload: { action: 'assigned', assignee: { login: 'someone-else' } } },
-    ],
-    [
-      'an issues event that is not an assignment',
-      { eventName: 'issues', payload: { action: 'labeled' } },
+      'an assignment to the agent (assignment no longer triggers a session)',
+      { eventName: 'issues', payload: { action: 'assigned' } },
     ],
     [
       'a mention of a longer login sharing the prefix',
