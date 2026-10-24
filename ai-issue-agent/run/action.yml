@@ -207,6 +207,9 @@ runs:
         REMAINING_SECONDS: ${{ inputs.remaining_seconds }}
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
         ISSUE_KEY: ${{ steps.context.outputs.issue_key }}
+        # The issue-agent tool appends this to every comment it posts, so each one names the
+        # model that wrote it and links the run that posted it.
+        ISSUE_AGENT_COMMENT_FOOTER: '<sub>${{ steps.prep.outputs.agent_label }} · [session run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})</sub>'
       run: |
         export PATH="$HOME/.local/bin:$PATH"
         # The agent gets a budget of its own: below the job timeout (reserve subtracted here —
