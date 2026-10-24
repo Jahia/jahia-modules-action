@@ -10,10 +10,11 @@
 # trigger, a re-run or an exhausted budget all land on the guard and cost nothing more.
 # State, lock and ledger live in the issue's overall-status comment: ai-issue-agent/README.md.
 #
-# The agent job is still a STUB: it proves the spine (lock taken, session accounted,
-# lock released) end to end. A later phase replaces the stub with mtls-tunnel +
-# ai-agent-setup + the Claude Code agent run — the inputs those steps need are already
-# declared here so the consumer-facing shape does not churn.
+# The agent job runs a real Claude Code session (cortex harness, LiteLLM through the IT
+# mTLS bastion): pre-fetched issue context, a barebone prompt whose substance lives in
+# cortex skills, one task comment per session through the issue-agent tool, and a logs
+# artifact. The session budget is the smaller of the job timeout and what remains of the
+# issue's cumulative budget.
 name: AI Issue Agent
 
 on:
@@ -50,27 +51,27 @@ on:
         required: false
         default: "In Progress"
       model:
-        description: "Model the agent will run on (an `opus`/`sonnet`/`haiku` alias the LiteLLM gateway maps, or a model name it serves verbatim). Unused while the agent job is a stub."
+        description: "Model the agent will run on (an `opus`/`sonnet`/`haiku` alias the LiteLLM gateway maps, or a model name it serves verbatim)."
         type: string
         required: false
         default: "opus"
       cortex_ref:
-        description: "Git ref of the cortex harness to use. Unused while the agent job is a stub."
+        description: "Git ref of the cortex harness to use."
         type: string
         required: false
         default: "main"
       claude_code_version:
-        description: "Claude Code CLI version to install. Unused while the agent job is a stub."
+        description: "Claude Code CLI version to install."
         type: string
         required: false
         default: "stable"
       tunnel_hosts:
-        description: "Internal hosts to reach through the mTLS tunnel (space-separated); must be allowlisted on IT's side. Unused while the agent job is a stub."
+        description: "Internal hosts to reach through the mTLS tunnel (space-separated); must be allowlisted on IT's side."
         type: string
         required: false
         default: "litellm-prod.int.jahia.com"
       debug:
-        description: "Run the agent with debug detail in the logs. Unused while the agent job is a stub."
+        description: "Run the agent with debug detail in the logs."
         type: boolean
         required: false
         default: false
@@ -133,19 +134,70 @@ jobs:
           project_url: ${{ inputs.project_url }}
           status: ${{ inputs.status_on_start }}
 
-      # Phase 3 replaces this stub with mtls-tunnel + ai-agent-setup + the agent run.
-      - name: Agent session (stub)
-        shell: bash
-        env:
-          SESSION_INDEX: ${{ needs.check-request.outputs.session_index }}
-          TRIGGER: ${{ needs.check-request.outputs.trigger }}
-          REMAINING: ${{ needs.check-request.outputs.remaining_seconds }}
-        run: |
-          echo "Stub agent session #$SESSION_INDEX on ${{ github.repository }}#${{ github.event.issue.number }}"
-          echo "Trigger: $TRIGGER — remaining issue budget: ${REMAINING}s"
-          sleep 15
+      - name: Open the mTLS tunnel to internal Jahia services
+        uses: jahia/jahia-modules-action/mtls-tunnel@v2
+        with:
+          hosts: ${{ inputs.tunnel_hosts }}
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
+          server-name: ci-egress.jahia.com
+          audience: jahia-ci-egress
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
+          canary-url: ${{ vars.AI_LITELLM_BASE_URL }}/health/liveliness
 
-      # always(): the lock must be released and the session billed whatever the stub did.
+      - name: Set up Claude Code and the cortex harness
+        id: setup
+        uses: jahia/jahia-modules-action/ai-agent-setup@v2
+        with:
+          claude_code_version: ${{ inputs.claude_code_version }}
+          anthropic_base_url: ${{ vars.AI_LITELLM_BASE_URL }}
+          anthropic_auth_token: ${{ secrets.AI_LITELLM_AUTH_TOKEN_USAGE_PRS }}
+          default_opus_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_OPUS_MODEL }}
+          default_sonnet_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_SONNET_MODEL }}
+          default_haiku_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_HAIKU_MODEL }}
+          cortex_ref: ${{ inputs.cortex_ref }}
+          cortex_telemetry_token: ${{ secrets.CORTEX_TELEMETRY_TOKEN }}
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+
+      - name: Run the agent session
+        id: run
+        uses: jahia/jahia-modules-action/ai-issue-agent/run@v2
+        with:
+          issue_url: ${{ github.event.issue.html_url }}
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          cortex_path: ${{ steps.setup.outputs.cortex_path }}
+          model: ${{ inputs.model }}
+          agent_login: ${{ inputs.agent_login }}
+          remaining_seconds: ${{ needs.check-request.outputs.remaining_seconds }}
+          session_index: ${{ needs.check-request.outputs.session_index }}
+          # The action stops the agent a few minutes before this budget is up, so the
+          # artifact uploads below still run with time to spare. The reserve is subtracted
+          # inside the action: GitHub Actions expressions have no arithmetic operators.
+          job_timeout_minutes: ${{ inputs.timeout_job }}
+          debug: ${{ inputs.debug }}
+
+      # outcome != 'skipped': no logs exist when an earlier step already failed
+      - name: Upload session logs to GitHub
+        if: always() && steps.run.outcome != 'skipped'
+        uses: jahia/jahia-modules-action/upload-artifact@v2
+        with:
+          destination: "github"
+          name: ai-issue-agent-logs
+          path: ${{ runner.temp }}/issue-agent-logs
+          retention-days: 2
+
+      - name: Upload session logs to Jahia servers
+        if: always() && steps.run.outcome != 'skipped'
+        uses: jahia/jahia-modules-action/upload-artifact@v2
+        with:
+          destination: "jahia"
+          name: ai-issue-agent-logs
+          path: ${{ runner.temp }}/issue-agent-logs
+          retention-days: 30
+          ssh-key: ${{ secrets.BASTION_SSH_PRIVATE_KEY_JAHIACI }}
+
+      # always(): the lock must be released and the session billed whatever the agent did.
       - name: Finalize the session — release the lock, settle the ledger
         if: always()
         uses: jahia/jahia-modules-action/ai-issue-agent/finalize@v2

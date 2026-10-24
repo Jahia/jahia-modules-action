@@ -1,0 +1,287 @@
+name: AI Issue Agent — Run
+description: Runs one Claude Code agent session from the cortex harness on one GitHub issue — pre-fetched context, a barebone prompt (the substance lives in cortex skills), the issue-agent comment protocol, and a token-free progress sidecar on the session's task comment.
+
+inputs:
+  issue_url:
+    description: 'URL of the issue the session works (the agent derives the repository and issue number from it)'
+    required: true
+  github_token:
+    description: 'Token the agent and the sidecar use to read and write the issue. Use the AI agent account''s token, so every comment is authored by it.'
+    required: true
+  cortex_path:
+    description: 'Absolute path of the cortex checkout (from ai-agent-setup)'
+    required: true
+  model:
+    description: 'Model the agent runs on, passed to the Claude Code CLI as --model: an alias the gateway maps (`opus`, `sonnet`, `haiku`) or a model name it serves verbatim. Empty leaves the installed CLI''s own default.'
+    required: false
+    default: 'opus'
+  agent_login:
+    description: 'GitHub username of the AI agent account (rendered into the prompt; the issue-agent tool defaults to it too)'
+    required: false
+    default: 'jahia-ai'
+  remaining_seconds:
+    description: 'Seconds left in the issue''s cumulative agent budget (the guard''s remaining_seconds output). The session budget is the smaller of this and the job-timeout-derived budget.'
+    required: true
+  session_index:
+    description: '1-based index of this session on the issue (the guard''s session_index output), rendered into the prompt'
+    required: false
+    default: '1'
+  job_timeout_minutes:
+    description: 'The timeout-minutes of the job running this action. The agent is stopped a few minutes BEFORE it, by this action, so the stream and the logs artifact are still produced — letting the job timeout hit instead cancels the job mid-step and loses all of that. Pass the job timeout unchanged: the reserve is subtracted here, because GitHub Actions expressions have no arithmetic operators.'
+    required: false
+    default: '30'
+  debug:
+    description: 'Run the Claude Code CLI with --debug: API/CLI-level detail lands in session.stderr.log inside the logs artifact'
+    required: false
+    default: 'false'
+  status_update_seconds:
+    description: 'Seconds between two progress appends on the session''s task comment (floor: 30). The updates are written by a small Node sidecar (src/status-comment.mjs) reading the stream file — no model call, so they cost no tokens — and are best-effort: a failing GitHub API never fails the session.'
+    required: false
+    default: '90'
+  allowed_tools:
+    description: 'Claude Code --allowedTools value for the agent: read/search tools, local file writes, read-only git/gh (both spellings, gh and gh-wrapper — the agent works from inside cortex, whose CLAUDE.md routes gh through that wrapper), and the issue-agent comment tool, the agent''s ONLY route to the issue. The prompt states this list verbatim (src/tool-surface.mjs renders it), so widening it here widens what the agent is told it may do.'
+    required: false
+    default: 'Read,Write,Edit,Grep,Glob,Skill,Task,Agent,TodoWrite,Bash(tools/jahia-issue-agent/bin/jahia-issue-agent:*),Bash(git log:*),Bash(git diff:*),Bash(git show:*),Bash(git status:*),Bash(git branch --show-current),Bash(git branch --list),Bash(git branch -a),Bash(git branch -r),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(git blame:*),Bash(git cat-file:*),Bash(git fetch:*),Bash(git merge-base:*),Bash(gh issue view:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh repo view:*),Bash(gh repo clone:*),Bash(gh search:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue view:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr view:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr diff:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr checks:*),Bash(tools/gh-wrapper/bin/gh-wrapper repo view:*),Bash(tools/gh-wrapper/bin/gh-wrapper search:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(sed -n:*),Bash(sort:*),Bash(uniq:*),Bash(cut:*),Bash(diff:*),Bash(mkdir:*),Bash(date:*),Bash(python3 -m json.tool:*)'
+  disallowed_tools:
+    description: 'Claude Code --disallowedTools value. A deny rule beats an allow rule, including one a cloned repository''s own settings could carry: every way the session could reach the forge outside the issue-agent tool, or rewrite history. Each write is denied in every spelling that reaches it — `git push`, `git -C <dir> push`, `gh issue comment` and `gh-wrapper issue comment` are four prefixes, and a rule matches one prefix, so leaving any of them out leaves the write reachable. A later phase selectively reopens push/PR for the developer profile.'
+    required: false
+    default: 'NotebookEdit,Bash(git push:*),Bash(git commit:*),Bash(git switch:*),Bash(git checkout:*),Bash(git reset:*),Bash(git remote:*),Bash(git * --output*),Bash(git * --upload-pack*),Bash(git -C * push:*),Bash(git -C * commit:*),Bash(git -C * switch:*),Bash(git -C * checkout:*),Bash(git -C * reset:*),Bash(git -C * remote:*),Bash(gh pr create:*),Bash(gh pr comment:*),Bash(gh pr review:*),Bash(gh pr edit:*),Bash(gh pr ready:*),Bash(gh pr merge:*),Bash(gh pr close:*),Bash(gh issue create:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh issue close:*),Bash(gh api:*),Bash(gh release:*),Bash(gh workflow:*),Bash(gh secret:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr create:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr comment:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr review:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr edit:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr ready:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr merge:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr close:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue create:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue comment:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue edit:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue close:*),Bash(tools/gh-wrapper/bin/gh-wrapper api:*)'
+
+outputs:
+  logs_dir:
+    description: 'Directory holding the session logs (prompt, context, agent stream, denied-calls tally) — upload it as an artifact'
+    value: ${{ steps.prep.outputs.logs_dir }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Prepare the log directory and the agent identity
+      id: prep
+      shell: bash
+      env:
+        AGENT_MODEL: ${{ inputs.model }}
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        # First thing, before anything that can fail: the upload steps need this directory to
+        # exist even when a later step dies, otherwise the failure costs us the logs too.
+        LOG_DIR="$RUNNER_TEMP/issue-agent-logs"
+        mkdir -p "$LOG_DIR/collected"
+        AGENT="Claude Code $(claude --version 2>/dev/null | head -1 || echo '(version unknown)')"
+        # Name the model that answers, not the alias we asked for: the alias is ours, the
+        # deployment behind it is the gateway's. An unset alias variable means the CLI sends
+        # the alias through untranslated, so the alias is then the honest answer.
+        case "$AGENT_MODEL" in
+          opus)   MODEL_LABEL="${ANTHROPIC_DEFAULT_OPUS_MODEL:-$AGENT_MODEL}" ;;
+          sonnet) MODEL_LABEL="${ANTHROPIC_DEFAULT_SONNET_MODEL:-$AGENT_MODEL}" ;;
+          haiku)  MODEL_LABEL="${ANTHROPIC_DEFAULT_HAIKU_MODEL:-$AGENT_MODEL}" ;;
+          *)      MODEL_LABEL="$AGENT_MODEL" ;;
+        esac
+        [ -n "$MODEL_LABEL" ] && AGENT="$AGENT · model: $MODEL_LABEL"
+        echo "agent_label=$AGENT" >> "$GITHUB_OUTPUT"
+        echo "logs_dir=$LOG_DIR" >> "$GITHUB_OUTPUT"
+        echo "started_at=$(date -u +%FT%TZ)" >> "$GITHUB_OUTPUT"
+
+    # Fetch the issue BEFORE the agent starts, not through it: every fetch the agent makes
+    # costs a turn, and the ones its allowlist refuses cost far more — a headless agent
+    # reads a denial as "the tool is gone" and spends the budget looking for a way around.
+    - name: Pre-fetch the issue context and build the prompt
+      id: context
+      uses: actions/github-script@v9
+      env:
+        ISSUE_URL: ${{ inputs.issue_url }}
+        LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
+        ACTION_PATH: ${{ github.action_path }}
+        AGENT_LABEL: ${{ steps.prep.outputs.agent_label }}
+        AGENT_LOGIN: ${{ inputs.agent_login }}
+        SESSION_INDEX: ${{ inputs.session_index }}
+        REMAINING_SECONDS: ${{ inputs.remaining_seconds }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
+        DISALLOWED_TOOLS: ${{ inputs.disallowed_tools }}
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const match = process.env.ISSUE_URL.match(/([^/]+)\/([^/]+)\/issues\/(\d+)$/)
+          if (!match) throw new Error(`Unrecognized issue URL: ${process.env.ISSUE_URL}`)
+          const [, owner, repo, number] = match
+          const logDir = process.env.LOG_DIR
+          const src = process.env.ACTION_PATH + '/src'
+          const { prefetchIssue } = await import(`${src}/prefetch-issue.mjs`)
+          const { renderToolSurface } = await import(`${src}/tool-surface.mjs`)
+          const { buildPrompt } = await import(`${src}/build-prompt.mjs`)
+          const { fetched, failed } = await prefetchIssue({
+            github,
+            contextDir: `${logDir}/context`,
+            owner,
+            repo,
+            issueNumber: Number(number),
+            eventPath: process.env.GITHUB_EVENT_PATH,
+          })
+          core.info(`Pre-fetched ${fetched} context files (${failed} failed) for ${owner}/${repo}#${number}`)
+          const remaining = Number(process.env.REMAINING_SECONDS) || 0
+          const budget = `${Math.floor(remaining / 3600)}h ${String(Math.floor((remaining % 3600) / 60)).padStart(2, '0')}m`
+          buildPrompt({
+            templatePath: `${process.env.ACTION_PATH}/prompt.md`,
+            outputPath: `${logDir}/session.prompt.md`,
+            replacements: {
+              ISSUE_URL: process.env.ISSUE_URL,
+              CONTEXT_DIR: `${logDir}/context`,
+              COLLECT_DIR: `${logDir}/collected`,
+              TOOL_SURFACE: renderToolSurface(process.env.ALLOWED_TOOLS, process.env.DISALLOWED_TOOLS),
+              AGENT: process.env.AGENT_LABEL,
+              AGENT_LOGIN: process.env.AGENT_LOGIN,
+              RUN_URL: process.env.RUN_URL,
+              SESSION_INDEX: process.env.SESSION_INDEX,
+              REMAINING_BUDGET: budget,
+            },
+          })
+          core.setOutput('issue_key', `${owner}-${repo}-${number}`)
+          core.setOutput('issue_number', number)
+
+    # A composite step cannot run beside the agent step, so the periodic progress append is
+    # a detached Node sidecar on github-script's own Node (process.execPath — a self-hosted
+    # runner guarantees no `node` on PATH). It polls for the task comment the agent opens
+    # (marker bound to this run id) and appends elapsed/tool-call stats below it; the step
+    # after the agent kills it.
+    - name: Start the task-comment progress updater
+      id: progress
+      # Best-effort by contract: the sidecar downgrades its own failures, and
+      # continue-on-error is the backstop for what it cannot catch (the runner itself) —
+      # a hiccup starting a cosmetic updater must never cost the session.
+      continue-on-error: true
+      uses: actions/github-script@v9
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        REPOSITORY: ${{ github.repository }}
+        ISSUE_NUMBER: ${{ steps.context.outputs.issue_number }}
+        TASK_MARKER: '<!-- cortex-issue-agent-task run:${{ github.run_id }} -->'
+        STATUS_UPDATE_SECONDS: ${{ inputs.status_update_seconds }}
+        JOB_TIMEOUT_MINUTES: ${{ inputs.job_timeout_minutes }}
+        LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
+        ACTION_PATH: ${{ github.action_path }}
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          try {
+            const { spawn } = require('child_process')
+            const child = spawn(process.execPath, [`${process.env.ACTION_PATH}/src/status-comment.mjs`], {
+              detached: true,
+              stdio: 'ignore',
+              env: { ...process.env,
+                STREAM_FILE: `${process.env.LOG_DIR}/session.stream.jsonl`,
+                UPDATER_LOG: `${process.env.LOG_DIR}/status-comment.log`,
+              },
+            })
+            child.unref()
+            core.setOutput('pid', child.pid)
+            core.info(`Appending progress to the session task comment every ${process.env.STATUS_UPDATE_SECONDS}s (pid ${child.pid})`)
+          } catch (error) {
+            // `pid` stays unset, so the stop step skips cleanly.
+            core.warning(`Task-comment progress updates disabled for this run: ${error}`)
+          }
+
+    - name: Run the agent session
+      shell: bash
+      working-directory: ${{ inputs.cortex_path }}
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
+        DISALLOWED_TOOLS: ${{ inputs.disallowed_tools }}
+        CLAUDE_DEBUG: ${{ inputs.debug }}
+        AGENT_MODEL: ${{ inputs.model }}
+        JOB_TIMEOUT_MINUTES: ${{ inputs.job_timeout_minutes }}
+        REMAINING_SECONDS: ${{ inputs.remaining_seconds }}
+        LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
+        ISSUE_KEY: ${{ steps.context.outputs.issue_key }}
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        # The agent gets a budget of its own: below the job timeout (reserve subtracted here —
+        # GitHub Actions expressions have no arithmetic operators), and never more than what
+        # is left of the issue's cumulative budget. Reaching it is a plain step failure we
+        # control: the artifact upload still runs. A job timeout instead cancels the job
+        # mid-step and nothing survives.
+        RESERVE_MINUTES=5
+        case "$JOB_TIMEOUT_MINUTES" in
+          ''|*[!0-9]*|0) echo "::warning::job_timeout_minutes='$JOB_TIMEOUT_MINUTES' is not a positive integer, falling back to 30"; JOB_TIMEOUT_MINUTES=30 ;;
+        esac
+        TIMEOUT_MINUTES=$((JOB_TIMEOUT_MINUTES - RESERVE_MINUTES))
+        case "$REMAINING_SECONDS" in
+          ''|*[!0-9]*) echo "::warning::remaining_seconds='$REMAINING_SECONDS' is not a number — the job timeout alone bounds this session" ;;
+          *) REMAINING_MINUTES=$((REMAINING_SECONDS / 60))
+             [ "$REMAINING_MINUTES" -lt "$TIMEOUT_MINUTES" ] && TIMEOUT_MINUTES=$REMAINING_MINUTES ;;
+        esac
+        # Floor of one minute: the failure is then ours (with logs) rather than a cancellation.
+        [ "$TIMEOUT_MINUTES" -lt 1 ] && TIMEOUT_MINUTES=1
+        echo "Session on $ISSUE_KEY — budget: ${TIMEOUT_MINUTES}m of wall clock, model: ${AGENT_MODEL:-CLI default}"
+        echo "::group::Prompt given to the agent"
+        cat "$LOG_DIR/session.prompt.md"
+        echo "::endgroup::"
+        STREAM_FILE="$LOG_DIR/session.stream.jsonl"
+        DEBUG_FLAG=""
+        [ "$CLAUDE_DEBUG" = "true" ] && DEBUG_FLAG="--debug"
+        # --model rather than ANTHROPIC_MODEL: the flag is scoped to this one invocation.
+        MODEL_FLAG=""
+        [ -n "$AGENT_MODEL" ] && MODEL_FLAG="--model $AGENT_MODEL"
+        echo "Progress lands on the issue's task comment; the full stream goes to the run artifact."
+        # --add-dir: the log dir lives outside the cortex cwd, which Claude Code otherwise refuses.
+        # timeout: SIGTERM at the budget, SIGKILL 30s later if the CLI does not exit on its own.
+        # The raw stream goes to the artifact; the sidecar reads it for the progress stats.
+        set +e
+        timeout --signal=TERM --kill-after=30s "${TIMEOUT_MINUTES}m" \
+          claude -p "$(cat "$LOG_DIR/session.prompt.md")" \
+          --allowedTools "$ALLOWED_TOOLS" \
+          --disallowedTools "$DISALLOWED_TOOLS" \
+          --add-dir "$LOG_DIR" \
+          --permission-mode dontAsk \
+          --output-format stream-json \
+          --verbose $DEBUG_FLAG $MODEL_FLAG \
+          2> "$LOG_DIR/session.stderr.log" \
+          > "$STREAM_FILE"
+        EXIT_CODE=$?
+        set -e
+        {
+          echo "### AI issue agent session"
+          echo ""
+          echo "- Issue: $ISSUE_KEY — exit code $EXIT_CODE, budget ${TIMEOUT_MINUTES}m"
+          echo "- Full stream and context in the run's ai-issue-agent-logs artifact"
+        } >> "$GITHUB_STEP_SUMMARY"
+        # 124/137: `timeout` stopped the agent. The session was cut short — the finalize step
+        # still bills it and releases the lock, and the artifact holds the partial stream.
+        if [ "$EXIT_CODE" -eq 124 ] || [ "$EXIT_CODE" -eq 137 ]; then
+          echo "::error title=AI issue agent timed out::The agent was stopped after ${TIMEOUT_MINUTES}m. The partial session is in the run's ai-issue-agent-logs artifact (session.stream.jsonl). Raise timeout_job on the calling workflow if sessions legitimately need longer — the issue's cumulative budget still caps the total."
+          exit 1
+        fi
+        if [ "$EXIT_CODE" -ne 0 ]; then
+          echo "::error title=AI issue agent failed::Agent exited with code $EXIT_CODE — see session.stderr.log and session.stream.jsonl in the run's ai-issue-agent-logs artifact"
+          exit "$EXIT_CODE"
+        fi
+
+    # always(): the sidecar must not keep appending to the task comment after the session —
+    # its lifetime deadline covers the one case this step cannot (a hard-cancelled job).
+    - name: Stop the task-comment progress updater
+      if: always() && steps.progress.outputs.pid != ''
+      shell: bash
+      env:
+        UPDATER_PID: ${{ steps.progress.outputs.pid }}
+      run: kill "$UPDATER_PID" 2>/dev/null || true
+
+    # Deterministic pass over the stream, not something the agent reports about itself: the
+    # tally is only ever useful to the humans who decide what the NEXT allowlist carries.
+    - name: Tally the denied calls
+      if: always() && steps.context.outcome == 'success'
+      continue-on-error: true
+      uses: actions/github-script@v9
+      env:
+        LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
+        ACTION_PATH: ${{ github.action_path }}
+        ISSUE_KEY: ${{ steps.context.outputs.issue_key }}
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const { tallyDeniedCalls } = await import(`${process.env.ACTION_PATH}/src/denied-calls.mjs`)
+          const denied = tallyDeniedCalls({
+            streamFile: `${process.env.LOG_DIR}/session.stream.jsonl`,
+            outputFile: `${process.env.LOG_DIR}/denied-calls.md`,
+            label: process.env.ISSUE_KEY,
+          })
+          core.info(`${denied} denied call(s) — denied-calls.md is in the logs artifact`)
