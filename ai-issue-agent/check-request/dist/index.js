@@ -30331,7 +30331,7 @@ const renderStateBlock = (state) => {
     if (state.budgetExhaustedNotedAt !== null) {
         lines.push('', '⛔ The agent budget for this issue is exhausted — no further sessions will start.');
     }
-    lines.push('', '_This comment tracks all agent activity on this issue; the agent runtime keeps it up to date._');
+    lines.push('', `_This comment tracks all agent activity on this issue; the agent runtime keeps it up to date. The ${(0, formatDuration_1.formatDuration)(state.budgetSeconds)} budget is set in the action configuration and can be changed._`);
     return lines.join('\n');
 };
 exports.renderStateBlock = renderStateBlock;

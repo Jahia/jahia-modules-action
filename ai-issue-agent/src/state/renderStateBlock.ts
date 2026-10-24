@@ -58,7 +58,7 @@ export const renderStateBlock = (state: AgentState): string => {
   }
   lines.push(
     '',
-    '_This comment tracks all agent activity on this issue; the agent runtime keeps it up to date._',
+    `_This comment tracks all agent activity on this issue; the agent runtime keeps it up to date. The ${formatDuration(state.budgetSeconds)} budget is set in the action configuration and can be changed._`,
   )
   return lines.join('\n')
 }
