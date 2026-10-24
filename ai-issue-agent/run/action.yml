@@ -109,6 +109,20 @@ runs:
           const { prefetchIssue } = await import(`${src}/prefetch-issue.mjs`)
           const { renderToolSurface } = await import(`${src}/tool-surface.mjs`)
           const { buildPrompt } = await import(`${src}/build-prompt.mjs`)
+          const { selfAssignWhenUnassigned } = await import(`${src}/self-assign.mjs`)
+          // Best-effort: ownership must not cost the session.
+          try {
+            const assigned = await selfAssignWhenUnassigned({
+              github,
+              owner,
+              repo,
+              issueNumber: Number(number),
+              agentLogin: process.env.AGENT_LOGIN,
+            })
+            if (assigned) core.info(`${owner}/${repo}#${number} had no assignee — assigned ${process.env.AGENT_LOGIN}`)
+          } catch (error) {
+            core.warning(`Could not self-assign on ${owner}/${repo}#${number}: ${error}`)
+          }
           const { fetched, failed } = await prefetchIssue({
             github,
             contextDir: `${logDir}/context`,
