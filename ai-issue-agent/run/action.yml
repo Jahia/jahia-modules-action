@@ -34,6 +34,14 @@ inputs:
     description: 'Run the Claude Code CLI with --debug: API/CLI-level detail lands in session.stderr.log inside the logs artifact'
     required: false
     default: 'false'
+  jahia_artifacts_url:
+    description: 'URL where the run''s logs artifact will be readable on the Jahia QA server once the workflow uploads it (VPN required). The caller composes it from the delete-on-<date> artifact name it also gives the upload step, so the link is known before the upload exists. Empty leaves the footer without an artifacts link.'
+    required: false
+    default: ''
+  jahia_artifacts_expiry:
+    description: 'The YYYY-MM-DD date of the artifact name''s delete-on prefix, shown next to the artifacts link as its expiry.'
+    required: false
+    default: ''
   status_update_seconds:
     description: 'Seconds between two progress appends on the session''s task comment (floor: 30). The updates are written by a small Node sidecar (src/status-comment.mjs) reading the stream file — no model call, so they cost no tokens — and are best-effort: a failing GitHub API never fails the session.'
     required: false
@@ -60,6 +68,8 @@ runs:
       shell: bash
       env:
         AGENT_MODEL: ${{ inputs.model }}
+        JAHIA_ARTIFACTS_URL: ${{ inputs.jahia_artifacts_url }}
+        JAHIA_ARTIFACTS_EXPIRY: ${{ inputs.jahia_artifacts_expiry }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
         # First thing, before anything that can fail: the upload steps need this directory to
@@ -77,6 +87,12 @@ runs:
           *)      MODEL_LABEL="$AGENT_MODEL" ;;
         esac
         [ -n "$MODEL_LABEL" ] && AGENT="$AGENT · model: $MODEL_LABEL"
+        # The artifacts land on the QA server only when the workflow uploads them at the
+        # end of the run, but their folder name is fixed up front — so the footer can link
+        # them from the session's first comment.
+        ARTIFACTS_SUFFIX=""
+        [ -n "$JAHIA_ARTIFACTS_URL" ] && ARTIFACTS_SUFFIX=" · [artifacts]($JAHIA_ARTIFACTS_URL) VPN Req. (expire: $JAHIA_ARTIFACTS_EXPIRY)"
+        echo "artifacts_suffix=$ARTIFACTS_SUFFIX" >> "$GITHUB_OUTPUT"
         echo "agent_label=$AGENT" >> "$GITHUB_OUTPUT"
         echo "logs_dir=$LOG_DIR" >> "$GITHUB_OUTPUT"
         echo "started_at=$(date -u +%FT%TZ)" >> "$GITHUB_OUTPUT"
@@ -214,7 +230,7 @@ runs:
         ACTION_PATH: ${{ github.action_path }}
         # The issue-agent tool appends this to every comment it posts, so each one names the
         # model that wrote it and links the run that posted it.
-        ISSUE_AGENT_COMMENT_FOOTER: '<sub>${{ steps.prep.outputs.agent_label }} · [session run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})</sub>'
+        ISSUE_AGENT_COMMENT_FOOTER: '<sub>${{ steps.prep.outputs.agent_label }} · [session run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})${{ steps.prep.outputs.artifacts_suffix }}</sub>'
       run: |
         export PATH="$HOME/.local/bin:$PATH"
         # The agent gets a budget of its own: below the job timeout (reserve subtracted here —

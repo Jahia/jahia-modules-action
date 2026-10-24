@@ -118,7 +118,19 @@ jobs:
       - name: Stamp the session start
         id: session
         shell: bash
-        run: echo "started_epoch=$(date -u +%s)" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "started_epoch=$(date -u +%s)" >> "$GITHUB_OUTPUT"
+          # The QA-server artifact folder is named HERE, not at upload time: the agent's
+          # comment footer links it from the session's first comment, hours before the
+          # upload exists, and a run crossing midnight must not break that link. The
+          # delete-on-<date> prefix drives the QA server's cleanup (upload-artifact uses
+          # the name verbatim when it carries the prefix); the date matches the upload
+          # step's retention-days.
+          ARTIFACTS_EXPIRY=$(date -u -d "+30 days" +%Y-%m-%d)
+          ARTIFACTS_NAME="delete-on-${ARTIFACTS_EXPIRY}_$(echo "$GITHUB_REPOSITORY" | sed 's#/#_#g')_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+          echo "artifacts_expiry=$ARTIFACTS_EXPIRY" >> "$GITHUB_OUTPUT"
+          echo "artifacts_name=$ARTIFACTS_NAME" >> "$GITHUB_OUTPUT"
+          echo "artifacts_url=https://qa.jahia.com/artifacts-ci/${ARTIFACTS_NAME}/" >> "$GITHUB_OUTPUT"
 
       # Board hygiene: the issue the session works on is always on the delivery board,
       # prioritized, truthfully statused, with a default squad when none is set.
@@ -176,6 +188,8 @@ jobs:
           # inside the action: GitHub Actions expressions have no arithmetic operators.
           job_timeout_minutes: ${{ inputs.timeout_job }}
           debug: ${{ inputs.debug }}
+          jahia_artifacts_url: ${{ steps.session.outputs.artifacts_url }}
+          jahia_artifacts_expiry: ${{ steps.session.outputs.artifacts_expiry }}
 
       # outcome != 'skipped': no logs exist when an earlier step already failed
       - name: Upload session logs to GitHub
@@ -192,7 +206,7 @@ jobs:
         uses: jahia/jahia-modules-action/upload-artifact@v2
         with:
           destination: "jahia"
-          name: ai-issue-agent-logs
+          name: ${{ steps.session.outputs.artifacts_name }}
           path: ${{ runner.temp }}/issue-agent-logs
           retention-days: 30
           ssh-key: ${{ secrets.BASTION_SSH_PRIVATE_KEY_JAHIACI }}
