@@ -4,11 +4,13 @@ Mentioning the AI agent account (`jahia-ai` by default) in a fresh issue comment
 `@jahia-ai do something` — asks for an agent session on that issue; assigning the account
 changes nothing. Once the guard admits a session it reacts 👍 on the triggering comment:
 the sign that what the comment asks is being handled. This package holds the
-deterministic (LLM-free) spine of that duty: the **check-request** guard that decides
-whether a session is owed, and the **finalize** closer that settles the session afterwards.
-The agent session itself is not here yet — the agent job of
-`reusable-ai-issue-agent.yml` is a stub until a later phase (the roadmap lives in the AI
-Issue Agent PRD, in Jahia's internal Cortex harness).
+deterministic (LLM-free) spine of that duty — the **check-request** guard that decides
+whether a session is owed, and the **finalize** closer that settles the session afterwards —
+plus the **run** action that executes the agent session itself: pre-fetched issue context,
+a barebone prompt (`run/prompt.md`, the substance lives in cortex skills), the Claude Code
+CLI under a strict tool allowlist whose one issue-write route is the cortex
+`jahia-issue-agent` tool, and a token-free sidecar appending progress to the session's task
+comment. The roadmap lives in the AI Issue Agent PRD, in Jahia's internal Cortex harness.
 
 ## Requirements
 
