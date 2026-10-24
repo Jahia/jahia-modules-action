@@ -9,6 +9,10 @@ import { evaluateTrigger } from './evaluateTrigger'
 import type { TriggerEvent } from './evaluateTrigger'
 import { isLockStale } from './isLockStale'
 
+// Kept verbatim in sync with the cortex jahia-issue-agent tool's `escalate` verb, which
+// puts the label on.
+const ESCALATION_LABEL = '🧠 Human needed !'
+
 // check-request entry point: decides whether an agent session is owed, takes the lock and
 // bootstraps or updates the overall-status comment. Everything here is deterministic — no
 // model call. The workflow-level concurrency group serializes this guard per issue, which
@@ -131,6 +135,27 @@ const run = async (): Promise<void> => {
       // The session matters more than the reaction: failing here would strand the lock.
       core.warning(
         `${key}: could not react to comment ${String(evaluation.commentId)} — ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
+  }
+
+  // The escalation label asked for a human, and the fresh mention that admitted this
+  // session is one answering: the label is stale the moment a session is owed. Cleared
+  // here, before the agent is instantiated; the session's own `escalate` puts it back
+  // when the issue still needs a person.
+  try {
+    await octokit.rest.issues.removeLabel({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      name: ESCALATION_LABEL,
+    })
+    core.info(`${key}: cleared the '${ESCALATION_LABEL}' label — a session now answers it`)
+  } catch (error: unknown) {
+    // 404 is the common case: the issue does not carry the label, nothing to clear.
+    if ((error as { status?: number }).status !== 404) {
+      core.warning(
+        `${key}: could not clear the '${ESCALATION_LABEL}' label — ${error instanceof Error ? error.message : String(error)}`,
       )
     }
   }
