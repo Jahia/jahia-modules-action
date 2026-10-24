@@ -42,10 +42,43 @@ inputs:
     description: 'Skip tests execution during the build of the MVN module'
     required: false
     default: 'false'
+  required_version_exclude:
+    description: 'Space-separated list of path glob patterns (matched with find -path) to exclude from the jahia.required-version check'
+    required: false
+    default: ''
 
 runs:
   using: 'composite'
   steps:
+    - name: Check jahia.required-version is set in package.json
+      shell: bash
+      env:
+        REQUIRED_VERSION_EXCLUDE: ${{ inputs.required_version_exclude }}
+      run: |
+        echo "::group::Check jahia.required-version in package.json files"
+        FIND_ARGS=(-not -path '*/node_modules/*')
+        for pattern in $REQUIRED_VERSION_EXCLUDE; do
+          FIND_ARGS+=(-not -path "$pattern")
+        done
+        MISSING=0
+        while IFS= read -r -d '' file; do
+          MODULE_TYPE=$(jq -r '.jahia."module-type" // empty' "$file")
+          if [[ -n "$MODULE_TYPE" ]]; then
+            REQUIRED_VERSION=$(jq -r '.jahia."required-version" // empty' "$file")
+            if [[ -z "$REQUIRED_VERSION" ]]; then
+              echo "::error file=$file::Missing required \"jahia.required-version\" property in $file"
+              MISSING=1
+            else
+              echo "$file: jahia.required-version = $REQUIRED_VERSION"
+            fi
+          fi
+        done < <(find . -name 'package.json' "${FIND_ARGS[@]}" -print0)
+        echo "::endgroup::"
+        if [[ $MISSING -eq 1 ]]; then
+          echo "One or more Jahia JS modules are missing the \"jahia.required-version\" property in their package.json."
+          exit 1
+        fi
+
     - name: Build package
       uses: jahia/jahia-modules-action/build-step-mvn@v2
       with:
