@@ -1,0 +1,17 @@
+# The Jahia base configuration of the secret-scan action, for a repository with no .gitleaks.toml.
+# A repository that writes its own file replaces this one, so it copies the entries it needs.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Public local-development defaults. They open no real environment."
+regexes = [
+  # The root password of the Jahia Docker image, alone or in a curl user, used by local setups.
+  # Anchored, because gitleaks matches an allowlist regex anywhere in the secret it found.
+  '''^(root:)?root1234$''',
+  # The default third-party key of Apache Unomi, used by local jCustomer setups.
+  '''^670c26d1cc413346c3b2fd9ce65dab41$''',
+  # A quoted shell variable as a curl user with no password, such as `-u "$SONAR_TOKEN:"`.
+  '''^"\$\{?[A-Za-z_][A-Za-z0-9_]*\}?:"$''',
+]
