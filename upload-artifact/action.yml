@@ -6,7 +6,7 @@ inputs:
     description: Where to store the artifact (github or jahia)
     required: true
   name:
-    description: The name of the archive or folder where the artifact will be placed
+    description: The name of the archive or folder where the artifact will be placed. A name starting with `delete-on-YYYY-MM-DD` is used verbatim as the jahia-destination folder — the caller then knows the URL before the upload runs — and the date in the prefix drives the deletion as usual.
     required: true
   path:
     description: A file, directory or wildcard pattern that describes what to upload
@@ -37,6 +37,11 @@ runs:
         if [ "${{ inputs.retention-days }}" == "unlimited" ]; then
           echo "Unlimited retention selected, the artifact will not be automatically deleted"
           DST_PATH=$(echo $GITHUB_REPOSITORY|sed 's#/#_#g')_${{ inputs.name }}/
+        elif [[ "${{ inputs.name }}" == delete-on-* ]]; then
+          # The caller composed the dated name itself, to know the URL before the upload
+          # runs (for example to link it from a comment posted mid-run). Used verbatim;
+          # the date in the prefix drives the deletion as usual.
+          DST_PATH=${{ inputs.name }}/
         else
           DST_EXPIRY=$(date -d "+${{ inputs.retention-days }} days" +%Y-%m-%d)
           DST_PATH=delete-on-${DST_EXPIRY}_$(echo $GITHUB_REPOSITORY|sed 's#/#_#g')_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}/
