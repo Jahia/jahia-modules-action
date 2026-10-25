@@ -41,7 +41,9 @@ export const renderToolSurface = (allowedTools, disallowedTools) => {
     '  the list above carries the reads under both gh spellings, and the only wrapper',
     '  writes it carries are `pr edit` and `pr comment`.',
     '- cortex denies `cd`, and it is not on the list above, so a directory is reached by',
-    '  naming it: Read, Grep and Glob all take an absolute path.',
+    '  naming it: Read, Grep and Glob all take an absolute path. git takes none here —',
+    '  `git -C` is not on the list, and `tools/jahia-pr/bin/jahia-pr` commits and pushes',
+    '  in the worktree for you (`open` for a new pull request, `push` to iterate on one).',
   )
   return lines.join('\n')
 }
