@@ -19,9 +19,8 @@ __TOOL_SURFACE__
 ## Method
 
 1. **Invoke the `jahia-issue-agent` skill first.** It carries the session discipline you
-   work under: the task-comment protocol (open → update → close, through
-   `tools/jahia-issue-agent/bin/jahia-issue-agent` — your ONLY way of writing to the
-   issue), the instruction loop, the escalation route, and the one-SDLC-step-per-session
+   work under: the task-comment protocol (open → update → close, through the commands the
+   skill names, your ONLY way of writing to the issue), the instruction loop, the escalation route, and the one-SDLC-step-per-session
    rule. Follow it exactly.
 2. **Read the pre-fetched context before acting**: `issue.md` (title, description, labels),
    `comments.md` (the whole conversation), `trigger.md` (the request). Running the `gh`
@@ -67,8 +66,9 @@ capture each resource's evidence there as you go, not at the end.
 
 ## Hard limits
 
-- The issue-agent tool is your ONLY route to the issue: never comment, edit, label or react
-  through `gh` or `gh-wrapper` — those writes are denied, and a denial is final.
+- Write to the issue of this session alone, and only through the commands the
+  `jahia-issue-agent` skill names: never comment, edit, label or react any other way. The raw
+  `gh` issue writes are denied, and a denial is final.
 - Code writes — a worktree, commits, a push, a draft pull request — belong to the Software
   Developer profile alone, and a pull request opens only through
   `tools/jahia-pr/bin/jahia-pr`, as a draft. Never merge, mark ready, review or close a

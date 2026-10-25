@@ -12,6 +12,7 @@ import { isLockStale } from './isLockStale'
 // Kept verbatim in sync with the cortex jahia-issue-agent tool's `escalate` verb, which
 // puts the label on.
 const ESCALATION_LABEL = '🧠 Human needed !'
+const ESCALATION_COLOR = 'd93f0b'
 
 // check-request entry point: decides whether an agent session is owed, takes the lock and
 // bootstraps or updates the overall-status comment. Everything here is deterministic — no
@@ -156,6 +157,25 @@ const run = async (): Promise<void> => {
     if ((error as { status?: number }).status !== 404) {
       core.warning(
         `${key}: could not clear the '${ESCALATION_LABEL}' label — ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
+  }
+
+  // The session's `escalate` adds the label with `gh issue edit --add-label`, which refuses
+  // a label the repository lacks, so the guard creates it before the session needs it.
+  try {
+    await octokit.rest.issues.createLabel({
+      owner,
+      repo,
+      name: ESCALATION_LABEL,
+      color: ESCALATION_COLOR,
+    })
+    core.info(`${key}: created the '${ESCALATION_LABEL}' label in ${owner}/${repo}`)
+  } catch (error: unknown) {
+    // 422 is the common case: the repository has the label already.
+    if ((error as { status?: number }).status !== 422) {
+      core.warning(
+        `${key}: could not create the '${ESCALATION_LABEL}' label — ${error instanceof Error ? error.message : String(error)}`,
       )
     }
   }
