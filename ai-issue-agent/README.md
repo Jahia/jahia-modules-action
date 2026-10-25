@@ -7,14 +7,15 @@ the sign that what the comment asks is being handled. It also clears the
 `🧠 Human needed !` escalation label when the issue carries it — a fresh mention means a
 human answered — and the session's own `escalate` puts it back when the issue still
 needs a person. The guard also creates that label in the repository when it is missing,
-because the session adds it with `gh issue edit --add-label`, which creates no label. This package holds the
+because `gh-wrapper issue edit --add-label` refuses a missing label. This package holds the
 deterministic (LLM-free) spine of that duty — the **check-request** guard that decides
 whether a session is owed, and the **finalize** closer that settles the session afterwards —
 plus the **run** action that executes the agent session itself: pre-fetched issue context,
 a barebone prompt (`run/prompt.md`, the substance lives in cortex skills), the Claude Code
 CLI under a strict tool allowlist whose issue writes run through the commands the cortex
-`jahia-issue-agent` skill names, and a token-free sidecar appending progress to the session's task
-comment. The roadmap lives in the AI Issue Agent PRD, in Jahia's internal Cortex harness.
+`jahia-issue-agent` skill names, and a token-free sidecar appending progress to the
+session's task comment. The roadmap lives in the AI Issue Agent PRD, in Jahia's internal
+Cortex harness.
 
 ## Requirements
 
@@ -127,9 +128,12 @@ allowed, and no git write is allowed in any spelling: commits and pushes run thr
 Software Developer ships code.
 
 An issue write runs through `gh-wrapper issue comment` and `gh-wrapper issue edit`, the
-commands the cortex `jahia-issue-agent` skill names, or through the issue-agent tool, which
-stays allowed while that skill moves to gh-wrapper. No rule binds these writes to the
-session's issue: the token's reach bounds them, and the prompt holds the session to its issue.
+route the cortex `jahia-issue-agent` skill moves to, or through the issue-agent tool, which
+stays allowed during that move. No rule binds these writes to the session's issue: the
+token's reach bounds them, and the prompt holds the session to its issue. The guard writes
+the overall-status comment with the agent account too, so it can be that account's last
+comment: `--delete-last` is denied, and `--edit-last` relies on the skill to reach the task
+comment alone.
 
 A pull request opens only through cortex's `tools/jahia-pr` — allowed as a tool while raw
 `gh pr create` stays denied in both spellings — which commits, runs `pr-lint`, pushes and

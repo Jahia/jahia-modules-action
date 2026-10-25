@@ -20,8 +20,8 @@ __TOOL_SURFACE__
 
 1. **Invoke the `jahia-issue-agent` skill first.** It carries the session discipline you
    work under: the task-comment protocol (open → update → close, through the commands the
-   skill names, your ONLY way of writing to the issue), the instruction loop, the escalation route, and the one-SDLC-step-per-session
-   rule. Follow it exactly.
+   skill names, your ONLY way of writing to the issue), the instruction loop, the escalation
+   route, and the one-SDLC-step-per-session rule. Follow it exactly.
 2. **Read the pre-fetched context before acting**: `issue.md` (title, description, labels),
    `comments.md` (the whole conversation), `trigger.md` (the request). Running the `gh`
    command that would produce these again only costs you turns.

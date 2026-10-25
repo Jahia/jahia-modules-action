@@ -9,8 +9,7 @@ import { evaluateTrigger } from './evaluateTrigger'
 import type { TriggerEvent } from './evaluateTrigger'
 import { isLockStale } from './isLockStale'
 
-// Kept verbatim in sync with the cortex jahia-issue-agent tool's `escalate` verb, which
-// puts the label on.
+// Kept verbatim in sync with the label cortex's jahia-issue-agent puts on to escalate.
 const ESCALATION_LABEL = '🧠 Human needed !'
 const ESCALATION_COLOR = 'd93f0b'
 
@@ -161,8 +160,8 @@ const run = async (): Promise<void> => {
     }
   }
 
-  // The session's `escalate` adds the label with `gh issue edit --add-label`, which refuses
-  // a label the repository lacks, so the guard creates it before the session needs it.
+  // `gh-wrapper issue edit --add-label` refuses a label the repository lacks, so the guard
+  // creates the label before a session escalates.
   try {
     await octokit.rest.issues.createLabel({
       owner,

@@ -30047,8 +30047,7 @@ const parseStateBlock_1 = __nccwpck_require__(352);
 const renderStateBlock_1 = __nccwpck_require__(9779);
 const evaluateTrigger_1 = __nccwpck_require__(168);
 const isLockStale_1 = __nccwpck_require__(3941);
-// Kept verbatim in sync with the cortex jahia-issue-agent tool's `escalate` verb, which
-// puts the label on.
+// Kept verbatim in sync with the label cortex's jahia-issue-agent puts on to escalate.
 const ESCALATION_LABEL = '🧠 Human needed !';
 const ESCALATION_COLOR = 'd93f0b';
 // check-request entry point: decides whether an agent session is owed, takes the lock and
@@ -30181,8 +30180,8 @@ const run = async () => {
             core.warning(`${key}: could not clear the '${ESCALATION_LABEL}' label — ${error instanceof Error ? error.message : String(error)}`);
         }
     }
-    // The session's `escalate` adds the label with `gh issue edit --add-label`, which refuses
-    // a label the repository lacks, so the guard creates it before the session needs it.
+    // `gh-wrapper issue edit --add-label` refuses a label the repository lacks, so the guard
+    // creates the label before a session escalates.
     try {
         await octokit.rest.issues.createLabel({
             owner,
