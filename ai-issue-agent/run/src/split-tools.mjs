@@ -21,8 +21,9 @@ export const splitTools = (value) => {
   for (const entry of entries.filter(Boolean)) {
     const match = /^Bash\((.*)\)$/.exec(entry)
     if (match) {
-      // `git log:*` and `git log --oneline` both describe one command prefix.
-      shell.push(match[1].replace(/\*$/, '').replace(/:$/, '').trim())
+      // `git log:*` and `git log *` both name the prefix `git log`. Any other `*` stays, as
+      // the CLI reads it: `:**` and `-*` keep their meaning in the rendered prompt.
+      shell.push(match[1].replace(/(:| )\*$/, '').trim())
     } else {
       plain.push(entry)
     }

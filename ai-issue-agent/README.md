@@ -120,19 +120,10 @@ The permission surface is one list for all profiles, because the profile is only
 the session runs. The runner is ephemeral, so local operations (file writes, read-only plain
 git) are allowed generously; the `disallowed_tools` default is the floor no
 profile may cross — merge/ready/review/close, issue creation and the raw `gh` issue writes,
-arbitrary forge writes (`gh api`, releases, workflows, secrets, and every `gh-wrapper api`
-write but the trail-comment PATCH), force/mirror/delete pushes, `git remote`, and
-`EnterWorktree`, which would mint a worktree outside `cortex-sources`. Which profile *uses*
-the write verbs is governed by the skill: only the Software Developer ships code.
-
-A `*` in the middle of a permission rule stands for any text, so
-`git -C sources/* push -u origin *` allows a push from the harness root into a worktree. The
-same `*` would also take an inserted option, such as `-c`, which makes git run a program, or
-`--force`. The deny list closes each such `*`: `git -C * -* push *` denies an option before
-`push`, and `git -C * push * -*`, `+*` and `:**` deny an option, a forced refspec and a delete
-refspec after it. A rule never mixes a `*` with the trailing `:*` form: Claude Code then reads
-the whole rule as a literal prefix, which matches no real command. That mix is why the
-`git -C * push:*` rules of earlier versions never matched.
+arbitrary forge writes (`gh api`, releases, workflows, secrets), force/mirror/delete pushes,
+`git remote`, and `EnterWorktree`, which would mint a worktree outside `cortex-sources`. Which
+profile *uses* the write verbs is governed by the skill: only the Software Developer ships
+code.
 
 An issue write runs through `gh-wrapper issue comment` and `gh-wrapper issue edit`, the
 route the cortex `jahia-issue-agent` skill moves to, or through the issue-agent tool, which
@@ -143,21 +134,45 @@ comment: `--delete-last` is denied, and `--edit-last` relies on the skill to rea
 comment alone.
 
 A pull request opens as a **draft**, and merging stays human-gated. Raw `gh pr create` stays
-denied. Cortex's `tools/jahia-pr` commits the worktree's changes under a Conventional-Commit
-title. Until the cortex skill takes the next three writes over
-([Jahia/cortex#858](https://github.com/Jahia/cortex/issues/858)), it also pushes and opens the
-pull request; then the skill runs them from the harness root:
+denied. Cortex's `tools/jahia-pr` commits the changes of a worktree under a
+Conventional-Commit title. Until a Cortex change tracked in
+[Jahia/cortex#858](https://github.com/Jahia/cortex/issues/858) lands, `jahia-pr` also pushes
+the branch and opens the pull request. After that change, the Cortex skill runs three writes
+itself, from the root of the Cortex checkout:
 
 - `git -C sources/<name>@<slug> push -u origin <branch>`, never with force.
-- `gh-wrapper pr create --draft`. A cortex `PreToolUse` hook runs in this session, as in any
-  cortex session, and refuses a `gh-wrapper pr create` with no `--draft`.
-- `gh-wrapper api --silent -X PATCH repos/<owner>/<repo>/issues/comments/<id> -F body=@<file>`,
-  which edits the trail comment on the tracking issue. Its rule is the one `gh-wrapper api`
-  write allowed: `api * repos/* -* -*` denies a second option, `?` and `#` deny an endpoint
-  that a query or a fragment cuts short, and the method rules hold the floor if a settings
-  file allows more of `gh-wrapper api`.
+- `gh-wrapper pr create --draft`. The `PreToolUse` hooks of Cortex run in this session, as in
+  any Cortex session, and one of them refuses a `gh-wrapper pr create` with no `--draft`.
+- `gh-wrapper api --silent -X PATCH repos/<owner>/<repo>/issues/comments/<id> -F body=@<file>`.
+  It edits the trail comment: the comment on a Cortex tracking issue that lists the pull
+  requests of one piece of work.
 
-Iteration on an open pull request happens with the same push and with `gh-wrapper pr
+A `*` in the middle of a permission rule stands for any text, so the allow rules of the push
+and of the PATCH take the values that vary. The same `*` would also take what git or the shell
+reads as an option or a refspec, so the deny list closes each such `*`:
+
+- `git -C * -* push *` denies an option before `push`, such as `-c`, which makes git run a
+  program.
+- `git -C * push * -*`, `git -C * push * +*` and `git -C * push *:**` deny an option, a forced
+  refspec and a refspec with a colon after `push`, such as `--force` or `HEAD:main`.
+- `gh-wrapper api * repos/* -* -*` denies a second option on the PATCH. `?`, `#` and `..` deny
+  an endpoint that a query, a fragment or a parent segment moves.
+- `..` is denied in a `git -C` command, where it moves the directory out of `sources/`.
+- A quote, a backslash, `$` and a backtick are denied in a `git -C` command and in a
+  `gh-wrapper api` command. No intended command holds them, and the shell turns them into an
+  option that the rules above do not see, such as `'--force'` or `\-\-force`.
+
+The method rules of `gh-wrapper api` (`-X POST`, `-X PUT`, `-X DELETE`, `--method`, `--input`,
+`--field`, `--raw-field`) deny the usual spellings of another write. They are no complete
+floor: a field with no `-X`, an attached `-XPOST`, a PATCH on another endpoint and a GraphQL
+mutation meet no deny rule. The floor is that no allow rule of the session reaches them.
+
+A rule never mixes a `*` with the trailing `:*` form. Claude Code then reads the whole rule as
+a literal prefix, which matches only a literal `*`, so a rule that ends on a colon is written
+`:**`. The `git -C * push:*` rules of earlier versions never matched for this reason. A rule
+matches one backslash with four of them.
+
+Iteration on an open pull request happens with the `git -C` push and with `gh-wrapper pr
 edit`/`pr comment`; another person's branch is touched only when the triggering human asked
 for it. Pushes authenticate as the agent account: the run action wires git to gh's
 credential helper (`gh auth setup-git`) with the same `github_token` the session uses, the

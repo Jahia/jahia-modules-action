@@ -20,8 +20,8 @@ export const renderToolSurface = (allowedTools, disallowedTools) => {
   if (allowed.plain.length) lines.push(`- Tools: ${allowed.plain.join(', ')}.`)
   lines.push(
     '- These shell commands, and NOTHING else. Each entry is a command prefix — any',
-    '  arguments are allowed after it. A `*` inside an entry stands for one value, such as a',
-    '  directory or an id, and the entry allows its command in that shape alone:',
+    '  arguments are allowed after it. A `*` inside an entry is the place of one value, such',
+    '  as a directory or an id: the deny list refuses an option, a quote or an escape there:',
     ...bullets(allowed.shell),
     '- A pipeline or a `;`-chain runs only when EVERY command in it is allowed:',
     '  `gh issue view … | head -200` works, `… | jq …` and `… | python3 -c …` do not.',
@@ -45,8 +45,8 @@ export const renderToolSurface = (allowedTools, disallowedTools) => {
     '  naming it: Read, Grep and Glob all take an absolute path. git reaches a worktree as',
     '  `git -C sources/<name>@<slug>` for one write alone, the push',
     '  `git -C sources/<name>@<slug> push -u origin <branch>`, never with force.',
-    '  `tools/jahia-pr/bin/jahia-pr` makes the commit, and the cortex skill states which',
-    '  of these writes it runs itself.',
+    '  `tools/jahia-pr/bin/jahia-pr` makes the commit. The cortex skills state whether',
+    '  the skill or jahia-pr runs the push, the `pr create` and the `api` PATCH.',
   )
   return lines.join('\n')
 }
