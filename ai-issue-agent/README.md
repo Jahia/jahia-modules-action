@@ -6,14 +6,16 @@ changes nothing. Once the guard admits a session it reacts 👍 on the triggerin
 the sign that what the comment asks is being handled. It also clears the
 `🧠 Human needed !` escalation label when the issue carries it — a fresh mention means a
 human answered — and the session's own `escalate` puts it back when the issue still
-needs a person. This package holds the
+needs a person. The guard also creates that label in the repository when it is missing,
+because `gh-wrapper issue edit --add-label` refuses a missing label. This package holds the
 deterministic (LLM-free) spine of that duty — the **check-request** guard that decides
 whether a session is owed, and the **finalize** closer that settles the session afterwards —
 plus the **run** action that executes the agent session itself: pre-fetched issue context,
 a barebone prompt (`run/prompt.md`, the substance lives in cortex skills), the Claude Code
-CLI under a strict tool allowlist whose one issue-write route is the cortex
-`jahia-issue-agent` tool, and a token-free sidecar appending progress to the session's task
-comment. The roadmap lives in the AI Issue Agent PRD, in Jahia's internal Cortex harness.
+CLI under a strict tool allowlist whose issue writes run through the commands the cortex
+`jahia-issue-agent` skill names, and a token-free sidecar appending progress to the
+session's task comment. The roadmap lives in the AI Issue Agent PRD, in Jahia's internal
+Cortex harness.
 
 ## Requirements
 
@@ -117,13 +119,21 @@ action only states the floor.
 The permission surface is one list for all profiles, because the profile is only known once
 the session runs. The runner is ephemeral, so local operations (file writes, read-only plain
 git) are allowed generously; the `disallowed_tools` default is the floor no
-profile may cross — merge/ready/review/close, issue writes outside the issue-agent tool,
+profile may cross — merge/ready/review/close, issue creation and the raw `gh` issue writes,
 arbitrary forge writes (`gh api`, releases, workflows, secrets), force/mirror/delete pushes,
 `git remote`, and `EnterWorktree`, which would mint a worktree outside `cortex-sources`.
 A permission rule matches a command prefix only, so a `git -C <dir>` spelling can never be
 allowed, and no git write is allowed in any spelling: commits and pushes run through
 `tools/jahia-pr`. Which profile *uses* the write verbs is governed by the skill: only the
 Software Developer ships code.
+
+An issue write runs through `gh-wrapper issue comment` and `gh-wrapper issue edit`, the
+route the cortex `jahia-issue-agent` skill moves to, or through the issue-agent tool, which
+stays allowed during that move. No rule binds these writes to the session's issue: the
+token's reach bounds them, and the prompt holds the session to its issue. The guard writes
+the overall-status comment with the agent account too, so it can be that account's last
+comment: `--delete-last` is denied, and `--edit-last` relies on the skill to reach the task
+comment alone.
 
 A pull request opens only through cortex's `tools/jahia-pr` — allowed as a tool while raw
 `gh pr create` stays denied in both spellings — which commits, runs `pr-lint`, pushes and
