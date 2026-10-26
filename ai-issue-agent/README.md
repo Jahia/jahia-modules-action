@@ -120,12 +120,19 @@ The permission surface is one list for all profiles, because the profile is only
 the session runs. The runner is ephemeral, so local operations (file writes, read-only plain
 git) are allowed generously; the `disallowed_tools` default is the floor no
 profile may cross — merge/ready/review/close, issue creation and the raw `gh` issue writes,
-arbitrary forge writes (`gh api`, releases, workflows, secrets), force/mirror/delete pushes,
-`git remote`, and `EnterWorktree`, which would mint a worktree outside `cortex-sources`.
-A permission rule matches a command prefix only, so a `git -C <dir>` spelling can never be
-allowed, and no git write is allowed in any spelling: commits and pushes run through
-`tools/jahia-pr`. Which profile *uses* the write verbs is governed by the skill: only the
-Software Developer ships code.
+arbitrary forge writes (`gh api`, releases, workflows, secrets, and every `gh-wrapper api`
+write but the trail-comment PATCH), force/mirror/delete pushes, `git remote`, and
+`EnterWorktree`, which would mint a worktree outside `cortex-sources`. Which profile *uses*
+the write verbs is governed by the skill: only the Software Developer ships code.
+
+A `*` in the middle of a permission rule stands for any text, so
+`git -C sources/* push -u origin *` allows a push from the harness root into a worktree. The
+same `*` would also take an inserted option, such as `-c`, which makes git run a program, or
+`--force`. The deny list closes each such `*`: `git -C * -* push *` denies an option before
+`push`, and `git -C * push * -*`, `+*` and `:**` deny an option, a forced refspec and a delete
+refspec after it. A rule never mixes a `*` with the trailing `:*` form: Claude Code then reads
+the whole rule as a literal prefix, which matches no real command. That mix is why the
+`git -C * push:*` rules of earlier versions never matched.
 
 An issue write runs through `gh-wrapper issue comment` and `gh-wrapper issue edit`, the
 route the cortex `jahia-issue-agent` skill moves to, or through the issue-agent tool, which
@@ -135,11 +142,22 @@ the overall-status comment with the agent account too, so it can be that account
 comment: `--delete-last` is denied, and `--edit-last` relies on the skill to reach the task
 comment alone.
 
-A pull request opens only through cortex's `tools/jahia-pr` — allowed as a tool while raw
-`gh pr create` stays denied in both spellings — which commits, runs `pr-lint`, pushes and
-opens a **draft**, so draft-only is enforced by construction and merging stays human-gated.
-Iteration on an open pull request happens with `jahia-pr push`, which commits the worktree's
-changes under a Conventional-Commit title and pushes without force, and with `gh-wrapper pr
+A pull request opens as a **draft**, and merging stays human-gated. Raw `gh pr create` stays
+denied. Cortex's `tools/jahia-pr` commits the worktree's changes under a Conventional-Commit
+title. Until the cortex skill takes the next three writes over
+([Jahia/cortex#858](https://github.com/Jahia/cortex/issues/858)), it also pushes and opens the
+pull request; then the skill runs them from the harness root:
+
+- `git -C sources/<name>@<slug> push -u origin <branch>`, never with force.
+- `gh-wrapper pr create --draft`. A cortex `PreToolUse` hook runs in this session, as in any
+  cortex session, and refuses a `gh-wrapper pr create` with no `--draft`.
+- `gh-wrapper api --silent -X PATCH repos/<owner>/<repo>/issues/comments/<id> -F body=@<file>`,
+  which edits the trail comment on the tracking issue. Its rule is the one `gh-wrapper api`
+  write allowed: `api * repos/* -* -*` denies a second option, `?` and `#` deny an endpoint
+  that a query or a fragment cuts short, and the method rules hold the floor if a settings
+  file allows more of `gh-wrapper api`.
+
+Iteration on an open pull request happens with the same push and with `gh-wrapper pr
 edit`/`pr comment`; another person's branch is touched only when the triggering human asked
 for it. Pushes authenticate as the agent account: the run action wires git to gh's
 credential helper (`gh auth setup-git`) with the same `github_token` the session uses, the

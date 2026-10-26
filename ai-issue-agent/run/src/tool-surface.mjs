@@ -20,7 +20,8 @@ export const renderToolSurface = (allowedTools, disallowedTools) => {
   if (allowed.plain.length) lines.push(`- Tools: ${allowed.plain.join(', ')}.`)
   lines.push(
     '- These shell commands, and NOTHING else. Each entry is a command prefix — any',
-    '  arguments are allowed after it:',
+    '  arguments are allowed after it. A `*` inside an entry stands for one value, such as a',
+    '  directory or an id, and the entry allows its command in that shape alone:',
     ...bullets(allowed.shell),
     '- A pipeline or a `;`-chain runs only when EVERY command in it is allowed:',
     '  `gh issue view … | head -200` works, `… | jq …` and `… | python3 -c …` do not.',
@@ -38,11 +39,14 @@ export const renderToolSurface = (allowedTools, disallowedTools) => {
     '',
     '- cortex routes every `gh` write through `tools/gh-wrapper/bin/gh-wrapper`, and the list',
     '  above carries the reads under both gh spellings but the writes under the wrapper alone:',
-    '  `issue comment`, `issue edit`, `pr edit` and `pr comment`.',
+    '  `issue comment`, `issue edit`, `pr create` (always with `--draft`), `pr edit`,',
+    '  `pr comment`, and the one `api` PATCH that edits a trail comment.',
     '- cortex denies `cd`, and it is not on the list above, so a directory is reached by',
-    '  naming it: Read, Grep and Glob all take an absolute path. git takes none here —',
-    '  `git -C` is not on the list, and `tools/jahia-pr/bin/jahia-pr` commits and pushes',
-    '  in the worktree for you (`open` for a new pull request, `push` to iterate on one).',
+    '  naming it: Read, Grep and Glob all take an absolute path. git reaches a worktree as',
+    '  `git -C sources/<name>@<slug>` for one write alone, the push',
+    '  `git -C sources/<name>@<slug> push -u origin <branch>`, never with force.',
+    '  `tools/jahia-pr/bin/jahia-pr` makes the commit, and the cortex skill states which',
+    '  of these writes it runs itself.',
   )
   return lines.join('\n')
 }
