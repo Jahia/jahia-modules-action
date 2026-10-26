@@ -4,7 +4,7 @@ Fails a pull request when one of its commits adds a secret, such as a token, a p
 
 ## Usage
 
-The `PR Chores` reusable workflow runs the action on every pull request event except `closed`, so a repository that calls that workflow needs nothing else. To call the action from another workflow:
+The `PR Chores` reusable workflow runs the action on every pull request event except `closed`, so a repository that calls that workflow needs nothing else. To call the action from another workflow that runs on a pull request event:
 
 ```yaml
     runs-on: ubuntu-latest
@@ -15,15 +15,6 @@ The `PR Chores` reusable workflow runs the action on every pull request event ex
 ```
 
 The action checks the repository out into `.secret-scan`, and the last step removes that directory. The job therefore needs no checkout step and keeps its own sources. The action needs no secret, and it also runs on a pull request from a fork.
-
-## Inputs
-
-| Name | Default | Description |
-| --- | --- | --- |
-| `base_sha` | the base of the pull request | The commit the scanned range starts after. |
-| `head_sha` | the head of the pull request | The last commit of the scanned range. |
-
-Both inputs are required outside a pull request event.
 
 ## Configuration
 

@@ -7,27 +7,17 @@ description: |
   The configuration comes from the base commit: the `.gitleaks.toml` there, or the Jahia base
   configuration beside this action when there is none. See README.md.
 
-inputs:
-  base_sha:
-    description: The commit the scanned range starts after. Defaults to the base of the pull request.
-    required: false
-    default: ${{ github.event.pull_request.base.sha }}
-  head_sha:
-    description: The last commit of the scanned range. Defaults to the head of the pull request.
-    required: false
-    default: ${{ github.event.pull_request.head.sha }}
-
 runs:
   using: composite
   steps:
     - name: Check the range
       shell: bash
       env:
-        BASE_SHA: ${{ inputs.base_sha }}
-        HEAD_SHA: ${{ inputs.head_sha }}
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       run: |
         if [ -z "$BASE_SHA" ] || [ -z "$HEAD_SHA" ]; then
-          echo "::error::No range to scan: run on a pull request event, or set base_sha and head_sha"
+          echo "::error::No range to scan: run the action on a pull request event"
           exit 1
         fi
 
@@ -65,8 +55,8 @@ runs:
       shell: bash
       env:
         REPO: .secret-scan
-        BASE_SHA: ${{ inputs.base_sha }}
-        HEAD_SHA: ${{ inputs.head_sha }}
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         BASE_CONFIG: ${{ github.action_path }}/gitleaks.toml
       run: |
         # The configuration comes from the base commit, so a pull request cannot relax its own scan.
