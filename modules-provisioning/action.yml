@@ -1,0 +1,107 @@
+name: Modules provisioning
+description: >-
+  Write the provisioning script of the modules a Jahia release ships, as one installOrUpgradeBundle
+  block: at the versions the release ships, or each at the newest version the Store offers that
+  release. The compatibility matrix the script is built from, Jahia releases against module
+  versions with their required Jahia version and dependencies, is written beside it as JSON.
+  Standard-library Python, read from Nexus and the Store, with a cache a caller may keep between runs.
+
+inputs:
+  jahia_version:
+    description: 'The Jahia release, such as 8.2.3.2'
+    required: true
+  versions:
+    description: >-
+      store: each module at the newest version the Store offers that release, the shipped version
+      when the Store has no offer for it. shipped: the versions the release ships.
+    required: false
+    default: 'store'
+  store_url:
+    description: 'The Store whose offers the store mode reads'
+    required: false
+    default: 'https://store.jahia.com/en/sites/private-app-store'
+  nexus_username:
+    description: 'Nexus user, which reads the EE pack of the release; without it, the public packs only'
+    required: false
+    default: ''
+  nexus_password:
+    description: 'Nexus password'
+    required: false
+    default: ''
+  provisioning_path:
+    description: 'Where to write the provisioning script'
+    required: false
+    default: 'modules-provisioning.yml'
+  matrix_path:
+    description: 'Where to write the JSON matrix'
+    required: false
+    default: 'compat-matrix.json'
+  cache_path:
+    description: >-
+      A JSON cache of the module versions already read, which never change. Restore it with
+      actions/cache before this step and the run only reads what was published since.
+    required: false
+    default: 'compat-matrix-cache.json'
+  release_modules:
+    description: >-
+      all: the matrix carries every released version of each module the release ships.
+      shipped: the shipped version, and the Store offer, only, which is what the script needs.
+    required: false
+    default: 'shipped'
+
+outputs:
+  provisioning_path:
+    description: 'The provisioning script written'
+    value: ${{ steps.build.outputs.provisioning_path }}
+  matrix_path:
+    description: 'The JSON matrix written'
+    value: ${{ steps.build.outputs.matrix_path }}
+  modules:
+    description: 'How many modules the script installs'
+    value: ${{ steps.build.outputs.modules }}
+  upgraded:
+    description: 'How many of them are newer than the version the release ships'
+    value: ${{ steps.build.outputs.upgraded }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Build the provisioning script of the modules
+      id: build
+      shell: bash
+      env:
+        NEXUS_USERNAME: ${{ inputs.nexus_username }}
+        NEXUS_PASSWORD: ${{ inputs.nexus_password }}
+        JAHIA_VERSION: ${{ inputs.jahia_version }}
+        VERSIONS: ${{ inputs.versions }}
+        STORE_URL: ${{ inputs.store_url }}
+        PROVISIONING_PATH: ${{ inputs.provisioning_path }}
+        MATRIX_PATH: ${{ inputs.matrix_path }}
+        CACHE_PATH: ${{ inputs.cache_path }}
+        RELEASE_MODULES: ${{ inputs.release_modules }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        args=(--jahia "$JAHIA_VERSION" --provisioning "$PROVISIONING_PATH" --versions "$VERSIONS"
+              --output "$MATRIX_PATH" --release-modules "$RELEASE_MODULES")
+        if [[ -n "$CACHE_PATH" ]]; then
+          args+=(--cache "$CACHE_PATH")
+        fi
+        if [[ "$VERSIONS" == "store" || -n "$STORE_URL" ]]; then
+          args+=(--store "$STORE_URL")
+        fi
+        log=$(mktemp)
+        python3 "$ACTION_PATH/src/compat-matrix.py" "${args[@]}" 2> "$log" || { cat "$log" >&2; exit 1; }
+        cat "$log" >&2
+        summary=$(grep -E "^wrote $PROVISIONING_PATH:" "$log" | tail -1)
+        modules=$(sed -E 's/.*: ([0-9]+) modules.*/\1/' <<< "$summary")
+        upgraded=$(sed -E 's/.*, ([0-9]+) newer than shipped.*/\1/' <<< "$summary")
+        rm -f "$log"
+        {
+          echo "provisioning_path=$PROVISIONING_PATH"
+          echo "matrix_path=$MATRIX_PATH"
+          echo "modules=${modules:-0}"
+          echo "upgraded=${upgraded:-0}"
+        } >> "$GITHUB_OUTPUT"
+        echo "::group::$PROVISIONING_PATH"
+        cat "$PROVISIONING_PATH"
+        echo "::endgroup::"
