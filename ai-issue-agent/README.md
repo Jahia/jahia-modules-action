@@ -121,11 +121,9 @@ the session runs. The runner is ephemeral, so local operations (file writes, rea
 git) are allowed generously; the `disallowed_tools` default is the floor no
 profile may cross — merge/ready/review/close, issue creation and the raw `gh` issue writes,
 arbitrary forge writes (`gh api`, releases, workflows, secrets), force/mirror/delete pushes,
-`git remote`, and `EnterWorktree`, which would mint a worktree outside `cortex-sources`.
-A permission rule matches a command prefix only, so a `git -C <dir>` spelling can never be
-allowed, and no git write is allowed in any spelling: commits and pushes run through
-`tools/jahia-pr`. Which profile *uses* the write verbs is governed by the skill: only the
-Software Developer ships code.
+`git remote`, and `EnterWorktree`, which would mint a worktree outside `cortex-sources`. Which
+profile *uses* the write verbs is governed by the skill: only the Software Developer ships
+code.
 
 An issue write runs through `gh-wrapper issue comment` and `gh-wrapper issue edit`, the
 route the cortex `jahia-issue-agent` skill moves to, or through the issue-agent tool, which
@@ -135,11 +133,46 @@ the overall-status comment with the agent account too, so it can be that account
 comment: `--delete-last` is denied, and `--edit-last` relies on the skill to reach the task
 comment alone.
 
-A pull request opens only through cortex's `tools/jahia-pr` — allowed as a tool while raw
-`gh pr create` stays denied in both spellings — which commits, runs `pr-lint`, pushes and
-opens a **draft**, so draft-only is enforced by construction and merging stays human-gated.
-Iteration on an open pull request happens with `jahia-pr push`, which commits the worktree's
-changes under a Conventional-Commit title and pushes without force, and with `gh-wrapper pr
+A pull request opens as a **draft**, and merging stays human-gated. Raw `gh pr create` stays
+denied. Cortex's `tools/jahia-pr` commits the changes of a worktree under a
+Conventional-Commit title. Until a Cortex change tracked in
+[Jahia/cortex#858](https://github.com/Jahia/cortex/issues/858) lands, `jahia-pr` also pushes
+the branch and opens the pull request. After that change, the Cortex skill runs three writes
+itself, from the root of the Cortex checkout:
+
+- `git -C sources/<name>@<slug> push -u origin <branch>`, never with force.
+- `gh-wrapper pr create --draft`. The `PreToolUse` hooks of Cortex run in this session, as in
+  any Cortex session, and one of them refuses a `gh-wrapper pr create` with no `--draft`.
+- `gh-wrapper api --silent -X PATCH repos/<owner>/<repo>/issues/comments/<id> -F body=@<file>`.
+  It edits the trail comment: the comment on a Cortex tracking issue that lists the pull
+  requests of one piece of work.
+
+A `*` in the middle of a permission rule stands for any text, so the allow rules of the push
+and of the PATCH take the values that vary. The same `*` would also take what git or the shell
+reads as an option or a refspec, so the deny list closes each such `*`:
+
+- `git -C * -* push *` denies an option before `push`, such as `-c`, which makes git run a
+  program.
+- `git -C * push * -*`, `git -C * push * +*` and `git -C * push *:**` deny an option, a forced
+  refspec and a refspec with a colon after `push`, such as `--force` or `HEAD:main`.
+- `gh-wrapper api * repos/* -* -*` denies a second option on the PATCH. `?`, `#` and `..` deny
+  an endpoint that a query, a fragment or a parent segment moves.
+- `..` is denied in a `git -C` command, where it moves the directory out of `sources/`.
+- A quote, a backslash, `$` and a backtick are denied in a `git -C` command and in a
+  `gh-wrapper api` command. No intended command holds them, and the shell turns them into an
+  option that the rules above do not see, such as `'--force'` or `\-\-force`.
+
+The method rules of `gh-wrapper api` (`-X POST`, `-X PUT`, `-X DELETE`, `--method`, `--input`,
+`--field`, `--raw-field`) deny the usual spellings of another write. They are no complete
+floor: a field with no `-X`, an attached `-XPOST`, a PATCH on another endpoint and a GraphQL
+mutation meet no deny rule. The floor is that no allow rule of the session reaches them.
+
+A rule never mixes a `*` with the trailing `:*` form. Claude Code then reads the whole rule as
+a literal prefix, which matches only a literal `*`, so a rule that ends on a colon is written
+`:**`. The `git -C * push:*` rules of earlier versions never matched for this reason. A rule
+matches one backslash with four of them.
+
+Iteration on an open pull request happens with the `git -C` push and with `gh-wrapper pr
 edit`/`pr comment`; another person's branch is touched only when the triggering human asked
 for it. Pushes authenticate as the agent account: the run action wires git to gh's
 credential helper (`gh auth setup-git`) with the same `github_token` the session uses, the
