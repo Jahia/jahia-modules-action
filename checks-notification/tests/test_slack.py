@@ -1,6 +1,5 @@
 """The client of a Slack app: a member Slack does not know is no error, any other refusal raises, and a post
-sends the replies of its thread under the message. A message draws its bar and keeps its text for the system,
-and its blocks escape what Slack reads as markup."""
+sends the replies of its thread under the message. A message draws its bar and keeps its text for the system."""
 
 import io
 import json
@@ -12,7 +11,7 @@ import urllib.request
 from unittest import mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
-from slack import SlackClient, SlackError, SlackMessage, _build_buttons, _build_code, _escape
+from slack import SlackClient, SlackError, SlackMessage
 
 
 class TestTheClient(unittest.TestCase):
@@ -67,15 +66,6 @@ class TestTheMessage(unittest.TestCase):
                 "attachments": [{"color": "#E01E5A", "fallback": "❌ failed", "blocks": [{"type": "divider"}]}],
             },
         )
-
-    def test_a_code_block_escapes_its_text_and_cannot_be_closed_from_inside(self):
-        self.assertEqual(_build_code("a <b> & ```c```")["text"]["text"], "```a &lt;b&gt; &amp; '''c'''```")
-        self.assertEqual(_escape("<&>"), "&lt;&amp;&gt;")
-
-    def test_the_primary_button_stands_out(self):
-        row = _build_buttons(("View logs", "https://l"), ("View run", "https://r"), primary="View logs")
-        self.assertEqual([button.get("style") for button in row["elements"]], ["primary", None])
-        self.assertEqual([button["url"] for button in row["elements"]], ["https://l", "https://r"])
 
 
 if __name__ == "__main__":

@@ -91,9 +91,9 @@ gate writes no annotation, so a run whose other jobs wrote annotations reads no 
 - `src/checks_notification.py` finds the person who triggered the run, and posts the message of the run to
   them.
 - `src/checks_run.py` reads the run into a `CiChecks`, the data of a completed run of the checks.
-- `src/ci_checks.py` turns a `CiChecks` into a `SlackMessage`.
-- `src/slack.py` holds `SlackMessage`, its blocks, and `SlackClient`, which finds the member and posts the
-  message and its thread.
+- `src/ci_checks.py` turns a `CiChecks` into a `SlackMessage`, and builds its blocks.
+- `src/slack.py` holds `SlackMessage` and `SlackClient`, which finds the member and posts the message and its
+  thread.
 - `src/github_api.py` reads GitHub through `gh api`, and runs a failed read again.
 - `tests/` holds the unittest suite, which `.github/workflows/test-checks-notification.yml` runs on each
   pull request that changes the action.

@@ -5,15 +5,7 @@ failure adds its first error and three buttons, and its thread lists every error
 import os
 
 from checks_run import CiChecks, CiError, CiJob
-from slack import (
-    SlackMessage,
-    _build_buttons,
-    _build_code,
-    _build_context,
-    _build_header,
-    _build_section,
-    _escape,
-)
+from slack import SlackMessage
 
 # The color of the bar, the emoji of the header and the one of the text that the system shows, by state
 _STATES = {
@@ -162,3 +154,34 @@ def _locate(error: CiError, *, linked: bool, named: bool) -> str:
 
 def _format_duration(seconds: int) -> str:
     return f"{seconds // 60}m {seconds % 60:02d}s" if seconds >= 60 else f"{seconds}s"
+
+
+def _escape(text: str) -> str:
+    # Slack reads `&`, `<` and `>` as markup
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _build_header(text: str) -> dict:
+    return {"type": "header", "text": {"type": "plain_text", "text": text, "emoji": True}}
+
+
+def _build_section(markdown: str) -> dict:
+    return {"type": "section", "text": {"type": "mrkdwn", "text": markdown}}
+
+
+def _build_context(markdown: str) -> dict:
+    return {"type": "context", "elements": [{"type": "mrkdwn", "text": markdown}]}
+
+
+def _build_code(text: str) -> dict:
+    # Slack has no longer fence, so a fence inside the text would close the block
+    return _build_section("```" + _escape(text).replace("```", "'''") + "```")
+
+
+def _build_buttons(*links: tuple[str, str], primary: str = "") -> dict:
+    # Each link is a label and a URL, and the button whose label is `primary` stands out
+    elements = []
+    for label, url in links:
+        button = {"type": "button", "text": {"type": "plain_text", "text": label}, "url": url}
+        elements.append(button | {"style": "primary"} if label == primary else button)
+    return {"type": "actions", "elements": elements}

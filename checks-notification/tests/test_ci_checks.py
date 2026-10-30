@@ -1,4 +1,5 @@
-"""The message of the checks in its three states: passed, passed with retries, and failed with its thread."""
+"""The message of the checks in its three states: passed, passed with retries, and failed with its thread. Its
+blocks escape what Slack reads as markup."""
 
 import pathlib
 import sys
@@ -141,6 +142,18 @@ class TestTheLimitsOfSlack(unittest.TestCase):
         message = ci_checks.render(build_checks(conclusion="failure", passed=0, failed=failed))
         self.assertEqual(len(message.thread[0]), 50)
         self.assertEqual(read(message.thread[0])[-1], f"context: … more in <{RUN}|the run>")
+
+
+class TestTheBlocks(unittest.TestCase):
+    def test_a_code_block_escapes_its_text_and_cannot_be_closed_from_inside(self):
+        block = ci_checks._build_code("a <b> & ```c```")
+        self.assertEqual(block["text"]["text"], "```a &lt;b&gt; &amp; '''c'''```")
+        self.assertEqual(ci_checks._escape("<&>"), "&lt;&amp;&gt;")
+
+    def test_the_primary_button_stands_out(self):
+        row = ci_checks._build_buttons(("View logs", "https://l"), ("View run", "https://r"), primary="View logs")
+        self.assertEqual([button.get("style") for button in row["elements"]], ["primary", None])
+        self.assertEqual([button["url"] for button in row["elements"]], ["https://l", "https://r"])
 
 
 if __name__ == "__main__":
