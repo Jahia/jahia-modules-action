@@ -39,20 +39,22 @@ def build_metadata(repository: str, number: int, member: str) -> dict:
 
 
 def _show_counts(request: ReviewRequest) -> str:
-    # The tabs of the pull request on GitHub, in their order
+    # The tabs of the pull request on GitHub, in their order, each count a link to its tab as the run line of
+    # ci_checks links its commit
+    url = request.pull.url
     return "   |   ".join(
         [
-            f"Conversation {request.comments}",
-            _count("Commit", "Commits", request.pull.commits),
-            _count("Check", "Checks", request.checks),
-            _count("File changed", "Files changed", request.files),
+            f"Conversation (<{url}|{request.comments}>)",
+            _count("Commit", "Commits", request.pull.commits, f"{url}/commits"),
+            _count("Check", "Checks", request.checks, f"{url}/checks"),
+            _count("File changed", "Files changed", request.files, f"{url}/files"),
             f"+{request.additions} −{request.deletions}",
         ]
     )
 
 
-def _count(one: str, many: str, value: int) -> str:
-    return f"{one if value == 1 else many} {value}"
+def _count(one: str, many: str, value: int, url: str) -> str:
+    return f"{one if value == 1 else many} (<{url}|{value}>)"
 
 
 def _show_summary(summary: Summary | None, pending: bool) -> str:
