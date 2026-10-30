@@ -33,7 +33,7 @@ class Summary(NamedTuple):
 
     @classmethod
     def parse(cls, data: object) -> Self | None:
-        """The summary in `data`, which is any decoded JSON. Anything else than a dict of strings gives `None`."""
+        """The summary in `data`, which is any decoded JSON. A value that is no dict of strings, or has no bullet, gives `None`."""
         if not isinstance(data, dict):
             return None
         bullets, files = data.get("bullets"), data.get("files", [])
