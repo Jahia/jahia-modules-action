@@ -21,6 +21,12 @@ Cortex harness.
 
 - The `AI_AGENT_GH_ISSUES_PRS_CHORES` secret (the AI agent account's token), inherited by
   the reusable workflow — the same secret the AI PR review and AI TL;DR duties already use.
+- The `AI_AGENT_GPG_KEY`, `AI_AGENT_GPG_KEY_ID` and `AI_AGENT_GPG_KEY_PASSPHRASE` secrets,
+  with the same repository access. They hold a GPG key whose user ID is the noreply email of
+  `jahia-ai`, and whose public key is on the `jahia-ai` account. The run action signs each
+  commit of the session with this key, and GitHub then marks the commit verified. Without
+  these secrets, the commits carry no signature, and a branch with `required_signatures`
+  refuses to merge them.
 - Events: consumers already forward every `issues` and `issue_comment` event to
   `reusable-delivery-issue-chores.yml` (the caller workflow is synced org-wide); the
   dispatch job there filters cheaply, and this guard re-checks authoritatively.
@@ -175,6 +181,13 @@ edit`/`pr comment`; another person's branch is touched only when the triggering 
 for it. Pushes authenticate as the agent account: the run action wires git to gh's
 credential helper (`gh auth setup-git`) with the same `github_token` the session uses, the
 chores token `AI_AGENT_GH_ISSUES_PRS_CHORES`.
+
+Commits carry the identity of the agent account: `agent_login` as the name, and the
+`git_user_email` input as the email. The run action imports the GPG key of the `gpg_key`
+input, and sets `commit.gpgsign` and `user.signingkey` in the global git configuration,
+because `cortex-sources` clones the repositories after that step. The same step unlocks the
+key in `gpg-agent` for 24 hours. The session therefore signs with no passphrase, and its
+environment never holds the passphrase.
 
 Per-profile model and runner defaults are not wired: `model` and `instance_type` are
 workflow inputs a consumer can already tune, and profile-based tuning is a rollout

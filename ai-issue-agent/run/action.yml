@@ -19,6 +19,22 @@ inputs:
     description: 'GitHub username of the AI agent account (rendered into the prompt; the issue-agent tool defaults to it too)'
     required: false
     default: 'jahia-ai'
+  git_user_email:
+    description: 'Email of the author and the committer of each commit the session makes, whose name is agent_login. GitHub marks a signed commit verified only when this email is a verified email of the account that holds the key. The noreply email of jahia-ai is one.'
+    required: false
+    default: '317909606+jahia-ai@users.noreply.github.com'
+  gpg_key:
+    description: 'Armored GPG private key of the agent account, encoded in base64: the AI_AGENT_GPG_KEY organization secret. Empty leaves the commits of the session unsigned, and a branch with required_signatures then refuses to merge them.'
+    required: false
+    default: ''
+  gpg_key_id:
+    description: 'ID of the GPG key in gpg_key: the AI_AGENT_GPG_KEY_ID organization secret.'
+    required: false
+    default: ''
+  gpg_key_passphrase:
+    description: 'Passphrase of the GPG key in gpg_key: the AI_AGENT_GPG_KEY_PASSPHRASE organization secret. Only the signing step reads it. That step unlocks the key in gpg-agent for the whole job, so the environment of the agent session never holds the passphrase.'
+    required: false
+    default: ''
   remaining_seconds:
     description: 'Seconds left in the issue''s cumulative agent budget (the guard''s remaining_seconds output). The session budget is the smaller of this and the job-timeout-derived budget.'
     required: true
@@ -101,6 +117,37 @@ runs:
         echo "agent_label=$AGENT" >> "$GITHUB_OUTPUT"
         echo "logs_dir=$LOG_DIR" >> "$GITHUB_OUTPUT"
         echo "started_at=$(date -u +%FT%TZ)" >> "$GITHUB_OUTPUT"
+
+    # The session clones its repositories with cortex-sources after this step, so the identity
+    # and the signature go to the global git configuration. The runner is ephemeral, so no
+    # step removes them.
+    - name: Configure the git identity and the commit signature
+      shell: bash
+      env:
+        GIT_USER_NAME: ${{ inputs.agent_login }}
+        GIT_USER_EMAIL: ${{ inputs.git_user_email }}
+        GPG_KEY: ${{ inputs.gpg_key }}
+        GPG_KEY_ID: ${{ inputs.gpg_key_id }}
+        GPG_KEY_PASSPHRASE: ${{ inputs.gpg_key_passphrase }}
+      run: |
+        git config --global user.name "$GIT_USER_NAME"
+        git config --global user.email "$GIT_USER_EMAIL"
+        if [ -z "$GPG_KEY" ]; then
+          echo "::warning title=Unsigned commits::No gpg_key input, so the commits of this session carry no signature. A branch with required_signatures refuses to merge them."
+          exit 0
+        fi
+        GNUPGHOME="${GNUPGHOME:-$HOME/.gnupg}"
+        mkdir -p "$GNUPGHOME"
+        chmod 700 "$GNUPGHOME"
+        # gpg-agent keeps the passphrase for 24 hours, longer than any job, so a commit of the
+        # session signs with no passphrase and no pinentry.
+        printf 'default-cache-ttl 86400\nmax-cache-ttl 86400\n' >> "$GNUPGHOME/gpg-agent.conf"
+        gpg-connect-agent reloadagent /bye > /dev/null
+        echo "$GPG_KEY" | base64 --decode | gpg --batch --import
+        echo | gpg --batch --pinentry-mode=loopback --passphrase-fd 3 --local-user "$GPG_KEY_ID" \
+          --clearsign 3<<< "$GPG_KEY_PASSPHRASE" > /dev/null
+        git config --global user.signingkey "$GPG_KEY_ID"
+        git config --global commit.gpgsign true
 
     # Fetch the issue BEFORE the agent starts, not through it: every fetch the agent makes
     # costs a turn, and the ones its allowlist refuses cost far more — a headless agent

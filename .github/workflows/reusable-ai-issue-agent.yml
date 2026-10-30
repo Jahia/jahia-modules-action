@@ -178,6 +178,9 @@ jobs:
         with:
           issue_url: ${{ github.event.issue.html_url }}
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          gpg_key: ${{ secrets.AI_AGENT_GPG_KEY }}
+          gpg_key_id: ${{ secrets.AI_AGENT_GPG_KEY_ID }}
+          gpg_key_passphrase: ${{ secrets.AI_AGENT_GPG_KEY_PASSPHRASE }}
           cortex_path: ${{ steps.setup.outputs.cortex_path }}
           model: ${{ inputs.model }}
           agent_login: ${{ inputs.agent_login }}
