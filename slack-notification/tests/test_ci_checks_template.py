@@ -176,6 +176,12 @@ class TestTheLimitsOfSlack(unittest.TestCase):
         lines = read(template.render(build_checks(conclusion="failure", passed=0, failed=failed)).blocks)
         self.assertIn("rich: ```at " + "x" * 431 + "…\nError: X failed```", lines)
 
+    def test_two_long_lines_split_what_the_short_line_leaves_and_a_blank_line_takes_no_share(self):
+        detail = "a" * 300 + "\n\n" + "b" * 300 + "\nError: X failed"
+        failed = (CiJob("a", "https://j/1", "", (CiError("", detail),)),)
+        lines = read(template.render(build_checks(conclusion="failure", passed=0, failed=failed)).blocks)
+        self.assertIn("rich: ```" + "a" * 216 + "…\n" + "b" * 217 + "…\nError: X failed```", lines)
+
     def test_a_line_longer_than_150_characters_shows_whole_when_the_detail_fits(self):
         line = "  ✗ tools/a/MAN.md:63: the link to `../b/MAN.md` names no section, " + "so link its TOOL.md " * 5
         detail = f"Harness sanity check…\nharness-check FAILED:\n{line}"
