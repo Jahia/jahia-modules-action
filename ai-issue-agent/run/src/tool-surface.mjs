@@ -45,8 +45,8 @@ export const renderToolSurface = (allowedTools, disallowedTools) => {
     '  naming it: Read, Grep and Glob all take an absolute path. git reaches a worktree as',
     '  `git -C sources/<name>@<slug>` for one write alone, the push',
     '  `git -C sources/<name>@<slug> push -u origin <branch>`, never with force.',
-    '  `tools/jahia-pr/bin/jahia-pr` makes the commit. The cortex skills state whether',
-    '  the skill or jahia-pr runs the push, the `pr create` and the `api` PATCH.',
+    '  `tools/jahia-pr/bin/jahia-pr` makes the commit, and you run the push, the',
+    '  `pr create` and the `api` PATCH yourself, as the cortex skills state.',
   )
   return lines.join('\n')
 }
