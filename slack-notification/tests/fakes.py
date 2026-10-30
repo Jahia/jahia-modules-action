@@ -12,14 +12,25 @@ class FakeSlack:
         self.members = members or {}
         self.refusal = refusal
         self.posts = []
+        self.updates = []
+        self.finds = []
+        self.found = None
 
     def find_member(self, email: str) -> str:
         if self.refusal:
             raise self.refusal
         return self.members.get(email, "")
 
-    def post(self, channel: str, message) -> None:
+    def post(self, channel: str, message) -> tuple[str, str]:
         self.posts.append((channel, message))
+        return "D1", "1.5"
+
+    def update(self, channel: str, ts: str, message) -> None:
+        self.updates.append((channel, ts, message))
+
+    def find_message(self, member: str, metadata: dict):
+        self.finds.append((member, metadata))
+        return self.found
 
 
 class FakeGitHub:

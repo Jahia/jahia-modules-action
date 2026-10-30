@@ -6,6 +6,13 @@ from github_api import GitHubApi
 _NOREPLY = "@users.noreply.github.com"
 
 
+def find_author_emails(github: GitHubApi, login: str) -> list[str]:
+    """The emails of the commits of the repository whose author is `login`, the newest first, without the
+    address `users.noreply.github.com`."""
+    emails = (commit["commit"]["author"]["email"] for commit in github.list_author_commits(login))
+    return list(dict.fromkeys(email for email in emails if not email.endswith(_NOREPLY)))
+
+
 def find_emails(github: GitHubApi, login: str, pull_number: int) -> list[str]:
     """The emails of the commits of the pull request that GitHub links to `login`, as their author or their
     committer, the last commit first, without the address `users.noreply.github.com`."""

@@ -2,8 +2,10 @@
 it posts nothing, when it knows no such event, or when Slack refuses a call."""
 
 import io
+import os
 import pathlib
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -11,7 +13,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 import main
 from fakes import FakeGitHub, FakeSlack
 from github_api import GitHubError
-from slack import SlackError
+from notification import Inputs, Notification, Recipient
+from slack import SlackError, SlackMessage
 from test_ci_checks_event import build_run as build_ci_run
 from test_pull_request import build_pull
 
@@ -35,7 +38,7 @@ class TestTheNotification(unittest.TestCase):
             }
         )
         with mock.patch("sys.stdout", new_callable=io.StringIO) as output:
-            code = main._notify(event_name, {"workflow_run": run}, github, slack)
+            code = main._notify(event_name, {"workflow_run": run}, github, slack, Inputs())
         return code, output.getvalue()
 
     def test_the_person_who_triggered_the_run_receives_its_message(self):
@@ -93,7 +96,7 @@ class TestTheNotification(unittest.TestCase):
     def test_a_read_of_github_that_fails_fails_the_job_with_what_gh_said(self):
         github = FakeGitHub({("list_jobs", "1", 1): GitHubError("gh api repos/x failed: HTTP 404")})
         with mock.patch("sys.stdout", new_callable=io.StringIO) as output:
-            code = main._notify("workflow_run", {"workflow_run": build_run("a")}, github, FakeSlack())
+            code = main._notify("workflow_run", {"workflow_run": build_run("a")}, github, FakeSlack(), Inputs())
         self.assertEqual(code, 1)
         self.assertIn("::error::GitHub refused a read: gh api repos/x failed: HTTP 404", output.getvalue())
 
@@ -101,6 +104,95 @@ class TestTheNotification(unittest.TestCase):
         code, output = self.notify(build_run("a"), [COMMIT], FakeSlack(refusal=SlackError("missing_scope")))
         self.assertEqual(code, 1)
         self.assertIn("::error::Slack refused the call: missing_scope", output)
+
+
+def build_message(*blocks, color="#2eb67d"):
+    return SlackMessage(
+        color, "fallback", list(blocks) or [{"h": 1}], metadata={"event_type": "e", "event_payload": {}}
+    )
+
+
+class TestTheRecipients(unittest.TestCase):
+    def notify(self, notification, slack, inputs=None):
+        """The event gives `notification`. The result is the exit code, what the job printed and the content of
+        the file of the outputs."""
+        event = mock.Mock(read=mock.Mock(return_value=notification))
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            mock.patch.dict(main.EVENTS, {"pull_request": event}),
+            mock.patch("sys.stdout", new_callable=io.StringIO) as output,
+        ):
+            outputs = pathlib.Path(folder, "out")
+            with mock.patch.dict(os.environ, {"GITHUB_OUTPUT": str(outputs)}):
+                code = main._notify("pull_request", {}, FakeGitHub({}), slack, inputs or Inputs())
+            written = outputs.read_text() if outputs.exists() else ""
+        return code, output.getvalue(), written
+
+    def test_the_posts_write_the_list_of_their_messages_to_the_outputs(self):
+        slack = FakeSlack({"a@j.com": "U1"})
+        notification = Notification((Recipient("a", ["a@j.com"], build_message()),))
+        self.assertEqual(self.notify(notification, slack), (0, "", 'messages=[["D1", "1.5"]]\n'))
+
+    def test_input_messages_are_each_updated_and_nothing_is_posted(self):
+        slack = FakeSlack({"a@j.com": "U1"})
+        first, second = build_message({"n": 1}), build_message({"n": 2})
+        notification = Notification((Recipient("a", ["a@j.com"], first), Recipient("b", ["b@j.com"], second)))
+        code, output, _ = self.notify(notification, slack, Inputs(messages=(("D1", "1.5"), ("D2", "2.5"))))
+        self.assertEqual((code, output, slack.posts), (0, "", []))
+        self.assertEqual(slack.updates, [("D1", "1.5", first), ("D2", "2.5", second)])
+
+    def test_input_messages_that_differ_in_count_from_the_recipients_state_a_warning(self):
+        slack = FakeSlack()
+        notification = Notification((Recipient("a", ["a@j.com"], build_message()),))
+        code, output, _ = self.notify(notification, slack, Inputs(messages=(("D1", "1.5"), ("D2", "2.5"))))
+        self.assertEqual(code, 0)
+        self.assertIn("::warning::", output)
+        self.assertEqual(len(slack.updates), 1)
+
+    def test_a_recipient_with_no_email_is_named_in_one_warning_and_the_others_still_receive_the_message(self):
+        slack = FakeSlack({"c@j.com": "U3"})
+        notification = Notification(
+            (
+                Recipient("a", [], build_message()),
+                Recipient("b", [], build_message()),
+                Recipient("c", ["c@j.com"], build_message()),
+            )
+        )
+        code, output, _ = self.notify(notification, slack)
+        self.assertEqual(code, 0)
+        self.assertEqual(output.count("::warning::"), 1)
+        self.assertIn("an email of a, b,", output)
+        self.assertEqual([member for member, _ in slack.posts], ["U3"])
+
+    def test_a_notification_that_finds_a_message_restyles_its_header_and_its_bar_and_keeps_its_body(self):
+        slack = FakeSlack({"a@j.com": "U1"})
+        slack.found = ("D1", "1.5", [{"id": "header"}, {"id": "b1"}, {"id": "b2"}])
+        find = {"event_type": "review_requested", "event_payload": {"pull": 1}}
+        message = build_message({"id": "h2"}, color="#e01e5a")
+        notification = Notification((Recipient("a", ["a@j.com"], message, find),))
+        code, output, written = self.notify(notification, slack)
+        self.assertEqual((code, output, slack.posts), (0, "", []))
+        [(channel, ts, update)] = slack.updates
+        self.assertEqual((channel, ts), ("D1", "1.5"))
+        self.assertEqual(update.blocks, [{"id": "h2"}, {"id": "b1"}, {"id": "b2"}])
+        self.assertEqual((update.color, update.metadata), ("#e01e5a", find))
+        self.assertEqual(slack.finds, [("U1", find)])
+        self.assertEqual(written, "messages=[]\n")
+
+    def test_a_notification_that_finds_no_message_states_a_notice(self):
+        slack = FakeSlack({"a@j.com": "U1"})
+        find = {"event_type": "review_requested", "event_payload": {}}
+        notification = Notification((Recipient("a", ["a@j.com"], build_message(), find),))
+        code, output, _ = self.notify(notification, slack)
+        self.assertEqual(code, 0)
+        self.assertIn("::notice::no message of the request to update", output)
+        self.assertEqual((slack.posts, slack.updates), ([], []))
+
+    def test_a_reviewer_with_no_email_states_a_warning(self):
+        notification = Notification((Recipient("a", [], build_message()),))
+        code, output, _ = self.notify(notification, FakeSlack())
+        self.assertEqual(code, 0)
+        self.assertIn("::warning::no commit of the pull request gives an email of a", output)
 
 
 if __name__ == "__main__":

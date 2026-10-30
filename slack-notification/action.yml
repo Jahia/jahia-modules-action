@@ -9,12 +9,27 @@ inputs:
     description: "The token that reads the data of the event on GitHub"
     default: ${{ github.token }}
 
+  messages:
+    description: "The messages to update, as a JSON list of [channel, ts] pairs, which the output messages of an earlier run gives"
+    default: ""
+  summary-file:
+    description: "The path of a JSON file that an earlier step wrote, which an event may read"
+    default: ""
+
+outputs:
+  messages:
+    description: "The messages that the run posted, as a JSON list of [channel, ts] pairs"
+    value: ${{ steps.notify.outputs.messages }}
+
 runs:
   using: composite
   steps:
     - name: Post the message of the event
+      id: notify
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
         SLACK_TOKEN: ${{ inputs.slack-token }}
+        SLACK_MESSAGES: ${{ inputs.messages }}
+        SUMMARY_FILE: ${{ inputs.summary-file }}
       run: python3 "$GITHUB_ACTION_PATH/src/main.py"

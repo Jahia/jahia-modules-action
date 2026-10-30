@@ -31,6 +31,16 @@ class TestTheEmailsOfThePerson(unittest.TestCase):
         self.assertEqual(people.find_emails(github, "b", 42), ["b@j.com"])
         self.assertEqual(people.find_emails(github, "c", 42), [])
 
+    def test_the_commits_of_the_repository_by_the_login_give_its_emails_without_the_noreply_address(self):
+        commits = [
+            build_commit("a", "a@j.com"),
+            build_commit("a", "1+a@users.noreply.github.com"),
+            build_commit("a", "a@j.com"),
+        ]
+        github = FakeGitHub({("list_author_commits", "a"): commits, ("list_author_commits", "b"): []})
+        self.assertEqual(people.find_author_emails(github, "a"), ["a@j.com"])
+        self.assertEqual(people.find_author_emails(github, "b"), [])
+
 
 if __name__ == "__main__":
     unittest.main()

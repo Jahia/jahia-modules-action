@@ -1,5 +1,5 @@
 """The reads of GitHub that the notification makes through `gh api`: a pull request, the jobs of an attempt of a
-run, the annotations and the log of a job, and the commits of a pull request. A read that fails runs again, unless
+run, the annotations and the log of a job, the commits of a pull request, the commits of an author, the files of a pull request and the members of a team. A read that fails runs again, unless
 a second call cannot change the refusal, and the last refusal raises `GitHubError`."""
 
 import json
@@ -53,6 +53,21 @@ class GitHubApi:
         """The commits of a pull request, oldest first."""
         pages = self._read_json(f"repos/{self._repo}/pulls/{number}/commits?per_page={_PAGE}", "--paginate", "--slurp")
         return [commit for page in pages for commit in page]
+
+    def list_author_commits(self, login: str) -> list[dict]:
+        """The newest commits of the repository whose author is `login`."""
+        return self._read_json(f"repos/{self._repo}/commits?author={login}&per_page=20")
+
+    def list_pull_files(self, number: int) -> list[dict]:
+        """The files of a pull request, from every page."""
+        pages = self._read_json(f"repos/{self._repo}/pulls/{number}/files?per_page={_PAGE}", "--paginate", "--slurp")
+        return [file for page in pages for file in page]
+
+    def list_team_members(self, slug: str) -> list[dict]:
+        """The members of a team of the organization that owns the repository, from every page."""
+        owner = self._repo.split("/")[0]
+        pages = self._read_json(f"orgs/{owner}/teams/{slug}/members?per_page={_PAGE}", "--paginate", "--slurp")
+        return [member for page in pages for member in page]
 
     @classmethod
     def _read_json(cls, path: str, *flags: str) -> Any:
