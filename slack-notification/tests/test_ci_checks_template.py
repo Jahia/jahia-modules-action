@@ -74,7 +74,7 @@ class TestTheMessageOfTheChecks(unittest.TestCase):
                     " `main` from `feat/x`"
                 ),
                 "divider: ",
-                "context: *Validate* · commit <https://github.com/Jahia/sitemap/commit/ec06bcc|ec06bcc> · attempt 1 · 1m 27s",
+                "context: *Validate*   |   commit <https://github.com/Jahia/sitemap/commit/ec06bcc|ec06bcc>   |   attempt 1   |   1m 27s",
                 "context: " + ":large_green_square:" * 8 + "\nAll jobs passed",
             ],
         )
@@ -86,7 +86,7 @@ class TestTheMessageOfTheChecks(unittest.TestCase):
         self.assertEqual(message.color, "#ECB22E")
         lines = read(message.blocks)
         self.assertEqual(lines[0], "header: :warning: CI checks passed after a retry")
-        self.assertIn("attempt 2 · 3m 02s", lines[4])
+        self.assertIn("attempt 2   |   3m 02s", lines[4])
         self.assertEqual(
             lines[5:],
             [

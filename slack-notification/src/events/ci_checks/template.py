@@ -50,7 +50,7 @@ def _show_run(checks: CiChecks) -> list[dict]:
         _format_duration(checks.duration_seconds),
     ]
     # One block carries the squares and the count, because Slack puts a space between two blocks
-    return [build_context(" · ".join(facts)), build_context(f"{_draw_squares(checks)}\n{_count(checks)}")]
+    return [build_context("   |   ".join(facts)), build_context(f"{_draw_squares(checks)}\n{_count(checks)}")]
 
 
 def _draw_squares(checks: CiChecks) -> str:
