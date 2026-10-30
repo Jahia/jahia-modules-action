@@ -10,6 +10,7 @@ from unittest import mock
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
 import main
 from fakes import FakeGitHub, FakeSlack
+from github_api import GitHubError
 from slack import SlackError
 
 COMMIT = {"author": {"login": "a"}, "committer": None, "commit": {"author": {"email": "a@j.com"}}}
@@ -97,6 +98,13 @@ class TestTheNotification(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("::error::the action sends no message for the event push", printed)
         self.assertEqual(slack.posts, [])
+
+    def test_a_read_of_github_that_fails_fails_the_job_with_what_gh_said(self):
+        github = FakeGitHub({("read_run", "1"): GitHubError("gh api repos/x failed: HTTP 404")})
+        with mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            code = main.notify("workflow_run", {"workflow_run": {"id": 1}}, github, FakeSlack())
+        self.assertEqual(code, 1)
+        self.assertIn("::error::GitHub refused a read: gh api repos/x failed: HTTP 404", out.getvalue())
 
     def test_a_refusal_of_slack_fails_the_job_with_its_error_code(self):
         code, printed = self.notify(build_run("a"), [COMMIT], FakeSlack(refusal=SlackError("missing_scope")))

@@ -17,6 +17,7 @@ def build_checks(**changes):
         workflow="Validate",
         conclusion="success",
         reference="Jahia/sitemap#42",
+        pull_number=42,
         pull_title="feat: a <b>",
         pull_url=PULL,
         branch="feat/x",

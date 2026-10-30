@@ -2,16 +2,15 @@
 completes."""
 
 from github_api import GitHubApi
-from notification import Notification, Skip
+from notification import Notification
 
 from events.ci_checks import template
 from events.ci_checks.event import CiChecks
 
 
 def read(payload: dict, github: GitHubApi) -> Notification:
-    """The message of the run that `payload`, the event `workflow_run`, names, for the person who triggered it."""
+    """The message of the run that `payload`, the event `workflow_run`, names, for the person who triggered it.
+    A run that is no completed run of a pull request raises `Skip`."""
     run = github.read_run(str(payload["workflow_run"]["id"]))
-    if not CiChecks.has_result(run):
-        raise Skip("the run is no completed run of a pull request")
-    message = template.render(CiChecks.read(run, github))
-    return Notification(run["triggering_actor"]["login"], run["pull_requests"][0]["number"], message)
+    checks = CiChecks.read(run, github)
+    return Notification(run["triggering_actor"]["login"], checks.pull_number, template.render(checks))

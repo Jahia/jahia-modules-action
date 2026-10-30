@@ -11,25 +11,28 @@ import sys
 
 import people
 from events import EVENTS
-from github_api import GitHubApi
+from github_api import GitHubApi, GitHubError
 from notification import Skip
 from slack import SlackClient, SlackError
 
 
 def notify(event_name: str, payload: dict, github: GitHubApi, slack: SlackClient) -> int:
     """Post the message of the event `event_name`, whose data is `payload`, and return the exit code of the job:
-    1 when the action knows no such event or Slack refuses a call, 0 otherwise."""
+    1 when the action knows no such event, or GitHub or Slack refuses a call, 0 otherwise."""
     event = EVENTS.get(event_name)
     if not event:
         print(f"::error::the action sends no message for the event {event_name}")
         return 1
     try:
         notification = event.read(payload, github)
+        login = notification.login
+        email = people.find_email(github, login, notification.pull_number)
     except Skip as reason:
         print(f"::notice::{reason}, so nothing is posted")
         return 0
-    login = notification.login
-    email = people.find_email(github, login, notification.pull_number)
+    except GitHubError as fault:
+        print(f"::error::GitHub refused a read: {fault}")
+        return 1
     if not email:
         print(f"::warning::no commit of the pull request belongs to {login}, so nothing is posted")
         return 0

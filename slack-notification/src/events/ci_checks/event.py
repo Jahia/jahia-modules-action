@@ -9,20 +9,24 @@ from enum import StrEnum
 from typing import NamedTuple, Self
 
 from github_api import GitHubApi
+from notification import Skip
 
 # The conclusions of a run that carry no result for the person who triggered it
 _NO_RESULT = {None, "cancelled", "skipped"}
 # The conclusions of a job that count neither as passed nor as failed
 _UNCOUNTED = {"skipped", "neutral"}
-_LOG_LINES = 10
+# The lines of a log that the message shows, the last ones before the failure
+_LOG_LINES = 3
 # The annotation that the runner adds to each failed step, which names no error
 _EXIT_CODE = re.compile(r"Process completed with exit code \d+\.?$")
 # The timestamp that the runner writes before each line of a log, and the colors of a terminal
 _TIMESTAMP = re.compile(r"^\d{4}-\d\d-\d\dT[\d:.]+Z ")
 _ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
-# The lines that Maven writes under every failure, and the headings of its lists
+# The lines that Maven writes under every failure, the resume of a build of several modules, and the headings
+# of its lists
 _MAVEN_NOISE = re.compile(
-    r"^(-> \[Help 1\]|\[Help 1\]|To see the full stack trace|Re-run Maven|For more information about the errors|Please refer to |\w+:$)"
+    r"^(-> \[Help 1\]|\[Help 1\]|To see the full stack trace|Re-run Maven|For more information about the errors"
+    r"|Please refer to |After correcting the problems|mvn .* -rf :|\w+:$)"
 )
 # The groups in parentheses that end the header of a unittest failure: its dotted path and its subtest
 _TRAILING_GROUPS = re.compile(r"( \([^()]*\))+$")
@@ -66,6 +70,9 @@ class CiError(NamedTuple):
     def _read_log(cls, text: str) -> list[Self]:
         # The errors at the end of a log: the `[ERROR]` lines of the summary of Maven, else the last lines.
         lines = [_ANSI.sub("", _TIMESTAMP.sub("", line)).rstrip() for line in text.splitlines()]
+        # The steps that run after a failure, such as the cleanup of a checkout, follow its last `##[error]` line
+        failures = [index for index, line in enumerate(lines) if line.startswith("##[error]")]
+        lines = lines[: failures[-1]] if failures else lines
         lines = [line for line in lines if line and not line.startswith("##[") and not _EXIT_CODE.search(line)]
         # Maven ends on the results of the tests of the module that failed, or on the build failure alone
         marks = [index for index, line in enumerate(lines) if line in ("[INFO] Results:", "[INFO] BUILD FAILURE")]
@@ -97,6 +104,7 @@ class CiChecks(NamedTuple):
     workflow: str
     conclusion: str
     reference: str
+    pull_number: int
     pull_title: str
     pull_url: str
     branch: str
@@ -123,8 +131,10 @@ class CiChecks(NamedTuple):
 
     @classmethod
     def read(cls, run: dict, github: GitHubApi) -> Self:
-        """The checks of `run`, a completed run on a pull request as `GitHubApi.read_run` returns it, read through
-        `github`, the repository of the run."""
+        """The checks of `run`, a run as `GitHubApi.read_run` returns it, read through `github`, the repository of
+        the run. A run that is no completed run of a pull request raises `Skip`."""
+        if not cls.has_result(run):
+            raise Skip("the run is no completed run of a pull request")
         repository = run["repository"]
         name, run_id, attempt, sha = repository["full_name"], str(run["id"]), run["run_attempt"], run["head_sha"]
         number = run["pull_requests"][0]["number"]
@@ -138,6 +148,7 @@ class CiChecks(NamedTuple):
             workflow=run["name"],
             conclusion=run["conclusion"],
             reference=f"{name}#{number}",
+            pull_number=number,
             pull_title=run["display_title"],
             pull_url=f"{repository['html_url']}/pull/{number}",
             branch=run["head_branch"],

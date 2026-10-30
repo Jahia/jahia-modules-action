@@ -18,6 +18,7 @@ def build_run(conclusion, attempt=1):
     return {
         "id": 1,
         "name": "Validate",
+        "event": "pull_request",
         "conclusion": conclusion,
         "repository": {"full_name": REPO, "html_url": "https://github.com/Jahia/sitemap"},
         "pull_requests": [{"number": 42}],
@@ -160,10 +161,35 @@ class TestTheErrorsOfAFailedJob(RunOnGitHub):
             ),
         )
 
-    def test_another_log_gives_its_last_ten_lines_without_the_lines_of_the_runner(self):
+    def test_another_log_gives_its_last_three_lines_without_the_lines_of_the_runner(self):
         lines = [f"2026-10-27T09:29:29.1234567Z line {n}" for n in range(15)]
         log = "\n".join(["##[group]Run make", *lines, "##[error]Process completed with exit code 2."])
-        self.assertEqual(self.read_errors([], log), (CiError("", "\n".join(f"line {n}" for n in range(5, 15))),))
+        self.assertEqual(self.read_errors([], log), (CiError("", "\n".join(f"line {n}" for n in range(12, 15))),))
+
+    def test_a_log_ends_at_its_last_error_before_the_steps_that_clean_up(self):
+        log = "\n".join(
+            [
+                "##[group]Run make",
+                "make: *** [all] Error 2",
+                "##[error]Process completed with exit code 2.",
+                "Post job cleanup.",
+                "[command]/usr/bin/git version",
+                "Cleaning up orphan processes",
+            ]
+        )
+        self.assertEqual(self.read_errors([], log), (CiError("", "make: *** [all] Error 2"),))
+
+    def test_a_maven_log_drops_the_lines_that_resume_the_build(self):
+        lines = [
+            "[INFO] BUILD FAILURE",
+            "[ERROR] Failed to execute goal surefire:test on project foo",
+            "[ERROR] After correcting the problems, you can resume the build with the command",
+            "[ERROR]   mvn <args> -rf :foo",
+        ]
+        self.assertEqual(
+            self.read_errors([], "\n".join(lines)),
+            (CiError("", "Failed to execute goal surefire:test on project foo"),),
+        )
 
     def test_an_empty_log_gives_no_error(self):
         self.assertEqual(self.read_errors([], ""), ())

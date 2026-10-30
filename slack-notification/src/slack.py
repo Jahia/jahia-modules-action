@@ -65,6 +65,8 @@ class SlackClient:
         except urllib.error.HTTPError as fault:
             # Slack answers a rate limit with an HTTP status, and no body that names an error
             raise SlackError(f"HTTP {fault.code}") from fault
+        except (urllib.error.URLError, TimeoutError) as fault:
+            raise SlackError(f"no answer: {getattr(fault, 'reason', fault)}") from fault
         if not body.get("ok"):
             raise SlackError(body.get("error", "no error code"))
         return body

@@ -55,6 +55,14 @@ class TestTheClient(unittest.TestCase):
         with self.assertRaisesRegex(SlackError, "HTTP 429"):
             SlackClient("t").find_member("a@j.com")
 
+    def test_a_network_fault_raises_with_its_reason(self):
+        def urlopen(request, timeout):
+            raise urllib.error.URLError("timed out")
+
+        self.enterContext(mock.patch.object(urllib.request, "urlopen", urlopen))
+        with self.assertRaisesRegex(SlackError, "no answer: timed out"):
+            SlackClient("t").find_member("a@j.com")
+
 
 class TestTheMessage(unittest.TestCase):
     def test_a_message_sits_on_a_bar_with_its_fallback_and_no_text_of_its_own(self):
