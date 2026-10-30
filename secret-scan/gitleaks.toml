@@ -15,6 +15,6 @@ regexes = [
   # A quoted shell variable as a curl user with no password, such as `-u "$SONAR_TOKEN:"`.
   '''^"\$\{?[A-Za-z_][A-Za-z0-9_]*\}?:"$''',
   # The account key of devstoreaccount1, the account of the Azure storage emulator that Microsoft publishes.
-  # @azure/storage-blob carries it, so the dist/ of each action that bundles @actions/artifact holds it.
+  # @azure/storage-blob carries it into the dist/ of an action that bundles @actions/artifact.
   '''^Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==$''',
 ]
