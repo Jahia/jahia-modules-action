@@ -72,11 +72,11 @@ class ReviewRequest(NamedTuple):
         members = github.list_team_members(payload["requested_team"]["slug"])
         return [member["login"] for member in members if member["login"] not in excluded]
 
-    def find_approvers(self, github: GitHubApi) -> set[str]:
-        """The logins whose latest review of the pull request that decides approves it."""
+    def find_verdicts(self, github: GitHubApi) -> dict[str, str]:
+        """The state of the latest review of the pull request that decides, for each login that made one."""
         latest = {}
         for review in github.list_pull_reviews(self.pull.number):
             # A deleted account leaves its reviews with no user
             if review["user"] and review["state"] in _VERDICTS:
                 latest[review["user"]["login"]] = review["state"]
-        return {login for login, state in latest.items() if state == "APPROVED"}
+        return latest

@@ -10,7 +10,7 @@ alone. It runs on the `gh` of the runner and on its `python3`, which must be Pyt
 |---|---|---|
 | [`ci_checks`](#the-event-ci_checks) | `workflow_run`, `completed`, on the workflows of the checks | The person who triggered the run |
 | [`review_requested`](#the-event-review_requested) | `pull_request_target`, `review_requested` | The requested reviewer, or each member of the requested team |
-| [`review_approved`](#the-event-review_requested) | `pull_request_review`, `submitted` | The reviewer who approved, whose message of the request turns to approved |
+| [`review_submitted`](#the-event-review_requested) | `pull_request_review`, `submitted` | The reviewer who approved or requested changes, whose message of the request turns to that state |
 
 ## Usage
 
@@ -103,7 +103,7 @@ The event names the GitHub account of the person and a pull request. The profile
 private by default. The action therefore reads the emails of the commits of the pull request that GitHub links to
 that account, as their author or their committer. It reads the last commit first, and leaves out the address
 `users.noreply.github.com` that GitHub gives an account that hides its email. The events `review_requested` and
-`review_approved` read the newest commits of the account in the repository instead. A reviewer seldom has a commit
+`review_submitted` read the newest commits of the account in the repository instead. A reviewer seldom has a commit
 in the pull request.
 
 `users.lookupByEmail` finds the Slack member by the first email that Slack knows, and `chat.postMessage` posts to
@@ -188,13 +188,22 @@ and no tool that reaches the network: no Bash and no web tool. Its one allowed w
 `summarize` also runs when Slack refused the message of one member, so the other members still get the summary.
 
 Each message carries the metadata `review_requested` with the repository, the number and the reviewer, so a later
-event finds it. An approval by the reviewer reads the last 100 messages of the direct message, finds the message
-with that metadata, and turns its header and its bar to approved. It posts nothing, and a message that is no
-longer in those 100 states a notice. A review on a pull request of a fork runs no job, because a fork gets no
+event finds it. A review of the reviewer that approves, or that requests changes, reads the last 100 messages of
+the direct message and finds the message with that metadata. It then turns the header and the bar of that message
+to the state of the review:
+
+| State | Header | Bar |
+|---|---|---|
+| Approved | `:white_check_mark: Review approved` | `#2EB67D` |
+| Changes requested | `:x: Review request changes` | `#E01E5A` |
+
+The review posts nothing, and a message that is no longer in those 100 states a notice. A comment changes nothing,
+and a later review that decides turns the message again. A review on a pull request of a fork runs no job, because a fork gets no
 secrets.
 
-An approval before the summary stays on the message. The update reads the reviews of the pull request, and leaves
-out each comment. A member whose latest review approves keeps the header and the bar of the approval.
+A review before the summary stays on the message. The update reads the reviews of the pull request, and leaves
+out each comment. A member whose latest review approves or requests changes keeps the header and the bar of that
+review.
 
 ## Add an event
 

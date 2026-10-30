@@ -1,7 +1,8 @@
 # Notification of a review request in Slack. The job notify posts the message of the event at
 # once, with a line that says the summary is in progress. The job summarize asks a Claude Code
 # agent (cortex harness, LiteLLM through the IT mTLS bastion) for the summary of the pull
-# request, then updates the message. An approval restyles the message and runs no summary.
+# request, then updates the message. A review that approves or requests changes restyles the message
+# and runs no summary.
 #
 # The caller runs on pull_request_target (review_requested) and pull_request_review (submitted),
 # and grants contents: read, pull-requests: read and id-token: write. No job checks out the code of
@@ -66,7 +67,7 @@ jobs:
   summarize:
     name: Summarize the pull request with Claude Code
     needs: notify
-    # A pull request of a fork gets no secrets, and an approval posts no message to update.
+    # A pull request of a fork gets no secrets, and a review posts no message to update.
     # !cancelled(): a refusal of Slack for one member fails notify, and the others still get the summary.
     if: >-
       !cancelled()

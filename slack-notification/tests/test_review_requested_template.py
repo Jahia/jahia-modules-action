@@ -73,10 +73,10 @@ class TestTheReviewMessage(unittest.TestCase):
         )
 
     def test_an_approved_message_opens_on_the_approved_header_on_the_green_bar_and_keeps_the_body(self):
-        approved = template.render(build_request(), "dev", None, False, approved=True)
+        approved = template.render(build_request(), "dev", None, False, "APPROVED")
         request = template.render(build_request(), "dev", None, False)
-        self.assertEqual((approved.color, approved.fallback), ("#2EB67D", "✅ Approved · Jahia/sitemap#42"))
-        self.assertEqual(read(approved.blocks)[0], "header: :white_check_mark: Approved")
+        self.assertEqual((approved.color, approved.fallback), ("#2EB67D", "✅ Review approved · Jahia/sitemap#42"))
+        self.assertEqual(read(approved.blocks)[0], "header: :white_check_mark: Review approved")
         self.assertEqual((approved.blocks[1:], approved.metadata), (request.blocks[1:], request.metadata))
 
     def test_a_title_with_markup_is_escaped(self):

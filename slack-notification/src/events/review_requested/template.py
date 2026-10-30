@@ -1,5 +1,6 @@
 """The message of a review request: the pull request, the counts of its tabs on GitHub, and the summary of the
-change. The summary reads as in progress until the AI step answers, and an approval turns the header and the bar."""
+change. The summary reads as in progress until the AI step answers, and a review that decides turns the header and
+the bar."""
 
 from blocks import build_buttons, build_context, build_section, escape
 from slack import SlackMessage
@@ -8,16 +9,20 @@ from templates import message, pull_request
 from events.review_requested.event import ReviewRequest, Summary
 
 _REQUESTED = ("#1D9BD1", ":eye:", "👀", "Review requested")
-APPROVED = ("#2EB67D", ":white_check_mark:", "✅", "Approved")
+# The header and the bar of each review that decides, keyed by its state in the REST API of GitHub
+VERDICTS = {
+    "APPROVED": ("#2EB67D", ":white_check_mark:", "✅", "Review approved"),
+    "CHANGES_REQUESTED": ("#E01E5A", ":x:", "❌", "Review request changes"),
+}
 _IN_PROGRESS = "_Summary in progress…_"
 _NO_SUMMARY = "_No summary, see the pull request_"
 
 
 def render(
-    request: ReviewRequest, member: str, summary: Summary | None, pending: bool, approved: bool = False
+    request: ReviewRequest, member: str, summary: Summary | None, pending: bool, verdict: str | None = None
 ) -> SlackMessage:
-    """The message of `request` for `member`, the person who receives it. With `approved`, it opens on the header
-    and the bar of the approval of `member`."""
+    """The message of `request` for `member`, the person who receives it. With `verdict`, the state of the latest
+    review of `member` that decides, it opens on the header and the bar of that review."""
     pull = request.pull
     body = [
         *pull_request.show(pull),
@@ -26,7 +31,7 @@ def render(
         build_buttons(("Review on GitHub", f"{pull.url}/files")),
     ]
     metadata = build_metadata(pull.repository, pull.number, member)
-    header = APPROVED if approved else _REQUESTED
+    header = VERDICTS.get(verdict, _REQUESTED)
     return message.compose(*header, pull.reference, body, metadata=metadata)
 
 

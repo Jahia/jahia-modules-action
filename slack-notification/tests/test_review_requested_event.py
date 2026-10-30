@@ -93,7 +93,7 @@ class TestTheUpdate(unittest.TestCase):
         recipients = self.read_team([], extra)
         self.assertEqual([(r.login, r.emails) for r in recipients], [("ann", []), ("bob", []), ("cid", [])])
 
-    def test_a_member_whose_latest_review_approves_gets_the_approved_header_and_keeps_the_body(self):
+    def test_a_member_whose_latest_review_decides_gets_its_header_and_keeps_the_body(self):
         reviews = [
             build_review("ann", "APPROVED"),
             build_review("bob", "APPROVED"),
@@ -102,8 +102,8 @@ class TestTheUpdate(unittest.TestCase):
             {"user": None, "state": "APPROVED"},
         ]
         ann, bob, cid = (recipient.message for recipient in self.read_team(reviews))
-        self.assertEqual((ann.color, bob.color, cid.color), ("#2EB67D", "#1D9BD1", "#1D9BD1"))
-        self.assertEqual(ann.blocks[0]["text"]["text"], ":white_check_mark: Approved")
+        self.assertEqual((ann.color, bob.color, cid.color), ("#2EB67D", "#E01E5A", "#1D9BD1"))
+        self.assertEqual(ann.blocks[0]["text"]["text"], ":white_check_mark: Review approved")
         self.assertIn("• The sitemap lists the drafts", str(ann.blocks))
 
 
