@@ -88,8 +88,10 @@ class TestTheMessageOfTheChecks(unittest.TestCase):
         self.assertEqual(message.color, "#ECB22E")
         lines = read(message.blocks)
         self.assertEqual(lines[0], "header: :warning: CI checks passed after a retry")
-        self.assertIn("attempt 2   |   3m 02s\n" + ":large_green_square:" * 7 + ":large_yellow_square:", lines[4])
-        self.assertTrue(lines[4].endswith("\n8 passed · 1 only after retry"), lines[4])
+        self.assertIn(
+            "attempt 2   |   3m 02s\n" + ":large_green_square:" * 7 + ":large_yellow_square:   8 passed", lines[4]
+        )
+        self.assertTrue(lines[4].endswith(":large_yellow_square:   8 passed · 1 only after retry"), lines[4])
         self.assertEqual(
             lines[5:],
             [
@@ -112,7 +114,10 @@ class TestTheMessageOfTheChecks(unittest.TestCase):
             [read(message.blocks)[0], read(message.blocks)[4]],
             [
                 "header: :x: CI checks failed",
-                f"context: {FACTS}\n" + ":large_green_square:" * 6 + ":large_red_square:" * 2 + "\n6 passed · 2 failed",
+                f"context: {FACTS}\n"
+                + ":large_green_square:" * 6
+                + ":large_red_square:" * 2
+                + "   6 passed · 2 failed",
             ],
         )
         self.assertEqual(

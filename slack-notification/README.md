@@ -87,9 +87,9 @@ graver the state, the longer the message. The three share one skeleton:
 - the state of the pull request in bold behind a circle of its color, its author, its commits and its branches,
   as its page on GitHub shows them, then a separator;
 - the workflow, which links to the run, the commit, the attempt and the duration;
-- for a run with a job that failed or passed only after a retry, a gauge of Slack squares, one for each job. A
-  square is green when its job passed, yellow when it passed only after a retry, and red when it failed;
-- the count of the jobs.
+- the count of the jobs. For a run with a job that failed or passed only after a retry, a gauge of Slack squares
+  opens that line, one for each job. A square is green when its job passed, yellow when it passed only after a
+  retry, and red when it failed.
 
 Only an attachment of Slack draws the bar, and Slack folds a high attachment behind "Show more", so the detail
 of a failure or of a retry can sit behind it.

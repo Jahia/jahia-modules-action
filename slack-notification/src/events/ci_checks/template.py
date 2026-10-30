@@ -51,10 +51,10 @@ def _show_run(checks: CiChecks) -> dict:
             _format_duration(checks.duration_seconds),
         ]
     )
-    # The squares of the jobs follow the line of a run with a job that failed or passed after a retry, and one block
-    # carries the lines, because Slack puts a space between two blocks
-    squares = [_draw_squares(checks)] if checks.failed or checks.flaky else []
-    return build_context("\n".join([facts, *squares, _count(checks)]))
+    # The squares of the jobs open the line of the count of a run with a job that failed or passed after a retry,
+    # and one block carries both lines, because Slack puts a space between two blocks
+    count = f"{_draw_squares(checks)}   {_count(checks)}" if checks.failed or checks.flaky else _count(checks)
+    return build_context(f"{facts}\n{count}")
 
 
 def _draw_squares(checks: CiChecks) -> str:
