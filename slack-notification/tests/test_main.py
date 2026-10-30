@@ -1,5 +1,5 @@
-"""The script: the email of the person who triggered the run, the message it posts to that person, and what it
-prints when it posts nothing or when Slack refuses a call."""
+"""The action: the message of an event that it posts to the person the event concerns, and what it prints when
+it posts nothing, when it knows no such event, or when Slack refuses a call."""
 
 import io
 import os
@@ -8,7 +8,7 @@ import unittest
 from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
-import checks_notification
+import main
 from fakes import FakeGitHub, FakeSlack
 from slack import SlackError
 
@@ -36,22 +36,11 @@ def build_run(actor):
     }
 
 
-class TestTheEmailOfThePerson(unittest.TestCase):
-    def test_the_last_commit_linked_to_the_login_as_author_or_committer_gives_the_email(self):
-        commits = [
-            {"author": {"login": "a"}, "committer": {"login": "a"}, "commit": {"author": {"email": "a1@j.com"}}},
-            {"author": None, "committer": {"login": "a"}, "commit": {"committer": {"email": "a2@j.com"}}},
-            {"author": {"login": "b"}, "committer": {"login": "b"}, "commit": {"author": {"email": "b@j.com"}}},
-        ]
-        self.assertEqual(checks_notification._find_email(commits, "a"), "a2@j.com")
-        self.assertEqual(checks_notification._find_email(commits, "b"), "b@j.com")
-        self.assertEqual(checks_notification._find_email(commits, "c"), "")
-
-
 class TestTheNotification(unittest.TestCase):
-    def notify(self, run, commits, slack):
+    def notify(self, run, commits, slack, event_name="workflow_run"):
         """GitHub holds `run`, the commits of its pull request and one job that passed, and answers no other
-        read. The result holds the exit code and what the job printed."""
+        read. `event_name` triggers the workflow, whose event names the run. The result holds the exit code and
+        what the job printed."""
         github = FakeGitHub(
             {
                 ("read_run", "1"): run,
@@ -60,7 +49,7 @@ class TestTheNotification(unittest.TestCase):
             }
         )
         with mock.patch("sys.stdout", new_callable=io.StringIO) as out:
-            code = checks_notification.notify(github, slack, "1")
+            code = main.notify(event_name, {"workflow_run": {"id": 1}}, github, slack)
         return code, out.getvalue()
 
     def test_the_person_who_triggered_the_run_receives_its_message(self):
@@ -100,6 +89,13 @@ class TestTheNotification(unittest.TestCase):
         code, printed = self.notify(build_run("a"), [COMMIT], slack)
         self.assertEqual(code, 0)
         self.assertIn("::warning::no Slack member has the email of a", printed)
+        self.assertEqual(slack.posts, [])
+
+    def test_an_event_that_the_action_does_not_know_fails_the_job(self):
+        slack = FakeSlack({"a@j.com": "U1"})
+        code, printed = self.notify(build_run("a"), [COMMIT], slack, event_name="push")
+        self.assertEqual(code, 1)
+        self.assertIn("::error::the action sends no message for the event push", printed)
         self.assertEqual(slack.posts, [])
 
     def test_a_refusal_of_slack_fails_the_job_with_its_error_code(self):

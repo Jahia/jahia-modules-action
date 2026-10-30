@@ -1,11 +1,11 @@
-# The unit tests of the action checks-notification, on each pull request that changes it.
-name: Test checks-notification
+# The unit tests of the action slack-notification, on each pull request that changes it.
+name: Test slack-notification
 
 on:
   pull_request:
     paths:
-      - "checks-notification/**"
-      - ".github/workflows/test-checks-notification.yml"
+      - "slack-notification/**"
+      - ".github/workflows/test-slack-notification.yml"
 
 permissions:
   contents: read
@@ -18,5 +18,5 @@ jobs:
         with:
           persist-credentials: false
       - name: Run the unit tests
-        working-directory: checks-notification/tests
+        working-directory: slack-notification/tests
         run: python3 -m unittest discover -s . -v

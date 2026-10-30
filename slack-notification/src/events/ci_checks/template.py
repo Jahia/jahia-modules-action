@@ -4,8 +4,10 @@ failure adds its first error and three buttons, and its thread lists every error
 
 import os
 
-from checks_run import CiChecks, CiError, CiJob, CiState
+from blocks import build_buttons, build_code, build_context, build_header, build_section, escape
 from slack import SlackMessage
+
+from events.ci_checks.event import CiChecks, CiError, CiJob, CiState
 
 # The color of the bar, the emoji of the header and the one of the text that the system shows, by state
 _STATES = {
@@ -33,20 +35,20 @@ def render(checks: CiChecks) -> SlackMessage:
         CiState.FAILED: f"CI checks failed · {len(checks.failed)} of {total} jobs",
     }[state]
     facts = [
-        f"`{_escape(checks.branch)}`",
+        f"`{escape(checks.branch)}`",
         f"<{checks.commit_url}|{checks.commit}>",
-        _escape(checks.workflow),
+        escape(checks.workflow),
         f"attempt {checks.attempt}",
         _format_duration(checks.duration_seconds),
     ]
     blocks = [
-        _build_header(f"{emoji} {title}"),
-        _build_section(f"<{checks.pull_url}|{checks.reference}> *{_escape(checks.pull_title)}*"),
-        _build_context(" · ".join(facts)),
+        build_header(f"{emoji} {title}"),
+        build_section(f"<{checks.pull_url}|{checks.reference}> *{escape(checks.pull_title)}*"),
+        build_context(" · ".join(facts)),
     ]
     count = _count(checks)
     # One block carries the squares and the count, because Slack puts a space between two blocks
-    blocks.append(_build_context(f"{_draw_squares(checks)}\n*{count}*"))
+    blocks.append(build_context(f"{_draw_squares(checks)}\n*{count}*"))
     thread = ()
     if state == CiState.UNSTABLE:
         blocks += _show_flaky(checks)
@@ -79,23 +81,23 @@ def _count(checks: CiChecks) -> str:
 
 
 def _format_job(job: CiJob) -> str:
-    return f"<{job.url}|{_escape(job.name)}>" + (f" › {_escape(job.step)}" if job.step else "")
+    return f"<{job.url}|{escape(job.name)}>" + (f" › {escape(job.step)}" if job.step else "")
 
 
 def _show_flaky(checks: CiChecks) -> list[dict]:
     blocks = []
     for job in checks.flaky[:_FLAKY_SHOWN]:
         blocks += [
-            _build_section(f"Flaky: {_format_job(job)}"),
-            _build_code(f"failed on attempt {job.failed_attempt}, passed on attempt {checks.attempt}"),
+            build_section(f"Flaky: {_format_job(job)}"),
+            build_code(f"failed on attempt {job.failed_attempt}, passed on attempt {checks.attempt}"),
         ]
     more = len(checks.flaky) - _FLAKY_SHOWN
     if more > 0:
-        blocks.append(_build_context(f"… and {more} more in <{checks.run_url}|the run>"))
+        blocks.append(build_context(f"… and {more} more in <{checks.run_url}|the run>"))
     return [
         *blocks,
-        _build_context("Nothing blocking: fix it when you can"),
-        _build_buttons(("View run", checks.run_url)),
+        build_context("Nothing blocking: fix it when you can"),
+        build_buttons(("View run", checks.run_url)),
     ]
 
 
@@ -103,35 +105,35 @@ def _show_failure(checks: CiChecks) -> list[dict]:
     job = next((one for one in checks.failed if one.errors), checks.failed[0]) if checks.failed else None
     blocks = []
     if job:
-        blocks.append(_build_section(f"✕ {_format_job(job)}"))
+        blocks.append(build_section(f"✕ {_format_job(job)}"))
         if job.errors:
             error = job.errors[0]
             where = _locate(error, linked=False, named=True)
-            blocks += [_build_code(_cut_detail(error.detail)), *([_build_context(where)] if where else [])]
+            blocks += [build_code(_cut_detail(error.detail)), *([build_context(where)] if where else [])]
     links = [("View run", checks.run_url), ("Open PR", checks.pull_url)]
     if job:
         links.insert(0, ("View logs", job.url))
-    return [*blocks, _build_buttons(*links, primary="View logs")]
+    return [*blocks, build_buttons(*links, primary="View logs")]
 
 
 def _detail_failures(checks: CiChecks) -> list[dict]:
     blocks = []
     budget = _THREAD_ERRORS
     for job in sorted(checks.failed, key=lambda one: not one.errors):
-        blocks.append(_build_section(f"*✕ {_format_job(job)}*" + ("" if job.errors else " · no error of its own")))
+        blocks.append(build_section(f"*✕ {_format_job(job)}*" + ("" if job.errors else " · no error of its own")))
         for error in job.errors[:budget]:
             where = _locate(error, linked=True, named=False)
             blocks += [
-                *([_build_section(_escape(error.title[:_TITLE_CHARS]))] if error.title else []),
-                _build_code(_cut_detail(error.detail)),
-                *([_build_context(where)] if where else []),
+                *([build_section(escape(error.title[:_TITLE_CHARS]))] if error.title else []),
+                build_code(_cut_detail(error.detail)),
+                *([build_context(where)] if where else []),
             ]
         budget -= min(budget, len(job.errors))
     overflow = sum(len(job.errors) for job in checks.failed) - _THREAD_ERRORS
     if overflow > 0:
-        blocks.append(_build_context(f"… and {overflow} more in <{checks.run_url}|the run>"))
+        blocks.append(build_context(f"… and {overflow} more in <{checks.run_url}|the run>"))
     if len(blocks) > _MAX_BLOCKS:
-        blocks = [*blocks[: _MAX_BLOCKS - 1], _build_context(f"… more in <{checks.run_url}|the run>")]
+        blocks = [*blocks[: _MAX_BLOCKS - 1], build_context(f"… more in <{checks.run_url}|the run>")]
     return blocks
 
 
@@ -144,9 +146,9 @@ def _locate(error: CiError, *, linked: bool, named: bool) -> str:
     parts = []
     if error.file:
         place = f"{os.path.basename(error.file)}:{error.line}" if error.line else os.path.basename(error.file)
-        parts.append(f"<{error.url}|{_escape(place)}>" if linked and error.url else _escape(place))
+        parts.append(f"<{error.url}|{escape(place)}>" if linked and error.url else escape(place))
     elif named and error.title:
-        parts.append(_escape(error.title[:_TITLE_CHARS]))
+        parts.append(escape(error.title[:_TITLE_CHARS]))
     if error.occurrences > 1:
         parts.append(f"×{error.occurrences}")
     return " · ".join(parts)
@@ -154,34 +156,3 @@ def _locate(error: CiError, *, linked: bool, named: bool) -> str:
 
 def _format_duration(seconds: int) -> str:
     return f"{seconds // 60}m {seconds % 60:02d}s" if seconds >= 60 else f"{seconds}s"
-
-
-def _escape(text: str) -> str:
-    # Slack reads `&`, `<` and `>` as markup
-    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
-
-def _build_header(text: str) -> dict:
-    return {"type": "header", "text": {"type": "plain_text", "text": text, "emoji": True}}
-
-
-def _build_section(markdown: str) -> dict:
-    return {"type": "section", "text": {"type": "mrkdwn", "text": markdown}}
-
-
-def _build_context(markdown: str) -> dict:
-    return {"type": "context", "elements": [{"type": "mrkdwn", "text": markdown}]}
-
-
-def _build_code(text: str) -> dict:
-    # Slack has no longer fence, so a fence inside the text would close the block
-    return _build_section("```" + _escape(text).replace("```", "'''") + "```")
-
-
-def _build_buttons(*links: tuple[str, str], primary: str = "") -> dict:
-    # Each link is a label and a URL, and the button whose label is `primary` stands out
-    elements = []
-    for label, url in links:
-        button = {"type": "button", "text": {"type": "plain_text", "text": label}, "url": url}
-        elements.append(button | {"style": "primary"} if label == primary else button)
-    return {"type": "actions", "elements": elements}

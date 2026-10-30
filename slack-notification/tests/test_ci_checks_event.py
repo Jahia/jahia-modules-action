@@ -6,7 +6,7 @@ import sys
 import unittest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
-from checks_run import CiChecks, CiError, CiJob
+from events.ci_checks.event import CiChecks, CiError, CiJob
 from fakes import FakeGitHub
 
 REPO = "Jahia/sitemap"
