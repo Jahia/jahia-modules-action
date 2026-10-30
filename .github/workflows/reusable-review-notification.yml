@@ -3,8 +3,9 @@
 # agent (cortex harness, LiteLLM through the IT mTLS bastion) for the summary of the pull
 # request, then updates the message. An approval restyles the message and runs no summary.
 #
-# The caller runs on pull_request_target (review_requested) and pull_request_review (submitted).
-# No job checks out the code of the pull request. Requirements: slack-notification/README.md.
+# The caller runs on pull_request_target (review_requested) and pull_request_review (submitted),
+# and grants contents: read, pull-requests: read and id-token: write. No job checks out the code of
+# the pull request. Requirements: slack-notification/README.md.
 name: Review notification
 
 on:
@@ -44,6 +45,10 @@ on:
 jobs:
   notify:
     name: Post the review notification
+    # A review on a pull request of a fork runs with no secrets, so it would fail with no message
+    if: >-
+      github.event_name == 'pull_request_target'
+      || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -61,17 +66,20 @@ jobs:
   summarize:
     name: Summarize the pull request with Claude Code
     needs: notify
-    # A pull request of a fork gets no secrets, and an approval posts no message to update
+    # A pull request of a fork gets no secrets, and an approval posts no message to update.
+    # !cancelled(): a refusal of Slack for one member fails notify, and the others still get the summary.
     if: >-
-      github.event_name == 'pull_request_target'
+      !cancelled()
+      && github.event_name == 'pull_request_target'
       && needs.notify.outputs.messages != ''
       && needs.notify.outputs.messages != '[]'
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ inputs.instance_type }}
     timeout-minutes: ${{ inputs.timeout_job }}
     permissions:
-      id-token: write
       contents: read
+      pull-requests: read
+      id-token: write
     steps:
       - name: Open the mTLS tunnel to internal Jahia services
         uses: jahia/jahia-modules-action/mtls-tunnel@v2
@@ -104,7 +112,8 @@ jobs:
         uses: jahia/jahia-modules-action/ai-pr-summary@v2
         with:
           target_url: ${{ github.event.pull_request.html_url }}
-          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          # The token of the job reads and cannot write, which the deny list of gh api alone does not ensure
+          github_token: ${{ github.token }}
           cortex_path: ${{ steps.setup.outputs.cortex_path }}
           model: ${{ inputs.model }}
 

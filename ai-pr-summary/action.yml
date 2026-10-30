@@ -6,7 +6,7 @@ inputs:
     description: 'URL of the pull request to summarize (the agent derives the repository and number from it)'
     required: true
   github_token:
-    description: 'Token the agent uses to read the pull request'
+    description: 'Token the agent uses to read the pull request. Pass a token that cannot write, such as the github.token of a job with contents: read and pull-requests: read. The deny list cannot stop every write, because gh api posts when it gets a field and no --method.'
     required: true
   cortex_path:
     description: 'Absolute path of the cortex checkout (from ai-agent-setup)'
