@@ -10,6 +10,7 @@ from typing import NamedTuple, Self
 
 from github_api import GitHubApi
 from notification import Skip
+from pull_request import PullRequest
 
 # The conclusions of a run that carry no result for the person who triggered it
 _NO_RESULT = {None, "cancelled", "skipped"}
@@ -103,11 +104,7 @@ class CiChecks(NamedTuple):
 
     workflow: str
     conclusion: str
-    reference: str
-    pull_number: int
-    pull_title: str
-    pull_url: str
-    branch: str
+    pull: PullRequest
     commit: str
     commit_url: str
     attempt: int
@@ -136,7 +133,7 @@ class CiChecks(NamedTuple):
         if not cls.has_result(run):
             raise Skip("the run is no completed run of a pull request")
         repository = run["repository"]
-        name, run_id, attempt, sha = repository["full_name"], str(run["id"]), run["run_attempt"], run["head_sha"]
+        run_id, attempt, sha = str(run["id"]), run["run_attempt"], run["head_sha"]
         number = run["pull_requests"][0]["number"]
         countable = [job for job in github.list_jobs(run_id) if job["conclusion"] not in _UNCOUNTED]
         failed = [job for job in countable if cls._is_failed(job)]
@@ -147,11 +144,7 @@ class CiChecks(NamedTuple):
         return cls(
             workflow=run["name"],
             conclusion=run["conclusion"],
-            reference=f"{name}#{number}",
-            pull_number=number,
-            pull_title=run["display_title"],
-            pull_url=f"{repository['html_url']}/pull/{number}",
-            branch=run["head_branch"],
+            pull=PullRequest.read(github, number),
             commit=sha[:7],
             commit_url=f"{repository['html_url']}/commit/{sha}",
             attempt=attempt,

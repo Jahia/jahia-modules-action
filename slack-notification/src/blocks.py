@@ -19,6 +19,10 @@ def build_context(markdown: str) -> dict:
     return {"type": "context", "elements": [{"type": "mrkdwn", "text": markdown}]}
 
 
+def build_divider() -> dict:
+    return {"type": "divider"}
+
+
 def build_code(text: str) -> dict:
     # Slack has no longer fence, so a fence inside the text would close the block
     return build_section("```" + escape(text).replace("```", "'''") + "```")

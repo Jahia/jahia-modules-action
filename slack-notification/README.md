@@ -1,9 +1,10 @@
 # slack-notification
 
-The action posts the Slack message of the GitHub event that triggered the workflow, as a direct message of a
-Slack app. The message goes to the person the event concerns. Each event that the action knows has a folder under `src/events/`,
-which reads the data of the event and builds its message. The code imports the standard library alone. It runs
-on the `gh` of the runner and on its `python3`, which must be Python 3.11 or later, as on `ubuntu-24.04`.
+The action posts the Slack message of the GitHub event that triggered the workflow, as a direct message of a Slack
+app. The message goes to the person the event concerns. Each event that the action knows has a folder under
+`src/events/`, which reads the data of the event and builds its message. The code imports the standard library
+alone. It runs on the `gh` of the runner and on its `python3`, which must be Python 3.11 or later, as on
+`ubuntu-24.04`.
 
 | Event | GitHub event of the workflow | Who receives the message |
 |---|---|---|
@@ -79,33 +80,40 @@ A caller may therefore run the action on every completed run of its checks. A ru
 again.
 
 The action posts one message for each run, in one of three states, and the graver the state, the longer the
-message. The three share one skeleton: a bar in the color of the state, the header, the pull request and its
-title, and a line that names the branch, the commit, the workflow, the attempt and the duration. A gauge of
-Slack squares follows, at the size of small text, with one square for each job: green when it passed, yellow
-when it passed only after a retry, and red when it failed. The count of the jobs sits right below it, in bold.
+message. The three share one skeleton:
+
+- a bar in the color of the state, and the header;
+- the repository, then the title of the pull request with its number;
+- the state of the pull request in bold behind a circle of its color, its author, its commits and its branches,
+  as its page on GitHub shows them;
+- the workflow, the commit, the attempt and the duration of the run;
+- a gauge of Slack squares, one for each job, with the count of the jobs below it. A square is green when its
+  job passed, yellow when it passed only after a retry, and red when it failed.
 
 | State | Bar | Header | When | What the message adds |
 |---|---|---|---|---|
 | Passed | `#2EB67D` | `:white_check_mark:` | The run passed, and no job failed in the previous attempt. | Nothing: the link of the pull request is enough. |
 | Passed after a retry | `#ECB22E` | `:warning:` | The run passed, and a job that failed in the previous attempt passed in this one. | Each flaky job with the step that failed, and a button that opens the run. |
-| Failed | `#E01E5A` | `:x:` | The run failed. | The first failed job with its first error and its place, the buttons **View logs**, **View run** and **Open PR**, and a reply in the thread that details every failed job. |
+| Failed | `#E01E5A` | `:x:` | The run failed. | The first failed job with its first error and its place, a note for each other failed job, the buttons **View logs** and **View run**, and a reply in the thread that details every failed job. |
 
-A failed job with no error of its own beside one that has errors is a gate. The count states it, and the
-message shows the job with errors first. Two equal errors, such as the subtests of one test, show once with
+A failed job with no error of its own beside one that has errors is a gate. The message shows the job with
+errors first, and a note counts the gates. Two equal errors, such as the subtests of one test, show once with
 their count, such as `×2`.
 
 The errors come from the annotations of the failed jobs, with the file and the line of each one. A title
 loses the groups in parentheses that end it, such as the dotted path and the subtest of a unittest failure.
 When no failed job wrote an annotation, such as in a Maven build, the read takes the end of the log of each
 failed job instead. It keeps the `[ERROR]` lines of the last Maven summary, or the last three lines of another
-log. The log ends at its last error, before the steps that clean up the job. A gate writes no annotation, so a run whose
-other jobs wrote annotations reads no log.
+log. The log ends at its last error, before the steps that clean up the job. A gate writes no annotation, so a
+run whose other jobs wrote annotations reads no log.
 
 ## Add an event
 
 1. Create the folder `src/events/<name>/`:
    - `event.py` reads the data of the event from GitHub;
-   - `template.py` builds the `SlackMessage` from that data, with the blocks of `src/blocks.py`;
+   - `template.py` builds the `SlackMessage` from that data. It calls `compose` of `src/templates/message.py`,
+     which opens every message on the header of the event. An event of a pull request adds the part that `show`
+     of `src/templates/pull_request.py` builds, then its own blocks from `src/blocks.py`;
    - `__init__.py` holds `read(payload, github)`, which returns the `Notification` of `src/notification.py`, or
      raises `Skip` with the reason to send nothing.
 2. Add the GitHub event that triggers it to the table `EVENTS` of `src/events/__init__.py`.
@@ -117,6 +125,10 @@ other jobs wrote annotations reads no log.
 - `src/main.py` reads the GitHub event, runs `read` of its folder, finds the person and posts the message.
 - `src/events/` holds one folder for each event, and the table that maps a GitHub event to its folder.
 - `src/notification.py` holds `Notification` and `Skip`, what the folder of an event returns to `main.py`.
+- `src/templates/` holds the parts that every template shares. `message.py` opens a message on the header of
+  its event. `pull_request.py` shows the repository, the title and the state of a pull request, then a
+  separator.
+- `src/pull_request.py` reads a pull request, which every event of a pull request shows.
 - `src/people.py` finds the email of a GitHub account in the commits of a pull request.
 - `src/blocks.py` builds the Block Kit blocks that every template uses, and escapes the markup of Slack.
 - `src/slack.py` holds `SlackMessage` and `SlackClient`, which finds the member and posts the message and its

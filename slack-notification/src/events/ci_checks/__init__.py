@@ -13,4 +13,4 @@ def read(payload: dict, github: GitHubApi) -> Notification:
     A run that is no completed run of a pull request raises `Skip`."""
     run = github.read_run(str(payload["workflow_run"]["id"]))
     checks = CiChecks.read(run, github)
-    return Notification(run["triggering_actor"]["login"], checks.pull_number, template.render(checks))
+    return Notification(run["triggering_actor"]["login"], checks.pull.number, template.render(checks))

@@ -1,4 +1,4 @@
-"""The reads of GitHub that the notification makes through `gh api`: a run, its jobs, the jobs of an earlier
+"""The reads of GitHub that the notification makes through `gh api`: a run, a pull request, the jobs of a run, the jobs of an earlier
 attempt, the annotations and the log of a job, and the commits of a pull request. A read that fails runs
 again, unless a second call cannot change the refusal, and the last refusal raises `GitHubError`."""
 
@@ -28,6 +28,9 @@ class GitHubApi:
 
     def read_run(self, run_id: str) -> dict:
         return self._read_json(f"repos/{self._repo}/actions/runs/{run_id}")
+
+    def read_pull(self, number: int) -> dict:
+        return self._read_json(f"repos/{self._repo}/pulls/{number}")
 
     def list_jobs(self, run_id: str) -> list[dict]:
         return self._read_json(f"repos/{self._repo}/actions/runs/{run_id}/jobs?per_page={_PAGE}")["jobs"]

@@ -8,6 +8,7 @@ import unittest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 from events.ci_checks.event import CiChecks, CiError, CiJob
 from fakes import FakeGitHub
+from test_pull_request import build_pull
 
 REPO = "Jahia/sitemap"
 BLOB = "https://github.com/Jahia/sitemap/blob/ec06bccb1fc1f819899a22fa08223da38b4310a6"
@@ -55,6 +56,7 @@ class RunOnGitHub(unittest.TestCase):
         attempt = run["run_attempt"]
         github = FakeGitHub(
             {
+                ("read_pull", 42): build_pull(),
                 ("list_jobs", "1"): jobs,
                 ("list_attempt_jobs", "1", attempt - 1): earlier or [],
                 **{("list_annotations", str(key)): value for key, value in (annotations or {}).items()},
@@ -74,8 +76,8 @@ class TestTheChecksOfARun(RunOnGitHub):
         annotation = build_annotation("KeyError: 'K'", "test_x", "t.py", 87)
         checks = self.read(build_run("failure"), jobs, annotations={2: [annotation, annotation]})
         self.assertEqual(
-            (checks.reference, checks.pull_url, checks.commit, checks.attempt, checks.duration_seconds, checks.passed),
-            ("Jahia/sitemap#42", "https://github.com/Jahia/sitemap/pull/42", "ec06bcc", 1, 87, 1),
+            (checks.pull.reference, checks.commit, checks.attempt, checks.duration_seconds, checks.passed),
+            ("Jahia/sitemap#42", "ec06bcc", 1, 87, 1),
         )
         error = CiError("test_x", "KeyError: 'K'", "t.py", 87, f"{BLOB}/t.py#L87", 2)
         self.assertEqual(checks.failed, (CiJob("lint 2/6", "https://j/2", "Run the checks", (error,)),))
@@ -167,16 +169,15 @@ class TestTheErrorsOfAFailedJob(RunOnGitHub):
         self.assertEqual(self.read_errors([], log), (CiError("", "\n".join(f"line {n}" for n in range(12, 15))),))
 
     def test_a_log_ends_at_its_last_error_before_the_steps_that_clean_up(self):
-        log = "\n".join(
-            [
-                "##[group]Run make",
-                "make: *** [all] Error 2",
-                "##[error]Process completed with exit code 2.",
-                "Post job cleanup.",
-                "[command]/usr/bin/git version",
-                "Cleaning up orphan processes",
-            ]
-        )
+        lines = [
+            "##[group]Run make",
+            "make: *** [all] Error 2",
+            "##[error]Process completed with exit code 2.",
+            "Post job cleanup.",
+            "[command]/usr/bin/git version",
+            "Cleaning up orphan processes",
+        ]
+        log = "\n".join(lines)
         self.assertEqual(self.read_errors([], log), (CiError("", "make: *** [all] Error 2"),))
 
     def test_a_maven_log_drops_the_lines_that_resume_the_build(self):

@@ -12,6 +12,7 @@ import main
 from fakes import FakeGitHub, FakeSlack
 from github_api import GitHubError
 from slack import SlackError
+from test_pull_request import build_pull
 
 COMMIT = {"author": {"login": "a"}, "committer": None, "commit": {"author": {"email": "a@j.com"}}}
 
@@ -47,6 +48,7 @@ class TestTheNotification(unittest.TestCase):
                 ("read_run", "1"): run,
                 ("list_pull_commits", 42): commits,
                 ("list_jobs", "1"): [{"id": 1, "name": "lint", "conclusion": "success", "html_url": "https://j/1"}],
+                ("read_pull", 42): build_pull(),
             }
         )
         with mock.patch("sys.stdout", new_callable=io.StringIO) as out:
@@ -58,7 +60,7 @@ class TestTheNotification(unittest.TestCase):
         self.assertEqual(self.notify(build_run("a"), [COMMIT], slack), (0, ""))
         [(member, message)] = slack.posts
         self.assertEqual(member, "U1")
-        self.assertEqual(message.fallback, "✅ CI checks passed · 1 of 1 jobs · Jahia/sitemap#42")
+        self.assertEqual(message.fallback, "✅ CI checks passed · Jahia/sitemap#42")
 
     def test_a_run_that_is_no_completed_run_of_a_pull_request_posts_nothing(self):
         """A caller may run the action on every completed run, so the action skips the runs with no result for a

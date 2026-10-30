@@ -1,19 +1,21 @@
 """The message of a completed run of the checks of a pull request, in three states: passed, passed after a
-retry, and failed. The three share one skeleton, and the graver the state, the longer the message: a
-failure adds its first error and three buttons, and its thread lists every error."""
+retry, and failed. It opens on the header and the part of the pull request that `templates/` builds, then shows
+the run. The graver the state, the longer the run: a failure adds its first error and two buttons, and its thread
+lists every error."""
 
 import os
 
-from blocks import build_buttons, build_code, build_context, build_header, build_section, escape
+from blocks import build_buttons, build_code, build_context, build_section, escape
 from slack import SlackMessage
+from templates import message, pull_request
 
 from events.ci_checks.event import CiChecks, CiError, CiJob, CiState
 
-# The color of the bar, the emoji of the header and the one of the text that the system shows, by state
+# The color of the bar, the emoji of the header, the one of the text that the system shows, and the header
 _STATES = {
-    CiState.PASSED: ("#2EB67D", ":white_check_mark:", "✅"),
-    CiState.UNSTABLE: ("#ECB22E", ":warning:", "⚠️"),
-    CiState.FAILED: ("#E01E5A", ":x:", "❌"),
+    CiState.PASSED: ("#2EB67D", ":white_check_mark:", "✅", "CI checks passed"),
+    CiState.UNSTABLE: ("#ECB22E", ":warning:", "⚠️", "CI checks passed after a retry"),
+    CiState.FAILED: ("#E01E5A", ":x:", "❌", "CI checks failed"),
 }
 _FLAKY_SHOWN = 3
 _THREAD_ERRORS = 10
@@ -27,37 +29,28 @@ _TITLE_CHARS = 150
 
 def render(checks: CiChecks) -> SlackMessage:
     state = checks.state
-    color, emoji, icon = _STATES[state]
-    total = checks.passed + len(checks.failed)
-    title = {
-        CiState.PASSED: f"CI checks passed · {checks.passed} of {total} jobs",
-        CiState.UNSTABLE: "CI checks passed after a retry",
-        CiState.FAILED: f"CI checks failed · {len(checks.failed)} of {total} jobs",
-    }[state]
-    facts = [
-        f"`{escape(checks.branch)}`",
-        f"<{checks.commit_url}|{checks.commit}>",
-        escape(checks.workflow),
-        f"attempt {checks.attempt}",
-        _format_duration(checks.duration_seconds),
-    ]
-    blocks = [
-        build_header(f"{emoji} {title}"),
-        build_section(f"<{checks.pull_url}|{checks.reference}> *{escape(checks.pull_title)}*"),
-        build_context(" · ".join(facts)),
-    ]
-    count = _count(checks)
-    # One block carries the squares and the count, because Slack puts a space between two blocks
-    blocks.append(build_context(f"{_draw_squares(checks)}\n*{count}*"))
+    color, emoji, icon, title = _STATES[state]
+    body = [*pull_request.show(checks.pull), *_show_run(checks)]
     thread = ()
     if state == CiState.UNSTABLE:
-        blocks += _show_flaky(checks)
+        body += _show_flaky(checks)
     elif state == CiState.FAILED:
-        blocks += _show_failure(checks)
+        body += _show_failure(checks)
         detail = _detail_failures(checks)
         # A failure with no failed job, such as a startup failure, has no detail for a thread
         thread = (detail,) if detail else ()
-    return SlackMessage(color, f"{icon} {title} · {checks.reference}", blocks, thread)
+    return message.compose(color, emoji, icon, title, checks.pull.reference, body, thread)
+
+
+def _show_run(checks: CiChecks) -> list[dict]:
+    facts = [
+        f"*{escape(checks.workflow)}*",
+        f"commit <{checks.commit_url}|{checks.commit}>",
+        f"attempt {checks.attempt}",
+        _format_duration(checks.duration_seconds),
+    ]
+    # One block carries the squares and the count, because Slack puts a space between two blocks
+    return [build_context(" · ".join(facts)), build_context(f"{_draw_squares(checks)}\n{_count(checks)}")]
 
 
 def _draw_squares(checks: CiChecks) -> str:
@@ -72,9 +65,7 @@ def _draw_squares(checks: CiChecks) -> str:
 
 def _count(checks: CiChecks) -> str:
     if checks.failed:
-        # A failed job with no error of its own beside one that has errors is a gate
-        gate = any(job.errors for job in checks.failed) and not all(job.errors for job in checks.failed)
-        return f"{checks.passed} passed · {len(checks.failed)} failed" + (" (incl. gate)" if gate else "")
+        return f"{checks.passed} passed · {len(checks.failed)} failed"
     if checks.flaky:
         return f"{checks.passed} passed · {len(checks.flaky)} only after retry"
     return "All jobs passed"
@@ -85,42 +76,50 @@ def _format_job(job: CiJob) -> str:
 
 
 def _show_flaky(checks: CiChecks) -> list[dict]:
-    blocks = []
+    blocks = [build_section("*Flaky*")]
     for job in checks.flaky[:_FLAKY_SHOWN]:
         blocks += [
-            build_section(f"Flaky: {_format_job(job)}"),
-            build_code(f"failed on attempt {job.failed_attempt}, passed on attempt {checks.attempt}"),
+            build_section(f":warning: {_format_job(job)}"),
+            build_context(f"failed on attempt {job.failed_attempt}, passed on attempt {checks.attempt}"),
         ]
     more = len(checks.flaky) - _FLAKY_SHOWN
     if more > 0:
         blocks.append(build_context(f"… and {more} more in <{checks.run_url}|the run>"))
     return [
         *blocks,
-        build_context("Nothing blocking: fix it when you can"),
+        build_context("_Nothing blocking: fix it when you can_"),
         build_buttons(("View run", checks.run_url)),
     ]
 
 
 def _show_failure(checks: CiChecks) -> list[dict]:
-    job = next((one for one in checks.failed if one.errors), checks.failed[0]) if checks.failed else None
-    blocks = []
-    if job:
-        blocks.append(build_section(f"✕ {_format_job(job)}"))
-        if job.errors:
-            error = job.errors[0]
-            where = _locate(error, linked=False, named=True)
-            blocks += [build_code(_cut_detail(error.detail)), *([build_context(where)] if where else [])]
-    links = [("View run", checks.run_url), ("Open PR", checks.pull_url)]
-    if job:
-        links.insert(0, ("View logs", job.url))
-    return [*blocks, build_buttons(*links, primary="View logs")]
+    # The first failed job with errors, else the first failed job, then a note for each other one
+    with_errors = [job for job in checks.failed if job.errors]
+    job = with_errors[0] if with_errors else checks.failed[0] if checks.failed else None
+    if not job:
+        return [build_buttons(("View run", checks.run_url))]
+    blocks = [build_section("*Failed*"), build_section(f":x: {_format_job(job)}")]
+    if job.errors:
+        error = job.errors[0]
+        where = _locate(error, linked=True, named=True)
+        blocks.append(build_code(_cut_detail(error.detail)))
+        if where:
+            blocks.append(build_context(f"in {where}" if error.file else where))
+    others = len(with_errors) - 1
+    # A failed job with no error of its own beside one that has errors is a gate
+    gates = len(checks.failed) - len(with_errors) if with_errors else 0
+    if others > 0:
+        blocks.append(build_context(f"_+ {others} other failed job{'s' if others > 1 else ''}, in the thread_"))
+    if gates > 0:
+        blocks.append(build_context(f"_+ {gates} job{'s' if gates > 1 else ''} without errors (gate)_"))
+    return [*blocks, build_buttons(("View logs", job.url), ("View run", checks.run_url), primary="View logs")]
 
 
 def _detail_failures(checks: CiChecks) -> list[dict]:
     blocks = []
     budget = _THREAD_ERRORS
     for job in sorted(checks.failed, key=lambda one: not one.errors):
-        blocks.append(build_section(f"*✕ {_format_job(job)}*" + ("" if job.errors else " · no error of its own")))
+        blocks.append(build_section(f"*:x: {_format_job(job)}*" + ("" if job.errors else " · no error of its own")))
         for error in job.errors[:budget]:
             where = _locate(error, linked=True, named=False)
             blocks += [
