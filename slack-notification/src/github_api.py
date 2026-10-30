@@ -1,6 +1,7 @@
 """The reads of GitHub that the notification makes through `gh api`: a pull request, the jobs of an attempt of a
-run, the annotations and the log of a job, and the commits of a pull request. A read that fails runs again, unless
-a second call cannot change the refusal, and the last refusal raises `GitHubError`."""
+run, the annotations and the log of a job, the commits of a pull request, the commits of an author in the organization, the check runs
+of a commit, the reviews of a pull request, and the members of a team. A read that fails runs again, unless a
+second call cannot change the refusal, and the last refusal raises `GitHubError`."""
 
 import json
 import re
@@ -53,6 +54,29 @@ class GitHubApi:
         """The commits of a pull request, oldest first."""
         pages = self._read_json(f"repos/{self._repo}/pulls/{number}/commits?per_page={_PAGE}", "--paginate", "--slurp")
         return [commit for page in pages for commit in page]
+
+    def list_author_commits(self, login: str) -> list[dict]:
+        """The newest commits of the organization of the repository whose author is `login`, from every repository
+        of it that the token reads."""
+        # ponytail: the search has a rate limit of its own per minute, which a large team request can reach
+        owner = self._repo.split("/")[0]
+        path = f"search/commits?q=author:{login}+org:{owner}&sort=author-date&order=desc&per_page=50"
+        return self._read_json(path)["items"]
+
+    def count_check_runs(self, sha: str) -> int:
+        """The count of the check runs of the commit `sha`, as the tab Checks of a pull request shows it."""
+        return self._read_json(f"repos/{self._repo}/commits/{sha}/check-runs?per_page=1")["total_count"]
+
+    def list_pull_reviews(self, number: int) -> list[dict]:
+        """The reviews of a pull request, oldest first, from every page."""
+        pages = self._read_json(f"repos/{self._repo}/pulls/{number}/reviews?per_page={_PAGE}", "--paginate", "--slurp")
+        return [review for page in pages for review in page]
+
+    def list_team_members(self, slug: str) -> list[dict]:
+        """The members of a team of the organization that owns the repository, from every page."""
+        owner = self._repo.split("/")[0]
+        pages = self._read_json(f"orgs/{owner}/teams/{slug}/members?per_page={_PAGE}", "--paginate", "--slurp")
+        return [member for page in pages for member in page]
 
     @classmethod
     def _read_json(cls, path: str, *flags: str) -> Any:

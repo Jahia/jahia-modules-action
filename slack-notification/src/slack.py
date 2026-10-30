@@ -11,19 +11,24 @@ _API = "https://slack.com/api/"
 
 class SlackMessage(NamedTuple):
     """A message on a bar in the color of its state. `fallback` is the text that the notification of the
-    system shows, and `thread` lists the blocks of each reply in the thread of the message."""
+    system shows, and `thread` lists the blocks of each reply in the thread of the message. `metadata` is
+    `{"event_type": str, "event_payload": dict}`, which `find_message` matches later."""
 
     color: str
     fallback: str
     blocks: list[dict]
     thread: tuple[list[dict], ...] = ()
+    metadata: dict | None = None
 
     def _render(self, channel: str) -> dict:
         # An attachment draws the bar, and a message with no text of its own shows no line above it
-        return {
+        payload = {
             "channel": channel,
             "attachments": [{"color": self.color, "fallback": self.fallback, "blocks": self.blocks}],
         }
+        if self.metadata:
+            payload["metadata"] = self.metadata
+        return payload
 
 
 class SlackError(Exception):
@@ -43,8 +48,8 @@ class SlackClient:
                 return ""
             raise
 
-    def post(self, channel: str, message: SlackMessage) -> None:
-        """Each reply of the thread follows the message, under its timestamp."""
+    def post(self, channel: str, message: SlackMessage) -> tuple[str, str]:
+        """The `channel` and the `ts` of the message. Each reply of the thread follows it, under its timestamp."""
         result = self._call("chat.postMessage", message._render(channel))
         for blocks in message.thread:
             reply = {
@@ -54,6 +59,20 @@ class SlackClient:
                 "blocks": blocks,
             }
             self._call("chat.postMessage", reply)
+        return result["channel"], result["ts"]
+
+    def update(self, channel: str, ts: str, message: SlackMessage) -> None:
+        """Rewrite the message posted at `ts` with `message`."""
+        self._call("chat.update", {**message._render(channel), "ts": ts})
+
+    def find_message(self, member: str, metadata: dict) -> tuple[str, str, list[dict]] | None:
+        """The `channel`, the `ts` and the blocks of the newest message of the member with `metadata`."""
+        channel = self._call("conversations.open", {"users": member})["channel"]["id"]
+        query = {"channel": channel, "include_all_metadata": "true", "limit": 100}
+        for found in self._call("conversations.history", query=query)["messages"]:
+            if found.get("metadata") == metadata:
+                return channel, found["ts"], found["attachments"][0]["blocks"]
+        return None
 
     def _call(self, method: str, payload: dict | None = None, query: dict | None = None) -> dict:
         url = _API + method + (f"?{urllib.parse.urlencode(query)}" if query else "")

@@ -1,0 +1,129 @@
+# Notification of a review request in Slack. The job notify posts the message of the event at
+# once, with a line that says the summary is in progress. The job summarize asks a Claude Code
+# agent (cortex harness, LiteLLM through the IT mTLS bastion) for the summary of the pull
+# request, then updates the message. A review that approves or requests changes restyles the message
+# and runs no summary.
+#
+# The caller runs on pull_request_target (review_requested) and pull_request_review (submitted),
+# and grants contents: read, pull-requests: read and id-token: write. No job checks out the code of
+# the pull request. Requirements: slack-notification/README.md.
+name: Review notification
+
+on:
+  workflow_call:
+    inputs:
+      instance_type:
+        description: "Type of instances to run the summary job on"
+        type: string
+        required: false
+        default: "ubuntu-latest"
+      timeout_job:
+        description: "Timeout (in minutes) of the summary job"
+        type: number
+        required: false
+        default: 20
+      model:
+        description: "Model the agent runs on (an `opus`/`sonnet`/`haiku` alias the LiteLLM gateway maps, or a model name it serves verbatim)"
+        type: string
+        required: false
+        default: "sonnet"
+      cortex_ref:
+        description: "Git ref of the cortex harness to use"
+        type: string
+        required: false
+        default: "main"
+      claude_code_version:
+        description: "Claude Code CLI version to install"
+        type: string
+        required: false
+        default: "stable"
+      tunnel_hosts:
+        description: "Internal hosts to reach through the mTLS tunnel (space-separated); must be allowlisted on IT's side"
+        type: string
+        required: false
+        default: "litellm-prod.int.jahia.com"
+
+jobs:
+  notify:
+    name: Post the review notification
+    # A review on a pull request of a fork runs with no secrets, so it would fail with no message
+    if: >-
+      github.event_name == 'pull_request_target'
+      || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      messages: ${{ steps.notify.outputs.messages }}
+    steps:
+      - id: notify
+        uses: jahia/jahia-modules-action/slack-notification@v2
+        with:
+          slack-token: ${{ secrets.CORTEX_SLACK_BOT_TOKEN }}
+          # The GITHUB_TOKEN cannot read the members of a team
+          github-token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+
+  summarize:
+    name: Summarize the pull request with Claude Code
+    needs: notify
+    # A pull request of a fork gets no secrets, and a review posts no message to update.
+    # !cancelled(): a refusal of Slack for one member fails notify, and the others still get the summary.
+    if: >-
+      !cancelled()
+      && github.event_name == 'pull_request_target'
+      && needs.notify.outputs.messages != ''
+      && needs.notify.outputs.messages != '[]'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ inputs.instance_type }}
+    timeout-minutes: ${{ inputs.timeout_job }}
+    permissions:
+      contents: read
+      pull-requests: read
+      id-token: write
+    steps:
+      - name: Open the mTLS tunnel to internal Jahia services
+        uses: jahia/jahia-modules-action/mtls-tunnel@v2
+        with:
+          hosts: ${{ inputs.tunnel_hosts }}
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
+          server-name: ci-egress.jahia.com
+          audience: jahia-ci-egress
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
+          canary-url: ${{ vars.AI_LITELLM_BASE_URL }}/health/liveliness
+
+      - name: Set up Claude Code and the cortex harness
+        id: setup
+        uses: jahia/jahia-modules-action/ai-agent-setup@v2
+        with:
+          claude_code_version: ${{ inputs.claude_code_version }}
+          anthropic_base_url: ${{ vars.AI_LITELLM_BASE_URL }}
+          anthropic_auth_token: ${{ secrets.AI_LITELLM_AUTH_TOKEN_USAGE_PR_SUMMARY || secrets.AI_LITELLM_AUTH_TOKEN_USAGE_PRS }}
+          default_opus_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_OPUS_MODEL }}
+          default_sonnet_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_SONNET_MODEL }}
+          default_haiku_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_HAIKU_MODEL }}
+          cortex_ref: ${{ inputs.cortex_ref }}
+          cortex_telemetry_token: ${{ secrets.CORTEX_TELEMETRY_TOKEN }}
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+
+      - name: Summarize the pull request
+        id: summary
+        uses: jahia/jahia-modules-action/ai-pr-summary@v2
+        with:
+          target_url: ${{ github.event.pull_request.html_url }}
+          # The token of the job reads the pull request before the agent runs, and cannot write
+          github_token: ${{ github.token }}
+          cortex_path: ${{ steps.setup.outputs.cortex_path }}
+          model: ${{ inputs.model }}
+
+      # always(): a failed summary still replaces the line "Summary in progress"
+      - name: Update the message with the summary
+        if: always()
+        uses: jahia/jahia-modules-action/slack-notification@v2
+        with:
+          slack-token: ${{ secrets.CORTEX_SLACK_BOT_TOKEN }}
+          github-token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          messages: ${{ needs.notify.outputs.messages }}
+          summary-file: ${{ steps.summary.outputs.summary_file }}
