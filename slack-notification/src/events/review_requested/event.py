@@ -41,6 +41,9 @@ class Summary(NamedTuple):
             return None
         if not all(isinstance(text, str) for text in [*bullets, *files]):
             return None
+        # A summary with no bullet says nothing, so it reads as no summary
+        if not bullets:
+            return None
         return cls(tuple(text[:_BULLET_CHARS] for text in bullets[:_BULLETS]), tuple(files))
 
 

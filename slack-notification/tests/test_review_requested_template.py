@@ -76,6 +76,13 @@ class TestTheReviewMessage(unittest.TestCase):
             "section: *What the pull request changes*\n_No summary, see the pull request_", lines(pending=False)
         )
 
+    def test_a_parsed_summary_with_no_bullet_reads_as_no_summary(self):
+        summary = Summary.parse({"bullets": [], "files": []})
+        self.assertIn(
+            "section: *What the pull request changes*\n_No summary, see the pull request_",
+            lines(summary=summary, pending=False),
+        )
+
     def test_a_request_with_no_file_has_no_where_to_start_section(self):
         shown = "\n".join(lines(build_request(lines=0, files=(), more=0)))
         self.assertNotIn("Where to start", shown)

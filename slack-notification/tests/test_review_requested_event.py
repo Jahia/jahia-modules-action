@@ -112,6 +112,9 @@ class TestTheSummary(unittest.TestCase):
         self.assertEqual(summary.bullets, ("1", "2", "3"))
         self.assertEqual(len(Summary.parse({"bullets": ["x" * 500], "files": []}).bullets[0]), 200)
 
+    def test_a_summary_with_no_bullet_gives_none(self):
+        self.assertIsNone(Summary.parse({"bullets": [], "files": []}))
+
     def test_anything_else_gives_none(self):
         for data in (
             ["a"],
