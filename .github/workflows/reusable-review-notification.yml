@@ -1,10 +1,10 @@
 # Notification of a review request in Slack. The job notify posts the message of the event at
 # once, with a line that says the summary is in progress. The job summarize asks a Claude Code
 # agent (cortex harness, LiteLLM through the IT mTLS bastion) for the summary of the pull
-# request, then updates the message. A review that approves or requests changes restyles the message
-# and runs no summary.
+# request, then updates the message. A review that approves, requests changes or is dismissed restyles
+# the message and runs no summary.
 #
-# The caller runs on pull_request_target (review_requested) and pull_request_review (submitted),
+# The caller runs on pull_request_target (review_requested) and pull_request_review (submitted, dismissed),
 # and grants contents: read, pull-requests: read and id-token: write. No job checks out the code of
 # the pull request. Requirements: slack-notification/README.md.
 name: Review notification

@@ -45,6 +45,12 @@ class TestTheReview(unittest.TestCase):
         }
         self.assertEqual(recipient.message.blocks, [header])
 
+    def test_a_dismissed_review_takes_the_message_back_to_the_request(self):
+        github = FakeGitHub({("list_author_commits", "rev"): []})
+        [recipient] = review_submitted.read(build_payload("dismissed"), github, Inputs()).recipients
+        self.assertEqual(recipient.message.color, "#1D9BD1")
+        self.assertEqual(recipient.message.blocks[0]["text"]["text"], ":eye: Review requested")
+
     def test_a_request_for_changes_gives_the_reviewer_a_header_on_the_red_bar(self):
         github = FakeGitHub({("list_author_commits", "rev"): []})
         [recipient] = review_submitted.read(build_payload("changes_requested"), github, Inputs()).recipients

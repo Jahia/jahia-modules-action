@@ -10,7 +10,7 @@ alone. It runs on the `gh` of the runner and on its `python3`, which must be Pyt
 |---|---|---|
 | [`ci_checks`](#the-event-ci_checks) | `workflow_run`, `completed`, on the workflows of the checks | The person who triggered the run |
 | [`review_requested`](#the-event-review_requested) | `pull_request_target`, `review_requested` | The requested reviewer, or each member of the requested team |
-| [`review_submitted`](#the-event-review_requested) | `pull_request_review`, `submitted` | The reviewer who approved or requested changes, whose message of the request turns to that state |
+| [`review_submitted`](#the-event-review_requested) | `pull_request_review`, `submitted` and `dismissed` | The reviewer who approved or requested changes, whose message of the request turns to that state |
 
 ## Usage
 
@@ -54,7 +54,7 @@ on:
   pull_request_target:
     types: [review_requested]
   pull_request_review:
-    types: [submitted]
+    types: [submitted, dismissed]
 
 jobs:
   notify:
@@ -178,7 +178,8 @@ Each count is in bold, and links to its tab of the pull request.
 
 A request of a team goes to each member of the team, but the author of the pull request and the sender of the
 request. An action of `pull_request_target` other than `review_requested` posts nothing, and neither does a review
-requested from a bot.
+requested from a bot. A team that assigns its reviews automatically makes GitHub request the review of the members
+it picks too, so each of them can receive a second message.
 
 The message opens with the line `_Summary in progress…_`. The job `summarize` of the reusable workflow runs
 `ai-pr-summary`, which asks a Claude Code agent for a JSON file of 3 bullets at most,
@@ -193,14 +194,15 @@ and no tool that reaches the network: no Bash and no web tool. Its one allowed w
 `summarize` also runs when Slack refused the message of one member, so the other members still get the summary.
 
 Each message carries the metadata `review_requested` with the repository, the number and the reviewer, so a later
-event finds it. A review of the reviewer that approves, or that requests changes, reads the last 1000 messages
-of the direct message, 100 at a time, and finds the newest message with that metadata. It then turns the header and the bar of that message
-to the state of the review:
+event finds it. A review of the reviewer that approves, requests changes or is dismissed reads the last 1000
+messages of the direct message, 100 at a time, and finds the newest message with that metadata. It then turns the
+header and the bar of that message to the state of the review:
 
 | State | Header | Bar |
 |---|---|---|
 | Approved | `:white_check_mark: Review approved` | `#2EB67D` |
 | Changes requested | `:x: Review request changes` | `#E01E5A` |
+| Dismissed | `:eye: Review requested` | `#1D9BD1` |
 
 The review posts nothing, and a message that is no longer in those 1000 states a notice. A comment changes
 nothing, and neither does a review of a bot. A later review that decides turns the message again. A review on a

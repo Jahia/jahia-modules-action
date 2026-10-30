@@ -9,10 +9,11 @@ from templates import message, pull_request
 from events.review_requested.event import ReviewRequest, Summary
 
 _REQUESTED = ("#1D9BD1", ":eye:", "👀", "Review requested")
-# The header and the bar of each review that decides, keyed by its state in the REST API of GitHub
+# The header and the bar of each state of a review in the REST API of GitHub, a dismissal back to the request
 VERDICTS = {
     "APPROVED": ("#2EB67D", ":white_check_mark:", "✅", "Review approved"),
     "CHANGES_REQUESTED": ("#E01E5A", ":x:", "❌", "Review request changes"),
+    "DISMISSED": _REQUESTED,
 }
 _IN_PROGRESS = "_Summary in progress…_"
 _NO_SUMMARY = "_No summary, see the pull request_"
