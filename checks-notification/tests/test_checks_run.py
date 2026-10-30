@@ -4,11 +4,10 @@ job, and the jobs that passed only after a retry."""
 import pathlib
 import sys
 import unittest
-import unittest.mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 from checks_run import CiChecks, CiError, CiJob
-from github_api import GitHubApi
+from fakes import FakeGitHub
 
 REPO = "Jahia/sitemap"
 BLOB = "https://github.com/Jahia/sitemap/blob/ec06bccb1fc1f819899a22fa08223da38b4310a6"
@@ -51,19 +50,17 @@ def build_annotation(message, title="", path=".github", line=None):
 class RunOnGitHub(unittest.TestCase):
     def read(self, run, jobs, annotations=None, logs=None, earlier=None):
         """GitHub holds these jobs, the annotations and the log of each job by its ID, and the jobs of the
-        previous attempt, and raises `KeyError` on any other call."""
+        previous attempt, and raises `KeyError` on any other read."""
         attempt = run["run_attempt"]
-        answers = {
-            ("list_jobs", REPO, "1"): jobs,
-            ("list_attempt_jobs", REPO, "1", attempt - 1): earlier or [],
-            **{("list_annotations", REPO, str(key)): value for key, value in (annotations or {}).items()},
-            **{("read_job_log", REPO, str(key)): value for key, value in (logs or {}).items()},
-        }
-        for name in ("list_jobs", "list_attempt_jobs", "list_annotations", "read_job_log"):
-            self.enterContext(
-                unittest.mock.patch.object(GitHubApi, name, lambda *args, name=name: answers[(name, *args)])
-            )
-        return CiChecks.read(run)
+        github = FakeGitHub(
+            {
+                ("list_jobs", "1"): jobs,
+                ("list_attempt_jobs", "1", attempt - 1): earlier or [],
+                **{("list_annotations", str(key)): value for key, value in (annotations or {}).items()},
+                **{("read_job_log", str(key)): value for key, value in (logs or {}).items()},
+            }
+        )
+        return CiChecks.read(run, github)
 
 
 class TestTheChecksOfARun(RunOnGitHub):

@@ -1,6 +1,6 @@
 """The checks of a completed run of GitHub Actions on a pull request: the count of its jobs, each failed job with
-its failed step and its errors, and the jobs that passed only after a retry. `CiChecks.read` reads them through
-`GitHubApi`, and the README of the action states where the errors come from."""
+its failed step and its errors, and the jobs that passed only after a retry. `CiChecks.read` reads them through the
+`GitHubApi` that the caller passes, and the README of the action states where the errors come from."""
 
 import re
 from collections import Counter
@@ -122,16 +122,17 @@ class CiChecks(NamedTuple):
         return run["event"] == "pull_request" and bool(run["pull_requests"]) and run["conclusion"] not in _NO_RESULT
 
     @classmethod
-    def read(cls, run: dict) -> Self:
-        """The checks of `run`, a completed run on a pull request as `GitHubApi.read_run` returns it."""
+    def read(cls, run: dict, github: GitHubApi) -> Self:
+        """The checks of `run`, a completed run on a pull request as `GitHubApi.read_run` returns it, read through
+        `github`, the repository of the run."""
         repository = run["repository"]
         name, run_id, attempt, sha = repository["full_name"], str(run["id"]), run["run_attempt"], run["head_sha"]
         number = run["pull_requests"][0]["number"]
-        countable = [job for job in GitHubApi.list_jobs(name, run_id) if job["conclusion"] not in _UNCOUNTED]
+        countable = [job for job in github.list_jobs(run_id) if job["conclusion"] not in _UNCOUNTED]
         failed = [job for job in countable if cls._is_failed(job)]
         blob_url = f"{repository['html_url']}/blob/{sha}"
-        errors = cls._collect_errors(name, failed, blob_url) if run["conclusion"] != "success" else {}
-        earlier = GitHubApi.list_attempt_jobs(name, run_id, attempt - 1) if attempt > 1 else []
+        errors = cls._collect_errors(github, failed, blob_url) if run["conclusion"] != "success" else {}
+        earlier = github.list_attempt_jobs(run_id, attempt - 1) if attempt > 1 else []
         elapsed = datetime.fromisoformat(run["updated_at"]) - datetime.fromisoformat(run["run_started_at"])
         return cls(
             workflow=run["name"],
@@ -154,16 +155,15 @@ class CiChecks(NamedTuple):
         )
 
     @classmethod
-    def _collect_errors(cls, repository: str, failed: list[dict], blob_url: str) -> dict[int, list[CiError]]:
+    def _collect_errors(cls, github: GitHubApi, failed: list[dict], blob_url: str) -> dict[int, list[CiError]]:
         # The errors of each failed job: their annotations, else the end of their logs
         errors = {
-            job["id"]: CiError._read_annotations(GitHubApi.list_annotations(repository, str(job["id"])), blob_url)
-            for job in failed
+            job["id"]: CiError._read_annotations(github.list_annotations(str(job["id"])), blob_url) for job in failed
         }
         if any(errors.values()):
             return errors
         # A run whose failed jobs write no annotation, such as a Maven build, leaves its errors in their logs
-        return {job["id"]: CiError._read_log(GitHubApi.read_job_log(repository, str(job["id"]))) for job in failed}
+        return {job["id"]: CiError._read_log(github.read_job_log(str(job["id"]))) for job in failed}
 
     @classmethod
     def _find_flaky(cls, jobs: list[dict], earlier: list[dict]) -> tuple[CiJob, ...]:

@@ -25,13 +25,13 @@ def _find_email(commits: list[dict], login: str) -> str:
 
 
 def main() -> int:
-    repository = os.environ["GITHUB_REPOSITORY"]
-    run = GitHubApi.read_run(repository, os.environ["RUN_ID"])
+    github = GitHubApi(os.environ["GITHUB_REPOSITORY"])
+    run = github.read_run(os.environ["RUN_ID"])
     if not CiChecks.has_result(run):
         print("::notice::the run is no completed run of a pull request, so nothing is posted")
         return 0
     actor = run["triggering_actor"]["login"]
-    email = _find_email(GitHubApi.list_pull_commits(repository, run["pull_requests"][0]["number"]), actor)
+    email = _find_email(github.list_pull_commits(run["pull_requests"][0]["number"]), actor)
     if not email:
         print(f"::warning::no commit of the pull request belongs to {actor}, so nothing is posted")
         return 0
@@ -41,7 +41,7 @@ def main() -> int:
         if not member:
             print(f"::warning::no Slack member has the email of {actor}, so nothing is posted")
             return 0
-        slack.post(member, ci_checks.render(CiChecks.read(run)))
+        slack.post(member, ci_checks.render(CiChecks.read(run, github)))
     except SlackError as fault:
         print(f"::error::Slack refused the call: {fault}")
         return 1

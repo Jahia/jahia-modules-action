@@ -28,18 +28,18 @@ class TestARead(unittest.TestCase):
 
     def test_a_network_fault_runs_again_and_the_next_answer_counts(self):
         slept = self.answer(TIMEOUT, subprocess.CompletedProcess([], 0, '{"id": 7}', ""))
-        self.assertEqual(GitHubApi.read_run("Jahia/sitemap", "7"), {"id": 7})
+        self.assertEqual(GitHubApi("Jahia/sitemap").read_run("7"), {"id": 7})
         self.assertEqual(slept.call_count, 1)
 
     def test_the_third_fault_raises_what_gh_said(self):
         self.answer(TIMEOUT, TIMEOUT, TIMEOUT)
         with self.assertRaisesRegex(GitHubError, "connection timed out"):
-            GitHubApi.read_run("Jahia/sitemap", "7")
+            GitHubApi("Jahia/sitemap").read_run("7")
 
     def test_an_http_4xx_raises_at_once(self):
         slept = self.answer(subprocess.CompletedProcess([], 1, "", "gh: Not Found (HTTP 404)"))
         with self.assertRaisesRegex(GitHubError, "HTTP 404"):
-            GitHubApi.read_run("Jahia/sitemap", "7")
+            GitHubApi("Jahia/sitemap").read_run("7")
         self.assertEqual(slept.call_count, 0)
 
 

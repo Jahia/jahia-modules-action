@@ -43,13 +43,9 @@ class TestTheMain(unittest.TestCase):
     def answer(self, run, commits):
         """GitHub holds `run` and the commits of its pull request, and answers no other read."""
         self.enterContext(mock.patch.dict(os.environ, ENVIRONMENT))
+        self.enterContext(mock.patch.object(GitHubApi, "read_run", lambda github, run_id: {"1": run}[run_id]))
         self.enterContext(
-            mock.patch.object(GitHubApi, "read_run", lambda repo, run_id: {("Jahia/sitemap", "1"): run}[(repo, run_id)])
-        )
-        self.enterContext(
-            mock.patch.object(
-                GitHubApi, "list_pull_commits", lambda repo, number: {("Jahia/sitemap", 42): commits}[(repo, number)]
-            )
+            mock.patch.object(GitHubApi, "list_pull_commits", lambda github, number: {42: commits}[number])
         )
 
     def test_a_run_that_is_no_completed_run_of_a_pull_request_posts_nothing(self):

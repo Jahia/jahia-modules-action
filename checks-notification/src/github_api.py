@@ -21,33 +21,34 @@ class GitHubError(Exception):
 
 
 class GitHubApi:
-    @classmethod
-    def read_run(cls, repo: str, run_id: str) -> dict:
-        return cls._read_json(f"repos/{repo}/actions/runs/{run_id}")
+    """The reads of one repository, named as `owner/name`."""
 
-    @classmethod
-    def list_jobs(cls, repo: str, run_id: str) -> list[dict]:
-        return cls._read_json(f"repos/{repo}/actions/runs/{run_id}/jobs?per_page={_PAGE}")["jobs"]
+    def __init__(self, repo: str) -> None:
+        self._repo = repo
 
-    @classmethod
-    def list_attempt_jobs(cls, repo: str, run_id: str, attempt: int) -> list[dict]:
+    def read_run(self, run_id: str) -> dict:
+        return self._read_json(f"repos/{self._repo}/actions/runs/{run_id}")
+
+    def list_jobs(self, run_id: str) -> list[dict]:
+        return self._read_json(f"repos/{self._repo}/actions/runs/{run_id}/jobs?per_page={_PAGE}")["jobs"]
+
+    def list_attempt_jobs(self, run_id: str, attempt: int) -> list[dict]:
         """The jobs of one attempt of a run, where `list_jobs` reads its latest attempt."""
-        return cls._read_json(f"repos/{repo}/actions/runs/{run_id}/attempts/{attempt}/jobs?per_page={_PAGE}")["jobs"]
+        return self._read_json(f"repos/{self._repo}/actions/runs/{run_id}/attempts/{attempt}/jobs?per_page={_PAGE}")[
+            "jobs"
+        ]
 
-    @classmethod
-    def list_annotations(cls, repo: str, job_id: str) -> list[dict]:
+    def list_annotations(self, job_id: str) -> list[dict]:
         """The annotations of a job, which GitHub serves under the check run of the same ID."""
-        return cls._read_json(f"repos/{repo}/check-runs/{job_id}/annotations?per_page={_PAGE}")
+        return self._read_json(f"repos/{self._repo}/check-runs/{job_id}/annotations?per_page={_PAGE}")
 
-    @classmethod
-    def read_job_log(cls, repo: str, job_id: str) -> str:
+    def read_job_log(self, job_id: str) -> str:
         # gh prints the escape sequences of a log only with the flag, and the read of the log strips them
-        return cls._read(f"repos/{repo}/actions/jobs/{job_id}/logs", "--allow-escape-sequences")
+        return self._read(f"repos/{self._repo}/actions/jobs/{job_id}/logs", "--allow-escape-sequences")
 
-    @classmethod
-    def list_pull_commits(cls, repo: str, number: int) -> list[dict]:
+    def list_pull_commits(self, number: int) -> list[dict]:
         """The commits of a pull request, oldest first."""
-        pages = cls._read_json(f"repos/{repo}/pulls/{number}/commits?per_page={_PAGE}", "--paginate", "--slurp")
+        pages = self._read_json(f"repos/{self._repo}/pulls/{number}/commits?per_page={_PAGE}", "--paginate", "--slurp")
         return [commit for page in pages for commit in page]
 
     @classmethod
