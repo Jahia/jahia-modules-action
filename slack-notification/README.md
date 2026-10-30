@@ -167,10 +167,10 @@ its tabs show on GitHub, and the summary of the AI. The counts are the comments,
 changed files and the changed lines:
 
 ```text
-Conversation (0)   |   Commits (12)   |   Checks (18)   |   Files changed (26)   |   +1334 −54
+Conversation 0   |   Commits 12   |   Checks 18   |   Files changed 26   |   +1334 −54
 ```
 
-Each count links to its tab of the pull request.
+Each count is in bold, and links to its tab of the pull request.
 
 A request of a team goes to each member of the team, but the author of the pull request and the sender of the
 request. An action of `pull_request_target` other

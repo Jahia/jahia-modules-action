@@ -30,8 +30,8 @@ class TestTheReviewMessage(unittest.TestCase):
         self.assertEqual(shown[0], "header: :eye: Review requested")
         self.assertEqual(
             shown[-3],
-            f"context: Conversation (<{PULL}|0>)   |   Commits (<{PULL}/commits|3>)   |   Checks (<{PULL}/checks|18>)"
-            f"   |   Files changed (<{PULL}/files|26>)   |   +1334 −54",
+            f"context: Conversation *<{PULL}|0>*   |   Commits *<{PULL}/commits|3>*   |   Checks *<{PULL}/checks|18>*"
+            f"   |   Files changed *<{PULL}/files|26>*   |   +1334 −54",
         )
         self.assertEqual(shown[-2], "section: *What the pull request changes*\n_Summary in progress…_")
         self.assertEqual(shown[-1], "actions: Review on GitHub")
@@ -41,8 +41,8 @@ class TestTheReviewMessage(unittest.TestCase):
         pull = build_request().pull._replace(commits=1)
         request = build_request(pull=pull, comments=1, checks=1, files=1)
         self.assertIn(
-            f"context: Conversation (<{PULL}|1>)   |   Commit (<{PULL}/commits|1>)   |   Check (<{PULL}/checks|1>)"
-            f"   |   File changed (<{PULL}/files|1>)   |   +1334 −54",
+            f"context: Conversation *<{PULL}|1>*   |   Commit *<{PULL}/commits|1>*   |   Check *<{PULL}/checks|1>*"
+            f"   |   File changed *<{PULL}/files|1>*   |   +1334 −54",
             lines(request),
         )
 

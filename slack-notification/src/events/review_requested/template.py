@@ -43,7 +43,7 @@ def _show_counts(request: ReviewRequest) -> str:
     url = request.pull.url
     return "   |   ".join(
         [
-            f"Conversation (<{url}|{request.comments}>)",
+            f"Conversation *<{url}|{request.comments}>*",
             _count("Commit", "Commits", request.pull.commits, f"{url}/commits"),
             _count("Check", "Checks", request.checks, f"{url}/checks"),
             _count("File changed", "Files changed", request.files, f"{url}/files"),
@@ -53,7 +53,7 @@ def _show_counts(request: ReviewRequest) -> str:
 
 
 def _count(one: str, many: str, value: int, url: str) -> str:
-    return f"{one if value == 1 else many} (<{url}|{value}>)"
+    return f"{one if value == 1 else many} *<{url}|{value}>*"
 
 
 def _show_summary(summary: Summary | None, pending: bool) -> str:
