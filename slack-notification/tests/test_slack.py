@@ -47,6 +47,37 @@ class TestTheClient(unittest.TestCase):
             payloads[1], {"channel": "D1", "thread_ts": "1.5", "text": "text", "blocks": [{"type": "divider"}]}
         )
 
+    def test_a_post_returns_the_channel_and_the_ts_and_sends_the_metadata(self):
+        self.serve({"ok": True, "channel": "D1", "ts": "1.5"})
+        metadata = {"event_type": "review_requested", "event_payload": {"number": 42}}
+        self.assertEqual(SlackClient("t").post("U1", SlackMessage("#fff", "t", [], (), metadata)), ("D1", "1.5"))
+        self.assertEqual(json.loads(self.requests[0].data)["metadata"], metadata)
+
+    def test_an_update_rewrites_the_message_at_its_ts(self):
+        self.serve({"ok": True})
+        SlackClient("t").update("D1", "1.5", SlackMessage("#2EB67D", "t", [{"type": "divider"}]))
+        payload = json.loads(self.requests[0].data)
+        self.assertEqual(
+            (self.requests[0].full_url.rsplit("/", 1)[1], payload["channel"], payload["ts"]),
+            ("chat.update", "D1", "1.5"),
+        )
+
+    def test_the_newest_message_with_the_metadata_is_found_and_none_otherwise(self):
+        wanted = {"event_type": "review_requested", "event_payload": {"number": 42}}
+        history = [
+            {"ts": "3", "metadata": {"event_type": "other", "event_payload": {}}},
+            {"ts": "2", "metadata": wanted, "attachments": [{"blocks": [{"type": "header"}]}]},
+        ]
+        self.serve(
+            {"ok": True, "channel": {"id": "D1"}},
+            {"ok": True, "messages": history},
+            {"ok": True, "channel": {"id": "D1"}},
+            {"ok": True, "messages": []},
+        )
+        client = SlackClient("t")
+        self.assertEqual(client.find_message("U1", wanted), ("D1", "2", [{"type": "header"}]))
+        self.assertIsNone(client.find_message("U1", wanted))
+
     def test_an_http_status_such_as_a_rate_limit_raises_with_the_status(self):
         def urlopen(request, timeout):
             raise urllib.error.HTTPError(request.full_url, 429, "Too Many Requests", None, None)
