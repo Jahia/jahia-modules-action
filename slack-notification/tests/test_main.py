@@ -230,7 +230,7 @@ class TestTheRecipients(unittest.TestCase):
         commit = {"commit": {"author": {"email": "rev@x.com"}}}
         github = FakeGitHub({("list_author_commits", "rev"): [commit]})
         payload = {
-            "review": {"state": "approved", "user": {"login": "rev"}},
+            "review": {"state": "approved", "user": {"login": "rev", "type": "User"}},
             "pull_request": {"number": 42},
             "repository": {"full_name": "Jahia/sitemap"},
         }
@@ -240,10 +240,10 @@ class TestTheRecipients(unittest.TestCase):
         self.assertIn("::notice::no message of the request to update", output.getvalue())
         self.assertEqual((slack.posts, slack.updates), ([], []))
 
-    def test_an_approval_by_a_reviewer_with_no_email_names_the_commits_of_the_repository_in_its_warning(self):
+    def test_an_approval_by_a_reviewer_with_no_email_names_the_commits_of_the_organization_in_its_warning(self):
         github = FakeGitHub({("list_author_commits", "rev"): []})
         payload = {
-            "review": {"state": "approved", "user": {"login": "rev"}},
+            "review": {"state": "approved", "user": {"login": "rev", "type": "User"}},
             "pull_request": {"number": 42},
             "repository": {"full_name": "Jahia/sitemap"},
         }
@@ -252,6 +252,22 @@ class TestTheRecipients(unittest.TestCase):
         self.assertEqual(code, 0)
         warning = "::warning::no commit of the organization gives an email of rev, so nothing is posted"
         self.assertIn(warning, output.getvalue())
+
+    def test_a_refused_read_of_the_emails_of_one_person_fails_the_job_at_the_end_and_the_others_still_receive_theirs(
+        self,
+    ):
+        slack = FakeSlack({"b@j.com": "U2"})
+        notification = Notification(
+            (
+                Recipient("a", [], build_message(), fault="HTTP 403"),
+                Recipient("b", ["b@j.com"], build_message()),
+            )
+        )
+        code, output, written = self.notify(notification, slack)
+        self.assertEqual(code, 1)
+        self.assertIn("::error::GitHub refused the emails of a: HTTP 403", output)
+        self.assertNotIn("::warning::", output)
+        self.assertEqual(written, 'messages=[["D1", "1.5", "b"]]\n')
 
     def test_a_reviewer_with_no_email_states_a_warning(self):
         notification = Notification((Recipient("a", [], build_message()),))

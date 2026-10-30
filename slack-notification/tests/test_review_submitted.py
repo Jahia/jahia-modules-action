@@ -11,9 +11,9 @@ from fakes import FakeGitHub
 from notification import Inputs, Skip
 
 
-def build_payload(state="approved"):
+def build_payload(state="approved", kind="User"):
     return {
-        "review": {"state": state, "user": {"login": "rev"}},
+        "review": {"state": state, "user": {"login": "rev", "type": kind}},
         "pull_request": {"number": 42},
         "repository": {"full_name": "Jahia/sitemap"},
     }
@@ -23,9 +23,10 @@ class TestTheReview(unittest.TestCase):
     def test_an_event_is_registered_for_pull_request_review(self):
         self.assertIs(events.EVENTS["pull_request_review"], review_submitted)
 
-    def test_a_comment_raises_skip(self):
-        with self.assertRaises(Skip):
-            review_submitted.read(build_payload("commented"), FakeGitHub({}), Inputs())
+    def test_a_comment_and_a_review_of_a_bot_raise_skip(self):
+        for payload in (build_payload("commented"), build_payload(kind="Bot")):
+            with self.subTest(payload=payload), self.assertRaises(Skip):
+                review_submitted.read(payload, FakeGitHub({}), Inputs())
 
     def test_an_approval_gives_the_reviewer_a_header_on_the_green_bar_and_the_metadata_of_the_request(self):
         commit = {"commit": {"author": {"email": "rev@x.com"}}}

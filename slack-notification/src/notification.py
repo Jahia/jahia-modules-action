@@ -8,12 +8,14 @@ from slack import SlackMessage
 
 class Recipient(NamedTuple):
     """A message for one person: their GitHub login, their emails and the message. With `find`, the metadata of an
-    earlier message, `main.py` restyles that message instead of posting a new one."""
+    earlier message, `main.py` restyles that message instead of posting a new one. `fault` is the refusal of GitHub
+    that left the emails unread, if any."""
 
     login: str
     emails: list[str]
     message: SlackMessage
     find: dict | None = None
+    fault: str = ""
 
 
 class Notification(NamedTuple):

@@ -106,7 +106,8 @@ that account, as their author or their committer. It reads the last commit first
 `review_submitted` read the newest 50 commits of the account in the repositories of the organization instead,
 through the commit search of GitHub. A reviewer seldom has a commit in the pull request. The default branch of one
 repository is not enough either, because a squash merge carries the email of the account on GitHub, which may be
-a personal one. The search allows 30 calls a minute, so a team request to more than 30 members fails.
+a personal one. The search allows 30 calls a minute, so the members of a large team past that limit get no
+message.
 
 `users.lookupByEmail` finds the Slack member by the first email that Slack knows, and `chat.postMessage` posts to
 that member. A person with no such email gets no message, and so does a person whose emails Slack does not know.
@@ -114,7 +115,8 @@ The run then states a warning that names the person. The warning of a person wit
 that the run read.
 
 A refusal of GitHub fails the run, and the log names its error. A refusal of Slack for one person names that person
-and the error in the log. The other persons still receive their message, and the run fails at the end.
+and the error in the log, and so does a refusal of GitHub for the emails of one person. The other persons still
+receive their message, and the run fails at the end.
 
 An event that the action does not know fails the run, and an event with nothing to send states a notice.
 
@@ -175,14 +177,15 @@ Conversation 0   |   Commits 12   |   Checks 18   |   Files changed 26   |   +13
 Each count is in bold, and links to its tab of the pull request.
 
 A request of a team goes to each member of the team, but the author of the pull request and the sender of the
-request. An action of `pull_request_target` other
-than `review_requested` posts nothing, and neither does a review requested from a bot.
+request. An action of `pull_request_target` other than `review_requested` posts nothing, and neither does a review
+requested from a bot.
 
 The message opens with the line `_Summary in progress…_`. The job `summarize` of the reusable workflow runs
 `ai-pr-summary`, which asks a Claude Code agent for a JSON file of 3 bullets at most,
 then runs the action again with `messages` and `summary-file` to update the message. The update writes each message
 to the member that its triple names, and reads no email. A summary that fails or is not valid JSON turns the line to
-`_No summary, see the pull request_`. A pull request of a fork gets no summary, because a fork gets no secrets.
+`_No summary, see the pull request_`. A pull request of a fork gets no summary, because the agent reads no text
+from outside the organization, so its message shows `_No summary, see the pull request_` at once.
 
 A step before the agent reads the title, the description, the changed files and the diff of the pull request
 with the `GITHUB_TOKEN` of its job, which reads and cannot write. The agent reads them as files, and has no token
@@ -190,8 +193,8 @@ and no tool that reaches the network: no Bash and no web tool. Its one allowed w
 `summarize` also runs when Slack refused the message of one member, so the other members still get the summary.
 
 Each message carries the metadata `review_requested` with the repository, the number and the reviewer, so a later
-event finds it. A review of the reviewer that approves, or that requests changes, reads the last 100 messages of
-the direct message and finds the message with that metadata. It then turns the header and the bar of that message
+event finds it. A review of the reviewer that approves, or that requests changes, reads the last 1000 messages
+of the direct message, 100 at a time, and finds the newest message with that metadata. It then turns the header and the bar of that message
 to the state of the review:
 
 | State | Header | Bar |
@@ -199,13 +202,13 @@ to the state of the review:
 | Approved | `:white_check_mark: Review approved` | `#2EB67D` |
 | Changes requested | `:x: Review request changes` | `#E01E5A` |
 
-The review posts nothing, and a message that is no longer in those 100 states a notice. A comment changes nothing,
-and a later review that decides turns the message again. A review on a pull request of a fork runs no job, because a fork gets no
-secrets.
+The review posts nothing, and a message that is no longer in those 1000 states a notice. A comment changes
+nothing, and neither does a review of a bot. A later review that decides turns the message again. A review on a
+pull request of a fork runs no job, because the event `pull_request_review` of a fork gets no secrets.
 
-A review before the summary stays on the message. The update reads the reviews of the pull request, and leaves
-out each comment. A member whose latest review approves or requests changes keeps the header and the bar of that
-review.
+A review before the summary stays on the message. The update reads the reviews submitted after the message, and
+leaves out each comment, so a review of an earlier request of the same reviewer does not count. A member whose
+latest review approves or requests changes keeps the header and the bar of that review.
 
 ## Add an event
 

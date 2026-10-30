@@ -1,6 +1,7 @@
 """The data of a review request: the pull request, the reviewer, and the counts that the tabs of the pull request
 show on GitHub. `ReviewRequest.read` reads them, and `Summary` is the summary that an earlier step wrote."""
 
+from datetime import datetime
 from typing import NamedTuple, Self
 
 from github_api import GitHubApi
@@ -72,11 +73,17 @@ class ReviewRequest(NamedTuple):
         members = github.list_team_members(payload["requested_team"]["slug"])
         return [member["login"] for member in members if member["login"] not in excluded]
 
-    def find_verdicts(self, github: GitHubApi) -> dict[str, str]:
-        """The state of the latest review of the pull request that decides, for each login that made one."""
+    def find_verdicts(self, github: GitHubApi, posted: dict[str, float]) -> dict[str, str]:
+        """The state of the latest review that decides of each login of `posted`, among the reviews submitted after
+        `posted[login]`, the time of the message of that login. An earlier review answered an earlier request."""
         latest = {}
         for review in github.list_pull_reviews(self.pull.number):
             # A deleted account leaves its reviews with no user
-            if review["user"] and review["state"] in _VERDICTS:
-                latest[review["user"]["login"]] = review["state"]
+            login = (review["user"] or {}).get("login")
+            if (
+                login in posted
+                and review["state"] in _VERDICTS
+                and datetime.fromisoformat(review["submitted_at"]).timestamp() > posted[login]
+            ):
+                latest[login] = review["state"]
         return latest

@@ -36,7 +36,7 @@ def render(
 
 
 def build_metadata(repository: str, number: int, member: str) -> dict:
-    """The Slack metadata of the request that `member` receives, which the approval finds the message by."""
+    """The Slack metadata of the request that `member` receives, which a review that decides finds the message by."""
     return {
         "event_type": "review_requested",
         "event_payload": {"repository": repository, "number": number, "reviewer": member},

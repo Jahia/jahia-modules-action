@@ -7,6 +7,8 @@ import urllib.request
 from typing import NamedTuple
 
 _API = "https://slack.com/api/"
+# The pages that the search of a message reads in a direct message, the newest first
+_HISTORY_PAGES = 10
 
 
 class SlackMessage(NamedTuple):
@@ -66,12 +68,19 @@ class SlackClient:
         self._call("chat.update", {**message._render(channel), "ts": ts})
 
     def find_message(self, member: str, metadata: dict) -> tuple[str, str, list[dict]] | None:
-        """The `channel`, the `ts` and the blocks of the newest message of the member with `metadata`."""
+        """The `channel`, the `ts` and the blocks of the newest message of the member with `metadata`, among the
+        newest messages of the direct message."""
         channel = self._call("conversations.open", {"users": member})["channel"]["id"]
         query = {"channel": channel, "include_all_metadata": "true", "limit": 100}
-        for found in self._call("conversations.history", query=query)["messages"]:
-            if found.get("metadata") == metadata:
-                return channel, found["ts"], found["attachments"][0]["blocks"]
+        for _ in range(_HISTORY_PAGES):
+            page = self._call("conversations.history", query=query)
+            for found in page["messages"]:
+                if found.get("metadata") == metadata:
+                    return channel, found["ts"], found["attachments"][0]["blocks"]
+            cursor = page.get("response_metadata", {}).get("next_cursor")
+            if not cursor:
+                return None
+            query = {**query, "cursor": cursor}
         return None
 
     def _call(self, method: str, payload: dict | None = None, query: dict | None = None) -> dict:

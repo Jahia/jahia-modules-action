@@ -85,6 +85,18 @@ class TestTheClient(unittest.TestCase):
         query = urllib.parse.parse_qs(urllib.parse.urlsplit(history.full_url).query)
         self.assertEqual(query, {"channel": ["D1"], "include_all_metadata": ["true"], "limit": ["100"]})
 
+    def test_the_search_of_a_message_reads_the_next_page_of_the_history(self):
+        wanted = {"event_type": "review_requested", "event_payload": {"number": 42}}
+        older = {"ts": "1", "metadata": wanted, "attachments": [{"blocks": []}]}
+        self.serve(
+            {"ok": True, "channel": {"id": "D1"}},
+            {"ok": True, "messages": [{"ts": "2"}], "response_metadata": {"next_cursor": "c2"}},
+            {"ok": True, "messages": [older], "response_metadata": {"next_cursor": ""}},
+        )
+        self.assertEqual(SlackClient("t").find_message("U1", wanted), ("D1", "1", []))
+        query = urllib.parse.parse_qs(urllib.parse.urlsplit(self.requests[2].full_url).query)
+        self.assertEqual(query["cursor"], ["c2"])
+
     def test_an_http_status_such_as_a_rate_limit_raises_with_the_status(self):
         def urlopen(request, timeout):
             raise urllib.error.HTTPError(request.full_url, 429, "Too Many Requests", None, None)

@@ -31,7 +31,7 @@ class TestTheEmailsOfThePerson(unittest.TestCase):
         self.assertEqual(people.find_emails(github, "b", 42), ["b@j.com"])
         self.assertEqual(people.find_emails(github, "c", 42), [])
 
-    def test_the_commits_of_the_repository_by_the_login_give_its_emails_without_the_noreply_address(self):
+    def test_the_commits_of_the_organization_by_the_login_give_its_emails_without_the_noreply_address(self):
         commits = [
             build_commit("a", "a@j.com"),
             build_commit("a", "1+a@users.noreply.github.com"),

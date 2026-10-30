@@ -11,11 +11,13 @@ from events.review_requested.template import VERDICTS, build_metadata
 
 def read(payload: dict, github: GitHubApi, inputs: Inputs) -> Notification:
     """The new header of the request that `payload`, the event `pull_request_review`, decides. A review that
-    neither approves nor requests changes raises `Skip`."""
+    neither approves nor requests changes, and a review of a bot, raise `Skip`."""
     # The event writes the state in lower case, and the REST API of the reviews in upper case
     state = payload["review"]["state"].upper()
     if state not in VERDICTS:
         raise Skip("the review neither approves nor requests changes")
+    if payload["review"]["user"]["type"] == "Bot":
+        raise Skip("the reviewer is a bot")
     reviewer = payload["review"]["user"]["login"]
     repository, number = payload["repository"]["full_name"], payload["pull_request"]["number"]
     find = build_metadata(repository, number, reviewer)

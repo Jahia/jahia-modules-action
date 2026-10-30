@@ -67,7 +67,7 @@ jobs:
   summarize:
     name: Summarize the pull request with Claude Code
     needs: notify
-    # A pull request of a fork gets no secrets, and a review posts no message to update.
+    # The agent reads no text of a fork, and a review posts no message to update.
     # !cancelled(): a refusal of Slack for one member fails notify, and the others still get the summary.
     if: >-
       !cancelled()

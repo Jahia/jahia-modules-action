@@ -1,7 +1,7 @@
 """The reads of GitHub that the notification makes through `gh api`: a pull request, the jobs of an attempt of a
-run, the annotations and the log of a job, the commits of a pull request, the commits of an author in the organization, the check runs
-of a commit, the reviews of a pull request, and the members of a team. A read that fails runs again, unless a
-second call cannot change the refusal, and the last refusal raises `GitHubError`."""
+run, the annotations and the log of a job, the commits of a pull request, the commits of an author in the
+organization, the check runs of a commit, the reviews of a pull request, and the members of a team. A read that
+fails runs again, unless a second call cannot change the refusal, and the last refusal raises `GitHubError`."""
 
 import json
 import re

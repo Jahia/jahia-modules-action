@@ -63,6 +63,10 @@ def _deliver(slack: SlackClient, notification: Notification, posted: list[list[s
     # A refusal for one person must not cost the others their message
     without_email, without_member, refused = [], [], False
     for recipient in notification.recipients:
+        if recipient.fault:
+            print(f"::error::GitHub refused the emails of {recipient.login}: {recipient.fault}")
+            refused = True
+            continue
         if not recipient.emails:
             without_email.append(recipient.login)
             continue
