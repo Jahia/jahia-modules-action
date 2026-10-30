@@ -3,6 +3,7 @@ its failed step and its errors, and the jobs that passed only after a retry. `Ci
 `GitHubApi` that the caller passes, and the README of the action states where the errors come from."""
 
 import re
+import time
 from collections import Counter
 from datetime import datetime
 from enum import StrEnum
@@ -18,6 +19,9 @@ _NO_RESULT = {None, "cancelled", "skipped"}
 _UNCOUNTED = {"skipped", "neutral", "cancelled"}
 # The lines of a log that the message shows, the last ones before the failure
 _LOG_LINES = 3
+# GitHub can send the event of a completed run before each of its jobs carries a conclusion
+_SETTLE_READS = 6
+_SETTLE_SECONDS = 10
 # The annotation that the runner adds to each failed step, which names no error
 _EXIT_CODE = re.compile(r"Process completed with exit code \d+\.?$")
 # The timestamp that the runner writes before each line of a log, and the colors of a terminal
@@ -138,7 +142,8 @@ class CiChecks(NamedTuple):
         repository = run["repository"]
         run_id, attempt, sha = str(run["id"]), run["run_attempt"], run["head_sha"]
         number = run["pull_requests"][0]["number"]
-        countable = [job for job in github.list_jobs(run_id, attempt) if job["conclusion"] not in _UNCOUNTED]
+        jobs = cls._list_settled_jobs(github, run_id, attempt)
+        countable = [job for job in jobs if job["conclusion"] not in _UNCOUNTED]
         failed = [job for job in countable if cls._is_failed(job)]
         blob_url = f"{repository['html_url']}/blob/{sha}"
         errors = cls._collect_errors(github, failed, blob_url) if run["conclusion"] != "success" else {}
@@ -160,6 +165,18 @@ class CiChecks(NamedTuple):
             ),
             flaky=cls._find_flaky(countable, earlier),
         )
+
+    @staticmethod
+    def _list_settled_jobs(github: GitHubApi, run_id: str, attempt: int) -> list[dict]:
+        # A job with no conclusion would count as failed, so the jobs are read again until each one carries one
+        for _ in range(_SETTLE_READS - 1):
+            jobs = github.list_jobs(run_id, attempt)
+            pending = [job["name"] for job in jobs if job["conclusion"] is None]
+            if not pending:
+                return jobs
+            print(f"::notice::GitHub serves {', '.join(pending)} with no conclusion yet, so the jobs are read again")
+            time.sleep(_SETTLE_SECONDS)
+        return github.list_jobs(run_id, attempt)
 
     @staticmethod
     def _collect_errors(github: GitHubApi, failed: list[dict], blob_url: str) -> dict[int, list[CiError]]:

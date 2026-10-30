@@ -4,6 +4,7 @@ job, and the jobs that passed only after a retry."""
 import pathlib
 import sys
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 from events.ci_checks.event import CiChecks, CiError, CiJob
@@ -100,6 +101,16 @@ class TestTheChecksOfARun(RunOnGitHub):
         checks = self.read(build_run("success", attempt=2), jobs, earlier=earlier)
         self.assertEqual(checks.flaky, (CiJob("lint 2/6", "https://j/2", "Run the checks", (), 1),))
         self.assertEqual(checks.state, "unstable")
+
+    def test_a_job_that_github_serves_with_no_conclusion_yet_is_read_again(self):
+        # GitHub can send the event of a completed run before its jobs carry their conclusion
+        github = FakeGitHub({("read_pull", 42): build_pull()})
+        served = iter([[build_job(1, "lint", "success"), build_job(2, "gate", None)]])
+        settled = [build_job(1, "lint", "success"), build_job(2, "gate", "success")]
+        github.list_jobs = lambda *args: next(served, settled)
+        with mock.patch("events.ci_checks.event.time.sleep") as sleep:
+            checks = CiChecks.read(build_run("success"), github)
+        self.assertEqual((checks.passed, checks.failed, checks.state, sleep.call_count), (2, (), "passed", 1))
 
     def test_a_new_attempt_with_no_job_that_failed_before_stays_passed(self):
         jobs = [build_job(1, "lint", "success", attempt=2)]
