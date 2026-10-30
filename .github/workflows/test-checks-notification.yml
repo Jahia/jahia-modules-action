@@ -1,0 +1,22 @@
+# The unit tests of the action checks-notification, on each pull request that changes it.
+name: Test checks-notification
+
+on:
+  pull_request:
+    paths:
+      - "checks-notification/**"
+      - ".github/workflows/test-checks-notification.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+        with:
+          persist-credentials: false
+      - name: Run the unit tests
+        working-directory: checks-notification/tests
+        run: python3 -m unittest discover -s . -v
