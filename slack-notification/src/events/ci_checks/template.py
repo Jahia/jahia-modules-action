@@ -32,8 +32,8 @@ _FLAKY_SHOWN = 3
 _JOBS_SHOWN = 5
 _THREAD_ERRORS = 10
 _DETAIL_LINES = 3
-# Slack refuses a long block, so each line of an error is cut
-_LINE_CHARS = 150
+# Slack refuses a long block, so the detail of an error is cut, and a line under that length shows whole
+_DETAIL_CHARS = 450
 _TITLE_CHARS = 150
 
 
@@ -197,7 +197,7 @@ def _separate(groups: list[list[dict]]) -> list[dict]:
 
 
 def _cut_detail(detail: str) -> str:
-    return "\n".join([line[:_LINE_CHARS] for line in detail.splitlines() if line.strip()][:_DETAIL_LINES])
+    return "\n".join([line for line in detail.splitlines() if line.strip()][:_DETAIL_LINES])[:_DETAIL_CHARS]
 
 
 def _format_duration(seconds: int) -> str:
