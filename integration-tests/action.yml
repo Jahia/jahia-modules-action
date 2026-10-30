@@ -110,9 +110,9 @@ inputs:
     required: false
     default: 'true'
   should_skip_failure_notifications:
-    description: 'Should notifications be skipped ?'
+    description: 'Should notifications be skipped ? When unset, falls back to should_skip_pagerduty, then to false'
     required: false
-    default: 'true'
+    default: ''
   should_skip_notifications:
     description: 'Should notifications be skipped ?'
     required: false
@@ -121,7 +121,7 @@ inputs:
   should_skip_pagerduty:
     description: 'Should pagerduty notifications be skipped ?'
     required: false
-    default: 'false'
+    default: ''
     deprecationMessage: 'This input is deprecated as pagerduty is being removed, use should_skip_failure_notifications instead.'
   slack_channel_id_notifications:
     description: 'Channel id to be used for failure notifications'

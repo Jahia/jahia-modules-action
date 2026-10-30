@@ -1859,8 +1859,11 @@ function run() {
                 }));
             }
             // Notify user/team about a tests failure
-            if ((core.getInput('should_skip_pagerduty') === 'false' ||
-                core.getInput('should_skip_failure_notifications') === 'false') &&
+            // The deprecated should_skip_pagerduty only applies when should_skip_failure_notifications is unset
+            const skipFailureNotifications = core.getInput('should_skip_failure_notifications') ||
+                core.getInput('should_skip_pagerduty') ||
+                'false';
+            if (skipFailureNotifications === 'false' &&
                 process.env.CURRENT_BRANCH !== undefined &&
                 ['master', 'main', core.getInput('primary_release_branch')].includes(process.env.CURRENT_BRANCH)) {
                 // If the GitHub token is absent, display a warning in the log, but do not

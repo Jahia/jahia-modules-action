@@ -175,7 +175,7 @@ jobs:
         with:
           module_id: ${{ inputs.module_id }}
           incident_service: ${{ steps.deprecated_inputs.outputs.incident_service }}
-          should_skip_pagerduty: ${{ steps.deprecated_inputs.outputs.skip_notification }}
+          should_skip_failure_notifications: ${{ steps.deprecated_inputs.outputs.skip_notification }}
           testrail_project: ${{ inputs.testrail_project }}
           timeout_minutes: ${{ inputs.timeout_step }}
           tests_manifest: ${{ inputs.provisioning_manifest }}
