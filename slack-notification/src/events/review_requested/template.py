@@ -26,11 +26,16 @@ def render(request: ReviewRequest, member: str, summary: Summary | None, pending
     if request.files:
         body.append(build_section(f"*Where to start*\n{_show_files(request, summary)}"))
     body.append(build_buttons(("Review on GitHub", f"{pull.url}/files")))
-    metadata = {
-        "event_type": "review_requested",
-        "event_payload": {"repository": pull.repository, "number": pull.number, "reviewer": member},
-    }
+    metadata = build_metadata(pull.repository, pull.number, member)
     return message.compose("#1D9BD1", ":eye:", "👀", "Review requested", pull.reference, body, metadata=metadata)
+
+
+def build_metadata(repository: str, number: int, member: str) -> dict:
+    """The Slack metadata of the request that `member` receives, which the approval finds the message by."""
+    return {
+        "event_type": "review_requested",
+        "event_payload": {"repository": repository, "number": number, "reviewer": member},
+    }
 
 
 def _show_summary(summary: Summary | None, pending: bool) -> str:

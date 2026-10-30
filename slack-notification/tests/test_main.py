@@ -188,6 +188,21 @@ class TestTheRecipients(unittest.TestCase):
         self.assertIn("::notice::no message of the request to update", output)
         self.assertEqual((slack.posts, slack.updates), ([], []))
 
+    def test_an_approval_whose_message_is_not_in_the_direct_message_states_a_notice_and_updates_nothing(self):
+        slack = FakeSlack({"rev@x.com": "U1"})
+        commit = {"commit": {"author": {"email": "rev@x.com"}}}
+        github = FakeGitHub({("list_author_commits", "rev"): [commit]})
+        payload = {
+            "review": {"state": "approved", "user": {"login": "rev"}},
+            "pull_request": {"number": 42},
+            "repository": {"full_name": "Jahia/sitemap"},
+        }
+        with mock.patch("sys.stdout", new_callable=io.StringIO) as output:
+            code = main._notify("pull_request_review", payload, github, slack, Inputs())
+        self.assertEqual(code, 0)
+        self.assertIn("::notice::no message of the request to update", output.getvalue())
+        self.assertEqual((slack.posts, slack.updates), ([], []))
+
     def test_a_reviewer_with_no_email_states_a_warning(self):
         notification = Notification((Recipient("a", [], build_message()),))
         code, output, _ = self.notify(notification, FakeSlack())

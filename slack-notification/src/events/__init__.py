@@ -2,9 +2,10 @@
 workflow. Each folder contains `event.py`, the data the event reads, `template.py`, the message built from it, and
 `read` in its `__init__.py`, which takes the payload, GitHub and the `Inputs`, and returns the `Notification` or raises `Skip`."""
 
-from events import ci_checks, review_requested
+from events import ci_checks, review_approved, review_requested
 
 EVENTS = {
     "workflow_run": ci_checks,
+    "pull_request_review": review_approved,
     "pull_request_target": review_requested,
 }
