@@ -62,6 +62,13 @@ class TestARead(unittest.TestCase):
             ["repos/Jahia/sitemap/actions/runs/7/attempts/2/jobs?per_page=100", "--paginate", "--slurp"],
         )
 
+    def test_the_reviews_of_a_pull_request_come_from_every_page(self):
+        self.serve(subprocess.CompletedProcess([], 0, '[[{"id": 1}], [{"id": 2}]]', ""))
+        self.assertEqual(GitHubApi("Jahia/sitemap").list_pull_reviews(42), [{"id": 1}, {"id": 2}])
+        self.assertEqual(
+            self.calls[0][2:], ["repos/Jahia/sitemap/pulls/42/reviews?per_page=100", "--paginate", "--slurp"]
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

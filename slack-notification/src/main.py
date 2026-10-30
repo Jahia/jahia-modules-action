@@ -12,7 +12,7 @@ import sys
 
 from events import EVENTS
 from github_api import GitHubApi, GitHubError
-from notification import Inputs, Recipient, Skip
+from notification import Inputs, Notification, Recipient, Skip
 from slack import SlackClient, SlackError
 
 
@@ -23,7 +23,7 @@ def _notify(event_name: str, payload: dict, github: GitHubApi, slack: SlackClien
         print(f"::error::the action sends no message for the event {event_name}")
         return 1
     try:
-        recipients = event.read(payload, github, inputs).recipients
+        notification = event.read(payload, github, inputs)
     except Skip as reason:
         print(f"::notice::{reason}, so nothing is posted")
         return 0
@@ -31,47 +31,60 @@ def _notify(event_name: str, payload: dict, github: GitHubApi, slack: SlackClien
         print(f"::error::GitHub refused a read: {fault}")
         return 1
     posted = []
-    try:
-        if inputs.messages:
-            _update_all(slack, recipients, inputs.messages)
-        else:
-            _deliver(slack, recipients, posted)
-    except SlackError as fault:
-        print(f"::error::Slack refused the call: {fault}")
-        return 1
-    finally:
-        _write_output(posted)
-    return 0
+    if inputs.messages:
+        refused = _update_all(slack, notification.recipients, inputs.messages)
+    else:
+        refused = _deliver(slack, notification, posted)
+    _write_output(posted)
+    return 1 if refused else 0
 
 
-def _update_all(slack: SlackClient, recipients: tuple[Recipient, ...], messages: tuple[tuple[str, str], ...]) -> None:
-    if len(recipients) != len(messages):
-        print(
-            f"::warning::{len(messages)} messages to update for {len(recipients)} recipients, so the pairs in order update"
-        )
-    for (channel, ts), recipient in zip(messages, recipients):
-        slack.update(channel, ts, recipient.message)
+def _update_all(
+    slack: SlackClient, recipients: tuple[Recipient, ...], messages: tuple[tuple[str, str, str], ...]
+) -> bool:
+    # A refusal for one person must not cost the others their summary
+    by_login = {recipient.login: recipient for recipient in recipients}
+    unknown, refused = [], False
+    for channel, ts, login in messages:
+        if login not in by_login:
+            unknown.append(login)
+            continue
+        try:
+            slack.update(channel, ts, by_login[login].message)
+        except SlackError as fault:
+            print(f"::error::Slack refused the call for {login}: {fault}")
+            refused = True
+    if unknown:
+        print(f"::warning::the event gives no message for {', '.join(unknown)}, so their message stays as it is")
+    return refused
 
 
-def _deliver(slack: SlackClient, recipients: tuple[Recipient, ...], posted: list[list[str]]) -> None:
-    without_email, without_member = [], []
-    for recipient in recipients:
+def _deliver(slack: SlackClient, notification: Notification, posted: list[list[str]]) -> bool:
+    # A refusal for one person must not cost the others their message
+    without_email, without_member, refused = [], [], False
+    for recipient in notification.recipients:
         if not recipient.emails:
             without_email.append(recipient.login)
             continue
-        member = next(filter(None, (slack.find_member(email) for email in recipient.emails)), "")
-        if not member:
-            without_member.append(recipient.login)
-        elif recipient.find:
-            _restyle(slack, member, recipient)
-        else:
-            posted.append(list(slack.post(member, recipient.message)))
+        try:
+            member = next(filter(None, (slack.find_member(email) for email in recipient.emails)), "")
+            if not member:
+                without_member.append(recipient.login)
+            elif recipient.find:
+                _restyle(slack, member, recipient)
+            else:
+                posted.append([*slack.post(member, recipient.message), recipient.login])
+        except SlackError as fault:
+            print(f"::error::Slack refused the call for {recipient.login}: {fault}")
+            refused = True
     if without_email:
         print(
-            f"::warning::no commit of the pull request gives an email of {', '.join(without_email)}, so nothing is posted"
+            f"::warning::no commit {notification.email_source} gives an email of {', '.join(without_email)},"
+            " so nothing is posted"
         )
     if without_member:
         print(f"::warning::no Slack member has an email of {', '.join(without_member)}, so nothing is posted")
+    return refused
 
 
 def _restyle(slack: SlackClient, member: str, recipient: Recipient) -> None:

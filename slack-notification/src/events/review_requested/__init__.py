@@ -11,17 +11,24 @@ from events.review_requested.event import ReviewRequest, Summary
 
 def read(payload: dict, github: GitHubApi, inputs: Inputs) -> Notification:
     """The message of the review that `payload`, the event `pull_request_target`, requests. Another action, and a
-    review requested from a bot, raise `Skip`. A team request gives each member but the author and the sender."""
+    review requested from a bot, raise `Skip`. A team request gives each member but the author and the sender. An
+    update, with `inputs.messages`, reads no email, and a member who approved gets the header of the approval."""
     if payload["action"] != "review_requested":
         raise Skip("the action is no review request")
     request = ReviewRequest.read(payload, github)
-    summary, pending = Summary.parse(inputs.summary), not inputs.messages
+    summary, updating = Summary.parse(inputs.summary), bool(inputs.messages)
     members = request.find_members(payload, github)
+    # The update runs minutes after the request, so a member may have approved in between
+    approvers = request.find_approvers(github) if updating else set()
     return Notification(
         tuple(
             Recipient(
-                member, people.find_author_emails(github, member), template.render(request, member, summary, pending)
+                member,
+                # The update writes to the messages it is given, so it needs no email
+                [] if updating else people.find_author_emails(github, member),
+                template.render(request, member, summary, not updating, member in approvers),
             )
             for member in members
-        )
+        ),
+        people.AUTHOR_COMMITS,
     )

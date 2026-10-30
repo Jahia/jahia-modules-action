@@ -9,8 +9,11 @@ import events
 from events import review_requested
 from events.review_requested.event import ReviewFile, ReviewRequest, Summary
 from fakes import FakeGitHub
+from github_api import GitHubError
 from notification import Inputs, Skip
 from test_pull_request import build_pull
+
+SUMMARY = {"bullets": ["The sitemap lists the drafts"], "files": []}
 
 
 def build_payload(**changes):
@@ -101,6 +104,42 @@ class TestTheReviewRequest(unittest.TestCase):
         github = build_github([build_file("package-lock.json", 900), build_file("uv.lock", 3)])
         request = ReviewRequest.read(build_payload(), github)
         self.assertEqual((request.lines, request.files, request.more, request.size), (0, (), 0, "XS"))
+
+
+def build_review(login, state):
+    return {"user": {"login": login}, "state": state}
+
+
+class TestTheUpdate(unittest.TestCase):
+    """The run that writes the summary into the messages that the first run posted."""
+
+    def read_team(self, reviews, extra=None):
+        team = {"slug": "core", "name": "Core"}
+        payload = build_payload(requested_team=team)
+        del payload["requested_reviewer"]
+        extra = {("list_pull_reviews", 42): reviews} | (extra or {})
+        github = build_github([build_file("a.py", 3)], ["ann", "bob", "cid"], extra)
+        messages = tuple(("D1", f"{n}.5", login) for n, login in enumerate(("ann", "bob", "cid")))
+        return review_requested.read(payload, github, Inputs(messages, SUMMARY)).recipients
+
+    def test_the_update_reads_no_email_so_a_refused_read_of_the_commits_changes_nothing(self):
+        refusal = GitHubError("gh api repos/x/commits failed: HTTP 502")
+        extra = {("list_author_commits", login): refusal for login in ("ann", "bob", "cid")}
+        recipients = self.read_team([], extra)
+        self.assertEqual([(r.login, r.emails) for r in recipients], [("ann", []), ("bob", []), ("cid", [])])
+
+    def test_a_member_whose_latest_review_approves_gets_the_approved_header_and_keeps_the_body(self):
+        reviews = [
+            build_review("ann", "APPROVED"),
+            build_review("bob", "APPROVED"),
+            build_review("ann", "COMMENTED"),
+            build_review("bob", "CHANGES_REQUESTED"),
+            {"user": None, "state": "APPROVED"},
+        ]
+        ann, bob, cid = (recipient.message for recipient in self.read_team(reviews))
+        self.assertEqual((ann.color, bob.color, cid.color), ("#2EB67D", "#1D9BD1", "#1D9BD1"))
+        self.assertEqual(ann.blocks[0]["text"]["text"], ":white_check_mark: Approved")
+        self.assertIn("• The sitemap lists the drafts", str(ann.blocks))
 
 
 class TestTheSummary(unittest.TestCase):

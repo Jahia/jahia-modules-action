@@ -17,6 +17,8 @@ _MIN_MINUTES = 5
 _FILES_SHOWN = 3
 _BULLETS = 3
 _BULLET_CHARS = 200
+# The states of a review that decide; a comment or a pending review leaves the decision before it standing
+_VERDICTS = {"APPROVED", "CHANGES_REQUESTED", "DISMISSED"}
 
 
 class ReviewFile(NamedTuple):
@@ -96,6 +98,15 @@ class ReviewRequest(NamedTuple):
         excluded = {self.pull.author, payload["sender"]["login"]}
         members = github.list_team_members(payload["requested_team"]["slug"])
         return [member["login"] for member in members if member["login"] not in excluded]
+
+    def find_approvers(self, github: GitHubApi) -> set[str]:
+        """The logins whose latest review of the pull request that decides approves it."""
+        latest = {}
+        for review in github.list_pull_reviews(self.pull.number):
+            # A deleted account leaves its reviews with no user
+            if review["user"] and review["state"] in _VERDICTS:
+                latest[review["user"]["login"]] = review["state"]
+        return {login for login, state in latest.items() if state == "APPROVED"}
 
 
 def _is_generated(path: str) -> bool:

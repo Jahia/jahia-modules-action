@@ -17,16 +17,18 @@ class Recipient(NamedTuple):
 
 
 class Notification(NamedTuple):
-    """The recipients of one event."""
+    """The recipients of one event. `email_source` names the commits that give their emails, which a warning
+    states, such as `of the pull request`."""
 
     recipients: tuple[Recipient, ...]
+    email_source: str = "of the pull request"
 
 
 class Inputs(NamedTuple):
-    """What the caller of the action passes: the `channel` and `ts` of the messages to update, and the summary
-    that an earlier step wrote."""
+    """What the caller of the action passes: the `channel`, the `ts` and the login of the person of each message
+    to update, and the summary that an earlier step wrote."""
 
-    messages: tuple[tuple[str, str], ...] = ()
+    messages: tuple[tuple[str, str, str], ...] = ()
     summary: dict | None = None
 
 

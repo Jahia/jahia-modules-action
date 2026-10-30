@@ -5,7 +5,7 @@ from github_api import GitHubApi
 from notification import Inputs, Notification, Recipient, Skip
 from templates import message
 
-from events.review_requested.template import build_metadata
+from events.review_requested.template import APPROVED, build_metadata
 
 
 def read(payload: dict, github: GitHubApi, inputs: Inputs) -> Notification:
@@ -16,5 +16,6 @@ def read(payload: dict, github: GitHubApi, inputs: Inputs) -> Notification:
     reviewer = payload["review"]["user"]["login"]
     repository, number = payload["repository"]["full_name"], payload["pull_request"]["number"]
     find = build_metadata(repository, number, reviewer)
-    header = message.compose("#2EB67D", ":white_check_mark:", "✅", "Approved", f"{repository}#{number}", [])
-    return Notification((Recipient(reviewer, people.find_author_emails(github, reviewer), header, find),))
+    header = message.compose(*APPROVED, f"{repository}#{number}", [])
+    recipient = Recipient(reviewer, people.find_author_emails(github, reviewer), header, find)
+    return Notification((recipient,), people.AUTHOR_COMMITS)

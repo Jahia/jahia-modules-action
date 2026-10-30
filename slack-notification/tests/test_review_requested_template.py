@@ -83,6 +83,13 @@ class TestTheReviewMessage(unittest.TestCase):
             lines(summary=summary, pending=False),
         )
 
+    def test_an_approved_message_opens_on_the_approved_header_on_the_green_bar_and_keeps_the_body(self):
+        approved = template.render(build_request(), "dev", None, False, approved=True)
+        request = template.render(build_request(), "dev", None, False)
+        self.assertEqual((approved.color, approved.fallback), ("#2EB67D", "✅ Approved · Jahia/sitemap#42"))
+        self.assertEqual(read(approved.blocks)[0], "header: :white_check_mark: Approved")
+        self.assertEqual((approved.blocks[1:], approved.metadata), (request.blocks[1:], request.metadata))
+
     def test_a_request_with_no_file_has_no_where_to_start_section(self):
         shown = "\n".join(lines(build_request(lines=0, files=(), more=0)))
         self.assertNotIn("Where to start", shown)

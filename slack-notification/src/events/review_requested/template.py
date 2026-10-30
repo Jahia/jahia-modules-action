@@ -1,5 +1,5 @@
 """The message of a review request: the pull request, its size, the summary of the change, and the files to start
-from. The summary reads as in progress until the AI step answers."""
+from. The summary reads as in progress until the AI step answers, and an approval turns the header and the bar."""
 
 from blocks import build_buttons, build_context, build_section, escape
 from slack import SlackMessage
@@ -7,13 +7,18 @@ from templates import message, pull_request
 
 from events.review_requested.event import ReviewFile, ReviewRequest, Summary
 
+_REQUESTED = ("#1D9BD1", ":eye:", "👀", "Review requested")
+APPROVED = ("#2EB67D", ":white_check_mark:", "✅", "Approved")
 _SQUARES = 5
 _IN_PROGRESS = "_Summary in progress…_"
 _NO_SUMMARY = "_No summary, see the pull request_"
 
 
-def render(request: ReviewRequest, member: str, summary: Summary | None, pending: bool) -> SlackMessage:
-    """The message of `request` for `member`, the person who receives it."""
+def render(
+    request: ReviewRequest, member: str, summary: Summary | None, pending: bool, approved: bool = False
+) -> SlackMessage:
+    """The message of `request` for `member`, the person who receives it. With `approved`, it opens on the header
+    and the bar of the approval of `member`."""
     pull = request.pull
     body = [
         *pull_request.show(pull),
@@ -27,7 +32,8 @@ def render(request: ReviewRequest, member: str, summary: Summary | None, pending
         body.append(build_section(f"*Where to start*\n{_show_files(request, summary)}"))
     body.append(build_buttons(("Review on GitHub", f"{pull.url}/files")))
     metadata = build_metadata(pull.repository, pull.number, member)
-    return message.compose("#1D9BD1", ":eye:", "👀", "Review requested", pull.reference, body, metadata=metadata)
+    header = APPROVED if approved else _REQUESTED
+    return message.compose(*header, pull.reference, body, metadata=metadata)
 
 
 def build_metadata(repository: str, number: int, member: str) -> dict:

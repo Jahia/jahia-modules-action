@@ -4,6 +4,8 @@ from github_api import GitHubApi
 
 # The address that GitHub gives an account that hides its email, which no Slack member has
 _NOREPLY = "@users.noreply.github.com"
+# The commits that `find_author_emails` reads, as the warning of a person with no email names them
+AUTHOR_COMMITS = "of the repository"
 
 
 def find_author_emails(github: GitHubApi, login: str) -> list[str]:
