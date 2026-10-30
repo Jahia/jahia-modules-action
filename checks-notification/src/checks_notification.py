@@ -24,9 +24,10 @@ def _find_email(commits: list[dict], login: str) -> str:
     return ""
 
 
-def main() -> int:
-    github = GitHubApi(os.environ["GITHUB_REPOSITORY"])
-    run = github.read_run(os.environ["RUN_ID"])
+def notify(github: GitHubApi, slack: SlackClient, run_id: str) -> int:
+    """Post the message of the run `run_id` of `github` to the person who triggered it, through `slack`, and
+    return the exit code of the job: 1 when Slack refuses a call, 0 otherwise."""
+    run = github.read_run(run_id)
     if not CiChecks.has_result(run):
         print("::notice::the run is no completed run of a pull request, so nothing is posted")
         return 0
@@ -35,7 +36,6 @@ def main() -> int:
     if not email:
         print(f"::warning::no commit of the pull request belongs to {actor}, so nothing is posted")
         return 0
-    slack = SlackClient(os.environ["SLACK_TOKEN"])
     try:
         member = slack.find_member(email)
         if not member:
@@ -46,6 +46,11 @@ def main() -> int:
         print(f"::error::Slack refused the call: {fault}")
         return 1
     return 0
+
+
+def main() -> int:
+    github = GitHubApi(os.environ["GITHUB_REPOSITORY"])
+    return notify(github, SlackClient(os.environ["SLACK_TOKEN"]), os.environ["RUN_ID"])
 
 
 if __name__ == "__main__":

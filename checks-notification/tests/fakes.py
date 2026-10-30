@@ -1,4 +1,23 @@
-"""The repository on GitHub that a test passes in place of `GitHubApi`."""
+"""The repository on GitHub and the workspace of Slack that a test passes in place of `GitHubApi` and
+`SlackClient`."""
+
+
+class FakeSlack:
+    """A workspace whose members are `members`, keyed by their email, and which keeps each message it posts.
+    `refusal` is the error that a call raises, if any."""
+
+    def __init__(self, members: dict | None = None, refusal: Exception | None = None) -> None:
+        self.members = members or {}
+        self.refusal = refusal
+        self.posts = []
+
+    def find_member(self, email: str) -> str:
+        if self.refusal:
+            raise self.refusal
+        return self.members.get(email, "")
+
+    def post(self, channel: str, message) -> None:
+        self.posts.append((channel, message))
 
 
 class FakeGitHub:
