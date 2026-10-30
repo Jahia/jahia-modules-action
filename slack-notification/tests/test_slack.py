@@ -7,6 +7,7 @@ import pathlib
 import sys
 import unittest
 import urllib.error
+import urllib.parse
 import urllib.request
 from unittest import mock
 
@@ -77,6 +78,12 @@ class TestTheClient(unittest.TestCase):
         client = SlackClient("t")
         self.assertEqual(client.find_message("U1", wanted), ("D1", "2", [{"type": "header"}]))
         self.assertIsNone(client.find_message("U1", wanted))
+        opening, history = self.requests[:2]
+        self.assertEqual(
+            (opening.full_url, json.loads(opening.data)), ("https://slack.com/api/conversations.open", {"users": "U1"})
+        )
+        query = urllib.parse.parse_qs(urllib.parse.urlsplit(history.full_url).query)
+        self.assertEqual(query, {"channel": ["D1"], "include_all_metadata": ["true"], "limit": ["100"]})
 
     def test_an_http_status_such_as_a_rate_limit_raises_with_the_status(self):
         def urlopen(request, timeout):
