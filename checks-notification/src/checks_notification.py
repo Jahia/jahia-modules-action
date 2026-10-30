@@ -14,9 +14,6 @@ from checks_run import CiChecks
 from github_api import GitHubApi
 from slack import SlackClient, SlackError
 
-# The conclusions of a run that carry no result for the person who triggered it
-_NO_RESULT = {None, "cancelled", "skipped"}
-
 
 def _find_email(commits: list[dict], login: str) -> str:
     # The profile email of an account is private, so the last commit linked to `login` gives it
@@ -30,8 +27,7 @@ def _find_email(commits: list[dict], login: str) -> str:
 def main() -> int:
     repository = os.environ["GITHUB_REPOSITORY"]
     run = GitHubApi.read_run(repository, os.environ["RUN_ID"])
-    # A push to the branch of a pull request names that pull request too, and a run of a fork names none
-    if run["event"] != "pull_request" or not run["pull_requests"] or run["conclusion"] in _NO_RESULT:
+    if not CiChecks.has_result(run):
         print("::notice::the run is no completed run of a pull request, so nothing is posted")
         return 0
     actor = run["triggering_actor"]["login"]

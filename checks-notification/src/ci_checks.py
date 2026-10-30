@@ -4,14 +4,14 @@ failure adds its first error and three buttons, and its thread lists every error
 
 import os
 
-from checks_run import CiChecks, CiError, CiJob
+from checks_run import CiChecks, CiError, CiJob, CiState
 from slack import SlackMessage
 
 # The color of the bar, the emoji of the header and the one of the text that the system shows, by state
 _STATES = {
-    "passed": ("#2EB67D", ":white_check_mark:", "✅"),
-    "unstable": ("#ECB22E", ":warning:", "⚠️"),
-    "failed": ("#E01E5A", ":x:", "❌"),
+    CiState.PASSED: ("#2EB67D", ":white_check_mark:", "✅"),
+    CiState.UNSTABLE: ("#ECB22E", ":warning:", "⚠️"),
+    CiState.FAILED: ("#E01E5A", ":x:", "❌"),
 }
 _FLAKY_SHOWN = 3
 _THREAD_ERRORS = 10
@@ -28,9 +28,9 @@ def render(checks: CiChecks) -> SlackMessage:
     color, emoji, icon = _STATES[state]
     total = checks.passed + len(checks.failed)
     title = {
-        "passed": f"CI checks passed · {checks.passed} of {total} jobs",
-        "unstable": "CI checks passed after a retry",
-        "failed": f"CI checks failed · {len(checks.failed)} of {total} jobs",
+        CiState.PASSED: f"CI checks passed · {checks.passed} of {total} jobs",
+        CiState.UNSTABLE: "CI checks passed after a retry",
+        CiState.FAILED: f"CI checks failed · {len(checks.failed)} of {total} jobs",
     }[state]
     facts = [
         f"`{_escape(checks.branch)}`",
@@ -48,9 +48,9 @@ def render(checks: CiChecks) -> SlackMessage:
     # One block carries the squares and the count, because Slack puts a space between two blocks
     blocks.append(_build_context(f"{_draw_squares(checks)}\n*{count}*"))
     thread = ()
-    if state == "unstable":
+    if state == CiState.UNSTABLE:
         blocks += _show_flaky(checks)
-    elif state == "failed":
+    elif state == CiState.FAILED:
         blocks += _show_failure(checks)
         detail = _detail_failures(checks)
         # A failure with no failed job, such as a startup failure, has no detail for a thread

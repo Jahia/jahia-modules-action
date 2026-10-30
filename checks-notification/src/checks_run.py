@@ -5,10 +5,13 @@ its failed step and its errors, and the jobs that passed only after a retry. `Ci
 import re
 from collections import Counter
 from datetime import datetime
+from enum import StrEnum
 from typing import NamedTuple, Self
 
 from github_api import GitHubApi
 
+# The conclusions of a run that carry no result for the person who triggered it
+_NO_RESULT = {None, "cancelled", "skipped"}
 # The conclusions of a job that count neither as passed nor as failed
 _UNCOUNTED = {"skipped", "neutral"}
 _LOG_LINES = 10
@@ -23,6 +26,14 @@ _MAVEN_NOISE = re.compile(
 )
 # The groups in parentheses that end the header of a unittest failure: its dotted path and its subtest
 _TRAILING_GROUPS = re.compile(r"( \([^()]*\))+$")
+
+
+class CiState(StrEnum):
+    """The state of a completed run of the checks, which picks the message."""
+
+    PASSED = "passed"
+    UNSTABLE = "unstable"
+    FAILED = "failed"
 
 
 class CiError(NamedTuple):
@@ -99,10 +110,16 @@ class CiChecks(NamedTuple):
     flaky: tuple[CiJob, ...] = ()
 
     @property
-    def state(self) -> str:
+    def state(self) -> CiState:
         if self.conclusion != "success":
-            return "failed"
-        return "unstable" if self.flaky else "passed"
+            return CiState.FAILED
+        return CiState.UNSTABLE if self.flaky else CiState.PASSED
+
+    @staticmethod
+    def has_result(run: dict) -> bool:
+        """Whether `run` is a completed run of a pull request, the one run that `read` reads."""
+        # A push to the branch of a pull request names that pull request too, and a run of a fork names none
+        return run["event"] == "pull_request" and bool(run["pull_requests"]) and run["conclusion"] not in _NO_RESULT
 
     @classmethod
     def read(cls, run: dict) -> Self:
