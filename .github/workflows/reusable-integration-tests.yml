@@ -131,11 +131,11 @@ jobs:
             echo "::warning::The 'pagerduty_incident_service' input is deprecated. Please use 'incident_service' instead."
           fi
 
-          if [ "${{ inputs.skip_notification }}" = "true" ]; then
+          if [ "${{ inputs.skip_notifications }}" = "true" ]; then
             echo "skip_notification=true" >> $GITHUB_OUTPUT
           elif [ "${{ inputs.pagerduty_skip_notification }}" = "true" ]; then
             echo "skip_notification=true" >> $GITHUB_OUTPUT
-            echo "::warning::The 'pagerduty_skip_notification' input is deprecated. Please use 'skip_notification' instead."          
+            echo "::warning::The 'pagerduty_skip_notification' input is deprecated. Please use 'skip_notifications' instead."
           else
             echo "skip_notification=false" >> $GITHUB_OUTPUT
           fi       
