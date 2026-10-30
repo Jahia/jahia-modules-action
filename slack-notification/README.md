@@ -81,8 +81,7 @@ completed run of a pull request posts nothing, and the run states a notice. Four
 A caller may therefore run the action on every completed run of its checks. A run that GitHub runs again posts
 again, and each message reads the jobs of the attempt that its event names. GitHub can send the event before each
 job carries its conclusion, so the action reads the jobs up to 6 times, 10 seconds apart, until each job carries
-one. A job that still has no conclusion after the last read counts neither as passed nor as failed, and the run
-states a warning that names it.
+one. The run states a warning that names a job that still has no conclusion after the last read.
 
 The action posts one message for each run, in one of three states, on a bar in the color of its state. The
 graver the state, the longer the message. The three share one skeleton:
