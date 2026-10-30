@@ -9,8 +9,8 @@ from events.ci_checks.event import CiChecks
 
 
 def read(payload: dict, github: GitHubApi) -> Notification:
-    """The message of the run that `payload`, the event `workflow_run`, names, for the person who triggered it.
+    """The message of the run that `payload`, the event `workflow_run`, carries, for the person who triggered it.
     A run that is no completed run of a pull request raises `Skip`."""
-    run = github.read_run(str(payload["workflow_run"]["id"]))
+    run = payload["workflow_run"]
     checks = CiChecks.read(run, github)
     return Notification(run["triggering_actor"]["login"], checks.pull.number, template.render(checks))

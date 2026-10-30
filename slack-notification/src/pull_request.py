@@ -28,7 +28,14 @@ class PullRequest(NamedTuple):
     def read(cls, github: GitHubApi, number: int) -> Self:
         """The pull request `number` of `github`."""
         pull = github.read_pull(number)
-        state = "merged" if pull.get("merged_at") else "draft" if pull.get("draft") else pull["state"]
+        # A draft that closes reads as closed, as its page on GitHub shows it
+        state = (
+            "merged"
+            if pull.get("merged_at")
+            else "draft"
+            if pull.get("draft") and pull["state"] == "open"
+            else pull["state"]
+        )
         return cls(
             repository=pull["base"]["repo"]["full_name"],
             repository_url=pull["base"]["repo"]["html_url"],

@@ -1,12 +1,12 @@
 """The blocks of a message: a text escapes what Slack reads as markup, the primary button stands out, and rich
-text holds lines of words and links, and blocks of code."""
+text contains lines of words and links, and blocks of code."""
 
 import pathlib
 import sys
 import unittest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
-from blocks import build_buttons, build_rich_text, escape, rich_code, rich_line, rich_link, rich_word
+from blocks import build_buttons, build_code, build_line, build_link, build_rich_text, build_word, escape
 
 
 class TestTheBlocks(unittest.TestCase):
@@ -18,8 +18,10 @@ class TestTheBlocks(unittest.TestCase):
         self.assertEqual([button.get("style") for button in row["elements"]], ["primary", None])
         self.assertEqual([button["url"] for button in row["elements"]], ["https://l", "https://r"])
 
-    def test_rich_text_holds_a_line_of_a_link_and_a_bold_word_then_a_block_of_code(self):
-        block = build_rich_text(rich_line(rich_link("https://j", "job"), rich_word("step", bold=True)), rich_code("x"))
+    def test_rich_text_contains_a_line_of_a_link_and_a_bold_word_then_a_block_of_code(self):
+        block = build_rich_text(
+            build_line(build_link("https://j", "job"), build_word("step", bold=True)), build_code("x")
+        )
         self.assertEqual(
             block,
             {

@@ -18,7 +18,7 @@ class SlackMessage(NamedTuple):
     blocks: list[dict]
     thread: tuple[list[dict], ...] = ()
 
-    def render(self, channel: str) -> dict:
+    def _render(self, channel: str) -> dict:
         # An attachment draws the bar, and a message with no text of its own shows no line above it
         return {
             "channel": channel,
@@ -45,7 +45,7 @@ class SlackClient:
 
     def post(self, channel: str, message: SlackMessage) -> None:
         """Each reply of the thread follows the message, under its timestamp."""
-        result = self._call("chat.postMessage", message.render(channel))
+        result = self._call("chat.postMessage", message._render(channel))
         for blocks in message.thread:
             reply = {
                 "channel": result["channel"],
@@ -63,10 +63,10 @@ class SlackClient:
             with urllib.request.urlopen(urllib.request.Request(url, data, headers), timeout=30) as response:
                 body = json.load(response)
         except urllib.error.HTTPError as fault:
-            # Slack answers a rate limit with an HTTP status, and no body that names an error
+            # Slack refuses a rate limit with an HTTP status, and no body that names an error
             raise SlackError(f"HTTP {fault.code}") from fault
         except (urllib.error.URLError, TimeoutError) as fault:
-            raise SlackError(f"no answer: {getattr(fault, 'reason', fault)}") from fault
+            raise SlackError(f"no response: {getattr(fault, 'reason', fault)}") from fault
         if not body.get("ok"):
             raise SlackError(body.get("error", "no error code"))
         return body

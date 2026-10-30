@@ -44,25 +44,27 @@ An owner of the organization shares the secret of the Slack app with each reposi
 
 ## Inputs
 
-| Input | Required | What it holds |
+| Input | Required | Value |
 |---|---|---|
 | `slack-token` | yes | The bot token of the Slack app. |
 | `github-token` | no | The token that reads the data of the event on GitHub. It defaults to `github.token`. For `ci_checks`, it needs the permissions `actions: read`, `checks: read`, `contents: read` and `pull-requests: read`. |
 
-The action reads the event from the workflow, in `GITHUB_EVENT_NAME` and `GITHUB_EVENT_PATH`, so it takes no
-input that names the event.
+The action reads the event from the workflow, in `GITHUB_EVENT_NAME` and `GITHUB_EVENT_PATH`, so no input
+names the event.
 
 The Slack app needs the bot scopes `chat:write`, `users:read` and `users:read.email` under **OAuth &
-Permissions**, and the **Messages Tab** under **App Home**, where the person reads the message.
+Permissions**. It also needs the **Messages Tab** under **App Home**, where the person reads the message.
 
 ## How the action finds the person
 
 The event names the GitHub account of the person and a pull request. The profile email of a GitHub account is
-private. The action therefore reads the email of the last commit of the pull request that GitHub links to that
-account, as its author or its committer. `users.lookupByEmail` finds the Slack member by that email, and
-`chat.postMessage` posts to that member. A person with no commit in the pull request gets no message, and so
-does an email that Slack does not know. The run then states a warning. A refusal of Slack or of GitHub fails the
-run, and the log names its error.
+private by default. The action therefore reads the emails of the commits of the pull request that GitHub links to
+that account, as their author or their committer. It reads the last commit first, and leaves out the address
+`users.noreply.github.com` that GitHub gives an account that hides its email.
+
+`users.lookupByEmail` finds the Slack member by the first email that Slack knows, and `chat.postMessage` posts to
+that member. A person with no such email gets no message, and so does a person whose emails Slack does not know.
+The run then states a warning. A refusal of Slack or of GitHub fails the run, and the log names its error.
 
 An event that the action does not know fails the run, and an event with nothing to send states a notice.
 
@@ -77,7 +79,7 @@ completed run of a pull request posts nothing, and the run states a notice. Four
 - a run that did not finish.
 
 A caller may therefore run the action on every completed run of its checks. A run that GitHub runs again posts
-again.
+again, and each message reads the jobs of the attempt that its event names.
 
 The action posts one message for each run, in one of three states, on a bar in the color of its state. The
 graver the state, the longer the message. The three share one skeleton:
@@ -87,12 +89,12 @@ graver the state, the longer the message. The three share one skeleton:
 - the state of the pull request in bold behind a circle of its color, its author, its commits and its branches,
   as its page on GitHub shows them, then a separator;
 - the workflow, which links to the run, the commit, the attempt and the duration;
-- the count of the jobs. For a run with a job that failed or passed only after a retry, a gauge of Slack squares
-  opens that line, one for each job. A square is green when its job passed, yellow when it passed only after a
-  retry, and red when it failed.
+- the count of the jobs, which leaves out a job that was skipped or cancelled, such as by fail-fast. A gauge of
+  Slack squares opens that line when a job failed or passed only after a retry, one square for each job. A square
+  is green when its job passed, yellow when it passed only after a retry, and red when it failed.
 
-Only an attachment of Slack draws the bar, and Slack folds a high attachment behind "Show more", so the detail
-of a failure or of a retry can sit behind it.
+Only an attachment of Slack draws the bar. Slack folds a high attachment behind "Show more", so the detail of a
+failure or of a retry can sit behind it.
 
 | State | Bar | Header | When | What the message adds |
 |---|---|---|---|---|
@@ -100,16 +102,15 @@ of a failure or of a retry can sit behind it.
 | Passed after a retry | `#ECB22E` | `:warning:` | The run passed, and a job that failed in the previous attempt passed in this one. | Each flaky job with its step in bold and the attempts, and a button that opens the run. |
 | Failed | `#E01E5A` | `:x:` | The run failed. | Each failed job with its step in bold, the place of its first error and that error in a block of code, the buttons **View logs** and **View run**, and a reply in the thread that details every error. |
 
-A failed job with no error of its own beside one that has errors is a gate. The message shows the jobs with
-errors first and a gate last, with a blank line between two jobs. Two equal errors, such as the subtests of one test, show once with
-their count, such as `×2`.
+A failed job with no error in its annotations or its log, beside one that has errors, is a gate. The message
+shows the jobs with errors first and a gate last, with a blank line between two jobs. Two equal errors, such as
+the subtests of one test, show once with their count, such as `×2`.
 
-The errors come from the annotations of the failed jobs, with the file and the line of each one. A title
-loses the groups in parentheses that end it, such as the dotted path and the subtest of a unittest failure.
-When no failed job wrote an annotation, such as in a Maven build, the read takes the end of the log of each
-failed job instead. It keeps the `[ERROR]` lines of the last Maven summary, or the last three lines of another
-log. The log ends at its last error, before the steps that clean up the job. A gate writes no annotation, so a
-run whose other jobs wrote annotations reads no log.
+The errors come from the annotations of each failed job, with the file and the line of each one. A title loses
+the groups in parentheses that end it, such as the dotted path and the subtest of a unittest failure. A failed
+job with no annotation, such as a Maven build, gives the end of its log instead. The read keeps the output of the
+failed step up to its last error, so the setup of the job and its cleanup never show. It keeps the `[ERROR]`
+lines of the last Maven summary, or the last three lines of another log.
 
 ## Add an event
 
@@ -118,7 +119,7 @@ run whose other jobs wrote annotations reads no log.
    - `template.py` builds the `SlackMessage` from that data. It calls `compose` of `src/templates/message.py`,
      which opens every message on the header of the event. An event of a pull request adds the part that `show`
      of `src/templates/pull_request.py` builds, then its own blocks from `src/blocks.py`;
-   - `__init__.py` holds `read(payload, github)`, which returns the `Notification` of `src/notification.py`, or
+   - `__init__.py` defines `read(payload, github)`, which returns the `Notification` of `src/notification.py`, or
      raises `Skip` with the reason to send nothing.
 2. Add the GitHub event that triggers it to the table `EVENTS` of `src/events/__init__.py`.
 3. Add its tests, `tests/test_<name>_event.py` and `tests/test_<name>_template.py`, and its row and its section
@@ -127,18 +128,18 @@ run whose other jobs wrote annotations reads no log.
 ## The code
 
 - `src/main.py` reads the GitHub event, runs `read` of its folder, finds the person and posts the message.
-- `src/events/` holds one folder for each event, and the table that maps a GitHub event to its folder.
-- `src/notification.py` holds `Notification` and `Skip`, what the folder of an event returns to `main.py`.
-- `src/templates/` holds the parts that every template shares. `message.py` opens a message on the header of
+- `src/events/` contains one folder for each event, and the table that maps a GitHub event to its folder.
+- `src/notification.py` defines `Notification` and `Skip`, what the folder of an event returns to `main.py`.
+- `src/templates/` contains the parts that every template shares. `message.py` opens a message on the header of
   its event. `pull_request.py` shows the repository, the title and the state of a pull request, then a
   separator.
 - `src/pull_request.py` reads a pull request, which every event of a pull request shows.
-- `src/people.py` finds the email of a GitHub account in the commits of a pull request.
+- `src/people.py` finds the emails of a GitHub account in the commits of a pull request.
 - `src/blocks.py` builds the Block Kit blocks that every template uses: blocks of markdown, which escape the
   markup of Slack, and blocks of rich text.
-- `src/slack.py` holds `SlackMessage` and `SlackClient`, which finds the member and posts the message and its
+- `src/slack.py` defines `SlackMessage` and `SlackClient`, which finds the member and posts the message and its
   thread.
 - `src/github_api.py` reads GitHub through `gh api`, and runs a failed read again.
-- `tests/` holds the unittest suite, which `.github/workflows/test-slack-notification.yml` runs on each pull
-  request that changes the action. `tests/fakes.py` holds the repository and the Slack workspace that a test
+- `tests/` contains the unittest suite, which `.github/workflows/test-slack-notification.yml` runs on each pull
+  request that changes the action. `tests/fakes.py` defines the repository and the Slack workspace that a test
   passes in place of the real ones.

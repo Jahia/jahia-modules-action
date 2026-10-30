@@ -14,8 +14,8 @@ from pull_request import PullRequest
 
 # The conclusions of a run that carry no result for the person who triggered it
 _NO_RESULT = {None, "cancelled", "skipped"}
-# The conclusions of a job that count neither as passed nor as failed
-_UNCOUNTED = {"skipped", "neutral"}
+# The conclusions of a job that count neither as passed nor as failed, such as a job that fail-fast cancels
+_UNCOUNTED = {"skipped", "neutral", "cancelled"}
 # The lines of a log that the message shows, the last ones before the failure
 _LOG_LINES = 3
 # The annotation that the runner adds to each failed step, which names no error
@@ -23,8 +23,7 @@ _EXIT_CODE = re.compile(r"Process completed with exit code \d+\.?$")
 # The timestamp that the runner writes before each line of a log, and the colors of a terminal
 _TIMESTAMP = re.compile(r"^\d{4}-\d\d-\d\dT[\d:.]+Z ")
 _ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
-# The lines that Maven writes under every failure, the resume of a build of several modules, and the headings
-# of its lists
+# The lines that Maven writes around a failure: its help, the resume of the build and the headings of its lists
 _MAVEN_NOISE = re.compile(
     r"^(-> \[Help 1\]|\[Help 1\]|To see the full stack trace|Re-run Maven|For more information about the errors"
     r"|Please refer to |After correcting the problems|mvn .* -rf :|\w+:$)"
@@ -74,6 +73,11 @@ class CiError(NamedTuple):
         # The steps that run after a failure, such as the cleanup of a checkout, follow its last `##[error]` line
         failures = [index for index, line in enumerate(lines) if line.startswith("##[error]")]
         lines = lines[: failures[-1]] if failures else lines
+        # The output of the failed step follows the last group where the runner echoes the script of a step
+        starts = [index for index, line in enumerate(lines) if line.startswith("##[group]Run ")]
+        if starts:
+            ends = [index for index in range(starts[-1], len(lines)) if lines[index] == "##[endgroup]"]
+            lines = lines[(ends[0] if ends else starts[-1]) + 1 :]
         lines = [line for line in lines if line and not line.startswith("##[") and not _EXIT_CODE.search(line)]
         # Maven ends on the results of the tests of the module that failed, or on the build failure alone
         marks = [index for index, line in enumerate(lines) if line in ("[INFO] Results:", "[INFO] BUILD FAILURE")]
@@ -121,26 +125,25 @@ class CiChecks(NamedTuple):
         return CiState.UNSTABLE if self.flaky else CiState.PASSED
 
     @staticmethod
-    def has_result(run: dict) -> bool:
-        """Whether `run` is a completed run of a pull request, the one run that `read` reads."""
+    def _has_result(run: dict) -> bool:
         # A push to the branch of a pull request names that pull request too, and a run of a fork names none
         return run["event"] == "pull_request" and bool(run["pull_requests"]) and run["conclusion"] not in _NO_RESULT
 
     @classmethod
     def read(cls, run: dict, github: GitHubApi) -> Self:
-        """The checks of `run`, a run as `GitHubApi.read_run` returns it, read through `github`, the repository of
-        the run. A run that is no completed run of a pull request raises `Skip`."""
-        if not cls.has_result(run):
+        """The checks of `run`, the run that the event `workflow_run` carries, and of the jobs of its attempt. A run
+        that is no completed run of a pull request raises `Skip`."""
+        if not cls._has_result(run):
             raise Skip("the run is no completed run of a pull request")
         repository = run["repository"]
         run_id, attempt, sha = str(run["id"]), run["run_attempt"], run["head_sha"]
         number = run["pull_requests"][0]["number"]
-        countable = [job for job in github.list_jobs(run_id) if job["conclusion"] not in _UNCOUNTED]
+        countable = [job for job in github.list_jobs(run_id, attempt) if job["conclusion"] not in _UNCOUNTED]
         failed = [job for job in countable if cls._is_failed(job)]
         blob_url = f"{repository['html_url']}/blob/{sha}"
         errors = cls._collect_errors(github, failed, blob_url) if run["conclusion"] != "success" else {}
-        earlier = github.list_attempt_jobs(run_id, attempt - 1) if attempt > 1 else []
-        elapsed = datetime.fromisoformat(run["updated_at"]) - datetime.fromisoformat(run["run_started_at"])
+        earlier = github.list_jobs(run_id, attempt - 1) if attempt > 1 else []
+        duration = datetime.fromisoformat(run["updated_at"]) - datetime.fromisoformat(run["run_started_at"])
         return cls(
             workflow=run["name"],
             conclusion=run["conclusion"],
@@ -148,7 +151,7 @@ class CiChecks(NamedTuple):
             commit=sha[:7],
             commit_url=f"{repository['html_url']}/commit/{sha}",
             attempt=attempt,
-            duration_seconds=int(elapsed.total_seconds()),
+            duration_seconds=int(duration.total_seconds()),
             run_url=run["html_url"],
             passed=len(countable) - len(failed),
             failed=tuple(
@@ -158,16 +161,14 @@ class CiChecks(NamedTuple):
             flaky=cls._find_flaky(countable, earlier),
         )
 
-    @classmethod
-    def _collect_errors(cls, github: GitHubApi, failed: list[dict], blob_url: str) -> dict[int, list[CiError]]:
-        # The errors of each failed job: their annotations, else the end of their logs
-        errors = {
-            job["id"]: CiError._read_annotations(github.list_annotations(str(job["id"])), blob_url) for job in failed
+    @staticmethod
+    def _collect_errors(github: GitHubApi, failed: list[dict], blob_url: str) -> dict[int, list[CiError]]:
+        # The errors of each failed job: its annotations, else the end of its log, such as in a Maven build
+        return {
+            job["id"]: CiError._read_annotations(github.list_annotations(str(job["id"])), blob_url)
+            or CiError._read_log(github.read_job_log(str(job["id"])))
+            for job in failed
         }
-        if any(errors.values()):
-            return errors
-        # A run whose failed jobs write no annotation, such as a Maven build, leaves its errors in their logs
-        return {job["id"]: CiError._read_log(github.read_job_log(str(job["id"]))) for job in failed}
 
     @classmethod
     def _find_flaky(cls, jobs: list[dict], earlier: list[dict]) -> tuple[CiJob, ...]:
@@ -187,7 +188,7 @@ class CiChecks(NamedTuple):
 
     @staticmethod
     def _is_failed(job: dict) -> bool:
-        # A job that timed out or was cancelled failed too, and the run counts it so
+        # A job that timed out failed too, and the run counts it so
         return job["conclusion"] not in _UNCOUNTED and job["conclusion"] != "success"
 
     @staticmethod

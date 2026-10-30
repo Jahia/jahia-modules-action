@@ -51,14 +51,14 @@ def build_annotation(message, title="", path=".github", line=None):
 
 class RunOnGitHub(unittest.TestCase):
     def read(self, run, jobs, annotations=None, logs=None, earlier=None):
-        """GitHub holds these jobs, the annotations and the log of each job by its ID, and the jobs of the
-        previous attempt, and raises `KeyError` on any other read."""
+        """GitHub returns these jobs for the attempt of the run, the annotations and the log of each job by its
+        ID, and the jobs of the previous attempt."""
         attempt = run["run_attempt"]
         github = FakeGitHub(
             {
                 ("read_pull", 42): build_pull(),
-                ("list_jobs", "1"): jobs,
-                ("list_attempt_jobs", "1", attempt - 1): earlier or [],
+                ("list_jobs", "1", attempt): jobs,
+                ("list_jobs", "1", attempt - 1): earlier or [],
                 **{("list_annotations", str(key)): value for key, value in (annotations or {}).items()},
                 **{("read_job_log", str(key)): value for key, value in (logs or {}).items()},
             }
@@ -89,6 +89,11 @@ class TestTheChecksOfARun(RunOnGitHub):
         checks = self.read(build_run("failure"), jobs, annotations={7: [timeout]})
         self.assertEqual(checks.failed, (CiJob("slow", "https://j/7", "", (CiError("", timeout["message"]),)),))
 
+    def test_a_cancelled_job_counts_neither_as_passed_nor_as_failed(self):
+        jobs = [build_job(1, "a", "failure"), build_job(2, "b", "cancelled"), build_job(3, "c", "success")]
+        checks = self.read(build_run("failure"), jobs, annotations={1: [build_annotation("boom")]})
+        self.assertEqual((checks.passed, [job.name for job in checks.failed]), (1, ["a"]))
+
     def test_a_job_that_failed_in_the_previous_attempt_and_passed_in_this_one_is_flaky(self):
         jobs = [build_job(1, "lint 0/6", "success"), build_job(2, "lint 2/6", "success", attempt=2)]
         earlier = [build_job(11, "lint 0/6", "success"), build_job(12, "lint 2/6", "failure", "Run the checks")]
@@ -104,7 +109,7 @@ class TestTheChecksOfARun(RunOnGitHub):
 
 class TestTheErrorsOfAFailedJob(RunOnGitHub):
     def read_errors(self, annotations, log=None):
-        """The errors of the one failed job of a run, whose annotations and log GitHub holds."""
+        """The errors of the one failed job of a run, whose annotations and log GitHub returns."""
         logs = {2: log} if log is not None else None
         jobs = [build_job(1, "lint", "success"), build_job(2, "build", "failure")]
         return self.read(build_run("failure"), jobs, annotations={2: annotations}, logs=logs).failed[0].errors
@@ -135,9 +140,39 @@ class TestTheErrorsOfAFailedJob(RunOnGitHub):
             ),
         )
 
-    def test_the_log_gives_the_errors_when_no_failed_job_wrote_an_annotation(self):
+    def test_the_log_gives_the_errors_of_a_failed_job_with_no_annotation_beside_a_job_with_annotations(self):
+        jobs = [build_job(1, "lint", "failure"), build_job(2, "build", "failure")]
         log = "[INFO] BUILD FAILURE\n[ERROR] Failed to execute goal x"
-        self.assertEqual(self.read_errors([], log), (CiError("", "Failed to execute goal x"),))
+        annotations = {1: [build_annotation("KeyError: 'K'")], 2: []}
+        checks = self.read(build_run("failure"), jobs, annotations=annotations, logs={2: log})
+        self.assertEqual(
+            [job.errors for job in checks.failed],
+            [(CiError("", "KeyError: 'K'"),), (CiError("", "Failed to execute goal x"),)],
+        )
+
+    def test_a_log_keeps_the_output_of_the_failed_step_alone(self):
+        lines = [
+            "Current runner version: '2.329.0'",
+            "##[group]Run make",
+            "make",
+            "shell: /usr/bin/bash -e {0}",
+            "##[endgroup]",
+            "make: *** [all] Error 2",
+            "##[error]Process completed with exit code 2.",
+        ]
+        self.assertEqual(self.read_errors([], "\n".join(lines)), (CiError("", "make: *** [all] Error 2"),))
+
+    def test_a_failed_step_with_no_output_gives_no_error(self):
+        lines = [
+            "Complete job name: lint",
+            '##[group]Run test "$RESULT" = success',
+            'test "$RESULT" = success',
+            "env:",
+            "  RESULT: failure",
+            "##[endgroup]",
+            "##[error]Process completed with exit code 1.",
+        ]
+        self.assertEqual(self.read_errors([], "\n".join(lines)), ())
 
     def test_a_maven_log_gives_the_error_lines_of_its_last_results(self):
         lines = [

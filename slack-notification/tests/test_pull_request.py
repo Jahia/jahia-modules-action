@@ -55,6 +55,7 @@ class TestThePullRequest(unittest.TestCase):
 
     def test_a_draft_a_merged_and_a_closed_pull_request_read_their_state(self):
         self.assertEqual(read(draft=True).state, "draft")
+        self.assertEqual(read(draft=True, state="closed").state, "closed")
         self.assertEqual(read(state="closed", merged_at="2026-10-30T00:00:00Z").state, "merged")
         self.assertEqual(read(state="closed").state, "closed")
 

@@ -17,7 +17,7 @@ def show(pull: PullRequest) -> list[dict]:
     circle, label, verb = _STATES[pull.state]
     commits = "commit" if pull.commits == 1 else "commits"
     return [
-        # One section holds the repository and the title, because Slack puts a wide space between two blocks
+        # One section carries the repository and the title, because Slack puts a wide space between blocks
         build_section(
             f"*<{pull.repository_url}|{escape(pull.repository)}>*\n*{escape(pull.title)}* <{pull.url}|#{pull.number}>"
         ),

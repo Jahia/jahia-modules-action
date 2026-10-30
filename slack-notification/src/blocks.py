@@ -1,6 +1,6 @@
 """The Block Kit blocks of a Slack message, which every template of an event builds its message from. A block
 of markdown escapes what Slack reads as markup, and a block of rich text needs no escape: `build_rich_text`
-holds lines of words and links, and blocks of code."""
+contains lines of words and links, and blocks of code."""
 
 
 def escape(text: str) -> str:
@@ -37,18 +37,18 @@ def build_rich_text(*elements: dict) -> dict:
     return {"type": "rich_text", "elements": list(elements)}
 
 
-def rich_line(*elements: dict) -> dict:
+def build_line(*elements: dict) -> dict:
     return {"type": "rich_text_section", "elements": list(elements)}
 
 
-def rich_code(text: str) -> dict:
-    return {"type": "rich_text_preformatted", "elements": [rich_word(text)]}
+def build_code(text: str) -> dict:
+    return {"type": "rich_text_preformatted", "elements": [build_word(text)]}
 
 
-def rich_word(text: str, **style: bool) -> dict:
+def build_word(text: str, **style: bool) -> dict:
     # A style is bold, italic, strike or code
     return {"type": "text", "text": text, **({"style": style} if style else {})}
 
 
-def rich_link(url: str, text: str, **style: bool) -> dict:
+def build_link(url: str, text: str, **style: bool) -> dict:
     return {"type": "link", "url": url, "text": text, **({"style": style} if style else {})}

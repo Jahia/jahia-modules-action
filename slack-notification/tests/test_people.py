@@ -1,4 +1,4 @@
-"""The email of a GitHub account comes from the last commit of the pull request that GitHub links to it."""
+"""The emails of a GitHub account come from the commits of the pull request that GitHub links to it."""
 
 import pathlib
 import sys
@@ -9,17 +9,27 @@ import people
 from fakes import FakeGitHub
 
 
-class TestTheEmailOfThePerson(unittest.TestCase):
-    def test_the_last_commit_linked_to_the_login_as_author_or_committer_gives_the_email(self):
+def build_commit(author, author_email, committer="web-flow", committer_email="noreply@github.com"):
+    """A commit of a pull request, as the REST API of GitHub returns it."""
+    return {
+        "author": {"login": author} if author else None,
+        "committer": {"login": committer},
+        "commit": {"author": {"email": author_email}, "committer": {"email": committer_email}},
+    }
+
+
+class TestTheEmailsOfThePerson(unittest.TestCase):
+    def test_the_commits_linked_to_the_login_give_the_emails_the_last_first_without_the_noreply_address(self):
         commits = [
-            {"author": {"login": "a"}, "committer": {"login": "a"}, "commit": {"author": {"email": "a1@j.com"}}},
-            {"author": None, "committer": {"login": "a"}, "commit": {"committer": {"email": "a2@j.com"}}},
-            {"author": {"login": "b"}, "committer": {"login": "b"}, "commit": {"author": {"email": "b@j.com"}}},
+            build_commit("a", "a1@j.com"),
+            build_commit("a", "1+a@users.noreply.github.com"),
+            build_commit(None, "x@j.com", "a", "a2@j.com"),
+            build_commit("b", "b@j.com"),
         ]
         github = FakeGitHub({("list_pull_commits", 42): commits})
-        self.assertEqual(people.find_email(github, "a", 42), "a2@j.com")
-        self.assertEqual(people.find_email(github, "b", 42), "b@j.com")
-        self.assertEqual(people.find_email(github, "c", 42), "")
+        self.assertEqual(people.find_emails(github, "a", 42), ["a2@j.com", "a1@j.com"])
+        self.assertEqual(people.find_emails(github, "b", 42), ["b@j.com"])
+        self.assertEqual(people.find_emails(github, "c", 42), [])
 
 
 if __name__ == "__main__":

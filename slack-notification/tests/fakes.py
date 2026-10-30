@@ -23,20 +23,20 @@ class FakeSlack:
 
 
 class FakeGitHub:
-    """A repository that answers each read from `answers`, keyed by the name of the read and its arguments, such
-    as `("list_jobs", "1")`. An answer that is an error is raised, and any other read raises `KeyError`."""
+    """A repository that returns each read from `results`, keyed by the name of the read and its arguments, such
+    as `("list_jobs", "1", 1)`. A result that is an error is raised, and any other read raises `KeyError`."""
 
-    def __init__(self, answers: dict) -> None:
-        self._answers = answers
+    def __init__(self, results: dict) -> None:
+        self._results = results
 
-    def __getattr__(self, read: str):
-        if not hasattr(GitHubApi, read):
-            raise AttributeError(f"GitHubApi has no read {read}")
-        return lambda *args: self._raise_or_return(self._answers[(read, *args)])
+    def __getattr__(self, name: str):
+        if not hasattr(GitHubApi, name):
+            raise AttributeError(f"GitHubApi has no read {name}")
+        return lambda *args: self._raise_or_return(self._results[(name, *args)])
 
     @staticmethod
-    def _raise_or_return(answer):
-        # An answer that is an error is what the read raises
-        if isinstance(answer, Exception):
-            raise answer
-        return answer
+    def _raise_or_return(result):
+        # A result that is an error is what the read raises
+        if isinstance(result, Exception):
+            raise result
+        return result

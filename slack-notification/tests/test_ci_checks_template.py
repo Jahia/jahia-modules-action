@@ -5,27 +5,14 @@ import sys
 import unittest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
+import test_pull_request
 from events.ci_checks import template
 from events.ci_checks.event import CiChecks, CiError, CiJob
-from pull_request import PullRequest
 
 PULL = "https://github.com/Jahia/sitemap/pull/42"
 RUN = "https://github.com/Jahia/sitemap/actions/runs/1"
-
-
-PR = PullRequest(
-    "Jahia/sitemap",
-    "https://github.com/Jahia/sitemap",
-    42,
-    "feat: a <b>",
-    PULL,
-    "open",
-    "dev",
-    "https://github.com/dev",
-    3,
-    "main",
-    "feat/x",
-)
+FACTS = f"*<{RUN}|Validate>*   |   commit <https://github.com/Jahia/sitemap/commit/ec06bcc|ec06bcc>   |   attempt 1   |   1m 27s"
+PR = test_pull_request.read()
 
 
 def build_checks(**changes):
@@ -60,9 +47,6 @@ def read(blocks):
             text = block["text"]["text"]
         lines.append(f"{block['type']}: {text}")
     return lines
-
-
-FACTS = f"*<{RUN}|Validate>*   |   commit <https://github.com/Jahia/sitemap/commit/ec06bcc|ec06bcc>   |   attempt 1   |   1m 27s"
 
 
 def read_rich(block):
@@ -153,13 +137,18 @@ class TestTheMessageOfTheChecks(unittest.TestCase):
             ],
         )
 
-    def test_the_thread_shows_every_error_of_a_job_up_to_its_budget(self):
+    def test_the_thread_shows_every_error_up_to_its_budget_then_the_step_of_each_job_left(self):
         errors = tuple(CiError("", f"error {n}") for n in range(12))
-        failed = (CiJob("build", "https://j/1", "Compile", errors),)
+        failed = (CiJob("build", "https://j/1", "Compile", errors), CiJob("test", "https://j/2", "Test", errors[:1]))
         message = template.render(build_checks(conclusion="failure", passed=0, failed=failed))
         thread = read(message.thread[0])
         self.assertEqual(sum(line.startswith("rich: ```error") for line in thread), 10)
-        self.assertEqual(thread[-1], f"context: … and 2 more in <{RUN}|the run>")
+        self.assertEqual(thread[-3:], ["rich: test", "rich: Test", f"context: … and 3 more in <{RUN}|the run>"])
+
+    def test_a_failed_job_with_no_error_beside_no_job_with_errors_is_no_gate(self):
+        failed = (CiJob("build", "https://j/1", "Compile"),)
+        lines = read(template.render(build_checks(conclusion="failure", passed=0, failed=failed)).blocks)
+        self.assertIn("rich: Compile   no error in its annotations or its log", lines)
 
     def test_the_failed_jobs_beyond_five_are_left_to_the_thread(self):
         failed = tuple(CiJob(f"job {n}", f"https://j/{n}", "", (CiError("", f"error {n}"),)) for n in range(7))
@@ -169,10 +158,12 @@ class TestTheMessageOfTheChecks(unittest.TestCase):
 
 
 class TestTheLimitsOfSlack(unittest.TestCase):
-    def test_a_failure_with_no_failed_job_posts_no_thread(self):
+    def test_a_failure_with_no_failed_job_names_the_conclusion_and_posts_no_thread(self):
         message = template.render(build_checks(conclusion="startup_failure", passed=0))
         self.assertEqual(message.thread, ())
-        self.assertEqual(read(message.blocks)[-1], "actions: View run")
+        lines = read(message.blocks)
+        self.assertEqual(lines[4], f"context: {FACTS}\n0 passed · the run ended in `startup_failure`")
+        self.assertEqual(lines[-1], "actions: View run")
 
     def test_each_line_of_an_error_is_cut_so_a_block_stays_under_the_limit_of_slack(self):
         failed = (CiJob("a", "https://j/1", "", (CiError("", "x" * 5000),)),)

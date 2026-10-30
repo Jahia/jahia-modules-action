@@ -1,20 +1,21 @@
 """The message of a completed run of the checks of a pull request, in three states: passed, passed after a
 retry, and failed. It opens on the header and the part of the pull request that `templates/` builds, then shows
-the run: its facts, the gauge of its jobs and their count. A retry adds each flaky job, and a failure adds each
-failed job with its first error and two buttons. The thread of a failure lists every error."""
+the run: its facts and the count of its jobs, behind a gauge when a job failed or passed after a retry. A retry
+adds each flaky job, and a failure adds each failed job with its first error and two buttons. The thread of a
+failure lists every error."""
 
 import os
 
 from blocks import (
     build_buttons,
+    build_code,
     build_context,
     build_divider,
+    build_line,
+    build_link,
     build_rich_text,
+    build_word,
     escape,
-    rich_code,
-    rich_line,
-    rich_link,
-    rich_word,
 )
 from slack import SlackMessage
 from templates import message, pull_request
@@ -61,9 +62,9 @@ def _show_run(checks: CiChecks) -> dict:
             _format_duration(checks.duration_seconds),
         ]
     )
-    # The squares of the jobs open the line of the count of a run with a job that failed or passed after a retry,
-    # and one block carries both lines, because Slack puts a space between two blocks
-    count = f"{_draw_squares(checks)}   {_count(checks)}" if checks.failed or checks.flaky else _count(checks)
+    # One block carries both lines, because Slack puts a wide space between blocks
+    count = _format_count(checks)
+    count = f"{_draw_squares(checks)}   {count}" if checks.failed or checks.flaky else count
     return build_context(f"{facts}\n{count}")
 
 
@@ -77,11 +78,14 @@ def _draw_squares(checks: CiChecks) -> str:
     )
 
 
-def _count(checks: CiChecks) -> str:
+def _format_count(checks: CiChecks) -> str:
     if checks.failed:
         return f"{checks.passed} passed · {len(checks.failed)} failed"
     if checks.flaky:
         return f"{checks.passed} passed · {len(checks.flaky)} only after retry"
+    if checks.state == CiState.FAILED:
+        # A run can fail with no failed job, such as on a startup failure
+        return f"{checks.passed} passed · the run ended in `{checks.conclusion}`"
     return "All jobs passed"
 
 
@@ -91,10 +95,10 @@ def _count(checks: CiChecks) -> str:
 def _show_retry(checks: CiChecks) -> list[dict]:
     groups = [
         [
-            rich_line(rich_link(job.url, job.name)),
-            rich_line(
-                rich_word(job.step or "unknown step", bold=True),
-                rich_word(f"   failed on attempt {job.failed_attempt}, passed on attempt {checks.attempt}"),
+            build_line(build_link(job.url, job.name)),
+            build_line(
+                build_word(job.step or "unknown step", bold=True),
+                build_word(f"   failed on attempt {job.failed_attempt}, passed on attempt {checks.attempt}"),
             ),
         ]
         for job in checks.flaky[:_FLAKY_SHOWN]
@@ -117,7 +121,8 @@ def _show_failure(checks: CiChecks) -> list[dict]:
     if not checks.failed:
         return [build_divider(), build_buttons(("View run", checks.run_url))]
     jobs = _sort(checks.failed)
-    groups = [_show_job(job, job.errors[:1]) for job in jobs[:_JOBS_SHOWN]]
+    gate = any(job.errors for job in jobs)
+    groups = [_show_job(job, job.errors[:1], gate) for job in jobs[:_JOBS_SHOWN]]
     blocks = [build_divider(), build_rich_text(*_separate(groups))]
     more = len(jobs) - _JOBS_SHOWN
     if more > 0:
@@ -133,10 +138,11 @@ def _show_thread(checks: CiChecks) -> tuple[list[dict], ...]:
     if not checks.failed:
         return ()
     groups, budget = [], _THREAD_ERRORS
+    gate = any(job.errors for job in checks.failed)
     for job in _sort(checks.failed):
         errors = job.errors[:budget]
         budget -= len(errors)
-        groups.append(_show_job(job, errors))
+        groups.append(_show_job(job, errors, gate))
     blocks = [build_rich_text(*_separate(groups))]
     overflow = sum(len(job.errors) for job in checks.failed) - _THREAD_ERRORS
     if overflow > 0:
@@ -147,29 +153,32 @@ def _show_thread(checks: CiChecks) -> tuple[list[dict], ...]:
 # A failed job: the job, its step in bold, then each error, its place and its text in a block of code
 
 
-def _show_job(job: CiJob, errors: tuple[CiError, ...]) -> list[dict]:
-    elements = [rich_line(rich_link(job.url, job.name))]
-    step = rich_word(job.step or "unknown step", bold=True)
+def _show_job(job: CiJob, errors: tuple[CiError, ...], gate: bool) -> list[dict]:
+    elements = [build_line(build_link(job.url, job.name))]
+    step = build_word(job.step or "unknown step", bold=True)
     if not job.errors:
-        return [*elements, rich_line(step, rich_word("   no error of its own, the job is a gate"))]
+        # A job with no error of its own beside a job with errors is a gate, such as a job that needs the others
+        note = "no error of its own, the job is a gate" if gate else "no error in its annotations or its log"
+        return [*elements, build_line(step, build_word(f"   {note}"))]
     for index, error in enumerate(errors):
         # The place of the first error shares the line of the step
-        place = _place(error)
+        place = _show_place(error)
         line = [step, *place] if index == 0 else place
-        elements += [rich_line(*line)] if line else []
+        elements += [build_line(*line)] if line else []
         detail = _cut_detail(error.detail)
-        elements.append(rich_code(f"{error.title[:_TITLE_CHARS]}\n{detail}" if error.title else detail))
-    return elements
+        elements.append(build_code(f"{error.title[:_TITLE_CHARS]}\n{detail}" if error.title else detail))
+    # A thread whose budget of errors is spent shows the step of the job alone
+    return elements if errors else [*elements, build_line(step)]
 
 
-def _place(error: CiError) -> list[dict]:
+def _show_place(error: CiError) -> list[dict]:
     # The file and the line of the error, then its count, or nothing
     parts = []
     if error.file:
         place = f"{os.path.basename(error.file)}:{error.line}" if error.line else os.path.basename(error.file)
-        parts += [rich_word("   in "), rich_link(error.url, place) if error.url else rich_word(place)]
+        parts += [build_word("   in "), build_link(error.url, place) if error.url else build_word(place)]
     if error.occurrences > 1:
-        parts.append(rich_word(f"   ×{error.occurrences}"))
+        parts.append(build_word(f"   ×{error.occurrences}"))
     return parts
 
 
@@ -179,10 +188,10 @@ def _sort(jobs: tuple[CiJob, ...]) -> list[CiJob]:
 
 
 def _separate(groups: list[list[dict]]) -> list[dict]:
-    # A blank line between two groups of lines
+    # A line that contains a newline draws the blank line between the groups
     elements = []
     for group in groups:
-        elements += [rich_line(rich_word("\n"))] if elements else []
+        elements += [build_line(build_word("\n"))] if elements else []
         elements += group
     return elements
 

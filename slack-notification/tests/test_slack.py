@@ -60,13 +60,13 @@ class TestTheClient(unittest.TestCase):
             raise urllib.error.URLError("timed out")
 
         self.enterContext(mock.patch.object(urllib.request, "urlopen", urlopen))
-        with self.assertRaisesRegex(SlackError, "no answer: timed out"):
+        with self.assertRaisesRegex(SlackError, "no response: timed out"):
             SlackClient("t").find_member("a@j.com")
 
 
 class TestTheMessage(unittest.TestCase):
     def test_a_message_sits_on_a_bar_with_its_fallback_and_no_text_of_its_own(self):
-        payload = SlackMessage("#E01E5A", "❌ failed", [{"type": "divider"}]).render("U1")
+        payload = SlackMessage("#E01E5A", "❌ failed", [{"type": "divider"}])._render("U1")
         self.assertEqual(
             payload,
             {
