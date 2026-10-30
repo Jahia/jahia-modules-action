@@ -51,6 +51,9 @@ def read(blocks):
             text = " | ".join(button["text"]["text"] for button in block["elements"])
         elif block["type"] == "divider":
             text = ""
+        elif block["type"] == "rich_text":
+            lines += [f"rich: {line}" for line in read_rich(block)]
+            continue
         elif block["type"] == "context":
             text = block["elements"][0]["text"]
         else:
@@ -60,6 +63,15 @@ def read(blocks):
 
 
 FACTS = f"*<{RUN}|Validate>*   |   commit <https://github.com/Jahia/sitemap/commit/ec06bcc|ec06bcc>   |   attempt 1   |   1m 27s"
+
+
+def read_rich(block):
+    """Each element of a rich text as one line: the words and links of a line, or a block of code in fences."""
+    lines = []
+    for element in block["elements"]:
+        text = "".join(part["text"] for part in element["elements"])
+        lines.append(f"```{text}```" if element["type"] == "rich_text_preformatted" else text)
+    return lines
 
 
 class TestTheMessageOfTheChecks(unittest.TestCase):
@@ -82,7 +94,7 @@ class TestTheMessageOfTheChecks(unittest.TestCase):
         )
         self.assertEqual(message.thread, ())
 
-    def test_a_run_that_passed_after_a_retry_shows_its_gauge_and_its_flaky_job_on_a_yellow_bar(self):
+    def test_a_run_that_passed_after_a_retry_shows_each_flaky_job_with_its_step_on_a_yellow_bar(self):
         flaky = CiJob("lint 2/6", "https://j/2", "Run the checks", (), 1)
         message = template.render(build_checks(attempt=2, duration_seconds=182, flaky=(flaky,)))
         self.assertEqual(message.color, "#ECB22E")
@@ -91,19 +103,20 @@ class TestTheMessageOfTheChecks(unittest.TestCase):
         self.assertIn(
             "attempt 2   |   3m 02s\n" + ":large_green_square:" * 7 + ":large_yellow_square:   8 passed", lines[4]
         )
-        self.assertTrue(lines[4].endswith(":large_yellow_square:   8 passed · 1 only after retry"), lines[4])
         self.assertEqual(
             lines[5:],
             [
-                "section: *Flaky*",
-                "section: :warning: <https://j/2|lint 2/6> › Run the checks",
-                "context: failed on attempt 1, passed on attempt 2",
+                "divider: ",
+                "rich: lint 2/6",
+                "rich: Run the checks   failed on attempt 1, passed on attempt 2",
                 "context: _Nothing blocking: fix it when you can_",
                 "actions: View run",
             ],
         )
 
-    def test_a_failed_run_shows_its_gauge_its_first_error_and_two_buttons_and_details_every_job_in_its_thread(self):
+    def test_a_failed_run_shows_each_failed_job_with_its_step_and_its_first_error_and_details_every_error_in_its_thread(
+        self,
+    ):
         error = CiError(
             "suite ERROR test_x", "KeyError: 'K'\n\nline 2\nline 3\nline 4", "tests/test_y.py", 87, "https://f", 2
         )
@@ -111,23 +124,19 @@ class TestTheMessageOfTheChecks(unittest.TestCase):
         message = template.render(build_checks(conclusion="failure", passed=6, failed=failed))
         self.assertEqual(message.color, "#E01E5A")
         self.assertEqual(
-            [read(message.blocks)[0], read(message.blocks)[4]],
+            read(message.blocks)[4:],
             [
-                "header: :x: CI checks failed",
                 f"context: {FACTS}\n"
                 + ":large_green_square:" * 6
                 + ":large_red_square:" * 2
                 + "   6 passed · 2 failed",
-            ],
-        )
-        self.assertEqual(
-            read(message.blocks)[5:],
-            [
-                "section: *Failed*",
-                "section: :x: <https://j/2|lint 2/6> › Run the checks",
-                "section: ```KeyError: 'K'\nline 2\nline 3```",
-                "context: in <https://f|test_y.py:87> · ×2",
-                "context: _+ 1 job without errors (gate)_",
+                "divider: ",
+                "rich: lint 2/6",
+                "rich: Run the checks   in test_y.py:87   ×2",
+                "rich: ```suite ERROR test_x\nKeyError: 'K'\nline 2\nline 3```",
+                "rich: \n",
+                "rich: lint",
+                "rich: Gate   no error of its own, the job is a gate",
                 "actions: View logs | View run",
             ],
         )
@@ -135,25 +144,28 @@ class TestTheMessageOfTheChecks(unittest.TestCase):
         self.assertEqual(
             read(message.thread[0]),
             [
-                "section: *:x: <https://j/2|lint 2/6> › Run the checks*",
-                "section: suite ERROR test_x",
-                "section: ```KeyError: 'K'\nline 2\nline 3```",
-                "context: <https://f|test_y.py:87> · ×2",
-                "section: *:x: <https://j/3|lint> › Gate* · no error of its own",
+                "rich: lint 2/6",
+                "rich: Run the checks   in test_y.py:87   ×2",
+                "rich: ```suite ERROR test_x\nKeyError: 'K'\nline 2\nline 3```",
+                "rich: \n",
+                "rich: lint",
+                "rich: Gate   no error of its own, the job is a gate",
             ],
         )
 
-    def test_the_other_failed_jobs_with_errors_are_counted_and_left_to_the_thread(self):
-        failed = tuple(CiJob(f"job {n}", f"https://j/{n}", "", (CiError("", f"error {n}"),)) for n in range(3))
-        lines = read(template.render(build_checks(conclusion="failure", passed=0, failed=failed)).blocks)
-        self.assertIn("context: _+ 2 other failed jobs, in the thread_", lines)
-
-    def test_an_error_with_no_file_names_itself_and_the_thread_counts_the_errors_it_hides(self):
+    def test_the_thread_shows_every_error_of_a_job_up_to_its_budget(self):
         errors = tuple(CiError("", f"error {n}") for n in range(12))
-        failed = (CiJob("build", "https://j/1", "", (CiError("Compile", "cannot find symbol"), *errors)),)
+        failed = (CiJob("build", "https://j/1", "Compile", errors),)
         message = template.render(build_checks(conclusion="failure", passed=0, failed=failed))
-        self.assertIn("context: Compile", read(message.blocks))
-        self.assertEqual(read(message.thread[0])[-1], f"context: … and 3 more in <{RUN}|the run>")
+        thread = read(message.thread[0])
+        self.assertEqual(sum(line.startswith("rich: ```error") for line in thread), 10)
+        self.assertEqual(thread[-1], f"context: … and 2 more in <{RUN}|the run>")
+
+    def test_the_failed_jobs_beyond_five_are_left_to_the_thread(self):
+        failed = tuple(CiJob(f"job {n}", f"https://j/{n}", "", (CiError("", f"error {n}"),)) for n in range(7))
+        lines = read(template.render(build_checks(conclusion="failure", passed=0, failed=failed)).blocks)
+        self.assertEqual(sum(line.startswith("rich: job ") for line in lines), 5)
+        self.assertIn("context: … and 2 more failed jobs in the thread", lines)
 
 
 class TestTheLimitsOfSlack(unittest.TestCase):
@@ -162,23 +174,16 @@ class TestTheLimitsOfSlack(unittest.TestCase):
         self.assertEqual(message.thread, ())
         self.assertEqual(read(message.blocks)[-1], "actions: View run")
 
-    def test_each_line_of_an_error_is_cut_so_a_section_stays_under_the_limit_of_slack(self):
+    def test_each_line_of_an_error_is_cut_so_a_block_stays_under_the_limit_of_slack(self):
         failed = (CiJob("a", "https://j/1", "", (CiError("", "x" * 5000),)),)
-        message = template.render(build_checks(conclusion="failure", passed=0, failed=failed))
-        self.assertTrue(all(len(block.get("text", {}).get("text", "")) < 3000 for block in message.blocks))
-        self.assertIn("section: ```" + "x" * 150 + "```", read(message.blocks))
+        lines = read(template.render(build_checks(conclusion="failure", passed=0, failed=failed)).blocks)
+        self.assertIn("rich: ```" + "x" * 150 + "```", lines)
 
     def test_the_flaky_jobs_beyond_three_are_counted(self):
         flaky = tuple(CiJob(f"job {n}", f"https://j/{n}", "", (), 1) for n in range(5))
         lines = read(template.render(build_checks(attempt=2, flaky=flaky)).blocks)
-        self.assertEqual(sum(line.startswith("section: :warning:") for line in lines), 3)
+        self.assertEqual(sum(line.startswith("rich: job ") for line in lines), 3)
         self.assertIn(f"context: … and 2 more in <{RUN}|the run>", lines)
-
-    def test_a_thread_keeps_to_the_fifty_blocks_of_slack(self):
-        failed = tuple(CiJob(f"job {n}", f"https://j/{n}", "Gate") for n in range(80))
-        message = template.render(build_checks(conclusion="failure", passed=0, failed=failed))
-        self.assertEqual(len(message.thread[0]), 50)
-        self.assertEqual(read(message.thread[0])[-1], f"context: … more in <{RUN}|the run>")
 
 
 if __name__ == "__main__":

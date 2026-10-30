@@ -97,11 +97,11 @@ of a failure or of a retry can sit behind it.
 | State | Bar | Header | When | What the message adds |
 |---|---|---|---|---|
 | Passed | `#2EB67D` | `:white_check_mark:` | The run passed, and no job failed in the previous attempt. | Nothing: the link of the pull request is enough. |
-| Passed after a retry | `#ECB22E` | `:warning:` | The run passed, and a job that failed in the previous attempt passed in this one. | Each flaky job with the step that failed, and a button that opens the run. |
-| Failed | `#E01E5A` | `:x:` | The run failed. | The first failed job with its first error and its place, a note for each other failed job, the buttons **View logs** and **View run**, and a reply in the thread that details every failed job. |
+| Passed after a retry | `#ECB22E` | `:warning:` | The run passed, and a job that failed in the previous attempt passed in this one. | Each flaky job with its step in bold and the attempts, and a button that opens the run. |
+| Failed | `#E01E5A` | `:x:` | The run failed. | Each failed job with its step in bold, the place of its first error and that error in a block of code, the buttons **View logs** and **View run**, and a reply in the thread that details every error. |
 
-A failed job with no error of its own beside one that has errors is a gate. The message shows the job with
-errors first, and a note counts the gates. Two equal errors, such as the subtests of one test, show once with
+A failed job with no error of its own beside one that has errors is a gate. The message shows the jobs with
+errors first and a gate last, with a blank line between two jobs. Two equal errors, such as the subtests of one test, show once with
 their count, such as `×2`.
 
 The errors come from the annotations of the failed jobs, with the file and the line of each one. A title
@@ -134,7 +134,8 @@ run whose other jobs wrote annotations reads no log.
   separator.
 - `src/pull_request.py` reads a pull request, which every event of a pull request shows.
 - `src/people.py` finds the email of a GitHub account in the commits of a pull request.
-- `src/blocks.py` builds the Block Kit blocks that every template uses, and escapes the markup of Slack.
+- `src/blocks.py` builds the Block Kit blocks that every template uses: blocks of markdown, which escape the
+  markup of Slack, and blocks of rich text.
 - `src/slack.py` holds `SlackMessage` and `SlackClient`, which finds the member and posts the message and its
   thread.
 - `src/github_api.py` reads GitHub through `gh api`, and runs a failed read again.

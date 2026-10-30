@@ -1,5 +1,6 @@
-"""The Block Kit blocks of a Slack message, which every template of an event builds its message from. A
-text that a block shows escapes what Slack reads as markup."""
+"""The Block Kit blocks of a Slack message, which every template of an event builds its message from. A block
+of markdown escapes what Slack reads as markup, and a block of rich text needs no escape: `build_rich_text`
+holds lines of words and links, and blocks of code."""
 
 
 def escape(text: str) -> str:
@@ -23,11 +24,6 @@ def build_divider() -> dict:
     return {"type": "divider"}
 
 
-def build_code(text: str) -> dict:
-    # Slack has no longer fence, so a fence inside the text would close the block
-    return build_section("```" + escape(text).replace("```", "'''") + "```")
-
-
 def build_buttons(*links: tuple[str, str], primary: str = "") -> dict:
     # Each link is a label and a URL, and the button whose label is `primary` stands out
     elements = []
@@ -35,3 +31,24 @@ def build_buttons(*links: tuple[str, str], primary: str = "") -> dict:
         button = {"type": "button", "text": {"type": "plain_text", "text": label}, "url": url}
         elements.append(button | {"style": "primary"} if label == primary else button)
     return {"type": "actions", "elements": elements}
+
+
+def build_rich_text(*elements: dict) -> dict:
+    return {"type": "rich_text", "elements": list(elements)}
+
+
+def rich_line(*elements: dict) -> dict:
+    return {"type": "rich_text_section", "elements": list(elements)}
+
+
+def rich_code(text: str) -> dict:
+    return {"type": "rich_text_preformatted", "elements": [rich_word(text)]}
+
+
+def rich_word(text: str, **style: bool) -> dict:
+    # A style is bold, italic, strike or code
+    return {"type": "text", "text": text, **({"style": style} if style else {})}
+
+
+def rich_link(url: str, text: str, **style: bool) -> dict:
+    return {"type": "link", "url": url, "text": text, **({"style": style} if style else {})}
