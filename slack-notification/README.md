@@ -9,6 +9,8 @@ alone. It runs on the `gh` of the runner and on its `python3`, which must be Pyt
 | Event | GitHub event of the workflow | Who receives the message |
 |---|---|---|
 | [`ci_checks`](#the-event-ci_checks) | `workflow_run`, `completed`, on the workflows of the checks | The person who triggered the run |
+| [`review_requested`](#the-event-review_requested) | `pull_request_target`, `review_requested` | The requested reviewer, or each member of the requested team |
+| [`review_approved`](#the-event-review_requested) | `pull_request_review`, `submitted` | The reviewer who approved, whose message of the request turns to approved |
 
 ## Usage
 
@@ -42,18 +44,49 @@ GitHub runs a `workflow_run` workflow from its file on the default branch alone,
 once that file merges. The job checks out no code, so the code of a pull request never runs beside the token.
 An owner of the organization shares the secret of the Slack app with each repository that calls the action.
 
+For the review notification, the repository calls the reusable workflow, which runs the action, then the AI summary,
+then the action again:
+
+```yaml
+name: Review notification
+
+on:
+  pull_request_target:
+    types: [review_requested]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  notify:
+    uses: jahia/jahia-modules-action/.github/workflows/reusable-review-notification.yml@v2
+    secrets: inherit
+```
+
+The workflow needs these secrets:
+
+- `CORTEX_SLACK_BOT_TOKEN`: the bot token of the Slack app;
+- `AI_AGENT_GH_ISSUES_PRS_CHORES`: the token that reads the pull request and the members of a team, which the
+  `GITHUB_TOKEN` cannot read;
+- `AI_LITELLM_AUTH_TOKEN_USAGE_PR_SUMMARY`: the token of the AI gateway, with the fallback
+  `AI_LITELLM_AUTH_TOKEN_USAGE_PRS`.
+
 ## Inputs
 
 | Input | Required | Value |
 |---|---|---|
 | `slack-token` | yes | The bot token of the Slack app. |
-| `github-token` | no | The token that reads the data of the event on GitHub. It defaults to `github.token`. For `ci_checks`, it needs the permissions `actions: read`, `checks: read`, `contents: read` and `pull-requests: read`. |
+| `github-token` | no | The token that reads the data of the event on GitHub. It defaults to `github.token`. For `ci_checks`, it needs the permissions `actions: read`, `checks: read`, `contents: read` and `pull-requests: read`. For `review_requested`, a team request needs a token that reads the members of a team. |
+| `messages` | no | The messages to update, as a JSON list of `[channel, ts]` pairs, which the output `messages` of an earlier run gives. |
+| `summary-file` | no | The path of the JSON file of the AI summary, which the output `summary_file` of `ai-pr-summary` gives. |
+
+The output `messages` holds the JSON list of the `[channel, ts]` pairs that the run posted. A run that posts nothing
+writes no output.
 
 The action reads the event from the workflow, in `GITHUB_EVENT_NAME` and `GITHUB_EVENT_PATH`, so no input
 names the event.
 
-The Slack app needs the bot scopes `chat:write`, `users:read` and `users:read.email` under **OAuth &
-Permissions**. It also needs the **Messages Tab** under **App Home**, where the person reads the message.
+The Slack app needs the bot scopes `chat:write`, `im:write`, `im:history`, `users:read` and `users:read.email`
+under **OAuth & Permissions**. It also needs the **Messages Tab** under **App Home**, where the person reads the message.
 
 ## How the action finds the person
 
@@ -111,6 +144,24 @@ the groups in parentheses that end it, such as the dotted path and the subtest o
 job with no annotation, such as a Maven build, gives the end of its log instead. The read keeps the output of the
 failed step up to its last error, so the setup of the job and its cleanup never show. It keeps the `[ERROR]`
 lines of the last Maven summary, or the last three lines of another log.
+
+## The event `review_requested`
+
+The message goes to the requested reviewer, with the context of the review: the pull request, its size with a
+reading time, the summary of the AI and the files to read first. A request of a team goes to each member of the
+team, but the author of the pull request and the sender of the request. An action of `pull_request_target` other
+than `review_requested` posts nothing, and neither does a review requested from a bot.
+
+The message opens with the line `_Summary in progress…_`. The job `summarize` of the reusable workflow runs
+`ai-pr-summary`, which asks a Claude Code agent for a JSON file of 3 bullets at most and the files to read first,
+then runs the action again with `messages` and `summary-file` to update the message. A summary that fails or is not
+valid JSON turns the line to `_No summary, see the pull request_`. A pull request of a fork gets no summary,
+because a fork gets no secrets.
+
+Each message carries the metadata `review_requested` with the repository, the number and the reviewer, so a later
+event finds it. An approval by the reviewer reads the last 100 messages of the direct message, finds the message
+with that metadata, and turns its header and its bar to approved. It posts nothing, and a message that is no
+longer in those 100 states a notice.
 
 ## Add an event
 
