@@ -145,12 +145,19 @@ the Cortex checkout:
   It edits the trail comment: the comment on a Cortex tracking issue that lists the pull
   requests of one piece of work.
 
-A `*` in the middle of a permission rule stands for any text, so the allow rules of the push
-and of the PATCH take the values that vary. The same `*` would also take what git or the shell
+The session reads a worktree with `git -C sources/<name>@<slug> diff` and
+`git -C sources/<name>@<slug> show`. Each read has two allow rules, the bare command and the
+command with arguments, because a trailing ` *` matches the bare command only when it is the
+one `*` of the rule. The path stays relative and unquoted, because the deny list refuses a quote
+in a `git -C` command.
+
+A `*` in the middle of a permission rule stands for any text, so the allow rules of the push,
+of the two reads and of the PATCH take the values that vary. The same `*` would also take what git or the shell
 reads as an option or a refspec, so the deny list closes each such `*`:
 
 - `git -C * -* push *` denies an option before `push`, such as `-c`, which makes git run a
-  program.
+  program. `git -C * -* diff`, `git -C * -* diff *`, `git -C * -* show` and
+  `git -C * -* show *` deny the same option before a read.
 - `git -C * push * -*`, `git -C * push * +*` and `git -C * push *:**` deny an option, a forced
   refspec and a refspec with a colon after `push`, such as `--force` or `HEAD:main`.
 - `gh-wrapper api * repos/* -* -*` denies a second option on the PATCH. `?`, `#` and `..` deny
