@@ -46,6 +46,7 @@ export const renderToolSurface = (allowedTools, disallowedTools) => {
     '  `git -C sources/<name>@<slug>`, with that relative path and no quote, for three reads,',
     '  `diff`, `show` and `status`, and for one write, the push',
     '  `git -C sources/<name>@<slug> push -u origin <branch>`, never with force.',
+    '  A range with `..` is refused, so read your change with `diff --merge-base origin/<base>`.',
     '  `tools/jahia-pr/bin/jahia-pr` makes the commit, and you run the push, the',
     '  `pr create` and the `api` PATCH yourself, as the cortex skills state.',
   )

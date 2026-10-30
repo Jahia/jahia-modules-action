@@ -146,18 +146,22 @@ the Cortex checkout:
   requests of one piece of work.
 
 The session reads a worktree with `git -C sources/<name>@<slug> diff`, `show` and `status`.
-Each read has two allow rules, the bare command and the
-command with arguments, because a trailing ` *` matches the bare command only when it is the
-one `*` of the rule. The path stays relative and unquoted, because the deny list refuses a quote
-in a `git -C` command.
+Each read has two allow rules: the bare command, and the command with arguments. A rule with a
+`*` in the path and a trailing ` *` does not match the bare command. The path stays relative
+and unquoted, because the deny list refuses a quote in a `git -C` command. A range with `..` is
+refused too, so the session reads its change with `diff --merge-base origin/<base>`.
 
-A `*` in the middle of a permission rule stands for any text, so the allow rules of the push,
-of the three reads and of the PATCH take the values that vary. The same `*` would also take what git or the shell
-reads as an option or a refspec, so the deny list closes each such `*`:
+A `*` in the middle of a permission rule stands for any text, spaces included. The allow rules
+of the push, of the three reads and of the PATCH therefore take the values that vary. The same
+`*` would also take a subcommand, an option or a refspec, so the deny list closes each such `*`:
 
 - `git -C * -* push *` denies an option before `push`, such as `-c`, which makes git run a
-  program. `git -C * -* diff`, `git -C * -* show` and `git -C * -* status`, each in its bare
-  form and with ` *`, deny the same option before a read.
+  program.
+- `git -C * * diff`, `git -C * * show` and `git -C * * status`, each in its bare form and with
+  ` *`, deny any word between the path and a read. The `*` of the path would otherwise take a
+  whole command, such as `push diff <branch>` or `remote add diff <url>`.
+- `git * --output*` denies the option that writes the output of a git command to a file at any
+  path.
 - `git -C * push * -*`, `git -C * push * +*` and `git -C * push *:**` deny an option, a forced
   refspec and a refspec with a colon after `push`, such as `--force` or `HEAD:main`.
 - `gh-wrapper api * repos/* -* -*` denies a second option on the PATCH. `?`, `#` and `..` deny
