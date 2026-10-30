@@ -80,7 +80,9 @@ completed run of a pull request posts nothing, and the run states a notice. Four
 
 A caller may therefore run the action on every completed run of its checks. A run that GitHub runs again posts
 again, and each message reads the jobs of the attempt that its event names. GitHub can send the event before each
-job carries its conclusion, so the action reads the jobs again, up to 6 times and 10 seconds apart.
+job carries its conclusion, so the action reads the jobs up to 6 times, 10 seconds apart, until each job carries
+one. A job that still has no conclusion after the last read counts neither as passed nor as failed, and the run
+states a warning that names it.
 
 The action posts one message for each run, in one of three states, on a bar in the color of its state. The
 graver the state, the longer the message. The three share one skeleton:
@@ -90,9 +92,10 @@ graver the state, the longer the message. The three share one skeleton:
 - the state of the pull request in bold behind a circle of its color, its author, its commits and its branches,
   as its page on GitHub shows them, then a separator;
 - the workflow, which links to the run, the commit, the attempt and the duration;
-- the count of the jobs, which leaves out a job that was skipped or cancelled, such as by fail-fast. A gauge of
-  Slack squares opens that line when a job failed or passed only after a retry, one square for each job. A square
-  is green when its job passed, yellow when it passed only after a retry, and red when it failed.
+- the count of the jobs, which leaves out a job that was skipped or cancelled, such as by fail-fast, and a job with
+  no conclusion. A gauge of Slack squares opens that line when a job failed or passed only after a retry, one square
+  for each job. A square is green when its job passed, yellow when it passed only after a retry, and red when it
+  failed.
 
 Only an attachment of Slack draws the bar. Slack folds a high attachment behind "Show more", so the detail of a
 failure or of a retry can sit behind it.

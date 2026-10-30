@@ -112,6 +112,19 @@ class TestTheChecksOfARun(RunOnGitHub):
             checks = CiChecks.read(build_run("success"), github)
         self.assertEqual((checks.passed, checks.failed, checks.state, sleep.call_count), (2, (), "passed", 1))
 
+    def test_a_job_that_never_gets_a_conclusion_counts_neither_as_passed_nor_as_failed(self):
+        github = FakeGitHub({("read_pull", 42): build_pull()})
+        github.list_jobs = mock.Mock(return_value=[build_job(1, "lint", "success"), build_job(2, "gate", None)])
+        with mock.patch("events.ci_checks.event.time.sleep") as sleep:
+            checks = CiChecks.read(build_run("success"), github)
+        self.assertEqual((checks.passed, checks.failed, checks.state), (1, (), "passed"))
+        self.assertEqual((github.list_jobs.call_count, sleep.call_count), (6, 5))
+
+    def test_a_job_of_the_previous_attempt_with_no_conclusion_makes_no_flaky_job(self):
+        jobs = [build_job(1, "lint", "success", attempt=2)]
+        checks = self.read(build_run("success", attempt=2), jobs, earlier=[build_job(11, "lint", None)])
+        self.assertEqual((checks.flaky, checks.state), ((), "passed"))
+
     def test_a_new_attempt_with_no_job_that_failed_before_stays_passed(self):
         jobs = [build_job(1, "lint", "success", attempt=2)]
         checks = self.read(build_run("success", attempt=2), jobs, earlier=[build_job(11, "lint", "success")])
