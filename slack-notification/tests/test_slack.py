@@ -1,5 +1,5 @@
 """The client of a Slack app: a member Slack does not know is no error, any other refusal raises, and a post
-sends the replies of its thread under the message. A message draws its bar and keeps its text for the system."""
+sends the replies of its thread under the message. A message shows its blocks, puts its detail on a bar, and keeps its text for the system."""
 
 import io
 import json
@@ -40,7 +40,7 @@ class TestTheClient(unittest.TestCase):
 
     def test_a_post_sends_each_reply_of_the_thread_under_the_message(self):
         self.serve({"ok": True, "channel": "D1", "ts": "1.5"}, {"ok": True})
-        SlackClient("t").post("U1", SlackMessage("#fff", "text", [], ([{"type": "divider"}],)))
+        SlackClient("t").post("U1", SlackMessage("#fff", "text", [], thread=([{"type": "divider"}],)))
         payloads = [json.loads(request.data) for request in self.requests]
         self.assertEqual(payloads[0]["channel"], "U1")
         self.assertEqual(
@@ -65,14 +65,15 @@ class TestTheClient(unittest.TestCase):
 
 
 class TestTheMessage(unittest.TestCase):
-    def test_a_message_sits_on_a_bar_with_its_fallback_and_no_text_of_its_own(self):
-        payload = SlackMessage("#E01E5A", "❌ failed", [{"type": "divider"}]).render("U1")
+    def test_a_message_shows_its_blocks_and_puts_its_detail_alone_on_the_bar(self):
+        divider, section = {"type": "divider"}, {"type": "section"}
         self.assertEqual(
-            payload,
-            {
-                "channel": "U1",
-                "attachments": [{"color": "#E01E5A", "fallback": "❌ failed", "blocks": [{"type": "divider"}]}],
-            },
+            SlackMessage("#E01E5A", "❌ failed", [divider]).render("U1"),
+            {"channel": "U1", "text": "❌ failed", "blocks": [divider]},
+        )
+        self.assertEqual(
+            SlackMessage("#E01E5A", "❌ failed", [divider], (section,)).render("U1")["attachments"],
+            [{"color": "#E01E5A", "fallback": "❌ failed", "blocks": [section]}],
         )
 
 

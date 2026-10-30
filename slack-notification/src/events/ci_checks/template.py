@@ -1,7 +1,7 @@
 """The message of a completed run of the checks of a pull request, in three states: passed, passed after a
 retry, and failed. It opens on the header and the part of the pull request that `templates/` builds, then shows
-the run. The graver the state, the longer the run: a failure adds its first error and two buttons, and its thread
-lists every error."""
+the run and the gauge of its jobs. A run that passed after a retry adds its flaky jobs as the detail, and a
+failure adds its first error and two buttons, and its thread lists every error."""
 
 import os
 
@@ -30,27 +30,31 @@ _TITLE_CHARS = 150
 def render(checks: CiChecks) -> SlackMessage:
     state = checks.state
     color, emoji, icon, title = _STATES[state]
-    body = [*pull_request.show(checks.pull), *_show_run(checks)]
-    thread = ()
+    body = [*pull_request.show(checks.pull), _show_run(checks)]
+    detail, thread = [], ()
     if state == CiState.UNSTABLE:
-        body += _show_flaky(checks)
+        detail = _show_flaky(checks)
     elif state == CiState.FAILED:
-        body += _show_failure(checks)
-        detail = _detail_failures(checks)
+        detail = _show_failure(checks)
+        replies = _detail_failures(checks)
         # A failure with no failed job, such as a startup failure, has no detail for a thread
-        thread = (detail,) if detail else ()
-    return message.compose(color, emoji, icon, title, checks.pull.reference, body, thread)
+        thread = (replies,) if replies else ()
+    return message.compose(color, emoji, icon, title, checks.pull.reference, body, detail, thread)
 
 
-def _show_run(checks: CiChecks) -> list[dict]:
-    facts = [
-        f"*<{checks.run_url}|{escape(checks.workflow)}>*",
-        f"commit <{checks.commit_url}|{checks.commit}>",
-        f"attempt {checks.attempt}",
-        _format_duration(checks.duration_seconds),
-    ]
-    # One block carries the squares and the count, because Slack puts a space between two blocks
-    return [build_context("   |   ".join(facts)), build_context(f"{_draw_squares(checks)}\n{_count(checks)}")]
+def _show_run(checks: CiChecks) -> dict:
+    facts = "   |   ".join(
+        [
+            f"*<{checks.run_url}|{escape(checks.workflow)}>*",
+            f"commit <{checks.commit_url}|{checks.commit}>",
+            f"attempt {checks.attempt}",
+            _format_duration(checks.duration_seconds),
+        ]
+    )
+    # The squares of the jobs follow the line of a run with a job that failed or passed after a retry, and one block
+    # carries the lines, because Slack puts a space between two blocks
+    squares = [_draw_squares(checks)] if checks.failed or checks.flaky else []
+    return build_context("\n".join([facts, *squares, _count(checks)]))
 
 
 def _draw_squares(checks: CiChecks) -> str:

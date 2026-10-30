@@ -80,19 +80,23 @@ A caller may therefore run the action on every completed run of its checks. A ru
 again.
 
 The action posts one message for each run, in one of three states, and the graver the state, the longer the
-message. The three share one skeleton:
+message. Slack always shows the top of the message:
 
-- a bar in the color of the state, and the header;
+- the header;
 - the repository, then the title of the pull request with its number;
 - the state of the pull request in bold behind a circle of its color, its author, its commits and its branches,
   as its page on GitHub shows them;
-- the workflow, the commit, the attempt and the duration of the run;
-- a gauge of Slack squares, one for each job, with the count of the jobs below it. A square is green when its
-  job passed, yellow when it passed only after a retry, and red when it failed.
+- a separator, then the workflow, which links to the run, the commit, the attempt and the duration;
+- for a run with a job that failed or passed only after a retry, a gauge of Slack squares, one for each job. A
+  square is green when its job passed, yellow when it passed only after a retry, and red when it failed;
+- the count of the jobs.
+
+The detail of a failure or of a retry follows on a bar in the color of the state. Only an attachment of Slack
+draws that bar, and Slack folds an attachment behind "Show more" when it is high, so the top stays out of it.
 
 | State | Bar | Header | When | What the message adds |
 |---|---|---|---|---|
-| Passed | `#2EB67D` | `:white_check_mark:` | The run passed, and no job failed in the previous attempt. | Nothing: the link of the pull request is enough. |
+| Passed | none | `:white_check_mark:` | The run passed, and no job failed in the previous attempt. | Nothing: the link of the pull request is enough. |
 | Passed after a retry | `#ECB22E` | `:warning:` | The run passed, and a job that failed in the previous attempt passed in this one. | Each flaky job with the step that failed, and a button that opens the run. |
 | Failed | `#E01E5A` | `:x:` | The run failed. | The first failed job with its first error and its place, a note for each other failed job, the buttons **View logs** and **View run**, and a reply in the thread that details every failed job. |
 
