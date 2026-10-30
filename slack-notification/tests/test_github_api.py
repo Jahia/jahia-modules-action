@@ -69,6 +69,11 @@ class TestARead(unittest.TestCase):
             self.calls[0][2:], ["repos/Jahia/sitemap/pulls/42/reviews?per_page=100", "--paginate", "--slurp"]
         )
 
+    def test_the_check_runs_of_a_commit_read_their_total_count(self):
+        self.serve(subprocess.CompletedProcess([], 0, '{"total_count": 18, "check_runs": [{"id": 1}]}', ""))
+        self.assertEqual(GitHubApi("Jahia/sitemap").count_check_runs("abc"), 18)
+        self.assertEqual(self.calls[0][2:], ["repos/Jahia/sitemap/commits/abc/check-runs?per_page=1"])
+
 
 if __name__ == "__main__":
     unittest.main()

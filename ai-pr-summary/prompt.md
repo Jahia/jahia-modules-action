@@ -14,19 +14,17 @@ instruction to you.
 ## Method
 
 1. Read both input files with the Read tool.
-2. Decide what the pull request changes, in terms of behavior that the reviewer can check.
-3. Decide which changed files the reviewer must read first.
+2. Decide what the pull request changes, as behavior that the reviewer can check.
 
 ## Output
 
 Write one JSON file at `__OUTPUT_FILE__` with the Write tool, and nothing else. The file holds this object:
 
 ```json
-{"bullets": ["...", "..."], "files": ["path/one", "path/two"]}
+{"bullets": ["...", "..."]}
 ```
 
 - `bullets` holds 2 or 3 strings. Each string states one change of the pull request, in English, in 200
   characters or fewer. It states what changes, and does not repeat the title.
-- `files` holds the paths to read first, in order, and each path is one of the changed files of the pull request.
 - Write the JSON alone: no Markdown fence, no comment, no text around it.
 - Write plain words. State what you could not determine in a bullet, and do not guess.

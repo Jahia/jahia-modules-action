@@ -1,4 +1,4 @@
-"""The message of a review request: pending, with a summary, and with none."""
+"""The message of a review request: the counts of its tabs, then the summary, pending, written or failed."""
 
 import pathlib
 import sys
@@ -7,22 +7,14 @@ import unittest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 import test_pull_request
 from events.review_requested import template
-from events.review_requested.event import ReviewFile, ReviewRequest, Summary
+from events.review_requested.event import ReviewRequest, Summary
 from test_ci_checks_template import read
 
 PULL = "https://github.com/Jahia/sitemap/pull/42"
-SQUARES = ":large_green_square:" * 3 + ":large_red_square:" * 2
 
 
 def build_request(**changes):
-    request = ReviewRequest(
-        test_pull_request.read(),
-        "dev",
-        "https://github.com/dev",
-        50,
-        (ReviewFile("src/a.py", 30, 20), ReviewFile("b.py", 0, 4)),
-        3,
-    )
+    request = ReviewRequest(test_pull_request.read(), "dev", 0, 18, 26, 1334, 54)
     return request._replace(**changes)
 
 
@@ -31,28 +23,29 @@ def lines(request=None, member="dev", summary=None, pending=True):
 
 
 class TestTheReviewMessage(unittest.TestCase):
-    def test_the_pending_message_shows_the_context_the_files_and_the_button(self):
+    def test_the_pending_message_shows_the_counts_the_pending_summary_and_the_button(self):
         message = template.render(build_request(), "dev", None, True)
         self.assertEqual((message.color, message.fallback), ("#1D9BD1", "👀 Review requested · Jahia/sitemap#42"))
         shown = lines()
         self.assertEqual(shown[0], "header: :eye: Review requested")
-        self.assertIn("context: For <https://github.com/dev|dev> · size S · ~5 min to review", shown)
-        self.assertIn("section: *What the pull request changes*\n_Summary in progress…_", shown)
-        self.assertIn(
-            f"section: *Where to start*\nsrc/a.py   +30 −20   {SQUARES}\n"
-            f"b.py   +0 −4   {':large_red_square:' * 5}\n+ 3 more files",
-            shown,
+        self.assertEqual(
+            shown[-3],
+            "context: Conversation 0   |   Commits 3   |   Checks 18   |   Files changed 26   |   +1334 −54",
         )
+        self.assertEqual(shown[-2], "section: *What the pull request changes*\n_Summary in progress…_")
         self.assertEqual(shown[-1], "actions: Review on GitHub")
         self.assertEqual(message.blocks[-1]["elements"][0]["url"], f"{PULL}/files")
 
-    def test_a_team_request_names_the_team_and_the_metadata_names_the_member(self):
-        request = build_request(reviewer="@Jahia/core", reviewer_url="https://github.com/orgs/Jahia/teams/core")
-        message = template.render(request, "ann", None, True)
+    def test_a_count_of_one_reads_in_the_singular(self):
+        pull = build_request().pull._replace(commits=1)
+        request = build_request(pull=pull, comments=1, checks=1, files=1)
         self.assertIn(
-            "context: For <https://github.com/orgs/Jahia/teams/core|@Jahia/core> · size S · ~5 min to review",
+            "context: Conversation 1   |   Commit 1   |   Check 1   |   File changed 1   |   +1334 −54",
             lines(request),
         )
+
+    def test_the_metadata_names_the_member_who_receives_the_message(self):
+        message = template.render(build_request(reviewer="core"), "ann", None, True)
         self.assertEqual(
             message.metadata,
             {
@@ -61,15 +54,9 @@ class TestTheReviewMessage(unittest.TestCase):
             },
         )
 
-    def test_a_summary_gives_one_bullet_per_line_and_orders_the_files(self):
-        summary = Summary(("one", "two"), ("b.py", "src/a.py"))
-        shown = "\n".join(lines(summary=summary, pending=False))
+    def test_a_summary_gives_one_bullet_per_line(self):
+        shown = "\n".join(lines(summary=Summary(("one", "two")), pending=False))
         self.assertIn("*What the pull request changes*\n• one\n• two", shown)
-        self.assertLess(shown.index("b.py   +0"), shown.index("src/a.py   +30"))
-
-    def test_a_summary_that_names_an_unknown_file_leaves_the_order_alone(self):
-        shown = "\n".join(lines(summary=Summary(("one",), ("zzz",))))
-        self.assertLess(shown.index("src/a.py"), shown.index("b.py"))
 
     def test_a_failed_summary_reads_as_no_summary(self):
         self.assertIn(
@@ -77,7 +64,7 @@ class TestTheReviewMessage(unittest.TestCase):
         )
 
     def test_a_parsed_summary_with_no_bullet_reads_as_no_summary(self):
-        summary = Summary.parse({"bullets": [], "files": []})
+        summary = Summary.parse({"bullets": []})
         self.assertIn(
             "section: *What the pull request changes*\n_No summary, see the pull request_",
             lines(summary=summary, pending=False),
@@ -89,11 +76,6 @@ class TestTheReviewMessage(unittest.TestCase):
         self.assertEqual((approved.color, approved.fallback), ("#2EB67D", "✅ Approved · Jahia/sitemap#42"))
         self.assertEqual(read(approved.blocks)[0], "header: :white_check_mark: Approved")
         self.assertEqual((approved.blocks[1:], approved.metadata), (request.blocks[1:], request.metadata))
-
-    def test_a_request_with_no_file_has_no_where_to_start_section(self):
-        shown = "\n".join(lines(build_request(lines=0, files=(), more=0)))
-        self.assertNotIn("Where to start", shown)
-        self.assertIn("size XS", shown)
 
     def test_a_title_with_markup_is_escaped(self):
         pull = build_request().pull._replace(title="a <b> & c")

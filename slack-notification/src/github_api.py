@@ -1,7 +1,7 @@
 """The reads of GitHub that the notification makes through `gh api`: a pull request, the jobs of an attempt of a
-run, the annotations and the log of a job, the commits of a pull request, the commits of an author, the files and
-the reviews of a pull request, and the members of a team. A read that fails runs again, unless a second call cannot
-change the refusal, and the last refusal raises `GitHubError`."""
+run, the annotations and the log of a job, the commits of a pull request, the commits of an author, the check runs
+of a commit, the reviews of a pull request, and the members of a team. A read that fails runs again, unless a
+second call cannot change the refusal, and the last refusal raises `GitHubError`."""
 
 import json
 import re
@@ -59,10 +59,9 @@ class GitHubApi:
         """The newest commits of the repository whose author is `login`."""
         return self._read_json(f"repos/{self._repo}/commits?author={login}&per_page=20")
 
-    def list_pull_files(self, number: int) -> list[dict]:
-        """The files of a pull request, from every page."""
-        pages = self._read_json(f"repos/{self._repo}/pulls/{number}/files?per_page={_PAGE}", "--paginate", "--slurp")
-        return [file for page in pages for file in page]
+    def count_check_runs(self, sha: str) -> int:
+        """The count of the check runs of the commit `sha`, as the tab Checks of a pull request shows it."""
+        return self._read_json(f"repos/{self._repo}/commits/{sha}/check-runs?per_page=1")["total_count"]
 
     def list_pull_reviews(self, number: int) -> list[dict]:
         """The reviews of a pull request, oldest first, from every page."""

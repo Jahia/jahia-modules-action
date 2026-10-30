@@ -18,7 +18,7 @@ inputs:
 
 outputs:
   summary_file:
-    description: 'Path of the JSON file {"bullets": [...], "files": [...]}, or empty when the run failed or wrote no valid JSON'
+    description: 'Path of the JSON file {"bullets": [...]}, or empty when the run failed or wrote no valid JSON'
     value: ${{ steps.check.outputs.summary_file }}
 
 runs:
@@ -82,7 +82,7 @@ runs:
         if python3 -c '
         import json, sys
         data = json.load(open(sys.argv[1]))
-        assert isinstance(data["bullets"], list) and isinstance(data["files"], list)
+        assert isinstance(data["bullets"], list)
         ' "$SUMMARY_FILE" 2>/dev/null; then
           echo "summary_file=$SUMMARY_FILE" >> "$GITHUB_OUTPUT"
         else

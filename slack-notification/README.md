@@ -162,13 +162,20 @@ lines of the last Maven summary, or the last three lines of another log.
 
 ## The event `review_requested`
 
-The message goes to the requested reviewer, with the context of the review: the pull request, its size with a
-reading time, the summary of the AI and the files to read first. A request of a team goes to each member of the
-team, but the author of the pull request and the sender of the request. An action of `pull_request_target` other
+The message goes to the requested reviewer, with the context of the review: the pull request, the counts that
+its tabs show on GitHub, and the summary of the AI. The counts are the comments, the commits, the check runs, the
+changed files and the changed lines:
+
+```text
+Conversation 0   |   Commits 12   |   Checks 18   |   Files changed 26   |   +1334 −54
+```
+
+A request of a team goes to each member of the team, but the author of the pull request and the sender of the
+request. An action of `pull_request_target` other
 than `review_requested` posts nothing, and neither does a review requested from a bot.
 
 The message opens with the line `_Summary in progress…_`. The job `summarize` of the reusable workflow runs
-`ai-pr-summary`, which asks a Claude Code agent for a JSON file of 3 bullets at most and the files to read first,
+`ai-pr-summary`, which asks a Claude Code agent for a JSON file of 3 bullets at most,
 then runs the action again with `messages` and `summary-file` to update the message. The update writes each message
 to the member that its triple names, and reads no email. A summary that fails or is not valid JSON turns the line to
 `_No summary, see the pull request_`. A pull request of a fork gets no summary, because a fork gets no secrets.
