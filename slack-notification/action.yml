@@ -3,14 +3,14 @@ description: Send the Slack message of the GitHub event that triggered the workf
 
 inputs:
   slack-token:
-    description: "The bot token of the Slack app, with the bot scopes chat:write, users:read and users:read.email"
+    description: "The bot token of the Slack app, with the bot scopes chat:write, im:write, im:history, users:read and users:read.email"
     required: true
   github-token:
     description: "The token that reads the data of the event on GitHub"
     default: ${{ github.token }}
 
   messages:
-    description: "The messages to update, as a JSON list of [channel, ts] pairs, which the output messages of an earlier run gives"
+    description: "The messages to update, as a JSON list of [channel, ts, login] triples, which the output messages of an earlier run gives"
     default: ""
   summary-file:
     description: "The path of a JSON file that an earlier step wrote, which an event may read"
@@ -18,7 +18,7 @@ inputs:
 
 outputs:
   messages:
-    description: "The messages that the run posted, as a JSON list of [channel, ts] pairs"
+    description: "The messages that the run posted, as a JSON list of [channel, ts, login] triples, where login is the GitHub account of the person"
     value: ${{ steps.notify.outputs.messages }}
 
 runs:
