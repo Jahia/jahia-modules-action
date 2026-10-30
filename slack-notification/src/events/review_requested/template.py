@@ -39,8 +39,7 @@ def build_metadata(repository: str, number: int, member: str) -> dict:
 
 
 def _show_counts(request: ReviewRequest) -> str:
-    # The tabs of the pull request on GitHub, in their order, each count a link to its tab as the run line of
-    # ci_checks links its commit
+    # The tabs of the pull request on GitHub, in their order, each count a link to its tab
     url = request.pull.url
     return "   |   ".join(
         [
