@@ -29,6 +29,7 @@ import {
   setupSSH
 } from './init'
 import {
+  annotateFailedTests,
   publishToTestrail,
   createGitHubIncident,
   sendResultsToZencrepes,
@@ -261,6 +262,16 @@ async function run(): Promise<void> {
       core.getInput('tests_report_type')
     )
 
+    // The annotations of the failed tests come before the failure of the step, as the Slack notification shows the first one
+    const successFile = path.join(artifactsFolder, 'results/test_success')
+    const hasFailed = !fs.existsSync(successFile)
+    const unannotated = hasFailed
+      ? annotateFailedTests(
+          path.join(testsFolder, core.getInput('tests_report_path')),
+          path.relative(rootProjectFolder, testsFolder)
+        )
+      : 0
+
     // Publish results to testrail
     // Publish to testrail - into separate project
     if (
@@ -436,20 +447,15 @@ async function run(): Promise<void> {
     core.info(`Completed job at: ${formatDate(new Date())}`)
 
     //Finally, analyze the results
-    if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
+    if (hasFailed) {
       core.setFailed(
-        `Run has FAILED, could not locate file ${path.join(
-          artifactsFolder,
-          'results/test_success'
-        )}`
+        `Run has FAILED, could not locate file ${successFile}` +
+          (unannotated
+            ? `. ${unannotated} more failed tests have no annotation.`
+            : '')
       )
     } else {
-      core.info(
-        `Run is SUCCESSFUL, could locate file ${path.join(
-          artifactsFolder,
-          'results/test_success'
-        )}`
-      )
+      core.info(`Run is SUCCESSFUL, could locate file ${successFile}`)
     }
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
