@@ -74,7 +74,7 @@ class TestTheMessageOfTheChecks(unittest.TestCase):
                     " `main` from `feat/x`"
                 ),
                 "divider: ",
-                "context: *Validate*   |   commit <https://github.com/Jahia/sitemap/commit/ec06bcc|ec06bcc>   |   attempt 1   |   1m 27s",
+                f"context: *<{RUN}|Validate>*   |   commit <https://github.com/Jahia/sitemap/commit/ec06bcc|ec06bcc>   |   attempt 1   |   1m 27s",
                 "context: " + ":large_green_square:" * 8 + "\nAll jobs passed",
             ],
         )

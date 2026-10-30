@@ -44,7 +44,7 @@ def render(checks: CiChecks) -> SlackMessage:
 
 def _show_run(checks: CiChecks) -> list[dict]:
     facts = [
-        f"*{escape(checks.workflow)}*",
+        f"*<{checks.run_url}|{escape(checks.workflow)}>*",
         f"commit <{checks.commit_url}|{checks.commit}>",
         f"attempt {checks.attempt}",
         _format_duration(checks.duration_seconds),
