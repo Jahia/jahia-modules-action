@@ -1,7 +1,7 @@
 """The message of a completed run of the checks of a pull request, in three states: passed, passed after a
 retry, and failed. It opens on the header and the part of the pull request that `templates/` builds, then shows
-the run and the gauge of its jobs. A run that passed after a retry adds its flaky jobs as the detail, and a
-failure adds its first error and two buttons, and its thread lists every error."""
+the run and the gauge of its jobs. A run that passed after a retry adds its flaky jobs, and a failure adds its
+first error and two buttons, and its thread lists every error."""
 
 import os
 
@@ -31,15 +31,15 @@ def render(checks: CiChecks) -> SlackMessage:
     state = checks.state
     color, emoji, icon, title = _STATES[state]
     body = [*pull_request.show(checks.pull), _show_run(checks)]
-    detail, thread = [], ()
+    thread = ()
     if state == CiState.UNSTABLE:
-        detail = _show_flaky(checks)
+        body += _show_flaky(checks)
     elif state == CiState.FAILED:
-        detail = _show_failure(checks)
+        body += _show_failure(checks)
         replies = _detail_failures(checks)
         # A failure with no failed job, such as a startup failure, has no detail for a thread
         thread = (replies,) if replies else ()
-    return message.compose(color, emoji, icon, title, checks.pull.reference, body, detail, thread)
+    return message.compose(color, emoji, icon, title, checks.pull.reference, body, thread)
 
 
 def _show_run(checks: CiChecks) -> dict:

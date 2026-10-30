@@ -10,22 +10,20 @@ _API = "https://slack.com/api/"
 
 
 class SlackMessage(NamedTuple):
-    """A message whose `blocks` Slack always shows, then whose `detail` sits on a bar in the color of its state.
-    Slack folds the detail behind "Show more" when it is high. `fallback` is the text that the notification of
-    the system shows, and `thread` lists the blocks of each reply in the thread of the message."""
+    """A message on a bar in the color of its state. `fallback` is the text that the notification of the
+    system shows, and `thread` lists the blocks of each reply in the thread of the message."""
 
     color: str
     fallback: str
     blocks: list[dict]
-    detail: tuple[dict, ...] = ()
     thread: tuple[list[dict], ...] = ()
 
     def render(self, channel: str) -> dict:
-        payload = {"channel": channel, "text": self.fallback, "blocks": self.blocks}
-        # Only an attachment draws the bar, and Slack folds an attachment, so the detail alone goes there
-        if self.detail:
-            payload["attachments"] = [{"color": self.color, "fallback": self.fallback, "blocks": list(self.detail)}]
-        return payload
+        # An attachment draws the bar, and a message with no text of its own shows no line above it
+        return {
+            "channel": channel,
+            "attachments": [{"color": self.color, "fallback": self.fallback, "blocks": self.blocks}],
+        }
 
 
 class SlackError(Exception):

@@ -63,7 +63,7 @@ FACTS = f"*<{RUN}|Validate>*   |   commit <https://github.com/Jahia/sitemap/comm
 
 
 class TestTheMessageOfTheChecks(unittest.TestCase):
-    def test_a_passed_run_shows_the_pull_request_and_the_run_with_no_gauge_and_no_detail(self):
+    def test_a_passed_run_shows_the_pull_request_and_the_run_with_no_gauge_on_a_green_bar(self):
         message = template.render(build_checks())
         self.assertEqual(message.color, "#2EB67D")
         self.assertEqual(message.fallback, "✅ CI checks passed · Jahia/sitemap#42")
@@ -80,9 +80,9 @@ class TestTheMessageOfTheChecks(unittest.TestCase):
                 f"context: {FACTS}\nAll jobs passed",
             ],
         )
-        self.assertEqual((message.detail, message.thread), ((), ()))
+        self.assertEqual(message.thread, ())
 
-    def test_a_run_that_passed_after_a_retry_shows_its_gauge_and_its_flaky_job_as_detail(self):
+    def test_a_run_that_passed_after_a_retry_shows_its_gauge_and_its_flaky_job_on_a_yellow_bar(self):
         flaky = CiJob("lint 2/6", "https://j/2", "Run the checks", (), 1)
         message = template.render(build_checks(attempt=2, duration_seconds=182, flaky=(flaky,)))
         self.assertEqual(message.color, "#ECB22E")
@@ -91,7 +91,7 @@ class TestTheMessageOfTheChecks(unittest.TestCase):
         self.assertIn("attempt 2   |   3m 02s\n" + ":large_green_square:" * 7 + ":large_yellow_square:", lines[4])
         self.assertTrue(lines[4].endswith("\n8 passed · 1 only after retry"), lines[4])
         self.assertEqual(
-            read(message.detail),
+            lines[5:],
             [
                 "section: *Flaky*",
                 "section: :warning: <https://j/2|lint 2/6> › Run the checks",
@@ -116,7 +116,7 @@ class TestTheMessageOfTheChecks(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            read(message.detail),
+            read(message.blocks)[5:],
             [
                 "section: *Failed*",
                 "section: :x: <https://j/2|lint 2/6> › Run the checks",
@@ -126,7 +126,7 @@ class TestTheMessageOfTheChecks(unittest.TestCase):
                 "actions: View logs | View run",
             ],
         )
-        self.assertEqual(message.detail[-1]["elements"][0]["url"], "https://j/2")
+        self.assertEqual(message.blocks[-1]["elements"][0]["url"], "https://j/2")
         self.assertEqual(
             read(message.thread[0]),
             [
@@ -140,14 +140,14 @@ class TestTheMessageOfTheChecks(unittest.TestCase):
 
     def test_the_other_failed_jobs_with_errors_are_counted_and_left_to_the_thread(self):
         failed = tuple(CiJob(f"job {n}", f"https://j/{n}", "", (CiError("", f"error {n}"),)) for n in range(3))
-        lines = read(template.render(build_checks(conclusion="failure", passed=0, failed=failed)).detail)
+        lines = read(template.render(build_checks(conclusion="failure", passed=0, failed=failed)).blocks)
         self.assertIn("context: _+ 2 other failed jobs, in the thread_", lines)
 
     def test_an_error_with_no_file_names_itself_and_the_thread_counts_the_errors_it_hides(self):
         errors = tuple(CiError("", f"error {n}") for n in range(12))
         failed = (CiJob("build", "https://j/1", "", (CiError("Compile", "cannot find symbol"), *errors)),)
         message = template.render(build_checks(conclusion="failure", passed=0, failed=failed))
-        self.assertIn("context: Compile", read(message.detail))
+        self.assertIn("context: Compile", read(message.blocks))
         self.assertEqual(read(message.thread[0])[-1], f"context: … and 3 more in <{RUN}|the run>")
 
 
@@ -155,18 +155,17 @@ class TestTheLimitsOfSlack(unittest.TestCase):
     def test_a_failure_with_no_failed_job_posts_no_thread(self):
         message = template.render(build_checks(conclusion="startup_failure", passed=0))
         self.assertEqual(message.thread, ())
-        self.assertEqual(read(message.detail), ["actions: View run"])
+        self.assertEqual(read(message.blocks)[-1], "actions: View run")
 
     def test_each_line_of_an_error_is_cut_so_a_section_stays_under_the_limit_of_slack(self):
         failed = (CiJob("a", "https://j/1", "", (CiError("", "x" * 5000),)),)
         message = template.render(build_checks(conclusion="failure", passed=0, failed=failed))
-        blocks = [*message.blocks, *message.detail]
-        self.assertTrue(all(len(block.get("text", {}).get("text", "")) < 3000 for block in blocks))
-        self.assertIn("section: ```" + "x" * 150 + "```", read(message.detail))
+        self.assertTrue(all(len(block.get("text", {}).get("text", "")) < 3000 for block in message.blocks))
+        self.assertIn("section: ```" + "x" * 150 + "```", read(message.blocks))
 
     def test_the_flaky_jobs_beyond_three_are_counted(self):
         flaky = tuple(CiJob(f"job {n}", f"https://j/{n}", "", (), 1) for n in range(5))
-        lines = read(template.render(build_checks(attempt=2, flaky=flaky)).detail)
+        lines = read(template.render(build_checks(attempt=2, flaky=flaky)).blocks)
         self.assertEqual(sum(line.startswith("section: :warning:") for line in lines), 3)
         self.assertIn(f"context: … and 2 more in <{RUN}|the run>", lines)
 
