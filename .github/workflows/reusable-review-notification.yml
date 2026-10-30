@@ -112,7 +112,7 @@ jobs:
         uses: jahia/jahia-modules-action/ai-pr-summary@v2
         with:
           target_url: ${{ github.event.pull_request.html_url }}
-          # The token of the job reads and cannot write, which the deny list of gh api alone does not ensure
+          # The token of the job reads the pull request before the agent runs, and cannot write
           github_token: ${{ github.token }}
           cortex_path: ${{ steps.setup.outputs.cortex_path }}
           model: ${{ inputs.model }}

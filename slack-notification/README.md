@@ -173,7 +173,9 @@ then runs the action again with `messages` and `summary-file` to update the mess
 to the member that its triple names, and reads no email. A summary that fails or is not valid JSON turns the line to
 `_No summary, see the pull request_`. A pull request of a fork gets no summary, because a fork gets no secrets.
 
-The agent reads the pull request with the `GITHUB_TOKEN` of its job, which reads and cannot write. The job
+A step before the agent reads the title, the description, the changed files and the diff of the pull request
+with the `GITHUB_TOKEN` of its job, which reads and cannot write. The agent reads them as files, and has no token
+and no tool that reaches the network: no Bash and no web tool. Its one allowed write is the summary file. The job
 `summarize` also runs when Slack refused the message of one member, so the other members still get the summary.
 
 Each message carries the metadata `review_requested` with the repository, the number and the reviewer, so a later
