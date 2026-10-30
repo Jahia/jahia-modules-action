@@ -10,7 +10,7 @@ alone. It runs on the `gh` of the runner and on its `python3`, which must be Pyt
 |---|---|---|
 | [`ci_checks`](#the-event-ci_checks) | `workflow_run`, `completed`, on the workflows of the checks | The person who triggered the run |
 | [`review_requested`](#the-event-review_requested) | `pull_request_target`, `review_requested` | The requested reviewer, or each member of the requested team |
-| [`review_submitted`](#the-event-review_requested) | `pull_request_review`, `submitted` and `dismissed` | The reviewer who approved or requested changes, whose message of the request turns to that state |
+| [`review_submitted`](#the-event-review_requested) | `pull_request_review`, `submitted` and `dismissed` | The reviewer who approved or requested changes, or whose review was dismissed, whose message of the request turns to that state |
 
 ## Usage
 
