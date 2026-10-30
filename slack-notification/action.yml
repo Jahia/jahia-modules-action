@@ -1,0 +1,20 @@
+name: slack-notification
+description: Send the Slack message of the GitHub event that triggered the workflow to the person it concerns, in a direct message of a Slack app
+
+inputs:
+  slack-token:
+    description: "The bot token of the Slack app, with the bot scopes chat:write, users:read and users:read.email"
+    required: true
+  github-token:
+    description: "The token that reads the data of the event on GitHub"
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Post the message of the event
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        SLACK_TOKEN: ${{ inputs.slack-token }}
+      run: python3 "$GITHUB_ACTION_PATH/src/main.py"
