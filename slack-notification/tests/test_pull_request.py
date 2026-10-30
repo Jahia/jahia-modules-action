@@ -64,7 +64,7 @@ class TestThePartOfAPullRequest(unittest.TestCase):
         blocks = pull_request.show(read())
         self.assertEqual(
             blocks[0]["text"]["text"],
-            ":package: <https://github.com/Jahia/sitemap|Jahia/sitemap>\n"
+            "*<https://github.com/Jahia/sitemap|Jahia/sitemap>*\n"
             "*feat: a &lt;b&gt;* <https://github.com/Jahia/sitemap/pull/42|#42>",
         )
         self.assertEqual(

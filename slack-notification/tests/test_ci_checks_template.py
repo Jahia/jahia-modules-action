@@ -71,7 +71,7 @@ class TestTheMessageOfTheChecks(unittest.TestCase):
             read(message.blocks),
             [
                 "header: :white_check_mark: CI checks passed",
-                f"section: :package: <https://github.com/Jahia/sitemap|Jahia/sitemap>\n*feat: a &lt;b&gt;* <{PULL}|#42>",
+                f"section: *<https://github.com/Jahia/sitemap|Jahia/sitemap>*\n*feat: a &lt;b&gt;* <{PULL}|#42>",
                 (
                     "context: :large_green_circle: *Open* · <https://github.com/dev|dev> wants to merge 3 commits into"
                     " `main` from `feat/x`"

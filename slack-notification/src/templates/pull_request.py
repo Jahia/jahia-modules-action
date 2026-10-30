@@ -19,8 +19,7 @@ def show(pull: PullRequest) -> list[dict]:
     return [
         # One section holds the repository and the title, because Slack puts a wide space between two blocks
         build_section(
-            f":package: <{pull.repository_url}|{escape(pull.repository)}>\n"
-            f"*{escape(pull.title)}* <{pull.url}|#{pull.number}>"
+            f"*<{pull.repository_url}|{escape(pull.repository)}>*\n*{escape(pull.title)}* <{pull.url}|#{pull.number}>"
         ),
         build_context(
             f"{circle} *{label}* · <{pull.author_url}|{escape(pull.author)}> {verb} {pull.commits} {commits}"
