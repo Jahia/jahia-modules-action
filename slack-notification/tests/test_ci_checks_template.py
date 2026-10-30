@@ -168,7 +168,13 @@ class TestTheLimitsOfSlack(unittest.TestCase):
     def test_the_detail_of_an_error_is_cut_so_a_block_stays_under_the_limit_of_slack(self):
         failed = (CiJob("a", "https://j/1", "", (CiError("", "x" * 5000),)),)
         lines = read(template.render(build_checks(conclusion="failure", passed=0, failed=failed)).blocks)
-        self.assertIn("rich: ```" + "x" * 450 + "```", lines)
+        self.assertIn("rich: ```" + "x" * 449 + "…```", lines)
+
+    def test_a_long_line_leaves_room_for_the_short_line_that_names_the_error(self):
+        detail = "at " + "x" * 600 + "\nError: X failed"
+        failed = (CiJob("a", "https://j/1", "", (CiError("", detail),)),)
+        lines = read(template.render(build_checks(conclusion="failure", passed=0, failed=failed)).blocks)
+        self.assertIn("rich: ```at " + "x" * 431 + "…\nError: X failed```", lines)
 
     def test_a_line_longer_than_150_characters_shows_whole_when_the_detail_fits(self):
         line = "  ✗ tools/a/MAN.md:63: the link to `../b/MAN.md` names no section, " + "so link its TOOL.md " * 5

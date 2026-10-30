@@ -3,4 +3,4 @@
 jahia-modules-action: patch
 ---
 
-Fixed the Slack message of failed checks, so an error line longer than 150 characters shows whole.
+Fixed the Slack message of failed checks, which cut an error line at 150 characters even when the error was short.
