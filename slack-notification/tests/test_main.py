@@ -250,7 +250,7 @@ class TestTheRecipients(unittest.TestCase):
         with mock.patch("sys.stdout", new_callable=io.StringIO) as output:
             code = main._notify("pull_request_review", payload, github, FakeSlack(), Inputs())
         self.assertEqual(code, 0)
-        warning = "::warning::no commit of the repository gives an email of rev, so nothing is posted"
+        warning = "::warning::no commit of the organization gives an email of rev, so nothing is posted"
         self.assertIn(warning, output.getvalue())
 
     def test_a_reviewer_with_no_email_states_a_warning(self):

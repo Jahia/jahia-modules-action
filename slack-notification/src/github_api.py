@@ -1,5 +1,5 @@
 """The reads of GitHub that the notification makes through `gh api`: a pull request, the jobs of an attempt of a
-run, the annotations and the log of a job, the commits of a pull request, the commits of an author, the check runs
+run, the annotations and the log of a job, the commits of a pull request, the commits of an author in the organization, the check runs
 of a commit, the reviews of a pull request, and the members of a team. A read that fails runs again, unless a
 second call cannot change the refusal, and the last refusal raises `GitHubError`."""
 
@@ -56,8 +56,12 @@ class GitHubApi:
         return [commit for page in pages for commit in page]
 
     def list_author_commits(self, login: str) -> list[dict]:
-        """The newest commits of the repository whose author is `login`."""
-        return self._read_json(f"repos/{self._repo}/commits?author={login}&per_page=20")
+        """The newest commits of the organization of the repository whose author is `login`, from every repository
+        of it that the token reads."""
+        # ponytail: the search has a rate limit of its own per minute, which a large team request can reach
+        owner = self._repo.split("/")[0]
+        path = f"search/commits?q=author:{login}+org:{owner}&sort=author-date&order=desc&per_page=50"
+        return self._read_json(path)["items"]
 
     def count_check_runs(self, sha: str) -> int:
         """The count of the check runs of the commit `sha`, as the tab Checks of a pull request shows it."""

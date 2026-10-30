@@ -69,6 +69,13 @@ class TestARead(unittest.TestCase):
             self.calls[0][2:], ["repos/Jahia/sitemap/pulls/42/reviews?per_page=100", "--paginate", "--slurp"]
         )
 
+    def test_the_commits_of_an_author_come_from_the_search_of_the_organization(self):
+        self.serve(subprocess.CompletedProcess([], 0, '{"total_count": 1, "items": [{"sha": "a"}]}', ""))
+        self.assertEqual(GitHubApi("Jahia/sitemap").list_author_commits("dev"), [{"sha": "a"}])
+        self.assertEqual(
+            self.calls[0][2:], ["search/commits?q=author:dev+org:Jahia&sort=author-date&order=desc&per_page=50"]
+        )
+
     def test_the_check_runs_of_a_commit_read_their_total_count(self):
         self.serve(subprocess.CompletedProcess([], 0, '{"total_count": 18, "check_runs": [{"id": 1}]}', ""))
         self.assertEqual(GitHubApi("Jahia/sitemap").count_check_runs("abc"), 18)

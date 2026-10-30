@@ -103,8 +103,10 @@ The event names the GitHub account of the person and a pull request. The profile
 private by default. The action therefore reads the emails of the commits of the pull request that GitHub links to
 that account, as their author or their committer. It reads the last commit first, and leaves out the address
 `users.noreply.github.com` that GitHub gives an account that hides its email. The events `review_requested` and
-`review_submitted` read the newest commits of the account in the repository instead. A reviewer seldom has a commit
-in the pull request.
+`review_submitted` read the newest 50 commits of the account in the repositories of the organization instead,
+through the commit search of GitHub. A reviewer seldom has a commit in the pull request. The default branch of one
+repository is not enough either, because a squash merge carries the email of the account on GitHub, which may be
+a personal one. The search allows 30 calls a minute, so a team request to more than 30 members fails.
 
 `users.lookupByEmail` finds the Slack member by the first email that Slack knows, and `chat.postMessage` posts to
 that member. A person with no such email gets no message, and so does a person whose emails Slack does not know.
@@ -227,7 +229,7 @@ review.
   its event. `pull_request.py` shows the repository, the title and the state of a pull request, then a
   separator.
 - `src/pull_request.py` reads a pull request, which every event of a pull request shows.
-- `src/people.py` finds the emails of a GitHub account in the commits of a pull request or of the repository.
+- `src/people.py` finds the emails of a GitHub account in the commits of a pull request or of the organization.
 - `src/blocks.py` builds the Block Kit blocks that every template uses: blocks of markdown, which escape the
   markup of Slack, and blocks of rich text.
 - `src/slack.py` defines `SlackMessage` and `SlackClient`, which finds the member and posts the message and its
