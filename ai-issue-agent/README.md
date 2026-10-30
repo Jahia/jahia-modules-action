@@ -135,10 +135,8 @@ comment alone.
 
 A pull request opens as a **draft**, and merging stays human-gated. Raw `gh pr create` stays
 denied. Cortex's `tools/jahia-pr` commits the changes of a worktree under a
-Conventional-Commit title. Until a Cortex change tracked in
-[Jahia/cortex#858](https://github.com/Jahia/cortex/issues/858) lands, `jahia-pr` also pushes
-the branch and opens the pull request. After that change, the Cortex skill runs three writes
-itself, from the root of the Cortex checkout:
+Conventional-Commit title. The Cortex skill then runs three writes itself, from the root of
+the Cortex checkout:
 
 - `git -C sources/<name>@<slug> push -u origin <branch>`, never with force.
 - `gh-wrapper pr create --draft`. The `PreToolUse` hooks of Cortex run in this session, as in
