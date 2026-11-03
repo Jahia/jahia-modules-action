@@ -1,8 +1,8 @@
 # AI Issue Agent — guard, lock and budget ledger
 
-Mentioning the AI agent account (`jahia-ai` by default) in a fresh issue comment —
-`@jahia-ai do something` — asks for an agent session on that issue; assigning the account
-changes nothing. Once the guard admits a session it reacts 👍 on the triggering comment:
+Mentioning the AI agent account (`jahia-ai` by default) in a fresh comment on an issue or a
+pull request — `@jahia-ai do something` — asks for an agent session on it; assigning the
+account changes nothing. Once the guard admits a session it reacts 👍 on the triggering comment:
 the sign that what the comment asks is being handled. It also clears the
 `🧠 Human needed !` escalation label when the issue carries it — a fresh mention means a
 human answered — and the session's own `escalate` puts it back when the issue still
@@ -22,6 +22,25 @@ comment. The roadmap lives in the AI Issue Agent PRD, in Jahia's internal Cortex
 - Events: consumers already forward every `issues` and `issue_comment` event to
   `reusable-delivery-issue-chores.yml` (the caller workflow is synced org-wide); the
   dispatch job there filters cheaply, and this guard re-checks authoritatively.
+
+## On a pull request
+
+GitHub raises the same `issue_comment` event for a comment on a pull request, and the issues
+API serves a pull request by its number, so a session on a pull request runs the same guard,
+lock, ledger, status comment and finalize as one on an issue. The differences:
+
+- The guard admits a pull request only when its head branch lives in the same repository.
+  A fork's head is code nobody in the organization vetted, which the session would check out
+  on a runner holding the agent's secrets, and the agent could not push to it anyway. The
+  refusal is a notice in the run log only.
+- The pre-fetched context adds `pull-request.md` (head and base branches, head commit,
+  changed files) and `reviews.md` (the reviews and the inline review comments), and the
+  prompt tells the agent that a code change is an iteration on that pull request.
+- Board hygiene and the self-assignment are skipped: the board tracks issues, and a pull
+  request already has an author who owns it.
+
+The AI PR review is a separate duty: requesting `jahia-ai` as a reviewer still starts it,
+through `reusable-delivery-pr-chores.yml`.
 
 ## The overall-status comment
 

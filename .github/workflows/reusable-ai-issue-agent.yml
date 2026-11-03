@@ -1,7 +1,8 @@
-# On-demand agent session on a GitHub issue: mentioning the AI agent account in a fresh
-# issue comment (`@jahia-ai do something`) starts one bounded session working that issue,
-# with the whole issue as context. Assigning the account triggers nothing. The guard
-# reacts 👍 on the triggering comment once the session is admitted.
+# On-demand agent session on a GitHub issue or pull request: mentioning the AI agent account
+# in a fresh comment (`@jahia-ai do something`) starts one bounded session working that issue
+# or pull request, with the whole thread as context. A pull request qualifies only when its
+# head branch lives in the same repository. Assigning the account triggers nothing. The
+# guard reacts 👍 on the triggering comment once the session is admitted.
 #
 # Trigger filtering (which event, which account) belongs to the caller, typically
 # reusable-delivery-issue-chores.yml. Two jobs, deliberately: a cheap LLM-free guard on
@@ -91,6 +92,7 @@ jobs:
       remaining_seconds: ${{ steps.check.outputs.remaining_seconds }}
       session_index: ${{ steps.check.outputs.session_index }}
       trigger: ${{ steps.check.outputs.trigger }}
+      target: ${{ steps.check.outputs.target }}
     steps:
       - id: check
         uses: jahia/jahia-modules-action/ai-issue-agent/check-request@v2
@@ -136,8 +138,10 @@ jobs:
       # prioritized, truthfully statused, with a default squad when none is set.
       # GH_ISSUES_PRS_CHORES is the token the other chores jobs already use against this
       # project. continue-on-error: a board mismatch is an annotation to fix, never a
-      # reason to lose the session.
+      # reason to lose the session. A pull request stays off the board: the board tracks
+      # issues, and the pull request's issue is already there.
       - name: Project hygiene — the delivery board reflects this session
+        if: needs.check-request.outputs.target == 'issue'
         continue-on-error: true
         uses: jahia/jahia-modules-action/ai-issue-agent/project-hygiene@v2
         with:
@@ -177,6 +181,7 @@ jobs:
         uses: jahia/jahia-modules-action/ai-issue-agent/run@v2
         with:
           issue_url: ${{ github.event.issue.html_url }}
+          target: ${{ needs.check-request.outputs.target }}
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           cortex_path: ${{ steps.setup.outputs.cortex_path }}
           model: ${{ inputs.model }}

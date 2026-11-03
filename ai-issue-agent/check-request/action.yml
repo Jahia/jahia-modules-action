@@ -10,10 +10,10 @@ inputs:
     required: false
     default: ${{ github.repository }}
   issue_number:
-    description: 'Number of the issue the event belongs to'
+    description: 'Number of the issue or pull request the event belongs to'
     required: true
   agent_login:
-    description: 'GitHub username of the AI agent account — only a fresh issue comment @-mentioning it qualifies, nothing else does'
+    description: 'GitHub username of the AI agent account — only a fresh comment @-mentioning it, on an issue or a same-repository pull request, qualifies — nothing else does'
     required: false
     default: 'jahia-ai'
   budget_seconds:
@@ -34,6 +34,8 @@ outputs:
     description: '1-based index of the session this run starts (only when eligible)'
   trigger:
     description: '"mentioned" (only when eligible; kept as an output for forward compatibility)'
+  target:
+    description: '"issue" or "pull_request": what the session works (only when eligible). A pull request qualifies only when its head branch is in the same repository, never a fork.'
   comment_id:
     description: 'ID of the overall-status comment (only when eligible)'
 

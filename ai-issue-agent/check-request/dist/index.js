@@ -29943,11 +29943,11 @@ exports.escapeRegex = escapeRegex;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.evaluateTrigger = void 0;
 const escapeRegex_1 = __nccwpck_require__(2887);
-// The authoritative trigger filter: ONLY a fresh issue comment mentioning the agent
-// qualifies — assignment (or any other issue event) never starts a session. The
-// workflow-level `if` is only a cheap pre-filter: it cannot match a mention on a login
-// boundary, and it cannot see that an issue_comment event actually belongs to a pull
-// request.
+// The authoritative trigger filter: ONLY a fresh comment mentioning the agent, on an issue
+// or on a pull request, qualifies — assignment (or any other issue event) never starts a
+// session. The workflow-level `if` is only a cheap pre-filter: it cannot match a mention
+// on a login boundary. Which pull requests a session may work is the guard's call
+// (main.ts), since it needs the pull request itself, not only the event.
 const evaluateTrigger = ({ eventName, payload, agentLogin, }) => {
     const agent = agentLogin.toLowerCase();
     if (eventName === 'issue_comment') {
@@ -29956,9 +29956,6 @@ const evaluateTrigger = ({ eventName, payload, agentLogin, }) => {
                 qualifies: false,
                 reason: `issue_comment action '${payload.action ?? 'unknown'}' is not 'created'`,
             };
-        }
-        if (payload.issue?.pull_request !== undefined) {
-            return { qualifies: false, reason: 'the comment is on a pull request, not an issue' };
         }
         const author = (payload.comment?.user?.login ?? '').toLowerCase();
         if (author === agent || author === 'jahia-ci') {
@@ -29974,6 +29971,10 @@ const evaluateTrigger = ({ eventName, payload, agentLogin, }) => {
         return {
             qualifies: true,
             trigger: 'mentioned',
+            // A comment on an issue carries no `pull_request` key; null is treated the same.
+            target: payload.issue?.pull_request === undefined || payload.issue.pull_request === null
+                ? 'issue'
+                : 'pull_request',
             instruction: body,
             commentId: payload.comment?.id,
         };
@@ -30075,6 +30076,18 @@ const run = async () => {
         return;
     }
     const octokit = github.getOctokit(token);
+    // A session on a pull request checks out its head and may build and push it, on a runner
+    // that holds the agent's secrets. A fork's head is code nobody in the organization
+    // vetted, and the agent cannot push to it anyway: refused, with a notice only.
+    if (evaluation.target === 'pull_request') {
+        const { data: pull } = await octokit.rest.pulls.get({ owner, repo, pull_number: issueNumber });
+        const headRepository = pull.head.repo?.full_name ?? '';
+        if (headRepository.toLowerCase() !== repository.toLowerCase()) {
+            core.setOutput('eligible', 'false');
+            core.notice(`${key}: skipping — the pull request's head is in '${headRepository || 'a deleted repository'}', not in ${repository}`);
+            return;
+        }
+    }
     const comment = await (0, findStatusComment_1.findStatusComment)(octokit, { owner, repo, issueNumber });
     const state = comment ? (0, parseStateBlock_1.parseStateBlock)(comment.body) : null;
     if (comment && !state) {
@@ -30185,6 +30198,7 @@ const run = async () => {
     core.setOutput('remaining_seconds', String(remaining));
     core.setOutput('session_index', String(next.sessions.length));
     core.setOutput('trigger', evaluation.trigger);
+    core.setOutput('target', evaluation.target ?? 'issue');
     core.setOutput('comment_id', String(commentId));
     core.info(`${key}: session #${String(next.sessions.length)} is owed (trigger: ${evaluation.trigger}, remaining budget: ${String(remaining)}s)`);
 };
