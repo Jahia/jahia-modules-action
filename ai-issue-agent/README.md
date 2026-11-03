@@ -22,8 +22,8 @@ Cortex harness.
 - The `AI_AGENT_GH_ISSUES_PRS_CHORES` secret (the AI agent account's token), inherited by
   the reusable workflow — the same secret the AI PR review and AI TL;DR duties already use.
 - The `AI_AGENT_GPG_KEY`, `AI_AGENT_GPG_KEY_ID` and `AI_AGENT_GPG_KEY_PASSPHRASE` secrets,
-  with the same repository access. They hold a GPG key whose user ID is the noreply email of
-  `jahia-ai`, and whose public key is on the `jahia-ai` account. The run action signs each
+  with the same repository access. They hold a GPG key whose user ID is `jahia-ai@jahia.com`,
+  a verified email of the `jahia-ai` account, and whose public key is on that account. The run action signs each
   commit of the session with this key, and GitHub then marks the commit verified. Without
   these secrets, the commits carry no signature, and a branch with `required_signatures`
   refuses to merge them.

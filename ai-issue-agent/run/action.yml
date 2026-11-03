@@ -20,9 +20,9 @@ inputs:
     required: false
     default: 'jahia-ai'
   git_user_email:
-    description: 'Email of the author and the committer of each commit the session makes, whose name is agent_login. GitHub marks a signed commit verified only when this email is a verified email of the account that holds the key. The noreply email of jahia-ai is one.'
+    description: 'Email of the author and the committer of each commit the session makes, whose name is agent_login. GitHub marks a signed commit verified only when this email is a verified email of the account that holds the key, and a user ID of the key. jahia-ai@jahia.com is both.'
     required: false
-    default: '317909606+jahia-ai@users.noreply.github.com'
+    default: 'jahia-ai@jahia.com'
   gpg_key:
     description: 'Armored GPG private key of the agent account, encoded in base64: the AI_AGENT_GPG_KEY organization secret. Empty leaves the commits of the session unsigned, and a branch with required_signatures then refuses to merge them.'
     required: false
