@@ -149,9 +149,15 @@ runs:
         # session signs with no passphrase and no pinentry.
         printf 'default-cache-ttl 86400\nmax-cache-ttl 86400\n' >> "$GNUPGHOME/gpg-agent.conf"
         gpg-connect-agent reloadagent /bye > /dev/null
-        echo "$GPG_KEY" | base64 --decode | gpg --batch --import
-        echo | gpg --batch --pinentry-mode=loopback --passphrase-fd 3 --local-user "$GPG_KEY_ID" \
-          --clearsign 3<<< "$GPG_KEY_PASSPHRASE" > /dev/null
+        if ! echo "$GPG_KEY" | base64 --decode | gpg --batch --import; then
+          echo "::error title=Unusable GPG key::gpg cannot import gpg_key. Check the AI_AGENT_GPG_KEY organization secret, an armored private key encoded in base64."
+          exit 1
+        fi
+        if ! echo | gpg --batch --pinentry-mode=loopback --passphrase-fd 3 --local-user "$GPG_KEY_ID" \
+            --clearsign 3<<< "$GPG_KEY_PASSPHRASE" > /dev/null; then
+          echo "::error title=Unusable GPG key::gpg cannot sign with gpg_key_id and gpg_key_passphrase. Check the AI_AGENT_GPG_KEY_ID and AI_AGENT_GPG_KEY_PASSPHRASE organization secrets, and the expiry date of the key."
+          exit 1
+        fi
         git config --global user.signingkey "$GPG_KEY_ID"
         git config --global commit.gpgsign true
 
