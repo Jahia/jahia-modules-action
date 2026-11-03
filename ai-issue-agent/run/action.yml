@@ -3,8 +3,12 @@ description: Runs one Claude Code agent session from the cortex harness on one G
 
 inputs:
   issue_url:
-    description: 'URL of the issue the session works (the agent derives the repository and issue number from it)'
+    description: 'URL of the issue or pull request the session works (the agent derives the repository and number from it)'
     required: true
+  target:
+    description: '"issue" or "pull_request" (the guard''s target output). A pull request adds its branches, changed files and review threads to the pre-fetched context, and skips the self-assignment.'
+    required: false
+    default: 'issue'
   github_token:
     description: 'Token the agent and the sidecar use to read and write the issue. Use the AI agent account''s token, so every comment is authored by it.'
     required: true
@@ -110,6 +114,7 @@ runs:
       uses: actions/github-script@v9
       env:
         ISSUE_URL: ${{ inputs.issue_url }}
+        TARGET: ${{ inputs.target }}
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
         ACTION_PATH: ${{ github.action_path }}
         AGENT_LABEL: ${{ steps.prep.outputs.agent_label }}
@@ -122,27 +127,32 @@ runs:
       with:
         github-token: ${{ inputs.github_token }}
         script: |
-          const match = process.env.ISSUE_URL.match(/([^/]+)\/([^/]+)\/issues\/(\d+)$/)
-          if (!match) throw new Error(`Unrecognized issue URL: ${process.env.ISSUE_URL}`)
+          // html_url of an issue_comment's issue: /issues/<n> on an issue, /pull/<n> on a pull request.
+          const match = process.env.ISSUE_URL.match(/([^/]+)\/([^/]+)\/(?:issues|pull)\/(\d+)$/)
+          if (!match) throw new Error(`Unrecognized issue or pull request URL: ${process.env.ISSUE_URL}`)
           const [, owner, repo, number] = match
+          const isPullRequest = process.env.TARGET === 'pull_request'
           const logDir = process.env.LOG_DIR
           const src = process.env.ACTION_PATH + '/src'
           const { prefetchIssue } = await import(`${src}/prefetch-issue.mjs`)
           const { renderToolSurface } = await import(`${src}/tool-surface.mjs`)
           const { buildPrompt } = await import(`${src}/build-prompt.mjs`)
           const { selfAssignWhenUnassigned } = await import(`${src}/self-assign.mjs`)
-          // Best-effort: ownership must not cost the session.
-          try {
-            const assigned = await selfAssignWhenUnassigned({
-              github,
-              owner,
-              repo,
-              issueNumber: Number(number),
-              agentLogin: process.env.AGENT_LOGIN,
-            })
-            if (assigned) core.info(`${owner}/${repo}#${number} had no assignee — assigned ${process.env.AGENT_LOGIN}`)
-          } catch (error) {
-            core.warning(`Could not self-assign on ${owner}/${repo}#${number}: ${error}`)
+          // Best-effort: ownership must not cost the session. A pull request has an author who
+          // owns it, so the agent never assigns itself there.
+          if (!isPullRequest) {
+            try {
+              const assigned = await selfAssignWhenUnassigned({
+                github,
+                owner,
+                repo,
+                issueNumber: Number(number),
+                agentLogin: process.env.AGENT_LOGIN,
+              })
+              if (assigned) core.info(`${owner}/${repo}#${number} had no assignee — assigned ${process.env.AGENT_LOGIN}`)
+            } catch (error) {
+              core.warning(`Could not self-assign on ${owner}/${repo}#${number}: ${error}`)
+            }
           }
           const { fetched, failed } = await prefetchIssue({
             github,
@@ -151,6 +161,7 @@ runs:
             repo,
             issueNumber: Number(number),
             eventPath: process.env.GITHUB_EVENT_PATH,
+            isPullRequest,
           })
           core.info(`Pre-fetched ${fetched} context files (${failed} failed) for ${owner}/${repo}#${number}`)
           const remaining = Number(process.env.REMAINING_SECONDS) || 0
@@ -160,6 +171,9 @@ runs:
             outputPath: `${logDir}/session.prompt.md`,
             replacements: {
               ISSUE_URL: process.env.ISSUE_URL,
+              TARGET_NOTE: isPullRequest
+                ? 'This is a **pull request**: `pull-request.md` names its head and base branches and its changed files, and `reviews.md` holds its review threads. A change to its code is an iteration on this pull request, on its head branch — never a new pull request.'
+                : 'This is an issue.',
               CONTEXT_DIR: `${logDir}/context`,
               COLLECT_DIR: `${logDir}/collected`,
               TOOL_SURFACE: renderToolSurface(process.env.ALLOWED_TOOLS, process.env.DISALLOWED_TOOLS),

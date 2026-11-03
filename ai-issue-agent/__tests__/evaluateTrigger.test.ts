@@ -21,6 +21,35 @@ describe('evaluateTrigger', () => {
     expect(result.trigger).toBe('mentioned')
     expect(result.instruction).toBe('@jahia-ai please reproduce this')
     expect(result.commentId).toBe(77)
+    expect(result.target).toBe('issue')
+  })
+
+  it('qualifies a mention in a pull request comment, with the pull request as its target', () => {
+    const result = evaluateTrigger({
+      eventName: 'issue_comment',
+      payload: {
+        action: 'created',
+        issue: { pull_request: { url: 'https://example.com' } },
+        comment: { id: 78, body: '@jahia-ai fix the lint', user: { login: 'a-developer' } },
+      },
+      agentLogin,
+    })
+    expect(result.qualifies).toBe(true)
+    expect(result.target).toBe('pull_request')
+    expect(result.commentId).toBe(78)
+  })
+
+  it('treats a null pull_request key as an issue', () => {
+    const result = evaluateTrigger({
+      eventName: 'issue_comment',
+      payload: {
+        action: 'created',
+        issue: { pull_request: null },
+        comment: { id: 79, body: '@jahia-ai hello', user: { login: 'a-developer' } },
+      },
+      agentLogin,
+    })
+    expect(result.target).toBe('issue')
   })
 
   it.each([
@@ -47,17 +76,6 @@ describe('evaluateTrigger', () => {
           action: 'created',
           issue: {},
           comment: { body: 'no agent here', user: { login: 'a-developer' } },
-        },
-      },
-    ],
-    [
-      'a mention inside a pull request comment',
-      {
-        eventName: 'issue_comment',
-        payload: {
-          action: 'created',
-          issue: { pull_request: { url: 'https://example.com' } },
-          comment: { body: '@jahia-ai hello', user: { login: 'a-developer' } },
         },
       },
     ],
