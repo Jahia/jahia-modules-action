@@ -20,7 +20,7 @@ inputs:
     required: false
     default: 'jahia-ai'
   git_user_email:
-    description: 'Email of the author and the committer of each commit the session makes, whose name is agent_login. GitHub marks a signed commit verified only when this email is a verified email of the account that holds the key, and a user ID of the key. jahia-ai@jahia.com is both.'
+    description: 'Email of the author and the committer of each commit the session makes, whose name is agent_login. GitHub marks a signed commit verified only when this email is a verified email of the account that holds the key. The email must also be a user ID of the key, and jahia-ai@jahia.com is both.'
     required: false
     default: 'jahia-ai@jahia.com'
   gpg_key:
@@ -136,6 +136,12 @@ runs:
           echo "::warning title=Unsigned commits::No gpg_key input, so the commits of this session carry no signature. A branch with required_signatures refuses to merge them."
           exit 0
         fi
+        for name in GPG_KEY_ID GPG_KEY_PASSPHRASE; do
+          if [ -z "${!name}" ]; then
+            echo "::error title=Incomplete GPG key::The gpg_key input is set, but ${name,,} is empty. Share the AI_AGENT_${name} organization secret with this repository."
+            exit 1
+          fi
+        done
         GNUPGHOME="${GNUPGHOME:-$HOME/.gnupg}"
         mkdir -p "$GNUPGHOME"
         chmod 700 "$GNUPGHOME"
