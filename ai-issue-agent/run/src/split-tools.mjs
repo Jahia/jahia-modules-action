@@ -28,5 +28,6 @@ export const splitTools = (value) => {
       plain.push(entry)
     }
   }
-  return { plain, shell }
+  // `git -C … diff` and `git -C … diff *` are two rules of one prefix, so the prompt names it once.
+  return { plain, shell: [...new Set(shell)] }
 }
