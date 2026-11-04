@@ -5,8 +5,9 @@
 // the agent starts, while the issue agent CREATES its task comment (marker
 // `<!-- cortex-issue-agent-task run:<run id> -->`) as its first act — so this sidecar
 // polls for the comment, and re-fetches the body on every tick because the agent keeps
-// editing it in place (the stats tail below the progress marker is this sidecar's only
-// territory; everything above it is the agent's).
+// editing it in place (the stats between the progress marker and the footer marker are this
+// sidecar's only territory; everything else is the agent's). The footer — Claude Code version,
+// model, run link — follows the footer marker and stays the last line of the comment.
 //
 // Spawned DETACHED by the "Start the task-comment progress updater" github-script step of
 // action.yml, on github-script's own Node (process.execPath — a self-hosted runner
@@ -19,9 +20,9 @@
 // FAILURES_TOLERATED consecutive API errors.
 import { appendFileSync } from 'node:fs'
 import { open } from 'node:fs/promises'
+import { withProgress } from './progress-body.mjs'
 
 const FAILURES_TOLERATED = 3
-const PROGRESS_MARKER = '<!-- cortex-issue-agent-progress -->'
 
 const repository = process.env.REPOSITORY ?? ''
 const issueNumber = process.env.ISSUE_NUMBER ?? ''
@@ -153,13 +154,11 @@ async function updateComment() {
   if (last) stats += `\nLast activity: \`${last}\``
   stats += `\nUpdated ${utc(now)} UTC · next update expected by ${utc(next).slice(11)} UTC`
   // Re-fetch on every tick: the agent edits this comment in place, so a body kept from the
-  // last tick would overwrite the agent's own progress. Only the tail below the progress
-  // marker belongs to this sidecar.
+  // last tick would overwrite the agent's own progress.
   const current = await request(commentUrl)
-  const base = (current.body ?? '').split(PROGRESS_MARKER)[0].trimEnd()
   await request(commentUrl, {
     method: 'PATCH',
-    body: JSON.stringify({ body: `${base}\n\n${PROGRESS_MARKER}\n${stats}` }),
+    body: JSON.stringify({ body: withProgress(current.body ?? '', stats) }),
   })
   log(`updated: ${tools} tool calls${deniedText}`)
 }

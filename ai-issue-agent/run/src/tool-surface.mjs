@@ -40,7 +40,7 @@ export const renderToolSurface = (allowedTools, disallowedTools) => {
     '- cortex routes every `gh` write through `tools/gh-wrapper/bin/gh-wrapper`, and the list',
     '  above carries the reads under both gh spellings but the writes under the wrapper alone:',
     '  `issue comment`, `issue edit`, `pr create` (always with `--draft`), `pr edit`,',
-    '  `pr comment`, and the one `api` PATCH that edits a trail comment.',
+    '  `pr comment`, and the one `api` PATCH that edits a trail comment or your task comment.',
     '- cortex denies `cd`, and it is not on the list above, so a directory is reached by',
     '  naming it: Read, Grep and Glob all take an absolute path. git reaches a worktree as',
     '  `git -C sources/<name>@<slug>`, with that relative path and no quote, for three reads,',
