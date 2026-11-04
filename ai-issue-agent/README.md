@@ -13,8 +13,8 @@ whether a session is owed, and the **finalize** closer that settles the session 
 plus the **run** action that executes the agent session itself: pre-fetched issue context,
 a barebone prompt (`run/prompt.md`, the substance lives in cortex skills), the Claude Code
 CLI under a strict tool allowlist whose issue writes run through the commands the cortex
-`jahia-issue-agent` skill names, and a token-free sidecar appending progress to the
-session's task comment. The roadmap lives in the AI Issue Agent PRD, in Jahia's internal
+`jahia-issue-agent` skill names, and a token-free sidecar writing progress into the
+session's task comment, above its footer. The roadmap lives in the AI Issue Agent PRD, in Jahia's internal
 Cortex harness.
 
 ## Requirements
@@ -155,8 +155,8 @@ route the cortex `jahia-issue-agent` skill moves to, or through the issue-agent 
 stays allowed during that move. No rule binds these writes to the session's issue: the
 token's reach bounds them, and the prompt holds the session to its issue. The guard writes
 the overall-status comment with the agent account too, so it can be that account's last
-comment: `--delete-last` is denied, and `--edit-last` relies on the skill to reach the task
-comment alone.
+comment: `--delete-last` is denied. The skill edits the task comment by its id, through the
+`api` PATCH below, so an edit never reaches another comment of the account.
 
 A pull request opens as a **draft**, and merging stays human-gated. Raw `gh pr create` stays
 denied. Cortex's `tools/jahia-pr` commits the changes of a worktree under a
@@ -167,8 +167,8 @@ the Cortex checkout:
 - `gh-wrapper pr create --draft`. The `PreToolUse` hooks of Cortex run in this session, as in
   any Cortex session, and one of them refuses a `gh-wrapper pr create` with no `--draft`.
 - `gh-wrapper api --silent -X PATCH repos/<owner>/<repo>/issues/comments/<id> -F body=@<file>`.
-  It edits the trail comment: the comment on a Cortex tracking issue that lists the pull
-  requests of one piece of work.
+  It edits the trail comment, the comment on a Cortex tracking issue that lists the pull
+  requests of one piece of work, and the task comment of the session.
 
 The session reads a worktree with `git -C sources/<name>@<slug> diff`, `show` and `status`.
 Each read has two allow rules: the bare command, and the command with arguments. A rule with a
