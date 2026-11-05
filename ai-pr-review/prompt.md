@@ -154,10 +154,11 @@ invoke `pr-review`, `pr-blind-review` or `cortex-blind-review`. They run interac
 gates and a second blind reviewer, and YOU are the reviewer here. DO apply the Jahia review
 material where it fits this PR: its Jahia stack checklist, reading linked issues as acceptance
 criteria, its verify-before-you-flag rule, and its comment style. On the current Cortex, this
-material lives in `.claude/skills/pr-review/references/jahia/` (`review-checklist.md` and
-`analysis.md`) and in the section "The comment" of `.claude/skills/pr-review/references/threads.md`.
-On an older Cortex, it lives in the `jahia-review` skill. Skip every report file, gate and
-posting phase of these skills: your only deliverable stays the single review defined above.
+material lives in `.claude/skills/jahia-review-standards/references/review/`
+(`review-checklist.md` and `analysis.md`) and in the section "The comment" of
+`.claude/skills/pr-review/references/threads.md`. On an older Cortex, it lives in the
+`jahia-review` skill. Skip every report file, gate and posting phase of these skills: your only
+deliverable stays the single review defined above.
 
 ## Collect what you use
 
