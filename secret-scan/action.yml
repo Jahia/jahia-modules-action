@@ -44,7 +44,8 @@ runs:
           exit 1
         fi
         TARBALL="gitleaks_${VERSION}_linux_x64.tar.gz"
-        curl -fsSL -o "$RUNNER_TEMP/$TARBALL" "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/${TARBALL}"
+        # --retry covers a timeout and an HTTP 408, 429, 500, 502, 503 or 504, with a backoff of 1, 2, 4, 8 and 16 seconds.
+        curl -fsSL --retry 5 -o "$RUNNER_TEMP/$TARBALL" "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/${TARBALL}"
         echo "$SHA256  $RUNNER_TEMP/$TARBALL" | sha256sum --check --quiet
         mkdir -p "$RUNNER_TEMP/gitleaks"
         tar -xzf "$RUNNER_TEMP/$TARBALL" -C "$RUNNER_TEMP/gitleaks" gitleaks
