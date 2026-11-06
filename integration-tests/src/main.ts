@@ -29,6 +29,7 @@ import {
   setupSSH
 } from './init'
 import {
+  annotateFailedTests,
   publishToTestrail,
   createGitHubIncident,
   sendResultsToZencrepes,
@@ -260,6 +261,15 @@ async function run(): Promise<void> {
       path.join(testsFolder, core.getInput('tests_report_path')),
       core.getInput('tests_report_type')
     )
+
+    // The annotations of the failed tests come before the failure of the step, as the Slack notification shows the first one
+    if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
+      await annotateFailedTests(
+        path.join(testsFolder, core.getInput('tests_report_path')),
+        core.getInput('tests_report_type'),
+        path.relative(rootProjectFolder, testsFolder)
+      )
+    }
 
     // Publish results to testrail
     // Publish to testrail - into separate project
