@@ -44,7 +44,8 @@ runs:
           exit 1
         fi
         TARBALL="gitleaks_${VERSION}_linux_x64.tar.gz"
-        # --retry alone stops on a reset connection or a cut transfer, and a stalled transfer never times out without --max-time.
+        # --retry alone fails on a reset connection or a cut transfer, so --retry-all-errors retries them too.
+        # --max-time ends a stalled attempt, which curl then retries.
         curl -fsSL --retry 5 --retry-all-errors --max-time 60 -o "$RUNNER_TEMP/$TARBALL" "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/${TARBALL}"
         echo "$SHA256  $RUNNER_TEMP/$TARBALL" | sha256sum --check --quiet
         mkdir -p "$RUNNER_TEMP/gitleaks"
