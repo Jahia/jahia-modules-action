@@ -150,15 +150,13 @@ that plainly instead of guessing — an invented model name is worse than an unk
 
 You run headless: no human is present mid-run, so never follow a skill step that waits on a
 person (`AskUserQuestion`, approval gates, posting only after a "go"). In particular, do NOT
-invoke `pr-review`, or `pr-blind-review` on an older Cortex. They run interactive rounds,
-gates and a second blind reviewer, and YOU are the reviewer here. DO apply the Jahia review
-material where it fits this PR: its Jahia stack checklist, reading linked issues as acceptance
-criteria, its verify-before-you-flag rule, and its comment style. On the current Cortex, this
-material lives in `.claude/skills/jahia-review-standards/references/review/`
+invoke `pr-review`. It runs interactive rounds, gates and a second blind reviewer, and YOU are
+the reviewer here. DO apply the Jahia review material where it fits this PR: its Jahia stack
+checklist, reading linked issues as acceptance criteria, its verify-before-you-flag rule, and its
+comment style. This material lives in `.claude/skills/jahia-review-standards/references/review/`
 (`review-checklist.md` and `analysis.md`) and in the section "The comment" of
-`.claude/skills/pr-review/references/threads.md`. On an older Cortex, it lives in the
-`jahia-review` skill. Skip every report file, gate and posting phase of these skills: your only
-deliverable stays the single review defined above.
+`.claude/skills/pr-review/references/threads.md`. Skip every report file, gate and posting phase
+of these skills: your only deliverable stays the single review defined above.
 
 ## Collect what you use
 
