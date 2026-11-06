@@ -3,13 +3,21 @@
 Usage: submit-review.py post <review-file> <pr-url>
        submit-review.py render <review-file>
 
-The review file is JSON: {"body": "<markdown>", "comments": [{"path", "line",
-"side", "body"}]}. "post" submits ONE pull-request review of type COMMENT via
-the GitHub API, with the findings attached as inline comments on the lines in
-question. If GitHub rejects the payload (typically an anchor on a line that is
-not part of the diff), the review is re-submitted body-only with the findings
-folded into the body — a bad anchor never loses the review. "render" prints
-the review as markdown (review mode: job summary and artifact reading).
+The review file is the one the ci mode of the Cortex skill pr-review writes, in
+the shape of its contract (`.claude/skills/pr-review/assets/ci-review.md` in
+Jahia/cortex): {"contract": "v1", "event", "human_review", "body": "<markdown>",
+"comments": [{"path", "line", "side", "start_line"?, "start_side"?, "body"}]}.
+A file of any other contract version is refused, in both modes: Cortex takes
+the next version when the shape changes, and guessing at a shape this script
+does not know would post a wrong review.
+
+"post" submits ONE pull-request review via the GitHub API, with the findings
+attached as inline comments on the lines in question (a comment of several
+lines keeps its start_line/start_side). If GitHub rejects the payload
+(typically an anchor on a line that is not part of the diff), the review is
+re-submitted body-only with the findings folded into the body — a bad anchor
+never loses the review. "render" prints the review as markdown (review mode:
+job summary and artifact reading).
 
 "post" requires GH_TOKEN with pull-request write on the repository.
 """
@@ -19,16 +27,27 @@ import subprocess
 import sys
 from urllib.parse import quote
 
+# The contract versions of the review file this script reads.
+KNOWN_CONTRACTS = ('v1',)
+
 mode, path = sys.argv[1], sys.argv[2]
 try:
     with open(path, encoding='utf-8') as fh:
         review = json.load(fh)
     body = review['body']
     comments = review.get('comments', [])
-except (json.JSONDecodeError, KeyError, TypeError) as error:
+    contract = review.get('contract')
+except (json.JSONDecodeError, KeyError, TypeError, AttributeError) as error:
     print(f'::error::The agent produced an invalid review file ({error}) — '
           'nothing was posted; the file is in the run artifact and the review '
           'request stays pending (re-request to retry)')
+    sys.exit(1)
+if contract not in KNOWN_CONTRACTS:
+    print(f'::error title=Unknown review contract::The review file states contract {contract!r}, '
+          f'and this action reads {", ".join(KNOWN_CONTRACTS)} — nothing was posted. The skill '
+          'pr-review of the Cortex ref this run checked out writes another shape: pin cortex_ref '
+          'to a ref that writes a known contract, or update ai-pr-review to read the new one. '
+          'The file is in the run artifact and the review request stays pending.')
     sys.exit(1)
 
 
@@ -39,7 +58,9 @@ def fold(body, comments):
     lines = [body, '', '### Findings']
     for c in comments:
         lines.append('')
-        lines.append(f"`{c['path']}:{c['line']}` — {c['body']}")
+        where = (f"{c['start_line']}-{c['line']}" if c.get('start_line') is not None
+                 else c['line'])
+        lines.append(f"`{c['path']}:{where}` — {c['body']}")
     return '\n'.join(lines)
 
 
@@ -104,11 +125,19 @@ def apply_label():
               + added.stderr.decode(errors='replace')[-200:])
 
 
+def anchor(comment):
+    """The GitHub review comment of one finding; a multi-line one keeps its start."""
+    entry = {'path': comment['path'], 'line': int(comment['line']),
+             'side': comment.get('side', 'RIGHT'), 'body': comment['body']}
+    if comment.get('start_line') is not None:
+        entry['start_line'] = int(comment['start_line'])
+        entry['start_side'] = comment.get('start_side', entry['side'])
+    return entry
+
+
 payload = {'event': event, 'body': body}
 if comments:
-    payload['comments'] = [{'path': c['path'], 'line': int(c['line']),
-                            'side': c.get('side', 'RIGHT'), 'body': c['body']}
-                           for c in comments]
+    payload['comments'] = [anchor(c) for c in comments]
 result = post(payload)
 if result.returncode == 0:
     print(f'Review submitted ({event}) with {len(comments)} inline comment(s)')

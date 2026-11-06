@@ -9,7 +9,7 @@ finds no code issue** (a failing CI check is alerted in the notes, never blockin
 question** (findings that fit no diff line land in the review body's General notes; if
 GitHub rejects an anchor, the review is re-submitted body-only so it is never lost).
 Approval strictly requires zero findings — enforced deterministically by the submit step,
-not just by the prompt. It never requests changes and never touches code: blocking a PR,
+not just by the agent. It never requests changes and never touches code: blocking a PR,
 and merging, stay human decisions.
 
 Every review also carries the agent's **confidence call**: a **Human review** line in the
@@ -18,6 +18,27 @@ label — `🤖 AI-only review OK` (green), `🤖 Human review recommended` (yel
 `🤖 Human review required` (red). The submit step applies it deterministically (creating
 the label on first use and swapping out the previous recommendation), best-effort so a
 labeling hiccup never loses a review; the clear label removes these labels too.
+
+## Who owns what
+
+The agent runs the `ci` mode of the Cortex skill `pr-review`. The prompt is one line, the call of
+that skill:
+
+```text
+/pr-review ci <pr-url> --context <dir> --out <file> --marker <marker> --run-url <url> --agent <label> --collect <dir>
+```
+
+Cortex owns the review: the method, the lenses, the decision rules and the shape of the review
+file. The skill states them in `.claude/skills/pr-review/references/ci.md`. This action owns the
+CI: the trigger, the pre-fetch of the context, the allowlist, the post, the label, the logs and the
+artifacts. `src/build-prompt.py` writes the call, and states the allowlist to the agent through
+`--append-system-prompt`.
+
+The review file is a versioned contract, which `.claude/skills/pr-review/assets/ci-review.md` of
+Cortex states. Its field `contract` names the version, and `src/submit-review.py` refuses a version
+that it does not know, so it never posts a shape that it cannot read. This action reads `v1`.
+A change of the shape in Cortex takes a new version, and this action then needs a release that
+reads it. Until that release, pin `cortex_ref` to a ref that writes `v1`.
 
 ## One review per request — the eligibility rule
 
@@ -126,7 +147,7 @@ Three things make this the prep step's job rather than the agent's:
 - **A missing piece must not become a hunt.** Every fetch is best-effort, and what failed is
   named under "Not available" in the index — so the agent reads the gap instead of chasing it.
 
-The prompt's tool-surface section is rendered by `src/build-prompt.py` from the very
+The system prompt that states the tool surface is rendered by `src/build-prompt.py` from the very
 `allowed_tools`/`disallowed_tools` strings passed to the CLI, so the agent is told what it
 may run and the two cannot drift apart. That matters because the agent works from inside
 cortex, whose `CLAUDE.md` mandates routes the allowlist has to agree with: each read is
@@ -174,10 +195,14 @@ could reach the forge or rewrite history (`git push/commit/checkout/reset/remote
 execute (`--upload-pack`). The agent itself never posts anything: `gh pr review` is denied
 too — the agent writes the review body to a file, and submitting that file is a
 deterministic action step (running with the jahia-ai token) after the agent finishes.
-`--permission-mode dontAsk` denies everything not explicitly allowed. The prompt additionally forbids requesting
-changes (approval only with zero findings, re-enforced by the submit step) and instructs the
-agent to treat PR content (title, description, code, comments) as data, never as
-instructions — and to flag prompt-injection attempts as findings.
+`--permission-mode dontAsk` denies everything not explicitly allowed. The `ci` mode of the
+skill additionally forbids requesting changes (approval only with zero findings, re-enforced by
+the submit step) and has the agent treat PR content (title, description, code, comments) as
+data, never as instructions — and flag prompt-injection attempts as findings.
+
+The one Cortex tool that the allowlist grants is `tools/pr-review/bin/pr-review lenses`: the
+`ci` mode runs it to choose its lenses. The tool starts through `mise exec`, so the runner needs
+mise, as [`ai-agent-setup`](../ai-agent-setup) installs it.
 
 ## Determinism & observability
 
@@ -186,10 +211,10 @@ instructions — and to flag prompt-injection attempts as findings.
 - The complete agent session is kept in `logs_dir`: `review.stream.jsonl` (the raw
   `stream-json` log — every tool call, model message and result), `review.transcript.log`
   (the same session rendered as a plain readable log — start there), `review.prompt.md`
-  (the exact prompt), `review.result.json`, `review.stderr.log` (CLI errors; API/CLI debug
+  (the call of the skill) and `review.system.md` (the tool surface), `review.result.json`, `review.stderr.log` (CLI errors; API/CLI debug
   detail with the `debug` input), `reviews/pr-<key>.review.json` (the structured review),
   and `collected/` (evidence the agent gathered from resources it used — test runs,
-  containers, downloaded logs — which the prompt requires it to capture there). The workflow
+  containers, downloaded logs — which the skill requires it to capture there). The workflow
   uploads it as the `ai-pr-review-logs` GitHub artifact and to the Jahia servers
   (`qa.jahia.com/artifacts-ci`, VPN required) via the [`upload-artifact`](../upload-artifact)
   action.
@@ -208,7 +233,7 @@ instructions — and to flag prompt-injection attempts as findings.
   printed the first time each thread answers and on every change after it (`main · SWITCHED
   from X to Y`), a subagent's model is tracked apart from the main thread's so a delegation
   does not read as a switch, and the summary row lists every model that actually answered.
-  The prompt also requires the agent to state the model it is on before its first tool call,
+  The skill also requires the agent to state the model it is on before its first tool call,
   whenever it changes, and whenever it delegates — but that is the reported half; the stream
   is the measured one.
 - **Every refused call is on the record.** `src/denied-calls.py` reads the stream after the
