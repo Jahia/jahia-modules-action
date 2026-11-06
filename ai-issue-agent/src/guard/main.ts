@@ -43,6 +43,22 @@ const run = async (): Promise<void> => {
   }
 
   const octokit = github.getOctokit(token)
+
+  // A session on a pull request checks out its head and may build and push it, on a runner
+  // that holds the agent's secrets. A fork's head is code nobody in the organization
+  // vetted, and the agent cannot push to it anyway: refused, with a notice only.
+  if (evaluation.target === 'pull_request') {
+    const { data: pull } = await octokit.rest.pulls.get({ owner, repo, pull_number: issueNumber })
+    const headRepository = pull.head.repo?.full_name ?? ''
+    if (headRepository.toLowerCase() !== repository.toLowerCase()) {
+      core.setOutput('eligible', 'false')
+      core.notice(
+        `${key}: skipping — the pull request's head is in '${headRepository || 'a deleted repository'}', not in ${repository}`,
+      )
+      return
+    }
+  }
+
   const comment = await findStatusComment(octokit, { owner, repo, issueNumber })
   const state = comment ? parseStateBlock(comment.body) : null
   if (comment && !state) {
@@ -184,6 +200,7 @@ const run = async (): Promise<void> => {
   core.setOutput('remaining_seconds', String(remaining))
   core.setOutput('session_index', String(next.sessions.length))
   core.setOutput('trigger', evaluation.trigger)
+  core.setOutput('target', evaluation.target ?? 'issue')
   core.setOutput('comment_id', String(commentId))
   core.info(
     `${key}: session #${String(next.sessions.length)} is owed (trigger: ${evaluation.trigger}, remaining budget: ${String(remaining)}s)`,

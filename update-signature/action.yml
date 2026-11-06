@@ -93,10 +93,39 @@ runs:
       env:
         GPG_KEY_ID: ${{ inputs.gpg_key_id }}
 
+    # On a pull_request event, actions/checkout checks out refs/pull/<n>/merge: a detached merge
+    # commit titled "Merge <head> into <base>". The flag lives on the head of the pull request, and
+    # a signature commit has to be pushed to its branch.
+    - name: Fetching the head of the pull request
+      id: pr-head
+      if: ${{ github.event_name == 'pull_request' }}
+      shell: bash
+      run: |
+        if [[ "${HEAD_REPO}" != "${GITHUB_REPOSITORY}" ]]; then
+          echo "::notice::The pull request comes from the fork ${HEAD_REPO}, which this workflow cannot push to. The signature will not be updated."
+          echo "skip=true" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        git fetch --no-tags --depth=1 origin "+refs/heads/${HEAD_REF}:refs/remotes/origin/${HEAD_REF}"
+        if [[ "$(git rev-parse "origin/${HEAD_REF}")" != "${HEAD_SHA}" ]]; then
+          echo "::notice::${HEAD_REF} moved past ${HEAD_SHA}. The run of its new head handles the signature."
+          echo "skip=true" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        echo "ref=origin/${HEAD_REF}" >> $GITHUB_OUTPUT
+      env:
+        HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+
     - name: Verifying if signature needs to be updated
       shell: bash
       run: |
-        commit_message=$(git log -1 HEAD --pretty=format:%s)
+        if [[ "${PR_HEAD_SKIP}" == "true" ]]; then
+          echo "PERFORM_SIGNATURE=false" >> $GITHUB_ENV
+          exit 0
+        fi
+        commit_message=$(git log -1 "${PR_HEAD_REF:-HEAD}" --pretty=format:%s)
         if [[ "${{ inputs.force_signature }}" == "true" ]]; then
           echo "Forcing module signature"
           echo "PERFORM_SIGNATURE=true" >> $GITHUB_ENV
@@ -110,6 +139,20 @@ runs:
           echo $commit_message
           echo "PERFORM_SIGNATURE=true" >> $GITHUB_ENV
         fi
+      env:
+        PR_HEAD_SKIP: ${{ steps.pr-head.outputs.skip }}
+        PR_HEAD_REF: ${{ steps.pr-head.outputs.ref }}
+
+    # A signature commit lands on the branch of the pull request, so the job leaves the merge commit.
+    # A push made with the GITHUB_TOKEN starts no workflow, so the checks of the new head run on the
+    # next push to the branch.
+    - name: Checking out the head branch of the pull request
+      if: ${{ env.PERFORM_SIGNATURE == 'true' && steps.pr-head.outputs.ref != '' }}
+      shell: bash
+      run: |
+        git checkout -B "${HEAD_REF}" --track "origin/${HEAD_REF}"
+      env:
+        HEAD_REF: ${{ github.event.pull_request.head.ref }}
 
     - name: Downloading keymaker artifacts
       shell: bash

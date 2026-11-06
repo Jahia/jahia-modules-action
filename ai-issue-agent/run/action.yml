@@ -3,8 +3,12 @@ description: Runs one Claude Code agent session from the cortex harness on one G
 
 inputs:
   issue_url:
-    description: 'URL of the issue the session works (the agent derives the repository and issue number from it)'
+    description: 'URL of the issue or pull request the session works (the agent derives the repository and number from it)'
     required: true
+  target:
+    description: '"issue" or "pull_request" (the guard''s target output). A pull request adds its branches, changed files and review threads to the pre-fetched context, and skips the self-assignment.'
+    required: false
+    default: 'issue'
   github_token:
     description: 'Token the agent and the sidecar use to read and write the issue. Use the AI agent account''s token, so every comment is authored by it.'
     required: true
@@ -19,6 +23,22 @@ inputs:
     description: 'GitHub username of the AI agent account (rendered into the prompt; the issue-agent tool defaults to it too)'
     required: false
     default: 'jahia-ai'
+  git_user_email:
+    description: 'Email of the author and the committer of each commit the session makes, whose name is agent_login. GitHub marks a signed commit verified only when this email is a verified email of the account that holds the key. The email must also be a user ID of the key, and jahia-ai@jahia.com is both.'
+    required: false
+    default: 'jahia-ai@jahia.com'
+  gpg_key:
+    description: 'Armored GPG private key of the agent account, encoded in base64: the AI_AGENT_GPG_KEY organization secret. Empty leaves the commits of the session unsigned, and a branch with required_signatures then refuses to merge them.'
+    required: false
+    default: ''
+  gpg_key_id:
+    description: 'ID of the GPG key in gpg_key: the AI_AGENT_GPG_KEY_ID organization secret.'
+    required: false
+    default: ''
+  gpg_key_passphrase:
+    description: 'Passphrase of the GPG key in gpg_key: the AI_AGENT_GPG_KEY_PASSPHRASE organization secret. Only the signing step reads it. That step unlocks the key in gpg-agent for the whole job, so the environment of the agent session never holds the passphrase.'
+    required: false
+    default: ''
   remaining_seconds:
     description: 'Seconds left in the issue''s cumulative agent budget (the guard''s remaining_seconds output). The session budget is the smaller of this and the job-timeout-derived budget.'
     required: true
@@ -47,13 +67,13 @@ inputs:
     required: false
     default: '90'
   allowed_tools:
-    description: 'Claude Code --allowedTools value for the agent: read/search tools, local file writes and utilities, read-only plain git, read-only gh (both spellings, gh and gh-wrapper — the agent works from inside cortex, whose CLAUDE.md routes gh through that wrapper), and the issue writes: gh-wrapper issue comment and issue edit, the route the cortex jahia-issue-agent skill moves to, and the issue-agent comment tool, which stays allowed while that skill moves to gh-wrapper. Neither route binds a write to the session''s issue: the token''s reach bounds it, and the prompt holds the session to its issue. The runner is ephemeral, so local operations are allowed generously — the safeguards live in the deny list, on the forge writes. The Software Developer write path runs through tools: cortex-sources for the worktree (its verbs one by one, never `exec`, which would run anything past the deny list), jahia-pr for the commit, and three writes that the cortex skills run from the harness root: `git -C sources/<name>@<slug> push -u origin <branch>`, gh-wrapper pr create, which a cortex PreToolUse hook refuses with no --draft, and the gh-wrapper api PATCH that edits a trail comment. gh-wrapper pr edit/comment iterate on an open pull request. The README of ai-issue-agent states how the deny list closes each `*` of these rules. The prompt states this list verbatim (src/tool-surface.mjs renders it), so widening it here widens what the agent is told it may do.'
+    description: 'Claude Code --allowedTools value for the agent: read/search tools, local file writes and utilities, read-only plain git, the three reads of a worktree `git -C sources/<name>@<slug> diff`, `show` and `status`, read-only gh (both spellings, gh and gh-wrapper — the agent works from inside cortex, whose CLAUDE.md routes gh through that wrapper), and the issue writes: gh-wrapper issue comment and issue edit, the route the cortex jahia-issue-agent skill moves to, and the issue-agent comment tool, which stays allowed while that skill moves to gh-wrapper. Neither route binds a write to the session''s issue: the token''s reach bounds it, and the prompt holds the session to its issue. The runner is ephemeral, so local operations are allowed generously — the safeguards live in the deny list, on the forge writes. The Software Developer write path runs through tools: cortex-sources for the worktree (its verbs one by one, never `exec`, which would run anything past the deny list), jahia-pr for the commit, and three writes that the cortex skills run from the harness root: `git -C sources/<name>@<slug> push -u origin <branch>`, gh-wrapper pr create, which a cortex PreToolUse hook refuses with no --draft, and the gh-wrapper api PATCH that edits a trail comment or the task comment. gh-wrapper pr edit/comment iterate on an open pull request. The README of ai-issue-agent states how the deny list closes each `*` of these rules. The prompt states this list verbatim (src/tool-surface.mjs renders it), so widening it here widens what the agent is told it may do.'
     required: false
-    default: 'Read,Write,Edit,Grep,Glob,Skill,Task,Agent,TodoWrite,Bash(tools/jahia-issue-agent/bin/jahia-issue-agent:*),Bash(tools/jahia-pr/bin/jahia-pr:*),Bash(tools/cortex-sources/bin/cortex-sources add:*),Bash(tools/cortex-sources/bin/cortex-sources acquire:*),Bash(tools/cortex-sources/bin/cortex-sources view:*),Bash(tools/cortex-sources/bin/cortex-sources path:*),Bash(tools/cortex-sources/bin/cortex-sources list:*),Bash(tools/cortex-sources/bin/cortex-sources current:*),Bash(tools/cortex-sources/bin/cortex-sources release:*),Bash(git log:*),Bash(git diff:*),Bash(git show:*),Bash(git status:*),Bash(git branch --show-current),Bash(git branch --list),Bash(git branch -a),Bash(git branch -r),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(git blame:*),Bash(git cat-file:*),Bash(git fetch:*),Bash(git merge-base:*),Bash(git -C sources/*@* push -u origin *),Bash(gh issue view:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh repo view:*),Bash(gh repo clone:*),Bash(gh search:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue view:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr view:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr diff:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr checks:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr create:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr edit:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr comment:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue comment:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue edit:*),Bash(tools/gh-wrapper/bin/gh-wrapper api --silent -X PATCH repos/*/issues/comments/* -F body=@*),Bash(tools/gh-wrapper/bin/gh-wrapper repo view:*),Bash(tools/gh-wrapper/bin/gh-wrapper search:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(sed -n:*),Bash(sort:*),Bash(uniq:*),Bash(cut:*),Bash(diff:*),Bash(mkdir:*),Bash(cp:*),Bash(mv:*),Bash(touch:*),Bash(find:*),Bash(tar:*),Bash(zip:*),Bash(unzip:*),Bash(date:*),Bash(python3 -m json.tool:*)'
+    default: 'Read,Write,Edit,Grep,Glob,Skill,Task,Agent,TodoWrite,Bash(tools/jahia-issue-agent/bin/jahia-issue-agent:*),Bash(tools/jahia-pr/bin/jahia-pr:*),Bash(tools/cortex-sources/bin/cortex-sources add:*),Bash(tools/cortex-sources/bin/cortex-sources acquire:*),Bash(tools/cortex-sources/bin/cortex-sources view:*),Bash(tools/cortex-sources/bin/cortex-sources path:*),Bash(tools/cortex-sources/bin/cortex-sources list:*),Bash(tools/cortex-sources/bin/cortex-sources current:*),Bash(tools/cortex-sources/bin/cortex-sources release:*),Bash(git log:*),Bash(git diff:*),Bash(git show:*),Bash(git status:*),Bash(git branch --show-current),Bash(git branch --list),Bash(git branch -a),Bash(git branch -r),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(git blame:*),Bash(git cat-file:*),Bash(git fetch:*),Bash(git merge-base:*),Bash(git -C sources/*@* push -u origin *),Bash(git -C sources/*@* diff),Bash(git -C sources/*@* diff *),Bash(git -C sources/*@* show),Bash(git -C sources/*@* show *),Bash(git -C sources/*@* status),Bash(git -C sources/*@* status *),Bash(gh issue view:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh repo view:*),Bash(gh repo clone:*),Bash(gh search:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue view:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr view:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr diff:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr checks:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr create:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr edit:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr comment:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue comment:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue edit:*),Bash(tools/gh-wrapper/bin/gh-wrapper api --silent -X PATCH repos/*/issues/comments/* -F body=@*),Bash(tools/gh-wrapper/bin/gh-wrapper repo view:*),Bash(tools/gh-wrapper/bin/gh-wrapper search:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(sed -n:*),Bash(sort:*),Bash(uniq:*),Bash(cut:*),Bash(diff:*),Bash(mkdir:*),Bash(cp:*),Bash(mv:*),Bash(touch:*),Bash(find:*),Bash(tar:*),Bash(zip:*),Bash(unzip:*),Bash(date:*),Bash(python3 -m json.tool:*)'
   disallowed_tools:
-    description: 'Claude Code --disallowedTools value. A deny rule beats an allow rule, including one a cloned repository''s own settings could carry. This list is the floor NO profile may cross: merge, ready, review and close; issue creation, and every raw gh issue write, so a comment or an edit runs through gh-wrapper or the issue-agent tool; gh-wrapper issue comment --delete-last, which could delete the overall-status comment (the agent account writes it too, so it can be the account''s last comment); arbitrary forge writes (gh api, release, workflow, secret), and the usual spellings of a gh-wrapper api write other than the trail-comment PATCH; force, mirror and delete pushes, in the plain and the `git -C` spelling; git remote, whose set-url would point a later push at any repository the token can write; and EnterWorktree, which would mint a worktree outside cortex-sources. Raw gh pr create is denied, so a pull request opens through gh-wrapper pr create, and a cortex PreToolUse hook refuses a gh-wrapper pr create with no --draft. Each write is denied in every spelling that reaches it — `gh pr merge` and `gh-wrapper pr merge` are two prefixes, and a rule matches one prefix, so leaving any out leaves the write reachable. The allowed push and PATCH hold a `*` in the middle, which would also take an inserted option or refspec. So the rules on `git -C` and `gh-wrapper api` close each such `*`, and deny `..`, which moves a path to a parent, and a quote, a backslash, `$` and a backtick, which the shell would turn into a hidden option. The method rules of gh-wrapper api are no complete floor. The README of ai-issue-agent states each rule and what it leaves open.'
+    description: 'Claude Code --disallowedTools value. A deny rule beats an allow rule, including one a cloned repository''s own settings could carry. This list is the floor NO profile may cross: merge, ready, review and close; issue creation, and every raw gh issue write, so a comment or an edit runs through gh-wrapper or the issue-agent tool; gh-wrapper issue comment --delete-last, which could delete the overall-status comment (the agent account writes it too, so it can be the account''s last comment); arbitrary forge writes (gh api, release, workflow, secret), and the usual spellings of a gh-wrapper api write other than the comment PATCH; force, mirror and delete pushes, in the plain and the `git -C` spelling; git remote, whose set-url would point a later push at any repository the token can write; EnterWorktree, which would mint a worktree outside cortex-sources; and `--output`, which makes a git command write a file at any path. Raw gh pr create is denied, so a pull request opens through gh-wrapper pr create, and a cortex PreToolUse hook refuses a gh-wrapper pr create with no --draft. Each write is denied in every spelling that reaches it — `gh pr merge` and `gh-wrapper pr merge` are two prefixes, and a rule matches one prefix, so leaving any out leaves the write reachable. The allowed push, the three `git -C` reads and the PATCH hold a `*` in the middle, which would also take an inserted subcommand, option or refspec. So the rules on `git -C` and `gh-wrapper api` close each such `*`, and deny `..`, which moves a path to a parent, and a quote, a backslash, `$` and a backtick, which the shell would turn into a hidden option. The method rules of gh-wrapper api are no complete floor. The README of ai-issue-agent states each rule and what it leaves open.'
     required: false
-    default: 'NotebookEdit,EnterWorktree,Bash(git push --force*),Bash(git push -f*),Bash(git push --mirror*),Bash(git push --delete*),Bash(git push -d*),Bash(git push * --force*),Bash(git push * -f*),Bash(git push * --mirror*),Bash(git push * --delete*),Bash(git push * -d*),Bash(git push * +*),Bash(git push * :**),Bash(git -C * -* push *),Bash(git -C * push * -*),Bash(git -C * push * +*),Bash(git -C * push *:**),Bash(git -C *..*),Bash(git -C *''*),Bash(git -C *"*),Bash(git -C *\\\\*),Bash(git -C *$*),Bash(git -C *`*),Bash(git remote:*),Bash(gh pr create:*),Bash(gh pr comment:*),Bash(gh pr review:*),Bash(gh pr edit:*),Bash(gh pr ready:*),Bash(gh pr merge:*),Bash(gh pr close:*),Bash(gh issue create:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh issue close:*),Bash(gh api:*),Bash(gh release:*),Bash(gh workflow:*),Bash(gh secret:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr review:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr ready:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr merge:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr close:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue create:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue comment *--delete-last*),Bash(tools/gh-wrapper/bin/gh-wrapper issue close:*),Bash(tools/gh-wrapper/bin/gh-wrapper api * repos/* -* -*),Bash(tools/gh-wrapper/bin/gh-wrapper api *?*),Bash(tools/gh-wrapper/bin/gh-wrapper api *#*),Bash(tools/gh-wrapper/bin/gh-wrapper api *..*),Bash(tools/gh-wrapper/bin/gh-wrapper api *''*),Bash(tools/gh-wrapper/bin/gh-wrapper api *"*),Bash(tools/gh-wrapper/bin/gh-wrapper api *\\\\*),Bash(tools/gh-wrapper/bin/gh-wrapper api *$*),Bash(tools/gh-wrapper/bin/gh-wrapper api *`*),Bash(tools/gh-wrapper/bin/gh-wrapper api *-X POST*),Bash(tools/gh-wrapper/bin/gh-wrapper api *-X PUT*),Bash(tools/gh-wrapper/bin/gh-wrapper api *-X DELETE*),Bash(tools/gh-wrapper/bin/gh-wrapper api *--method*),Bash(tools/gh-wrapper/bin/gh-wrapper api *--input*),Bash(tools/gh-wrapper/bin/gh-wrapper api *--raw-field*),Bash(tools/gh-wrapper/bin/gh-wrapper api *--field*)'
+    default: 'NotebookEdit,EnterWorktree,Bash(git push --force*),Bash(git push -f*),Bash(git push --mirror*),Bash(git push --delete*),Bash(git push -d*),Bash(git push * --force*),Bash(git push * -f*),Bash(git push * --mirror*),Bash(git push * --delete*),Bash(git push * -d*),Bash(git push * +*),Bash(git push * :**),Bash(git -C * -* push *),Bash(git -C * * diff),Bash(git -C * * diff *),Bash(git -C * * show),Bash(git -C * * show *),Bash(git -C * * status),Bash(git -C * * status *),Bash(git * --output*),Bash(git -C * push * -*),Bash(git -C * push * +*),Bash(git -C * push *:**),Bash(git -C *..*),Bash(git -C *''*),Bash(git -C *"*),Bash(git -C *\\\\*),Bash(git -C *$*),Bash(git -C *`*),Bash(git remote:*),Bash(gh pr create:*),Bash(gh pr comment:*),Bash(gh pr review:*),Bash(gh pr edit:*),Bash(gh pr ready:*),Bash(gh pr merge:*),Bash(gh pr close:*),Bash(gh issue create:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh issue close:*),Bash(gh api:*),Bash(gh release:*),Bash(gh workflow:*),Bash(gh secret:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr review:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr ready:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr merge:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr close:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue create:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue comment *--delete-last*),Bash(tools/gh-wrapper/bin/gh-wrapper issue close:*),Bash(tools/gh-wrapper/bin/gh-wrapper api * repos/* -* -*),Bash(tools/gh-wrapper/bin/gh-wrapper api *?*),Bash(tools/gh-wrapper/bin/gh-wrapper api *#*),Bash(tools/gh-wrapper/bin/gh-wrapper api *..*),Bash(tools/gh-wrapper/bin/gh-wrapper api *''*),Bash(tools/gh-wrapper/bin/gh-wrapper api *"*),Bash(tools/gh-wrapper/bin/gh-wrapper api *\\\\*),Bash(tools/gh-wrapper/bin/gh-wrapper api *$*),Bash(tools/gh-wrapper/bin/gh-wrapper api *`*),Bash(tools/gh-wrapper/bin/gh-wrapper api *-X POST*),Bash(tools/gh-wrapper/bin/gh-wrapper api *-X PUT*),Bash(tools/gh-wrapper/bin/gh-wrapper api *-X DELETE*),Bash(tools/gh-wrapper/bin/gh-wrapper api *--method*),Bash(tools/gh-wrapper/bin/gh-wrapper api *--input*),Bash(tools/gh-wrapper/bin/gh-wrapper api *--raw-field*),Bash(tools/gh-wrapper/bin/gh-wrapper api *--field*)'
 
 outputs:
   logs_dir:
@@ -102,6 +122,49 @@ runs:
         echo "logs_dir=$LOG_DIR" >> "$GITHUB_OUTPUT"
         echo "started_at=$(date -u +%FT%TZ)" >> "$GITHUB_OUTPUT"
 
+    # The session clones its repositories with cortex-sources after this step, so the identity
+    # and the signature go to the global git configuration. The runner is ephemeral, so no
+    # step removes them.
+    - name: Configure the git identity and the commit signature
+      shell: bash
+      env:
+        GIT_USER_NAME: ${{ inputs.agent_login }}
+        GIT_USER_EMAIL: ${{ inputs.git_user_email }}
+        GPG_KEY: ${{ inputs.gpg_key }}
+        GPG_KEY_ID: ${{ inputs.gpg_key_id }}
+        GPG_KEY_PASSPHRASE: ${{ inputs.gpg_key_passphrase }}
+      run: |
+        git config --global user.name "$GIT_USER_NAME"
+        git config --global user.email "$GIT_USER_EMAIL"
+        if [ -z "$GPG_KEY" ]; then
+          echo "::warning title=Unsigned commits::No gpg_key input, so the commits of this session carry no signature. A branch with required_signatures refuses to merge them."
+          exit 0
+        fi
+        for name in GPG_KEY_ID GPG_KEY_PASSPHRASE; do
+          if [ -z "${!name}" ]; then
+            echo "::error title=Incomplete GPG key::The gpg_key input is set, but ${name,,} is empty. Share the AI_AGENT_${name} organization secret with this repository."
+            exit 1
+          fi
+        done
+        GNUPGHOME="${GNUPGHOME:-$HOME/.gnupg}"
+        mkdir -p "$GNUPGHOME"
+        chmod 700 "$GNUPGHOME"
+        # gpg-agent keeps the passphrase for 24 hours, longer than any job, so a commit of the
+        # session signs with no passphrase and no pinentry.
+        printf 'default-cache-ttl 86400\nmax-cache-ttl 86400\n' >> "$GNUPGHOME/gpg-agent.conf"
+        gpg-connect-agent reloadagent /bye > /dev/null
+        if ! echo "$GPG_KEY" | base64 --decode | gpg --batch --import; then
+          echo "::error title=Unusable GPG key::gpg cannot import gpg_key. Check the AI_AGENT_GPG_KEY organization secret, an armored private key encoded in base64."
+          exit 1
+        fi
+        if ! echo | gpg --batch --pinentry-mode=loopback --passphrase-fd 3 --local-user "$GPG_KEY_ID" \
+            --clearsign 3<<< "$GPG_KEY_PASSPHRASE" > /dev/null; then
+          echo "::error title=Unusable GPG key::gpg cannot sign with gpg_key_id and gpg_key_passphrase. Check the AI_AGENT_GPG_KEY_ID and AI_AGENT_GPG_KEY_PASSPHRASE organization secrets, and the expiry date of the key."
+          exit 1
+        fi
+        git config --global user.signingkey "$GPG_KEY_ID"
+        git config --global commit.gpgsign true
+
     # Fetch the issue BEFORE the agent starts, not through it: every fetch the agent makes
     # costs a turn, and the ones its allowlist refuses cost far more — a headless agent
     # reads a denial as "the tool is gone" and spends the budget looking for a way around.
@@ -110,6 +173,7 @@ runs:
       uses: actions/github-script@v9
       env:
         ISSUE_URL: ${{ inputs.issue_url }}
+        TARGET: ${{ inputs.target }}
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
         ACTION_PATH: ${{ github.action_path }}
         AGENT_LABEL: ${{ steps.prep.outputs.agent_label }}
@@ -122,27 +186,32 @@ runs:
       with:
         github-token: ${{ inputs.github_token }}
         script: |
-          const match = process.env.ISSUE_URL.match(/([^/]+)\/([^/]+)\/issues\/(\d+)$/)
-          if (!match) throw new Error(`Unrecognized issue URL: ${process.env.ISSUE_URL}`)
+          // html_url of an issue_comment's issue: /issues/<n> on an issue, /pull/<n> on a pull request.
+          const match = process.env.ISSUE_URL.match(/([^/]+)\/([^/]+)\/(?:issues|pull)\/(\d+)$/)
+          if (!match) throw new Error(`Unrecognized issue or pull request URL: ${process.env.ISSUE_URL}`)
           const [, owner, repo, number] = match
+          const isPullRequest = process.env.TARGET === 'pull_request'
           const logDir = process.env.LOG_DIR
           const src = process.env.ACTION_PATH + '/src'
           const { prefetchIssue } = await import(`${src}/prefetch-issue.mjs`)
           const { renderToolSurface } = await import(`${src}/tool-surface.mjs`)
           const { buildPrompt } = await import(`${src}/build-prompt.mjs`)
           const { selfAssignWhenUnassigned } = await import(`${src}/self-assign.mjs`)
-          // Best-effort: ownership must not cost the session.
-          try {
-            const assigned = await selfAssignWhenUnassigned({
-              github,
-              owner,
-              repo,
-              issueNumber: Number(number),
-              agentLogin: process.env.AGENT_LOGIN,
-            })
-            if (assigned) core.info(`${owner}/${repo}#${number} had no assignee — assigned ${process.env.AGENT_LOGIN}`)
-          } catch (error) {
-            core.warning(`Could not self-assign on ${owner}/${repo}#${number}: ${error}`)
+          // Best-effort: ownership must not cost the session. A pull request has an author who
+          // owns it, so the agent never assigns itself there.
+          if (!isPullRequest) {
+            try {
+              const assigned = await selfAssignWhenUnassigned({
+                github,
+                owner,
+                repo,
+                issueNumber: Number(number),
+                agentLogin: process.env.AGENT_LOGIN,
+              })
+              if (assigned) core.info(`${owner}/${repo}#${number} had no assignee — assigned ${process.env.AGENT_LOGIN}`)
+            } catch (error) {
+              core.warning(`Could not self-assign on ${owner}/${repo}#${number}: ${error}`)
+            }
           }
           const { fetched, failed } = await prefetchIssue({
             github,
@@ -151,6 +220,7 @@ runs:
             repo,
             issueNumber: Number(number),
             eventPath: process.env.GITHUB_EVENT_PATH,
+            isPullRequest,
           })
           core.info(`Pre-fetched ${fetched} context files (${failed} failed) for ${owner}/${repo}#${number}`)
           const remaining = Number(process.env.REMAINING_SECONDS) || 0
@@ -160,6 +230,9 @@ runs:
             outputPath: `${logDir}/session.prompt.md`,
             replacements: {
               ISSUE_URL: process.env.ISSUE_URL,
+              TARGET_NOTE: isPullRequest
+                ? 'This is a **pull request**: `pull-request.md` names its head and base branches and its changed files, and `reviews.md` holds its review threads. A change to its code is an iteration on this pull request, on its head branch — never a new pull request.'
+                : 'This is an issue.',
               CONTEXT_DIR: `${logDir}/context`,
               COLLECT_DIR: `${logDir}/collected`,
               TOOL_SURFACE: renderToolSurface(process.env.ALLOWED_TOOLS, process.env.DISALLOWED_TOOLS),

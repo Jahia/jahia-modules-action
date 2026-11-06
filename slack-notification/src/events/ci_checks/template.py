@@ -32,8 +32,9 @@ _FLAKY_SHOWN = 3
 _JOBS_SHOWN = 5
 _THREAD_ERRORS = 10
 _DETAIL_LINES = 3
-# Slack refuses a long block, so each line of an error is cut
-_LINE_CHARS = 150
+# Slack refuses a long block, so the first lines of an error share a budget of characters. A line shorter than its
+# share shows whole, and a cut line ends on an ellipsis.
+_DETAIL_CHARS = 450
 _TITLE_CHARS = 150
 
 
@@ -197,7 +198,15 @@ def _separate(groups: list[list[dict]]) -> list[dict]:
 
 
 def _cut_detail(detail: str) -> str:
-    return "\n".join([line[:_LINE_CHARS] for line in detail.splitlines() if line.strip()][:_DETAIL_LINES])
+    lines = [line for line in detail.splitlines() if line.strip()][:_DETAIL_LINES]
+    # The shortest line takes its share first, so a long line takes what the short ones leave
+    caps, budget = {}, _DETAIL_CHARS
+    for taken, index in enumerate(sorted(range(len(lines)), key=lambda one: len(lines[one]))):
+        caps[index] = min(len(lines[index]), budget // (len(lines) - taken))
+        budget -= caps[index]
+    return "\n".join(
+        line if len(line) <= caps[index] else f"{line[: caps[index] - 1]}…" for index, line in enumerate(lines)
+    )
 
 
 def _format_duration(seconds: int) -> str:

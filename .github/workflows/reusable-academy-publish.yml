@@ -19,17 +19,38 @@ on:
 jobs:
   publish-academy-documentation:
     name: Publish Academy Documentation
-    runs-on: ubuntu-slim
+    # The tunnel needs root, to bind loopback addresses and to write /etc/hosts.
+    runs-on: ubuntu-latest
+    # A reusable workflow gets id-token: write only when its caller grants it.
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           ref: ${{ inputs.git_branch }}
 
+      # academy.jahia.com strips the Authorization header, so CI reaches the Academy through
+      # academy-ci.jahia.com, which only the mTLS bastion reaches.
+      - name: Open the mTLS tunnel to the Academy
+        uses: jahia/jahia-modules-action/mtls-tunnel@v2
+        with:
+          hosts: academy-ci.jahia.com
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
+          server-name: ci-egress.jahia.com
+          audience: jahia-ci-egress
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
+          # Jahia answers /ping.jsp, not the edge: a 200 proves both the tunnel and the backend.
+          canary-url: https://academy-ci.jahia.com/ping.jsp
+          canary-http-response: '200'
+
       - name: Publish documentation on Academy
         uses: jahia/jahia-modules-action/academy-publish@v2
         with:
           docs_path: ${{ inputs.docs_path }}
-          graphql_endpoint: ${{ secrets.ACADEMY_ENDPOINT }}
+          graphql_endpoint: https://academy-ci.jahia.com/modules/graphql
           graphql_authorization: ${{ secrets.ACADEMY_AUTHORIZATION }}
           publish: 'true'

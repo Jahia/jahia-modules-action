@@ -264,11 +264,12 @@ jobs:
       number: ${{ github.event.issue.number }}
     secrets: inherit
 
-  # jahia-ai was mentioned in a fresh comment on an ISSUE — the only trigger; assignment
-  # starts nothing. This `if` is only a cheap pre-filter (contains() cannot match a login
-  # boundary, and a PR comment also raises issue_comment): the called workflow's guard
-  # re-checks authoritatively, owns the single-agent lock and the issue's cumulative
-  # runtime budget, and only then starts an agent instance.
+  # jahia-ai was mentioned in a fresh comment on an issue or a pull request (GitHub raises
+  # issue_comment for both) — the only trigger; assignment starts nothing. This `if` is only
+  # a cheap pre-filter (contains() cannot match a login boundary): the called workflow's
+  # guard re-checks authoritatively, refuses a pull request from a fork, owns the
+  # single-agent lock and the cumulative runtime budget, and only then starts an agent
+  # instance.
   ai-issue-agent:
     name: AI Issue Agent
     if: ${{ github.event_name == 'issue_comment' && github.event.action == 'created' && contains(github.event.comment.body, '@jahia-ai') && github.event.sender.login != 'jahia-ai' && github.event.sender.login != 'jahia-ci' }}

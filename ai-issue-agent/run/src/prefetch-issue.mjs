@@ -5,7 +5,18 @@ import { join } from 'node:path'
 // makes costs a turn, and the ones its allowlist refuses cost far more. Best-effort by
 // design — a session missing one context file is worth more than no session, so a failed
 // fetch is recorded in the index the agent reads, not raised.
-export const prefetchIssue = async ({ github, contextDir, owner, repo, issueNumber, eventPath }) => {
+//
+// On a pull request the issue files hold its conversation tab, and two more files hold what
+// the issues API cannot serve: the branches and changed files, and the review threads.
+export const prefetchIssue = async ({
+  github,
+  contextDir,
+  owner,
+  repo,
+  issueNumber,
+  eventPath,
+  isPullRequest = false,
+}) => {
   mkdirSync(contextDir, { recursive: true })
   const index = []
   const failures = []
@@ -59,6 +70,88 @@ export const prefetchIssue = async ({ github, contextDir, owner, repo, issueNumb
     index.push(['comments.md', `every issue comment, oldest first (${comments.length})`])
   } catch (error) {
     failures.push(['comments.md', String(error).split('\n')[0]])
+  }
+
+  if (isPullRequest) {
+    try {
+      const { data: pull } = await github.rest.pulls.get({ owner, repo, pull_number: issueNumber })
+      const files = await github.paginate(github.rest.pulls.listFiles, {
+        owner,
+        repo,
+        pull_number: issueNumber,
+        per_page: 100,
+      })
+      writeFileSync(
+        join(contextDir, 'pull-request.md'),
+        [
+          `# Pull request ${owner}/${repo}#${issueNumber}`,
+          '',
+          `- State: ${pull.merged ? 'merged' : pull.state}${pull.draft ? ' (draft)' : ''}`,
+          `- Head branch: \`${pull.head.ref}\` at ${pull.head.sha} (${pull.head.repo?.full_name ?? '?'})`,
+          `- Base branch: \`${pull.base.ref}\``,
+          `- Requested reviewers: ${(pull.requested_reviewers ?? []).map((r) => r.login).join(', ') || '(none)'}`,
+          `- Changes: ${pull.commits} commit(s), +${pull.additions} −${pull.deletions} in ${pull.changed_files} file(s)`,
+          '',
+          '## Changed files',
+          '',
+          ...files.map((f) => `- \`${f.filename}\` — ${f.status}, +${f.additions} −${f.deletions}`),
+          '',
+          'The diff itself: `gh pr diff` on this pull request.',
+          '',
+        ].join('\n'),
+      )
+      index.push([
+        'pull-request.md',
+        'branches, head commit and changed files of the pull request this session works',
+      ])
+    } catch (error) {
+      failures.push(['pull-request.md', String(error).split('\n')[0]])
+    }
+
+    try {
+      const reviews = await github.paginate(github.rest.pulls.listReviews, {
+        owner,
+        repo,
+        pull_number: issueNumber,
+        per_page: 100,
+      })
+      const threads = await github.paginate(github.rest.pulls.listReviewComments, {
+        owner,
+        repo,
+        pull_number: issueNumber,
+        per_page: 100,
+      })
+      const rendered = [
+        ...reviews
+          .filter((review) => (review.body ?? '').trim() !== '' || review.state !== 'COMMENTED')
+          .map((review) =>
+            [
+              `## Review · ${review.user?.login ?? '?'} · ${review.state} · ${stamp(review.submitted_at)} · id ${review.id}`,
+              '',
+              review.body || '(no summary)',
+              '',
+            ].join('\n'),
+          ),
+        ...threads.map((comment) =>
+          [
+            `## Inline · ${comment.user?.login ?? '?'} · ${stamp(comment.created_at)} · \`${comment.path}:${comment.line ?? comment.original_line ?? '?'}\` · id ${comment.id}${comment.in_reply_to_id ? ` · reply to ${comment.in_reply_to_id}` : ''}`,
+            '',
+            comment.body ?? '',
+            '',
+          ].join('\n'),
+        ),
+      ]
+      writeFileSync(
+        join(contextDir, 'reviews.md'),
+        rendered.length ? rendered.join('\n') : 'No reviews yet.\n',
+      )
+      index.push([
+        'reviews.md',
+        `the reviews and inline review comments of the pull request (${reviews.length} review(s), ${threads.length} inline)`,
+      ])
+    } catch (error) {
+      failures.push(['reviews.md', String(error).split('\n')[0]])
+    }
   }
 
   try {

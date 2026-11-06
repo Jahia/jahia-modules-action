@@ -1,8 +1,8 @@
 # AI Issue Agent — guard, lock and budget ledger
 
-Mentioning the AI agent account (`jahia-ai` by default) in a fresh issue comment —
-`@jahia-ai do something` — asks for an agent session on that issue; assigning the account
-changes nothing. Once the guard admits a session it reacts 👍 on the triggering comment:
+Mentioning the AI agent account (`jahia-ai` by default) in a fresh comment on an issue or a
+pull request — `@jahia-ai do something` — asks for an agent session on it; assigning the
+account changes nothing. Once the guard admits a session it reacts 👍 on the triggering comment:
 the sign that what the comment asks is being handled. It also clears the
 `🧠 Human needed !` escalation label when the issue carries it — a fresh mention means a
 human answered — and the session's own `escalate` puts it back when the issue still
@@ -13,17 +13,42 @@ whether a session is owed, and the **finalize** closer that settles the session 
 plus the **run** action that executes the agent session itself: pre-fetched issue context,
 a barebone prompt (`run/prompt.md`, the substance lives in cortex skills), the Claude Code
 CLI under a strict tool allowlist whose issue writes run through the commands the cortex
-`jahia-issue-agent` skill names, and a token-free sidecar appending progress to the
-session's task comment. The roadmap lives in the AI Issue Agent PRD, in Jahia's internal
+`jahia-issue-agent` skill names, and a token-free sidecar writing progress into the
+session's task comment, above its footer. The roadmap lives in the AI Issue Agent PRD, in Jahia's internal
 Cortex harness.
 
 ## Requirements
 
 - The `AI_AGENT_GH_ISSUES_PRS_CHORES` secret (the AI agent account's token), inherited by
   the reusable workflow — the same secret the AI PR review and AI TL;DR duties already use.
+- The `AI_AGENT_GPG_KEY`, `AI_AGENT_GPG_KEY_ID` and `AI_AGENT_GPG_KEY_PASSPHRASE` secrets,
+  with the same repository access. They hold a GPG key whose user ID is `jahia-ai@jahia.com`,
+  a verified email of the `jahia-ai` account, and whose public key is on that account. The
+  run action signs each commit of the session with this key, and GitHub then marks the commit
+  verified. Without these secrets, the commits carry no signature, and a branch with
+  `required_signatures` refuses to merge them.
 - Events: consumers already forward every `issues` and `issue_comment` event to
   `reusable-delivery-issue-chores.yml` (the caller workflow is synced org-wide); the
   dispatch job there filters cheaply, and this guard re-checks authoritatively.
+
+## On a pull request
+
+GitHub raises the same `issue_comment` event for a comment on a pull request, and the issues
+API serves a pull request by its number, so a session on a pull request runs the same guard,
+lock, ledger, status comment and finalize as one on an issue. The differences:
+
+- The guard admits a pull request only when its head branch lives in the same repository.
+  A fork's head is code nobody in the organization vetted, which the session would check out
+  on a runner holding the agent's secrets, and the agent could not push to it anyway. The
+  refusal is a notice in the run log only.
+- The pre-fetched context adds `pull-request.md` (head and base branches, head commit,
+  changed files) and `reviews.md` (the reviews and the inline review comments), and the
+  prompt tells the agent that a code change is an iteration on that pull request.
+- Board hygiene and the self-assignment are skipped: the board tracks issues, and a pull
+  request already has an author who owns it.
+
+The AI PR review is a separate duty: requesting `jahia-ai` as a reviewer still starts it,
+through `reusable-delivery-pr-chores.yml`.
 
 ## The overall-status comment
 
@@ -130,8 +155,8 @@ route the cortex `jahia-issue-agent` skill moves to, or through the issue-agent 
 stays allowed during that move. No rule binds these writes to the session's issue: the
 token's reach bounds them, and the prompt holds the session to its issue. The guard writes
 the overall-status comment with the agent account too, so it can be that account's last
-comment: `--delete-last` is denied, and `--edit-last` relies on the skill to reach the task
-comment alone.
+comment: `--delete-last` is denied. The skill edits the task comment by its id, through the
+`api` PATCH below, so an edit never reaches another comment of the account.
 
 A pull request opens as a **draft**, and merging stays human-gated. Raw `gh pr create` stays
 denied. Cortex's `tools/jahia-pr` commits the changes of a worktree under a
@@ -142,15 +167,26 @@ the Cortex checkout:
 - `gh-wrapper pr create --draft`. The `PreToolUse` hooks of Cortex run in this session, as in
   any Cortex session, and one of them refuses a `gh-wrapper pr create` with no `--draft`.
 - `gh-wrapper api --silent -X PATCH repos/<owner>/<repo>/issues/comments/<id> -F body=@<file>`.
-  It edits the trail comment: the comment on a Cortex tracking issue that lists the pull
-  requests of one piece of work.
+  It edits the trail comment, the comment on a Cortex tracking issue that lists the pull
+  requests of one piece of work, and the task comment of the session.
 
-A `*` in the middle of a permission rule stands for any text, so the allow rules of the push
-and of the PATCH take the values that vary. The same `*` would also take what git or the shell
-reads as an option or a refspec, so the deny list closes each such `*`:
+The session reads a worktree with `git -C sources/<name>@<slug> diff`, `show` and `status`.
+Each read has two allow rules: the bare command, and the command with arguments. A rule with a
+`*` in the path and a trailing ` *` does not match the bare command. The path stays relative
+and unquoted, because the deny list refuses a quote in a `git -C` command. A range with `..` is
+refused too, so the session reads its change with `diff --merge-base origin/<base>`.
+
+A `*` in the middle of a permission rule stands for any text, spaces included. The allow rules
+of the push, of the three reads and of the PATCH therefore take the values that vary. The same
+`*` would also take a subcommand, an option or a refspec, so the deny list closes each such `*`:
 
 - `git -C * -* push *` denies an option before `push`, such as `-c`, which makes git run a
   program.
+- `git -C * * diff`, `git -C * * show` and `git -C * * status`, each in its bare form and with
+  ` *`, deny any word between the path and a read. The `*` of the path would otherwise take a
+  whole command, such as `push diff <branch>` or `remote add diff <url>`.
+- `git * --output*` denies the option that writes the output of a git command to a file at any
+  path.
 - `git -C * push * -*`, `git -C * push * +*` and `git -C * push *:**` deny an option, a forced
   refspec and a refspec with a colon after `push`, such as `--force` or `HEAD:main`.
 - `gh-wrapper api * repos/* -* -*` denies a second option on the PATCH. `?`, `#` and `..` deny
@@ -175,6 +211,15 @@ edit`/`pr comment`; another person's branch is touched only when the triggering 
 for it. Pushes authenticate as the agent account: the run action wires git to gh's
 credential helper (`gh auth setup-git`) with the same `github_token` the session uses, the
 chores token `AI_AGENT_GH_ISSUES_PRS_CHORES`.
+
+Commits carry the identity of the agent account: `agent_login` as the name, and the
+`git_user_email` input as the email. The run action imports the GPG key of the `gpg_key`
+input. It sets `commit.gpgsign` and `user.signingkey` in the global git configuration,
+because `cortex-sources` clones the repositories after that step. The same step unlocks the
+key in `gpg-agent` for 24 hours. The session therefore signs with no passphrase, and its
+environment never holds the passphrase. Any program that the session runs can still sign as
+`jahia-ai` until the job ends. The key therefore belongs to `jahia-ai` alone, and never to
+`jahia-ci`.
 
 Per-profile model and runner defaults are not wired: `model` and `instance_type` are
 workflow inputs a consumer can already tune, and profile-based tuning is a rollout

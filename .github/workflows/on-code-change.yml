@@ -1,0 +1,31 @@
+name: On Code Change
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'integration-tests/**'
+
+jobs:
+  check-signal-patch:
+    name: Integration Tests - Verify signal patch in dist
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+
+      - name: Check signal option is present in _getSpawnOptions
+        run: |
+          # Verify that result.signal = options.signal is inside _getSpawnOptions method
+          if grep -A 10 "_getSpawnOptions(options, toolPath)" integration-tests/dist/index.js | grep -q "result.signal = options.signal;"; then
+            echo "✅ Signal patch is present in _getSpawnOptions in dist/index.js"
+          else
+            echo "❌ Signal patch is MISSING from _getSpawnOptions in dist/index.js"
+            echo ""
+            echo "The line 'result.signal = options.signal;' must be present inside the"
+            echo "_getSpawnOptions method in integration-tests/dist/index.js for step"
+            echo "cancellation to work."
+            echo ""
+            echo "Run 'yarn run package' in the integration-tests/ directory to"
+            echo "automatically apply the patch, or see the README for manual instructions."
+            exit 1
+          fi
