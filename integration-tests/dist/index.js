@@ -1220,6 +1220,72 @@ exports.setupSSH = setupSSH;
 
 /***/ }),
 
+/***/ 78230:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.annotateFailedTests = void 0;
+const core = __importStar(__nccwpck_require__(37484));
+const fs = __importStar(__nccwpck_require__(79896));
+const system_1 = __nccwpck_require__(41025);
+// GitHub keeps 10 error annotations for each step, and the failure of the step takes the last one
+const MAX_ANNOTATIONS = 9;
+// testsFolder is the folder of the tests, relative to the root of the repository
+function annotateFailedTests(testsPath, reportType, testsFolder) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (fs.existsSync(testsPath)) {
+            let command = 'jahia-reporter github:annotations';
+            command += ` --sourcePath="${testsPath}"`;
+            command += ` --sourceType="${reportType}"`;
+            command += ` --testsPath="${testsFolder}"`;
+            command += ` --maxAnnotations=${MAX_ANNOTATIONS}`;
+            command += ' -s';
+            yield (0, system_1.runShellCommands)([command]);
+        }
+        else {
+            core.info(`ERROR: The following path does not exist: ${testsPath}, annotations will not be written`);
+        }
+    });
+}
+exports.annotateFailedTests = annotateFailedTests;
+
+
+/***/ }),
+
 /***/ 439:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -1315,6 +1381,7 @@ __exportStar(__nccwpck_require__(70368), exports);
 __exportStar(__nccwpck_require__(51157), exports);
 __exportStar(__nccwpck_require__(79108), exports);
 __exportStar(__nccwpck_require__(439), exports);
+__exportStar(__nccwpck_require__(78230), exports);
 
 
 /***/ }),
@@ -1819,6 +1886,10 @@ function run() {
             }));
             // Display a short "console" report directly in the run output
             yield (0, jahia_reporter_1.showTestsSummary)(path.join(testsFolder, core.getInput('tests_report_path')), core.getInput('tests_report_type'));
+            // The annotations of the failed tests come before the failure of the step, as the Slack notification shows the first one
+            if (!fs.existsSync(path.join(artifactsFolder, 'results/test_success'))) {
+                yield (0, jahia_reporter_1.annotateFailedTests)(path.join(testsFolder, core.getInput('tests_report_path')), core.getInput('tests_report_type'), path.relative(rootProjectFolder, testsFolder));
+            }
             // Publish results to testrail
             // Publish to testrail - into separate project
             if (core.getInput('should_skip_testrail') === 'false' ||
