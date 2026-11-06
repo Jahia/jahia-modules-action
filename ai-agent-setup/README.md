@@ -82,7 +82,7 @@ each request to the duty that made it:
 |---|---|
 | [`ai-pr-review`](../ai-pr-review) | `AI_LITELLM_AUTH_TOKEN_USAGE_PRS` |
 | [`ai-incident-triage`](../ai-incident-triage) | `AI_LITELLM_AUTH_TOKEN_USAGE_INCIDENTS` |
-| [`ai-tldr`](../ai-tldr) | `AI_LITELLM_AUTH_TOKEN_USAGE_TLDR` |
+| [`ai-tldr`](../ai-tldr), [`ai-pr-summary`](../ai-pr-summary) | `AI_LITELLM_AUTH_TOKEN_USAGE_TLDR` |
 
 A new duty gets a new key; it does not borrow one of these. An absent or wrong key fails at the
 gateway smoke test below, before any agent starts, so the job says so instead of half-running.

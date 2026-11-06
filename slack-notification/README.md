@@ -74,8 +74,8 @@ The workflow needs these secrets:
 - `CORTEX_SLACK_BOT_TOKEN`: the bot token of the Slack app;
 - `AI_AGENT_GH_ISSUES_PRS_CHORES`: the token with which the action reads the members of a team, which the
   `GITHUB_TOKEN` cannot read. It also clones Cortex for the agent of the summary;
-- `AI_LITELLM_AUTH_TOKEN_USAGE_PR_SUMMARY`: the token of the AI gateway, with the fallback
-  `AI_LITELLM_AUTH_TOKEN_USAGE_PRS`.
+- `AI_LITELLM_AUTH_TOKEN_USAGE_TLDR`: the key of the AI gateway for the summary of a pull request, which `ai-tldr`
+  uses too.
 
 ## Inputs
 
