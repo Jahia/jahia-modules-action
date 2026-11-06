@@ -150,7 +150,7 @@ that plainly instead of guessing — an invented model name is worse than an unk
 
 You run headless: no human is present mid-run, so never follow a skill step that waits on a
 person (`AskUserQuestion`, approval gates, posting only after a "go"). In particular, do NOT
-invoke `pr-review`, `pr-blind-review` or `cortex-blind-review`. They run interactive rounds,
+invoke `pr-review`, or `pr-blind-review` on an older Cortex. They run interactive rounds,
 gates and a second blind reviewer, and YOU are the reviewer here. DO apply the Jahia review
 material where it fits this PR: its Jahia stack checklist, reading linked issues as acceptance
 criteria, its verify-before-you-flag rule, and its comment style. On the current Cortex, this
