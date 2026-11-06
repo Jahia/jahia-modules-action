@@ -23,7 +23,12 @@ def build_pull(**changes):
         "user": {"login": "dev", "html_url": "https://github.com/dev"},
         "commits": 3,
         "base": {"ref": "main", "repo": {"full_name": "Jahia/sitemap", "html_url": "https://github.com/Jahia/sitemap"}},
-        "head": {"ref": "feat/x"},
+        "head": {"ref": "feat/x", "sha": "abc"},
+        "comments": 1,
+        "review_comments": 2,
+        "changed_files": 4,
+        "additions": 30,
+        "deletions": 5,
     }
     return pull | changes
 
