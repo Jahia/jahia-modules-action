@@ -44,9 +44,9 @@ inputs:
     required: false
     default: 'true'
   allowed_tools:
-    description: 'Claude Code --allowedTools value for the agent: read/search tools, local file writes (the review body file), read-only git/gh, and the pre-fetched checkout surface. The agent never posts — submitting the review file is a deterministic step of this action. It carries each read twice, as `gh …` and as `tools/gh-wrapper/bin/gh-wrapper …`: the agent works from inside cortex, whose CLAUDE.md routes gh through that wrapper, and a list that names only one of the two routes denies the agent''s first call for a reason it cannot see. The prompt states this list verbatim (build-prompt.py renders it), so widening it here widens what the agent is told it may do.'
+    description: 'Claude Code --allowedTools value for the agent: read/search tools, local file writes (the review body file), read-only git/gh, and the pre-fetched checkout surface. The agent never posts — submitting the review file is a deterministic step of this action. It carries each read twice, as `gh …` and as `tools/gh-wrapper/bin/gh-wrapper …`: the agent works from inside cortex, whose CLAUDE.md routes gh through that wrapper, and a list that names only one of the two routes denies the agent''s first call for a reason it cannot see. `tools/pr-review/bin/pr-review lenses` is the one Cortex tool the ci mode of the skill pr-review runs, to choose its lenses; it starts through `mise exec`, so it needs mise on the runner. The system prompt states this list verbatim (build-prompt.py renders it), so widening it here widens what the agent is told it may do.'
     required: false
-    default: 'Read,Write,Grep,Glob,Skill,Task,Agent,TodoWrite,ReportFindings,Bash(git log:*),Bash(git diff:*),Bash(git show:*),Bash(git status:*),Bash(git branch --show-current),Bash(git branch --list),Bash(git branch -a),Bash(git branch -r),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(git blame:*),Bash(git cat-file:*),Bash(git fetch:*),Bash(git merge-base:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr checkout:*),Bash(gh issue view:*),Bash(gh repo view:*),Bash(gh repo clone:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr view:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr diff:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr checks:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue view:*),Bash(tools/gh-wrapper/bin/gh-wrapper repo view:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(sed -n:*),Bash(sort:*),Bash(uniq:*),Bash(cut:*),Bash(diff:*),Bash(mkdir:*),Bash(python3 -m json.tool:*)'
+    default: 'Read,Write,Grep,Glob,Skill,Task,Agent,TodoWrite,ReportFindings,Bash(git log:*),Bash(git diff:*),Bash(git show:*),Bash(git status:*),Bash(git branch --show-current),Bash(git branch --list),Bash(git branch -a),Bash(git branch -r),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(git blame:*),Bash(git cat-file:*),Bash(git fetch:*),Bash(git merge-base:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr checkout:*),Bash(gh issue view:*),Bash(gh repo view:*),Bash(gh repo clone:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr view:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr diff:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr checks:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue view:*),Bash(tools/gh-wrapper/bin/gh-wrapper repo view:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(sed -n:*),Bash(sort:*),Bash(uniq:*),Bash(cut:*),Bash(diff:*),Bash(mkdir:*),Bash(python3 -m json.tool:*),Bash(tools/pr-review/bin/pr-review lenses:*)'
   disallowed_tools:
     description: 'Claude Code --disallowedTools value. A deny rule beats an allow rule, including one the cloned repository''s own settings could carry: editing tools, every way a review could reach the forge or rewrite history, and the options of allowed commands that write (--output) or execute (--upload-pack). Each write is denied in every spelling that reaches it — `git push`, `git -C <dir> push`, `gh pr comment` and `gh-wrapper pr comment` are four prefixes, and a rule matches one prefix, so leaving any of them out leaves the write reachable.'
     required: false
@@ -72,8 +72,8 @@ runs:
         CORTEX_PATH: ${{ inputs.cortex_path }}
         PREFETCH_CHECKOUT: ${{ inputs.prefetch_checkout }}
         AGENT_MODEL: ${{ inputs.model }}
-        # build-prompt.py renders these into the prompt's tool-surface section: the agent is
-        # told what it may run instead of discovering it one denial at a time.
+        # build-prompt.py renders these into the system prompt: the agent is told what it
+        # may run instead of discovering it one denial at a time.
         ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
         DISALLOWED_TOOLS: ${{ inputs.disallowed_tools }}
       run: |
@@ -109,8 +109,10 @@ runs:
         # review, so a failed fetch is recorded in the index the agent reads, not raised.
         python3 "$GITHUB_ACTION_PATH/src/prefetch-context.py" "$LOG_DIR/context"
         echo "::endgroup::"
-        PR_KEY=$(python3 "$GITHUB_ACTION_PATH/src/build-prompt.py" "$GITHUB_ACTION_PATH/prompt.md" "$LOG_DIR")
-        echo "Prepared the review prompt for $PR_URL"
+        # The prompt is the call of the Cortex skill pr-review in its ci mode: Cortex owns the
+        # review and the shape of the file, this action owns the CI around it.
+        PR_KEY=$(python3 "$GITHUB_ACTION_PATH/src/build-prompt.py" "$LOG_DIR")
+        echo "Prepared the call of pr-review ci for $PR_URL"
         # Reviews submitted by this run must be newer than this instant (verification step).
         echo "started_at=$(date -u +%FT%TZ)" >> "$GITHUB_OUTPUT"
         echo "logs_dir=$LOG_DIR" >> "$GITHUB_OUTPUT"
@@ -214,6 +216,8 @@ runs:
         echo "Reviewing: $PR_KEY"
         echo "::group::Prompt given to the agent"
         cat "$LOG_DIR/review.prompt.md"
+        echo ""
+        cat "$LOG_DIR/review.system.md"
         echo "::endgroup::"
         STREAM_FILE="$LOG_DIR/review.stream.jsonl"
         DEBUG_FLAG=""
@@ -233,6 +237,7 @@ runs:
         set +e
         timeout --signal=TERM --kill-after=30s "${TIMEOUT_MINUTES}m" \
           claude -p "$(cat "$LOG_DIR/review.prompt.md")" \
+          --append-system-prompt "$(cat "$LOG_DIR/review.system.md")" \
           --allowedTools "$ALLOWED_TOOLS" \
           --disallowedTools "$DISALLOWED_TOOLS" \
           --add-dir "$LOG_DIR" \
