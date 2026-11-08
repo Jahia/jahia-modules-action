@@ -41,6 +41,8 @@ The job log names the file, the commit and the rule of each finding, and it hide
 
 The checkout fetches the commits and trees without file contents, and the scan fetches only the contents of the scanned commits. On a private Jahia repository of 38,000 commits and a 440 MB pack, the checkout fetched 54 MB in 11 seconds. The scan of a pull request of one or two commits then took 2 to 4 seconds.
 
+The first run of a pull request downloads the gitleaks archive of 8.2 MB and saves it in the cache of the pull request. The later runs of the same pull request restore the archive from that cache.
+
 ## Making the check required
 
 The check blocks no merge until the branch ruleset of the repository lists it as a required status check. Its name follows the calling job, such as `WF / Secret Scan` for the `Delivery - PR Chores` workflow that `Jahia/.github` manages.

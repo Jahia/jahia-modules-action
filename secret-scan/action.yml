@@ -33,24 +33,68 @@ runs:
         sparse-checkout: /.secret-scan-reads-no-file
         sparse-checkout-cone-mode: false
 
-    - name: Install gitleaks
+    - name: Pin gitleaks
+      id: gitleaks
       shell: bash
       env:
         VERSION: 8.30.1
         SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        # The id of the same archive in the API of GitHub, which lists it at repos/gitleaks/gitleaks/releases/tags/v<VERSION>.
+        ASSET_ID: "378332058"
       run: |
         if [ "$(uname -m)" != "x86_64" ]; then
           echo "::error::The pinned gitleaks archive is for x86_64, and this runner is $(uname -m)"
           exit 1
         fi
         TARBALL="gitleaks_${VERSION}_linux_x64.tar.gz"
-        # --retry alone fails on a reset connection or a cut transfer, so --retry-all-errors retries them too.
-        # --max-time ends a stalled attempt, which curl then retries.
-        curl -fsSL --retry 5 --retry-all-errors --max-time 60 -o "$RUNNER_TEMP/$TARBALL" "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/${TARBALL}"
-        echo "$SHA256  $RUNNER_TEMP/$TARBALL" | sha256sum --check --quiet
+        {
+          echo "key=secret-scan-gitleaks-${VERSION}-${SHA256}"
+          echo "archive=$RUNNER_TEMP/gitleaks-archive/$TARBALL"
+          echo "release-url=https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/${TARBALL}"
+          echo "asset-url=https://api.github.com/repos/gitleaks/gitleaks/releases/assets/${ASSET_ID}"
+          echo "sha256=$SHA256"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Restore the gitleaks archive
+      id: cache
+      # A pull request reads the cache that its earlier runs saved, so a later run downloads nothing.
+      uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+      with:
+        path: ${{ steps.gitleaks.outputs.archive }}
+        key: ${{ steps.gitleaks.outputs.key }}
+
+    - name: Install gitleaks
+      shell: bash
+      env:
+        ARCHIVE: ${{ steps.gitleaks.outputs.archive }}
+        RELEASE_URL: ${{ steps.gitleaks.outputs.release-url }}
+        ASSET_URL: ${{ steps.gitleaks.outputs.asset-url }}
+        SHA256: ${{ steps.gitleaks.outputs.sha256 }}
+        TOKEN: ${{ github.token }}
+      run: |
+        if [ ! -f "$ARCHIVE" ]; then
+          mkdir -p "$(dirname "$ARCHIVE")"
+          # --retry alone fails on a reset connection or a cut transfer, so --retry-all-errors retries them too.
+          # --max-time ends a stalled attempt, which curl then retries.
+          DOWNLOAD=(curl -fsSL --retry 5 --retry-all-errors --max-time 60 -o "$ARCHIVE")
+          if ! "${DOWNLOAD[@]}" "$RELEASE_URL"; then
+            echo "::warning::The release page of gitleaks failed, so the archive comes from the API of GitHub"
+            # curl sends the token to api.github.com only, and not to the storage host that the API redirects to.
+            "${DOWNLOAD[@]}" -H "Accept: application/octet-stream" -H "Authorization: Bearer $TOKEN" "$ASSET_URL"
+          fi
+        fi
+        echo "$SHA256  $ARCHIVE" | sha256sum --check --quiet
         mkdir -p "$RUNNER_TEMP/gitleaks"
-        tar -xzf "$RUNNER_TEMP/$TARBALL" -C "$RUNNER_TEMP/gitleaks" gitleaks
+        tar -xzf "$ARCHIVE" -C "$RUNNER_TEMP/gitleaks" gitleaks
         echo "$RUNNER_TEMP/gitleaks" >> "$GITHUB_PATH"
+
+    - name: Save the gitleaks archive
+      # The save follows the check of the SHA-256 and comes before the scan, so a run with a finding saves the archive too.
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+      with:
+        path: ${{ steps.gitleaks.outputs.archive }}
+        key: ${{ steps.gitleaks.outputs.key }}
 
     - name: Scan the commits of the range
       id: scan
