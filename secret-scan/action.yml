@@ -79,8 +79,10 @@ runs:
           DOWNLOAD=(curl -fsSL --retry 5 --retry-all-errors --max-time 60 -o "$ARCHIVE")
           if ! "${DOWNLOAD[@]}" "$RELEASE_URL"; then
             echo "::warning::The release page of gitleaks failed, so the archive comes from the API of GitHub"
+            # The header comes on stdin, so the token stays out of the command line that ps shows.
             # curl sends the token to api.github.com only, and not to the storage host that the API redirects to.
-            "${DOWNLOAD[@]}" -H "Accept: application/octet-stream" -H "Authorization: Bearer $TOKEN" "$ASSET_URL"
+            printf 'Authorization: Bearer %s\n' "$TOKEN" \
+              | "${DOWNLOAD[@]}" -H @- -H "Accept: application/octet-stream" "$ASSET_URL"
           fi
         fi
         echo "$SHA256  $ARCHIVE" | sha256sum --check --quiet

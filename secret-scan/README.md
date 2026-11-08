@@ -14,7 +14,7 @@ The `PR Chores` reusable workflow runs the action on every pull request event ex
       - uses: jahia/jahia-modules-action/secret-scan@v2
 ```
 
-The action checks the repository out into `.secret-scan`, and the last step removes that directory. The job therefore needs no checkout step and keeps its own sources. The action needs no secret, and it also runs on a pull request from a fork.
+The action checks the repository out into `.secret-scan`, and the last step removes that directory. The job therefore needs no checkout step and keeps its own sources. The action needs no secret, and it also runs on a pull request from a fork. It downloads gitleaks from the release page of gitleaks, and through the GitHub API with the token of the job when that page fails.
 
 ## Configuration
 
@@ -41,7 +41,7 @@ The job log names the file, the commit and the rule of each finding, and it hide
 
 The checkout fetches the commits and trees without file contents, and the scan fetches only the contents of the scanned commits. On a private Jahia repository of 38,000 commits and a 440 MB pack, the checkout fetched 54 MB in 11 seconds. The scan of a pull request of one or two commits then took 2 to 4 seconds.
 
-The first run of a pull request downloads the gitleaks archive of 8.2 MB and saves it in the cache of the pull request. The later runs of the same pull request restore the archive from that cache.
+The first run of a pull request downloads the gitleaks archive and saves it in the cache of the pull request. The later runs of the same pull request restore the archive from that cache.
 
 ## Making the check required
 
