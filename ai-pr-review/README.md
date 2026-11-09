@@ -211,8 +211,8 @@ mise, as [`ai-agent-setup`](../ai-agent-setup) installs it.
 - The complete agent session is kept in `logs_dir`: `review.stream.jsonl` (the raw
   `stream-json` log — every tool call, model message and result), `review.transcript.log`
   (the same session rendered as a plain readable log — start there), `review.prompt.md`
-  (the call of the skill) and `review.system.md` (the tool surface), `review.result.json`, `review.stderr.log` (CLI errors; API/CLI debug
-  detail with the `debug` input), `reviews/pr-<key>.review.json` (the structured review),
+  (the call of the skill) and `review.system.md` (the tool surface), `review.result.json`, `review.stderr.log` (CLI errors),
+  `review.debug.log` (the debug log of the CLI, with the `debug` input), `reviews/pr-<key>.review.json` (the structured review),
   and `collected/` (evidence the agent gathered from resources it used — test runs,
   containers, downloaded logs — which the skill requires it to capture there). The workflow
   uploads it as the `ai-pr-review-logs` GitHub artifact and to the Jahia servers

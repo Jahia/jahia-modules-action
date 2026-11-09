@@ -87,6 +87,44 @@ each request to the duty that made it:
 A new duty gets a new key; it does not borrow one of these. An absent or wrong key fails at the
 gateway smoke test below, before any agent starts, so the job says so instead of half-running.
 
+## Credentials in the output of a tool
+
+The setup prepares the `cortex-secret-mask` mod of the Cortex harness, and each duty passes
+`$CORTEX_SECRET_MASK` to `claude -p`. That variable holds `--plugin-dir` and the path of the mod.
+The mod replaces each credential in the output of a tool with a mask such as
+`[MASKED: GitHub token]`, before the model reads that output. The job log and the stream file of
+the logs artifact then show the mask in the output of each tool.
+
+The mod masks no other text, such as the prompt, the text of the model or the output of a hook.
+The mod also refuses a write that puts a mask in a file in place of the real credential. The
+`MOD.md` file of the mod, in the Cortex harness, states its patterns and its limits.
+
+A caller sees the mask. A session reads a mask in place of a test password, such as the value of
+`SUPER_USER_PASSWORD`. The session edits around the masked lines of a file, and a command that
+the session runs still reads the real value.
+
+The mod applies its built-in patterns first. It then runs `gitleaks` on an output of 512 KB or
+less. `mise install` installs `gitleaks` from the `mise.toml` file of the Cortex harness, but
+not on the `PATH` of the job. The setup adds the folder of `gitleaks` to that `PATH`. Without
+`gitleaks`, a credential that has no key and no built-in format reaches the model. A bare GitLab
+token is an example.
+
+The setup and each duty write a warning in three cases, and the session runs in each:
+
+- The init event of the stream of a session names no `cortex-secret-mask@inline` plugin. Claude
+  Code exits 0 and writes nothing to stderr when it loads no mod, so each duty reads its stream
+  after the session. A commit of `cortex_ref` with no `mods/cortex-secret-mask` folder and a
+  corrupt manifest of the mod both give this warning. A session that dies before its init event
+  gives it too, and its exit code then shows the failure.
+- `claude plugin test` fails on the mod during the setup. A hooks module that fails to load still
+  leaves the mod in the init event, and only the tests of the mod see it. The job log holds the
+  output of the tests.
+- mise found no `gitleaks` for that commit. The mod then applies its built-in patterns alone.
+
+The input `debug` of a duty writes the debug log of Claude Code to a file of its logs artifact.
+That log holds the output of each command hook and the body of each error of the gateway, and the
+mod masks neither. Claude Code writes no request header and no environment variable to it.
+
 ## Example
 
 ```yaml
@@ -107,5 +145,5 @@ gateway smoke test below, before any agent starts, so the job says so instead of
         working-directory: ${{ steps.setup.outputs.cortex_path }}
         run: |
           export PATH="$HOME/.local/bin:$PATH"
-          claude -p "your prompt" --allowedTools "Read" --permission-mode dontAsk
+          claude -p "your prompt" --allowedTools "Read" --permission-mode dontAsk $CORTEX_SECRET_MASK
 ```

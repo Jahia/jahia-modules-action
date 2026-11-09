@@ -28,7 +28,7 @@ inputs:
     required: false
     default: 'true'
   debug:
-    description: 'Run the Claude Code CLI with --debug: API/CLI-level detail lands in tldr.stderr.log inside the logs artifact'
+    description: 'Run the Claude Code CLI with --debug-file: its debug log lands in tldr.debug.log inside the logs artifact. --debug alone writes it to the config folder of Claude Code, outside the artifact'
     required: false
     default: 'false'
   allowed_tools:
@@ -108,7 +108,7 @@ runs:
         STREAM_FILE="$LOG_DIR/tldr.stream.jsonl"
         EXIT_CODE=0
         DEBUG_FLAG=""
-        [ "$CLAUDE_DEBUG" = "true" ] && DEBUG_FLAG="--debug"
+        [ "$CLAUDE_DEBUG" = "true" ] && DEBUG_FLAG="--debug-file $LOG_DIR/tldr.debug.log"
         # --model rather than ANTHROPIC_MODEL: the flag is scoped to this one invocation, so a
         # job that later runs another agent does not silently inherit this duty's choice.
         MODEL_FLAG=""
@@ -120,8 +120,17 @@ runs:
           --add-dir "$LOG_DIR" \
           --permission-mode dontAsk \
           --output-format stream-json \
-          --verbose $DEBUG_FLAG $MODEL_FLAG \
+          --verbose $DEBUG_FLAG $MODEL_FLAG $CORTEX_SECRET_MASK \
           > "$STREAM_FILE" 2> "$LOG_DIR/tldr.stderr.log" || EXIT_CODE=$?
+        # ai-agent-setup sets CORTEX_SECRET_MASK. The init event lists a mod of --plugin-dir as
+        # <name>@inline once Claude Code loads it, and the anchor reads that event alone, because
+        # a tool input of the model can hold the same text.
+        if ! grep -m1 '^{"type":"system","subtype":"init"' "$STREAM_FILE" 2>/dev/null \
+            | grep -q '"source":"cortex-secret-mask@inline"'; then
+          echo "::warning title=No secret mask::the init event of the stream names no cortex-secret-mask, so the session ran with no mask or died before its init event"
+        fi
+        # --debug-file also links <dir>/latest to the log, which the upload would copy twice.
+        rm -f "$LOG_DIR/latest"
         python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "$KEY" "$EXIT_CODE"
         # The artifact gets the full human-readable transcript (the console shows the compact trace)
         python3 "$GITHUB_ACTION_PATH/src/render-transcript.py" "$STREAM_FILE" "$LOG_DIR/tldr.transcript.log"

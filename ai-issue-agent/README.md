@@ -228,36 +228,10 @@ exists.
 
 ## Credentials in the output of a tool
 
-The run action loads the `cortex-secret-mask` mod of the Cortex harness with `--plugin-dir`.
-The mod replaces each credential in the output of a tool with a mask such as
-`[MASKED: GitHub token]`, before the model reads that output. The job log and the
-`session.stream.jsonl` file of the logs artifact then show the mask in the output of each tool.
-The mod masks no other text, such as the prompt, the text of the model or the output of a hook.
-The mod also refuses a write that puts a mask in a file in place of the real credential. The
-`MOD.md` file of the mod, in the Cortex harness, states its patterns and its limits.
-
-A caller sees the mask. The agent reads a mask in place of a test password, such as the value of
-`SUPER_USER_PASSWORD`. The agent edits around the masked lines of a file, and a command that the
-agent runs still reads the real value.
-
-The mod applies its built-in patterns first. It then runs `gitleaks` on an output of 512 KB or
-less. `mise install` installs `gitleaks` from the `mise.toml` file of the Cortex harness, but
-not on the `PATH` of the session. The run action adds the folder of `gitleaks` to that `PATH`.
-Without `gitleaks`, a credential that has no key and no built-in format reaches the model. A
-bare GitLab token is an example.
-
-The run action writes a warning in three cases, and the session runs in each:
-
-- The init event of the stream names no `cortex-secret-mask@inline` plugin. Claude Code exits 0
-  and writes nothing to stderr when it loads no mod, so the step reads the stream after the
-  session. A commit of `cortex_ref` with no `mods/cortex-secret-mask` folder and a corrupt
-  manifest of the mod both give this warning. A session that dies before its init event gives it
-  too, and its exit code then fails the step.
-- `claude plugin test` fails on the mod before the session. A hooks module that fails to load
-  still leaves the mod in the init event, and only the tests of the mod see it. The
-  `secret-mask-test.log` file of the logs artifact holds the output of the tests.
-- mise found no `gitleaks` for that commit. The mod then applies its built-in patterns alone.
+The run action passes `$CORTEX_SECRET_MASK` to `claude -p`, so the session loads the
+`cortex-secret-mask` mod that [`ai-agent-setup`](../ai-agent-setup#credentials-in-the-output-of-a-tool)
+prepares. The mod masks each credential in the output of a tool before the model reads it, and
+`session.stream.jsonl` then shows the mask. After the session, the step writes the warning
+`No secret mask` when the init event of that stream names no `cortex-secret-mask@inline` plugin.
 
 The input `debug` writes the debug log of Claude Code to `session.debug.log` in the logs artifact.
-That log holds the output of each command hook and the body of each error of the gateway, and the
-mod masks neither. Claude Code writes no request header and no environment variable to it.
