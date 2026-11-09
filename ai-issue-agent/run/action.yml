@@ -338,6 +338,19 @@ runs:
         # --model rather than ANTHROPIC_MODEL: the flag is scoped to this one invocation.
         MODEL_FLAG=""
         [ -n "$AGENT_MODEL" ] && MODEL_FLAG="--model $AGENT_MODEL"
+        # The cortex-secret-mask mod masks a credential in the output of a tool before the model
+        # reads it. The README of ai-issue-agent states what it covers and why each branch warns.
+        MASK_FLAG=""
+        if [ -d mods/cortex-secret-mask ]; then
+          MASK_FLAG="--plugin-dir mods/cortex-secret-mask"
+          if GITLEAKS_BIN=$(mise which gitleaks 2>/dev/null); then
+            PATH="$(dirname "$GITLEAKS_BIN"):$PATH"
+          else
+            echo "::warning title=Partial secret mask::mise installed no gitleaks from this cortex_ref, so the mask applies its built-in patterns alone"
+          fi
+        else
+          echo "::warning title=No secret mask::this cortex_ref has no mods/cortex-secret-mask, so the session reads the output of its tools unmasked"
+        fi
         echo "--- Agent progress (elapsed · event · detail), live ---"
         # --add-dir: the log dir lives outside the cortex cwd, which Claude Code otherwise refuses.
         # timeout: SIGTERM at the budget, SIGKILL 30s later if the CLI does not exit on its own.
@@ -354,7 +367,7 @@ runs:
           --add-dir "$LOG_DIR" \
           --permission-mode dontAsk \
           --output-format stream-json \
-          --verbose $DEBUG_FLAG $MODEL_FLAG \
+          --verbose $DEBUG_FLAG $MODEL_FLAG $MASK_FLAG \
           2> "$LOG_DIR/session.stderr.log" \
           | "$NODE_BIN" "$ACTION_PATH/src/stream-progress.mjs" "$STREAM_FILE"
         EXIT_CODE=${PIPESTATUS[0]}

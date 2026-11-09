@@ -225,3 +225,26 @@ Per-profile model and runner defaults are not wired: `model` and `instance_type`
 workflow inputs a consumer can already tune, and profile-based tuning is a rollout
 (Phase 7) knob, not a dispatch-time decision — the profile is picked after the runner
 exists.
+
+## Credentials in the output of a tool
+
+The run action loads the `cortex-secret-mask` mod of the Cortex harness with `--plugin-dir`.
+The mod replaces each credential in the output of a tool with a mask such as
+`[MASKED: GitHub token]`, before the model reads that output. The `session.stream.jsonl` file
+of the logs artifact then holds the mask and not the value. The mod also refuses a write that
+puts a mask in a file in place of the real credential. The `MOD.md` file of the mod, in the
+Cortex harness, states its patterns and its limits.
+
+The mod applies its built-in patterns first. It then runs `gitleaks` on an output of 512 KB or
+less. `mise install` installs `gitleaks` from the `mise.toml` file of the Cortex harness, but
+not on the `PATH` of the session. The run action adds the folder of `gitleaks` to that `PATH`.
+Without `gitleaks`, a credential that has no key and no built-in format reaches the model. A
+bare GitLab token is an example.
+
+The run action writes a warning in two cases, and the session runs in both:
+
+- The commit that `cortex_ref` names has no `mods/cortex-secret-mask` folder. Claude Code then
+  starts with no mask, and names the missing folder only in the `plugin_errors` field of its
+  first event.
+- mise installed no `gitleaks` from that commit. The mod then applies its built-in patterns
+  alone.
