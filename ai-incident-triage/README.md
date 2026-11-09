@@ -93,6 +93,10 @@ installs the CLI, exports the LiteLLM env, and clones cortex) and an established
 
 ## Analysis-only guarantee
 
+The session loads the `cortex-secret-mask` mod, which masks each credential in the output of a
+tool before the model reads it. [`ai-agent-setup`](../ai-agent-setup#credentials-in-the-output-of-a-tool)
+states what the mask covers and when a step warns.
+
 The default allowlist gives the agent read/search tools, local file writes (needed to stage
 the comment body — the runner is ephemeral and the agent has no `git` surface, so writes
 cannot leave the machine), `gh` read commands, `gh issue comment`, log download commands,

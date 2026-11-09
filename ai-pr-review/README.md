@@ -183,6 +183,10 @@ for its own background work, which always comes from the haiku alias.
 
 ## Review-only guarantee
 
+The session loads the `cortex-secret-mask` mod, which masks each credential in the output of a
+tool before the model reads it. [`ai-agent-setup`](../ai-agent-setup#credentials-in-the-output-of-a-tool)
+states what the mask covers and when a step warns.
+
 The agent runs with an explicit allow list AND deny list (`--allowedTools` /
 `--disallowedTools`). The allow list grants read/search tools, local file writes (staging
 the review body — the runner is ephemeral, so nothing leaves the machine), granular

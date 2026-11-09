@@ -114,7 +114,8 @@ not on the `PATH` of the job. The setup adds the folder of `gitleaks` to that `P
 `gitleaks`, a credential that has no key and no built-in format reaches the model. A bare GitLab
 token is an example.
 
-The setup and each duty write a warning in three cases, and the session runs in each:
+A warning appears in three cases, and the session runs in each. Each item names the step that
+writes it:
 
 - The init event of the stream of a session names no `cortex-secret-mask@inline` plugin. Claude
   Code exits 0 and writes nothing to stderr when it loads no mod, so each duty reads its stream
@@ -124,7 +125,8 @@ The setup and each duty write a warning in three cases, and the session runs in 
 - `claude plugin test` fails on the mod during the setup. A hooks module that fails to load still
   leaves the mod in the init event, and only the tests of the mod see it. The job log holds the
   output of the tests.
-- mise found no `gitleaks` for that commit. The mod then applies its built-in patterns alone.
+- mise found no `gitleaks` for that commit during the setup. The mod then applies its built-in
+  patterns alone.
 
 The input `debug` of a duty writes the debug log of Claude Code to a file of its logs artifact.
 That log holds the output of each command hook and the body of each error of the gateway, and the
