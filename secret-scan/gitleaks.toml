@@ -24,13 +24,21 @@ regexes = [
 [[rules]]
 id = "url-with-password"
 description = "A database or message broker URL that carries a password"
-regex = '''(?i)\b(?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|rediss?|amqps?|clickhouse)://[^\s:/?#@"'`]+:([^\s/?#@"'`]{4,})@'''
+# The user part can be empty, such as redis://:password@host.
+regex = '''(?i)\b(?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|rediss?|amqps?|clickhouse)://[^\s:/?#@"'`]*:([^\s/?#@"'`]{4,})@'''
 secretGroup = 1
 keywords = ["postgres", "mysql", "mariadb", "mongodb", "redis", "amqp", "clickhouse"]
 
+# The default allowlist of gitleaks already skips ${DB_PASSWORD}, $DB_PASSWORD, {{password}} and %s.
+# Each regex matches the whole placeholder, so a real password that starts with $ or % stays reported.
 [[rules.allowlists]]
-description = "A variable or a placeholder in place of the password, such as ${DB_PASSWORD} or <password>."
-regexes = ['''^(?:\$|\{\{|<|%)''']
+description = "A placeholder in place of the password, such as <password>, ${DB_PASSWORD:-local} or %(password)s."
+regexes = [
+  '''^<[^<>]+>$''',
+  '''^\$\{[A-Za-z_][A-Za-z0-9_]*(?::?[-=?+][^}]*)?\}$''',
+  '''^\{\{[^{}]+\}\}$''',
+  '''^%\([A-Za-z_][A-Za-z0-9_]*\)s$''',
+]
 
 # A file that holds the settings or the credentials of one developer, whatever its content.
 # A rule on the path reports a commit that adds or changes the file, and not one that deletes it.
