@@ -248,11 +248,16 @@ bare GitLab token is an example.
 
 The run action writes a warning in three cases, and the session runs in each:
 
-- The init event of the session names no `cortex-secret-mask@inline` plugin, so the session read
-  the output of its tools unmasked. Claude Code exits 0 and writes nothing to stderr when it loads
-  no mod, so the step reads the stream after the session. A commit of `cortex_ref` with no
-  `mods/cortex-secret-mask` folder and a corrupt manifest of the mod both give this warning.
+- The init event of the stream names no `cortex-secret-mask@inline` plugin. Claude Code exits 0
+  and writes nothing to stderr when it loads no mod, so the step reads the stream after the
+  session. A commit of `cortex_ref` with no `mods/cortex-secret-mask` folder and a corrupt
+  manifest of the mod both give this warning. A session that dies before its init event gives it
+  too, and its exit code then fails the step.
 - `claude plugin test` fails on the mod before the session. A hooks module that fails to load
   still leaves the mod in the init event, and only the tests of the mod see it. The
   `secret-mask-test.log` file of the logs artifact holds the output of the tests.
 - mise found no `gitleaks` for that commit. The mod then applies its built-in patterns alone.
+
+The input `debug` writes the debug log of Claude Code to `session.debug.log` in the logs artifact.
+That log holds the output of each command hook and the body of each error of the gateway, and the
+mod masks neither. Claude Code writes no request header and no environment variable to it.

@@ -349,7 +349,7 @@ runs:
             echo "::warning title=Partial secret mask::mise found no gitleaks for this cortex_ref, so the mask applies its built-in patterns alone"
           fi
           # A hooks module that fails to load still shows in the init event, so the tests decide.
-          if ! timeout 120 claude plugin test mods/cortex-secret-mask > "$LOG_DIR/secret-mask-test.log" 2>&1; then
+          if ! timeout 30 claude plugin test mods/cortex-secret-mask > "$LOG_DIR/secret-mask-test.log" 2>&1; then
             echo "::warning title=Broken secret mask::claude plugin test failed on mods/cortex-secret-mask, so the session may read the output of its tools unmasked. secret-mask-test.log in the logs artifact holds the output"
           fi
         fi
@@ -375,9 +375,13 @@ runs:
         EXIT_CODE=${PIPESTATUS[0]}
         set -e
         # The init event lists a mod of --plugin-dir as <name>@inline once Claude Code loads it.
-        if ! grep -q '"source":"cortex-secret-mask@inline"' "$STREAM_FILE"; then
-          echo "::warning title=No secret mask::the session loaded no cortex-secret-mask, so it read the output of its tools unmasked"
+        # The anchor reads that event only: a tool input of the model can hold the same text.
+        if ! grep -m1 '^{"type":"system","subtype":"init"' "$STREAM_FILE" 2>/dev/null \
+            | grep -q '"source":"cortex-secret-mask@inline"'; then
+          echo "::warning title=No secret mask::the init event of the stream names no cortex-secret-mask, so the session ran with no mask or died before its init event"
         fi
+        # --debug-file also links <dir>/latest to the log, which the upload would copy twice.
+        if [ -L "$LOG_DIR/latest" ]; then rm -f "$LOG_DIR/latest"; fi
         {
           echo "### AI issue agent session"
           echo ""
