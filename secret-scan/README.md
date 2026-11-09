@@ -22,7 +22,9 @@ The scan reads its configuration from the base commit, so a pull request cannot 
 
 - `.gitleaks.toml` replaces the configuration of the action and does not add to it, so start it from a copy of [`gitleaks.toml`](gitleaks.toml).
 - `.gitleaksignore` lists the fingerprints of the findings to skip.
-- Without a `.gitleaks.toml`, the scan uses [`gitleaks.toml`](gitleaks.toml). That file keeps the default gitleaks rules and allowlists the public Jahia local-development defaults, such as the root password of the Jahia Docker image. It also allowlists a quoted shell variable used as a curl user, such as `-u "$SONAR_TOKEN:"`, which gitleaks reads as a credential. It also allowlists the public account key of the Azure storage emulator, which `@azure/storage-blob` carries into the `dist/` of an action that bundles `@actions/artifact`.
+- Without a `.gitleaks.toml`, the scan uses [`gitleaks.toml`](gitleaks.toml). That file keeps the default gitleaks rules and allowlists the public Jahia local-development defaults, such as the root password of the Jahia Docker image. It also allowlists a quoted shell variable used as a curl user, such as `-u "$SONAR_TOKEN:"`, which gitleaks reads as a credential. It also allowlists the public account key of the Azure storage emulator, which `@azure/storage-blob` carries into the `dist/` of an action that bundles `@actions/artifact`. The file adds two rules to the default rules:
+  - `url-with-password` reports a database or message broker URL that carries a password, such as `postgresql://user:password@host/db`. The rule does not report a variable or a placeholder in place of the password, such as `${DB_PASSWORD}` or `<password>`.
+  - `local-settings-file` reports a commit that adds or changes a file of per-developer settings or credentials, whatever its content. The rule names `.claude/settings.local.json`, `mise.local.toml`, `.netrc`, `.git-credentials` and `.aws/credentials`.
 
 The [gitleaks documentation](https://github.com/gitleaks/gitleaks#configuration) describes both formats. A pull request that changes either file gets a warning in its checks. A `CODEOWNERS` entry for the two files makes a reviewer read every change to them.
 
@@ -31,8 +33,9 @@ The [gitleaks documentation](https://github.com/gitleaks/gitleaks#configuration)
 The job log names the file, the commit and the rule of each finding, and it hides the value. Apply the first case that matches:
 
 1. **The value is a real secret.** Stop, and tell its owner, who rotates it. A public repository has already published it, and removing it from the branch does not remove it from the history.
-2. **The value is a test fixture in a commit you can still rewrite.** Build the value by concatenation, such as `"gh" + "p_" + body`, then rewrite the commit and push again.
-3. **The value is a test fixture that must stay as written.** The pull request of the fixture cannot allowlist it, because the scan reads the configuration of the base. Add the regex in a pull request of its own first:
+2. **The finding names a file of per-developer settings, with the rule `local-settings-file`.** Remove the file from each commit of the pull request, add its name to `.gitignore`, then push again. A later commit that deletes the file does not clear the finding, because the scan reads each commit of the pull request.
+3. **The value is a test fixture in a commit you can still rewrite.** Build the value by concatenation, such as `"gh" + "p_" + body`, then rewrite the commit and push again.
+4. **The value is a test fixture that must stay as written.** The pull request of the fixture cannot allowlist it, because the scan reads the configuration of the base. Add the regex in a pull request of its own first:
    1. Open a pull request that adds a regex for the fixture to `.gitleaks.toml`, with a comment that names the test. The regex applies to every file of the repository, so anchor it with `^` and `$` to match the fixture and nothing wider.
    2. To get a green scan before the regex merges, make the branch of the regex the base of the pull request of the fixture. The scan then reads the regex from that base.
    3. Once the regex merges, start a new scan of the fixture with a push, the **Update branch** button or an edit of the title. A re-run of the failed job reads the old base again.
