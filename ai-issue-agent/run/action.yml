@@ -381,7 +381,7 @@ runs:
           echo "::warning title=No secret mask::the init event of the stream names no cortex-secret-mask, so the session ran with no mask or died before its init event"
         fi
         # --debug-file also links <dir>/latest to the log, which the upload would copy twice.
-        if [ -L "$LOG_DIR/latest" ]; then rm -f "$LOG_DIR/latest"; fi
+        rm -f "$LOG_DIR/latest"
         {
           echo "### AI issue agent session"
           echo ""
