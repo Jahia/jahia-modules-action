@@ -333,8 +333,8 @@ runs:
         cat "$LOG_DIR/session.prompt.md"
         echo "::endgroup::"
         STREAM_FILE="$LOG_DIR/session.stream.jsonl"
-        DEBUG_FLAG=""
-        [ "$CLAUDE_DEBUG" = "true" ] && DEBUG_FLAG="--debug-file $LOG_DIR/session.debug.log"
+        DEBUG_FILE=""
+        [ "$CLAUDE_DEBUG" = "true" ] && DEBUG_FILE="$LOG_DIR/session.debug.log"
         # --model rather than ANTHROPIC_MODEL: the flag is scoped to this one invocation.
         MODEL_FLAG=""
         [ -n "$AGENT_MODEL" ] && MODEL_FLAG="--model $AGENT_MODEL"
@@ -354,7 +354,7 @@ runs:
           --add-dir "$LOG_DIR" \
           --permission-mode dontAsk \
           --output-format stream-json \
-          --verbose $DEBUG_FLAG $MODEL_FLAG ${CORTEX_SECRET_MASK_DIR:+--plugin-dir "$CORTEX_SECRET_MASK_DIR"} \
+          --verbose ${DEBUG_FILE:+--debug-file "$DEBUG_FILE"} $MODEL_FLAG ${CORTEX_SECRET_MASK_DIR:+--plugin-dir "$CORTEX_SECRET_MASK_DIR"} \
           2> "$LOG_DIR/session.stderr.log" \
           | "$NODE_BIN" "$ACTION_PATH/src/stream-progress.mjs" "$STREAM_FILE"
         EXIT_CODE=${PIPESTATUS[0]}

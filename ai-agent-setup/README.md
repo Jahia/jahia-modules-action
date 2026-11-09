@@ -32,7 +32,11 @@ Provisions a self-hosted runner to run [Claude Code](https://code.claude.com) he
    including the fail-closed guards cortex runs before every file write — without mise the
    harness refuses every `Write`, and an agent that finished its work cannot deliver its
    result file.
-7. Runs two live checks and fails fast if either breaks: a hello-world round trip through the
+7. Prepares the `cortex-secret-mask` mod of the cortex checkout: exports its path as
+   `CORTEX_SECRET_MASK_DIR`, adds the folder of `gitleaks` to the `PATH`, and runs the tests of
+   the mod. [Credentials in the output of a tool](#credentials-in-the-output-of-a-tool) states
+   how each duty uses it.
+8. Runs two live checks and fails fast if either breaks: a hello-world round trip through the
    gateway (auth, model aliases, network path), then a cortex-awareness question the agent can
    only answer if the harness actually loaded (it must name the `analyze-jahia-ci` skill).
 

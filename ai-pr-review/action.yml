@@ -220,8 +220,8 @@ runs:
         cat "$LOG_DIR/review.system.md"
         echo "::endgroup::"
         STREAM_FILE="$LOG_DIR/review.stream.jsonl"
-        DEBUG_FLAG=""
-        [ "$CLAUDE_DEBUG" = "true" ] && DEBUG_FLAG="--debug-file $LOG_DIR/review.debug.log"
+        DEBUG_FILE=""
+        [ "$CLAUDE_DEBUG" = "true" ] && DEBUG_FILE="$LOG_DIR/review.debug.log"
         # --model rather than ANTHROPIC_MODEL: the flag is scoped to this one invocation, so a
         # job that later runs another agent does not silently inherit this duty's choice.
         MODEL_FLAG=""
@@ -243,7 +243,7 @@ runs:
           --add-dir "$LOG_DIR" \
           --permission-mode dontAsk \
           --output-format stream-json \
-          --verbose $DEBUG_FLAG $MODEL_FLAG ${CORTEX_SECRET_MASK_DIR:+--plugin-dir "$CORTEX_SECRET_MASK_DIR"} \
+          --verbose ${DEBUG_FILE:+--debug-file "$DEBUG_FILE"} $MODEL_FLAG ${CORTEX_SECRET_MASK_DIR:+--plugin-dir "$CORTEX_SECRET_MASK_DIR"} \
           2> "$LOG_DIR/review.stderr.log" \
           | python3 -u "$GITHUB_ACTION_PATH/src/stream-progress.py" "$STREAM_FILE"
         EXIT_CODE=${PIPESTATUS[0]}
