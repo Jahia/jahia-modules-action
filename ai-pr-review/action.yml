@@ -243,12 +243,12 @@ runs:
           --add-dir "$LOG_DIR" \
           --permission-mode dontAsk \
           --output-format stream-json \
-          --verbose $DEBUG_FLAG $MODEL_FLAG $CORTEX_SECRET_MASK \
+          --verbose $DEBUG_FLAG $MODEL_FLAG ${CORTEX_SECRET_MASK_DIR:+--plugin-dir "$CORTEX_SECRET_MASK_DIR"} \
           2> "$LOG_DIR/review.stderr.log" \
           | python3 -u "$GITHUB_ACTION_PATH/src/stream-progress.py" "$STREAM_FILE"
         EXIT_CODE=${PIPESTATUS[0]}
         set -e
-        # ai-agent-setup sets CORTEX_SECRET_MASK. The init event lists a mod of --plugin-dir as
+        # ai-agent-setup sets CORTEX_SECRET_MASK_DIR. The init event lists a mod of --plugin-dir as
         # <name>@inline once Claude Code loads it, and the anchor reads that event alone, because
         # a tool input of the model can hold the same text.
         if ! grep -m1 '^{"type":"system","subtype":"init"' "$STREAM_FILE" 2>/dev/null \

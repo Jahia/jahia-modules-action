@@ -89,8 +89,9 @@ gateway smoke test below, before any agent starts, so the job says so instead of
 
 ## Credentials in the output of a tool
 
-The setup prepares the `cortex-secret-mask` mod of the Cortex harness, and each duty passes
-`$CORTEX_SECRET_MASK` to `claude -p`. That variable holds `--plugin-dir` and the path of the mod.
+The setup prepares the `cortex-secret-mask` mod of the Cortex harness, and exports its path as
+`CORTEX_SECRET_MASK_DIR`. Each duty passes `${CORTEX_SECRET_MASK_DIR:+--plugin-dir "$CORTEX_SECRET_MASK_DIR"}`
+to `claude -p`, which keeps the path in one word and passes nothing when the variable is unset.
 The mod replaces each credential in the output of a tool with a mask such as
 `[MASKED: GitHub token]`, before the model reads that output. The job log and the stream file of
 the logs artifact then show the mask in the output of each tool.
@@ -145,5 +146,5 @@ mod masks neither. Claude Code writes no request header and no environment varia
         working-directory: ${{ steps.setup.outputs.cortex_path }}
         run: |
           export PATH="$HOME/.local/bin:$PATH"
-          claude -p "your prompt" --allowedTools "Read" --permission-mode dontAsk $CORTEX_SECRET_MASK
+          claude -p "your prompt" --allowedTools "Read" --permission-mode dontAsk ${CORTEX_SECRET_MASK_DIR:+--plugin-dir "$CORTEX_SECRET_MASK_DIR"}
 ```

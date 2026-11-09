@@ -196,7 +196,7 @@ runs:
         export PATH="$HOME/.local/bin:$PATH"
         # A cortex_ref with no mod: each session then warns that its stream names no mod.
         [ -d mods/cortex-secret-mask ] || exit 0
-        echo "CORTEX_SECRET_MASK=--plugin-dir $PWD/mods/cortex-secret-mask" >> "$GITHUB_ENV"
+        echo "CORTEX_SECRET_MASK_DIR=$PWD/mods/cortex-secret-mask" >> "$GITHUB_ENV"
         if GITLEAKS_BIN=$(mise which gitleaks); then
           dirname "$GITLEAKS_BIN" >> "$GITHUB_PATH"
         else
