@@ -246,13 +246,13 @@ not on the `PATH` of the session. The run action adds the folder of `gitleaks` t
 Without `gitleaks`, a credential that has no key and no built-in format reaches the model. A
 bare GitLab token is an example.
 
-The run action writes a warning in two cases, and the session runs in both:
+The run action writes a warning in three cases, and the session runs in each:
 
 - The init event of the session names no `cortex-secret-mask@inline` plugin, so the session read
   the output of its tools unmasked. Claude Code exits 0 and writes nothing to stderr when it loads
   no mod, so the step reads the stream after the session. A commit of `cortex_ref` with no
   `mods/cortex-secret-mask` folder and a corrupt manifest of the mod both give this warning.
+- `claude plugin test` fails on the mod before the session. A hooks module that fails to load
+  still leaves the mod in the init event, and only the tests of the mod see it. The
+  `secret-mask-test.log` file of the logs artifact holds the output of the tests.
 - mise found no `gitleaks` for that commit. The mod then applies its built-in patterns alone.
-
-A hooks module of the mod that fails to load gives no warning. Claude Code still names the mod in
-its init event, and the session reads the output of its tools unmasked.

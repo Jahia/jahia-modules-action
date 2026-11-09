@@ -51,7 +51,7 @@ inputs:
     required: false
     default: '30'
   debug:
-    description: 'Run the Claude Code CLI with --debug: API/CLI-level detail lands in session.stderr.log inside the logs artifact'
+    description: 'Run the Claude Code CLI with --debug-file: its debug log lands in session.debug.log inside the logs artifact. --debug alone writes it to the config folder of Claude Code, outside the artifact'
     required: false
     default: 'false'
   jahia_artifacts_url:
@@ -334,7 +334,7 @@ runs:
         echo "::endgroup::"
         STREAM_FILE="$LOG_DIR/session.stream.jsonl"
         DEBUG_FLAG=""
-        [ "$CLAUDE_DEBUG" = "true" ] && DEBUG_FLAG="--debug"
+        [ "$CLAUDE_DEBUG" = "true" ] && DEBUG_FLAG="--debug-file $LOG_DIR/session.debug.log"
         # --model rather than ANTHROPIC_MODEL: the flag is scoped to this one invocation.
         MODEL_FLAG=""
         [ -n "$AGENT_MODEL" ] && MODEL_FLAG="--model $AGENT_MODEL"
@@ -347,6 +347,10 @@ runs:
             PATH="$(dirname "$GITLEAKS_BIN"):$PATH"
           else
             echo "::warning title=Partial secret mask::mise found no gitleaks for this cortex_ref, so the mask applies its built-in patterns alone"
+          fi
+          # A hooks module that fails to load still shows in the init event, so the tests decide.
+          if ! timeout 120 claude plugin test mods/cortex-secret-mask > "$LOG_DIR/secret-mask-test.log" 2>&1; then
+            echo "::warning title=Broken secret mask::claude plugin test failed on mods/cortex-secret-mask, so the session may read the output of its tools unmasked. secret-mask-test.log in the logs artifact holds the output"
           fi
         fi
         echo "--- Agent progress (elapsed · event · detail), live ---"
