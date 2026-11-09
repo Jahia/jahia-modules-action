@@ -339,17 +339,15 @@ runs:
         MODEL_FLAG=""
         [ -n "$AGENT_MODEL" ] && MODEL_FLAG="--model $AGENT_MODEL"
         # The cortex-secret-mask mod masks a credential in the output of a tool before the model
-        # reads it. The README of ai-issue-agent states what it covers and why each branch warns.
+        # reads it. The README of ai-issue-agent states what it covers and when the step warns.
         MASK_FLAG=""
         if [ -d mods/cortex-secret-mask ]; then
           MASK_FLAG="--plugin-dir mods/cortex-secret-mask"
-          if GITLEAKS_BIN=$(mise which gitleaks 2>/dev/null); then
+          if GITLEAKS_BIN=$(mise which gitleaks); then
             PATH="$(dirname "$GITLEAKS_BIN"):$PATH"
           else
-            echo "::warning title=Partial secret mask::mise installed no gitleaks from this cortex_ref, so the mask applies its built-in patterns alone"
+            echo "::warning title=Partial secret mask::mise found no gitleaks for this cortex_ref, so the mask applies its built-in patterns alone"
           fi
-        else
-          echo "::warning title=No secret mask::this cortex_ref has no mods/cortex-secret-mask, so the session reads the output of its tools unmasked"
         fi
         echo "--- Agent progress (elapsed · event · detail), live ---"
         # --add-dir: the log dir lives outside the cortex cwd, which Claude Code otherwise refuses.
@@ -372,6 +370,10 @@ runs:
           | "$NODE_BIN" "$ACTION_PATH/src/stream-progress.mjs" "$STREAM_FILE"
         EXIT_CODE=${PIPESTATUS[0]}
         set -e
+        # The init event lists a mod of --plugin-dir as <name>@inline once Claude Code loads it.
+        if ! grep -q '"source":"cortex-secret-mask@inline"' "$STREAM_FILE"; then
+          echo "::warning title=No secret mask::the session loaded no cortex-secret-mask, so it read the output of its tools unmasked"
+        fi
         {
           echo "### AI issue agent session"
           echo ""

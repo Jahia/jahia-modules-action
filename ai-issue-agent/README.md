@@ -230,10 +230,15 @@ exists.
 
 The run action loads the `cortex-secret-mask` mod of the Cortex harness with `--plugin-dir`.
 The mod replaces each credential in the output of a tool with a mask such as
-`[MASKED: GitHub token]`, before the model reads that output. The `session.stream.jsonl` file
-of the logs artifact then holds the mask and not the value. The mod also refuses a write that
-puts a mask in a file in place of the real credential. The `MOD.md` file of the mod, in the
-Cortex harness, states its patterns and its limits.
+`[MASKED: GitHub token]`, before the model reads that output. The job log and the
+`session.stream.jsonl` file of the logs artifact then show the mask in the output of each tool.
+The mod masks no other text, such as the prompt, the text of the model or the output of a hook.
+The mod also refuses a write that puts a mask in a file in place of the real credential. The
+`MOD.md` file of the mod, in the Cortex harness, states its patterns and its limits.
+
+A caller sees the mask. The agent reads a mask in place of a test password, such as the value of
+`SUPER_USER_PASSWORD`. The agent edits around the masked lines of a file, and a command that the
+agent runs still reads the real value.
 
 The mod applies its built-in patterns first. It then runs `gitleaks` on an output of 512 KB or
 less. `mise install` installs `gitleaks` from the `mise.toml` file of the Cortex harness, but
@@ -243,8 +248,11 @@ bare GitLab token is an example.
 
 The run action writes a warning in two cases, and the session runs in both:
 
-- The commit that `cortex_ref` names has no `mods/cortex-secret-mask` folder. Claude Code then
-  starts with no mask, and names the missing folder only in the `plugin_errors` field of its
-  first event.
-- mise installed no `gitleaks` from that commit. The mod then applies its built-in patterns
-  alone.
+- The init event of the session names no `cortex-secret-mask@inline` plugin, so the session read
+  the output of its tools unmasked. Claude Code exits 0 and writes nothing to stderr when it loads
+  no mod, so the step reads the stream after the session. A commit of `cortex_ref` with no
+  `mods/cortex-secret-mask` folder and a corrupt manifest of the mod both give this warning.
+- mise found no `gitleaks` for that commit. The mod then applies its built-in patterns alone.
+
+A hooks module of the mod that fails to load gives no warning. Claude Code still names the mod in
+its init event, and the session reads the output of its tools unmasked.
