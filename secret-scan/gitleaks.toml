@@ -31,11 +31,13 @@ keywords = ["postgres", "mysql", "mariadb", "mongodb", "redis", "amqp", "clickho
 
 # The default allowlist of gitleaks already skips ${DB_PASSWORD}, $DB_PASSWORD, {{password}} and %s.
 # Each regex matches the whole placeholder, so a real password that starts with $ or % stays reported.
+# A default value, as in ${DB_PASSWORD:-value}, is committed, so it stays reported.
 [[rules.allowlists]]
-description = "A placeholder in place of the password, such as <password>, ${DB_PASSWORD:-local} or %(password)s."
+description = "A placeholder in place of the password, such as <password>, $DB_PASSWORD2, ${DB_PASSWORD:?unset} or %(password)s."
 regexes = [
   '''^<[^<>]+>$''',
-  '''^\$\{[A-Za-z_][A-Za-z0-9_]*(?::?[-=?+][^}]*)?\}$''',
+  '''^\$[A-Z_][A-Z0-9_]*$''',
+  '''^\$\{[A-Za-z_][A-Za-z0-9_]*(?::?\?[^}]*)?\}$''',
   '''^\{\{[^{}]+\}\}$''',
   '''^%\([A-Za-z_][A-Za-z0-9_]*\)s$''',
 ]
