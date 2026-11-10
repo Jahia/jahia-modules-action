@@ -1,23 +1,34 @@
 # ai-pr-review
 
-On-demand AI review of a pull request: when a human requests a review from the AI reviewer
-account (`jahia-ai`), a headless [Claude Code](https://code.claude.com) agent — running from
-inside the [cortex harness](https://github.com/Jahia/cortex), reaching the LiteLLM gateway
-through the IT mTLS bastion — reviews the PR and submits **one review: APPROVE when it
-finds no code issue** (a failing CI check is alerted in the notes, never blocking),
-**COMMENT otherwise, with each finding attached as a native inline comment on the line in
-question** (findings that fit no diff line land in the review body's General notes; if
-GitHub rejects an anchor, the review is re-submitted body-only so it is never lost).
-Approval strictly requires zero findings — enforced deterministically by the submit step,
-not just by the agent. It never requests changes and never touches code: blocking a PR,
-and merging, stay human decisions.
+On-demand AI review of a pull request. When a human requests a review from the AI reviewer
+account `jahia-ai`, a headless [Claude Code](https://code.claude.com) agent reviews the pull
+request. The agent runs from inside the [cortex harness](https://github.com/Jahia/cortex), and it
+reaches the LiteLLM gateway through the IT mTLS bastion.
 
-Every review also carries the agent's **confidence call**: a **Human review** line in the
-body (`not needed` / `recommended` / `required`, with a one-line reason) mirrored as a PR
-label — `🤖 AI-only review OK` (green), `🤖 Human review recommended` (yellow) or
-`🤖 Human review required` (red). The submit step applies it deterministically (creating
-the label on first use and swapping out the previous recommendation), best-effort so a
-labeling hiccup never loses a review; the clear label removes these labels too.
+The agent submits one review of the type `COMMENT`. Each finding on a line of the diff is a native
+inline comment on that line. A finding outside the diff goes to the **Additional findings** of the
+review body. If GitHub rejects an anchor, the submit step submits the review again with the
+findings in the body, so the review is never lost. The review body follows the shape of
+[the body](https://github.com/Jahia/cortex/blob/main/.claude/skills/pr-review/references/threads.md#the-body)
+of the Cortex skill `pr-review`.
+
+The review never approves the pull request, never requests changes and never touches code. The
+submit step posts every review as `COMMENT`, whatever event the review file asks for. An approval of
+`jahia-ai` therefore no longer counts for the branch protection, and a pull request that needs an
+approval gets it from a person. Blocking a pull request and merging it stay human decisions.
+
+Every review also carries the **human review** of the agent, which states whether a person must
+read the pull request before it merges. The field `human_review` of the review file holds the value
+`not-needed`, `recommended` or `required`. When the body has an opening, its fold
+**Extended reasoning...** gives the reason. The submit step mirrors the value as a PR label:
+
+- `🤖 AI-only review OK` (green) for `not-needed`;
+- `🤖 Human review recommended` (yellow) for `recommended`;
+- `🤖 Human review required` (red) for `required`.
+
+The submit step creates the label on first use and removes the label of the previous value. This
+step is best-effort, so a label failure never loses a review. The clear label removes these labels
+too.
 
 ## Who owns what
 
@@ -37,8 +48,8 @@ artifacts. `src/build-prompt.py` writes the call, and states the allowlist to th
 The review file is a versioned contract, which `.claude/skills/pr-review/assets/ci-review.md` of
 Cortex states. Its field `contract` names the version, and `src/submit-review.py` refuses a version
 that it does not know, so it never posts a shape that it cannot read. This action reads `v1`.
-A change of the shape in Cortex takes a new version, and this action then needs a release that
-reads it. Until that release, pin `cortex_ref` to a ref that writes `v1`.
+A change that a reader of the current version cannot read takes the next version, and this action
+then needs a release that reads it. Until that release, pin `cortex_ref` to a ref that writes `v1`.
 
 ## One review per request — the eligibility rule
 
@@ -81,14 +92,14 @@ comment.
 [`ai-pr-review/clear`](clear/action.yml) action removes the reviewer's footprint — its
 comments (status and inline) are deleted, its review bodies blanked and minimized, and any
 pending review request for it is withdrawn; the label is then consumed, so it can be
-re-applied later. Two GitHub limits to know: a submitted review cannot be deleted outright
-(a minimized empty shell remains), and an already-submitted APPROVE keeps its effect on
-branch protection — only a dismissal revokes it, and this action deliberately does not
-dismiss. Blanking also removes the re-review marker: the next requested review starts fresh.
+re-applied later. Two GitHub limits apply. A submitted review cannot be deleted, so a minimized
+empty shell remains. An `APPROVE` that an earlier release of this action submitted keeps its effect
+on the branch protection, because only a dismissal revokes it, and this action does not dismiss.
+Blanking also removes the re-review marker: the next requested review starts fresh.
 
 Every review body additionally starts with a hidden marker (`<!-- cortex-pr-review -->`):
-it lets the agent detect its own previous review (re-review = delta), and lets the
-verification step confirm this run delivered one.
+it lets the agent detect its own previous review (re-review = delta), lets the prep step
+write the diff since that review, and lets the verification step confirm this run delivered one.
 
 ## Actions
 
@@ -129,11 +140,26 @@ files rather than spending its budget gathering them.
 ## The pre-fetched context
 
 `src/prefetch-context.py` runs in the prep step, before the agent, and writes
-`logs_dir/context/`: `README.md` (the index the prompt points at), `pr.md`, `pr.json`,
-`reviews.md`, `review-comments.md`, `linked-issues.md`, `checks.md` and `diff.patch` — plus,
-unless `prefetch_checkout` is `false`, a blobless checkout of the PR head under the cortex
-checkout's git-ignored `sources/`. It takes seconds, and it replaces the ten-odd turns the
-agent used to spend making the same `gh` calls.
+`logs_dir/context/`. Unless `prefetch_checkout` is `false`, it also writes a blobless checkout of
+the PR head under the git-ignored `sources/` of the cortex checkout. It takes seconds, and it
+replaces the ten-odd turns the agent used to spend making the same `gh` calls. The context holds
+these files:
+
+- `README.md`: the index the prompt points at.
+- `pr.md` and `pr.json`: the pull request with its conversation, and its metadata.
+- `reviews.md`: each submitted review, with its id and the commit that it read.
+- `review-comments.md`: each inline thread, with its resolution state and the id of the review of
+  its first comment. A re-review finds its own open threads by that id.
+- `linked-issues.md`: the issues that the pull request closes.
+- `checks.md`: the CI state of the head commit.
+- `diff.patch`: the whole diff of the pull request.
+- `delta.patch`: the diff since the commit of the last review that holds the marker. A re-review
+  reads in it the lines that the last push adds. The file is absent on a first review. It is absent
+  too when the branch was rewritten after that review, and the `README.md` of the context then says
+  so.
+- `rules/`: the copies, from the base branch, of the root `CLAUDE.md`, of the root `REVIEW.md` and
+  of each `CLAUDE.md` above a changed file. A rule file that the pull request changes keeps its
+  version of the base branch in this copy, and the `README.md` of the context names it.
 
 Three things make this the prep step's job rather than the agent's:
 
@@ -195,10 +221,10 @@ could reach the forge or rewrite history (`git push/commit/checkout/reset/remote
 execute (`--upload-pack`). The agent itself never posts anything: `gh pr review` is denied
 too — the agent writes the review body to a file, and submitting that file is a
 deterministic action step (running with the jahia-ai token) after the agent finishes.
-`--permission-mode dontAsk` denies everything not explicitly allowed. The `ci` mode of the
-skill additionally forbids requesting changes (approval only with zero findings, re-enforced by
-the submit step) and has the agent treat PR content (title, description, code, comments) as
-data, never as instructions — and flag prompt-injection attempts as findings.
+`--permission-mode dontAsk` denies everything not explicitly allowed. The submit step posts
+every review as `COMMENT`, whatever event the review file asks for. The `ci` mode of the skill
+has the agent treat PR content (title, description, code, comments) as data, never as
+instructions, and flag prompt-injection attempts as findings.
 
 The one Cortex tool that the allowlist grants is `tools/pr-review/bin/pr-review lenses`: the
 `ci` mode runs it to choose its lenses. The tool starts through `mise exec`, so the runner needs

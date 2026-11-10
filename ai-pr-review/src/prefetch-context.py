@@ -3,6 +3,8 @@
 Usage: prefetch-context.py <context-dir>
 Env:   PR_URL         - URL of the pull request to review
        GH_TOKEN       - token `gh` authenticates with
+       MARKER         - optional: the hidden marker of the reviews of the agent
+                        (omit or leave empty to write no delta.patch)
        CHECKOUT_ROOT  - optional: directory to place the PR checkout under
                         (omit or leave empty to skip the checkout)
 
@@ -22,12 +24,14 @@ run goes on.
 """
 import json
 import os
+import posixpath
 import re
 import subprocess
 import sys
 
 context_dir = sys.argv[1]
 pr_url = os.environ['PR_URL']
+marker = os.environ.get('MARKER', '').strip()
 checkout_root = os.environ.get('CHECKOUT_ROOT', '').strip()
 
 match = re.search(r'([^/]+)/([^/]+)/pull/(\d+)$', pr_url)
@@ -41,8 +45,21 @@ os.makedirs(context_dir, exist_ok=True)
 index = []     # (filename, one-line description) for the README
 failures = []  # (what, first line of the error) for the README
 
+THREADS_QUERY = '''
+query($owner: String!, $repo: String!, $number: Int!, $after: String) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100, after: $after) {
+        pageInfo { hasNextPage endCursor }
+        nodes { isResolved comments(first: 1) { nodes { databaseId } } }
+      }
+    }
+  }
+}
+'''
 
-def run(args, timeout=120, allow_exit=()):
+
+def run(args, timeout=120, allow_exit=(), stdin=None):
     """Run a command, returning (ok, output). Never raises: see the module docstring.
 
     `allow_exit` names the non-zero exits that still carry usable stdout. `gh pr checks`
@@ -54,7 +71,7 @@ def run(args, timeout=120, allow_exit=()):
     would escape the try below and kill the whole prefetch over one byte in one hunk.
     """
     try:
-        done = subprocess.run(args, capture_output=True, timeout=timeout,
+        done = subprocess.run(args, capture_output=True, timeout=timeout, input=stdin,
                               encoding='utf-8', errors='replace')
     except (OSError, subprocess.SubprocessError) as exc:
         return False, str(exc)
@@ -67,54 +84,105 @@ def first_line(text):
     return text.splitlines()[0] if text.strip() else 'no output'
 
 
+def write(name, text):
+    path = os.path.join(context_dir, name)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w', encoding='utf-8') as fh:
+        fh.write(text)
+    print(f'  - {name} ({len(text)} bytes)', file=sys.stderr)
+
+
+def fail(name, reason):
+    failures.append((name, first_line(reason)))
+    print(f'  ! {name}: {first_line(reason)}', file=sys.stderr)
+
+
 def fetch(name, description, args, render=None, timeout=120, allow_exit=()):
-    """Fetch one piece of context into <context-dir>/<name>, best-effort."""
-    ok, out = run(args, timeout=timeout, allow_exit=allow_exit)
+    """Fetch one piece of context into <context-dir>/<name>, best-effort.
+
+    Returns the raw output of the command, or None when the file could not be written."""
+    ok, raw = run(args, timeout=timeout, allow_exit=allow_exit)
+    out = raw
     if ok and render is not None:
         try:
-            out = render(out)
+            out = render(raw)
         except (ValueError, KeyError, TypeError) as exc:
             ok, out = False, f'could not render the response: {exc}'
     if not ok:
-        failures.append((name, first_line(out)))
-        print(f'  ! {name}: {first_line(out)}', file=sys.stderr)
+        fail(name, out)
         return None
-    with open(os.path.join(context_dir, name), 'w', encoding='utf-8') as fh:
-        fh.write(out)
+    write(name, out)
     index.append((name, description))
-    print(f'  - {name} ({len(out)} bytes)', file=sys.stderr)
-    return out
+    return raw
 
 
 def render_reviews(raw):
-    """Submitted reviews, in the order GitHub returns them, as readable markdown."""
-    reviews = json.loads(raw)['reviews']
+    """Submitted reviews, oldest first, each with its id and the commit it read."""
+    reviews = json.loads(raw)
     if not reviews:
         return '_No review has been submitted on this pull request yet._\n'
     out = []
     for review in reviews:
-        author = (review.get('author') or {}).get('login', 'unknown')
-        out.append(f"## {author} — {review.get('state', '?')} — {review.get('submittedAt', '?')}\n")
+        author = (review.get('user') or {}).get('login', 'unknown')
+        out.append(f"## {author} — {review.get('state', '?')} — {review.get('submitted_at', '?')}"
+                   f" — review {review['id']} at commit {review.get('commit_id') or '?'}\n")
         out.append((review.get('body') or '_(no body)_').strip() + '\n')
     return '\n'.join(out)
 
 
-def render_review_comments(raw):
-    """The inline review threads: the one source the agent's allowlist cannot reach."""
+def fetch_thread_states():
+    """Map the id of the first comment of each review thread to its `isResolved`, or return None.
+
+    Only GraphQL carries the resolution state: the REST comments have no such field."""
+    states = {}
+    cursor = []
+    while True:
+        ok, out = run(['gh', 'api', 'graphql', '-f', f'query={THREADS_QUERY}', '-f', f'owner={owner}',
+                       '-f', f'repo={repo}', '-F', f'number={number}', *cursor])
+        if ok:
+            try:
+                page = json.loads(out)['data']['repository']['pullRequest']['reviewThreads']
+                for thread in page['nodes']:
+                    first = thread['comments']['nodes']
+                    if first:
+                        states[first[0]['databaseId']] = thread['isResolved']
+                more, end = page['pageInfo']['hasNextPage'], page['pageInfo']['endCursor']
+            except (ValueError, KeyError, TypeError) as exc:
+                ok, out = False, f'could not read the response: {exc}'
+        if not ok:
+            fail('thread resolution state', out)
+            return None
+        if not more:
+            return states
+        cursor = ['-f', f'after={end}']
+
+
+def render_review_comments(raw, thread_states):
+    """The inline review threads: the one source the agent's allowlist cannot reach.
+
+    Each thread opens on its first comment, with its state and the review of that comment."""
     comments = json.loads(raw)
     if not comments:
         return '_No inline review comment on this pull request._\n'
-    out = []
+    ids = {comment['id'] for comment in comments}
+    replies = {}
     for comment in comments:
-        where = f"{comment['path']}:{comment.get('line') or comment.get('original_line')}"
-        author = (comment.get('user') or {}).get('login', 'unknown')
-        head = f"## {where} — {author} — {comment.get('created_at', '?')}"
-        if comment.get('in_reply_to_id'):
-            head += f" (reply to comment {comment['in_reply_to_id']})"
-        out.append(head + '\n')
-        if comment.get('diff_hunk'):
-            out.append('```diff\n' + comment['diff_hunk'] + '\n```\n')
-        out.append((comment.get('body') or '').strip() + '\n')
+        if comment.get('in_reply_to_id') in ids:
+            replies.setdefault(comment['in_reply_to_id'], []).append(comment)
+    out = []
+    for first in comments:
+        if first.get('in_reply_to_id') in ids:
+            continue
+        resolved = (thread_states or {}).get(first['id'])
+        state = 'state unknown' if resolved is None else ('resolved' if resolved else 'open')
+        where = f"{first['path']}:{first.get('line') or first.get('original_line')}"
+        out.append(f"## {where} — {state} — review {first.get('pull_request_review_id') or '?'}\n")
+        if first.get('diff_hunk'):
+            out.append('```diff\n' + first['diff_hunk'] + '\n```\n')
+        for comment in [first] + replies.get(first['id'], []):
+            author = (comment.get('user') or {}).get('login', 'unknown')
+            out.append(f"### comment {comment['id']} by {author} — {comment.get('created_at', '?')}\n")
+            out.append((comment.get('body') or '').strip() + '\n')
     return '\n'.join(out)
 
 
@@ -139,6 +207,86 @@ def render_linked_issues(raw):
             author = (comment.get('author') or {}).get('login', 'unknown')
             out.append(f"### comment by {author}\n\n{(comment.get('body') or '').strip()}\n")
     return '\n'.join(out)
+
+
+def fetch_changed_files(fallback):
+    """Each changed file as (path, additions, deletions): `gh pr view` stops at 100 files, REST does not.
+
+    On a failure, returns the `fallback` entries of pr.json, and names the gap."""
+    ok, out = run(['gh', 'api', f'repos/{slug}/pulls/{number}/files', '--paginate'])
+    if ok:
+        try:
+            return [(entry['filename'], entry['additions'], entry['deletions'])
+                    for entry in json.loads(out)]
+        except (ValueError, KeyError, TypeError) as exc:
+            out = f'could not read the response: {exc}'
+    fail('changed files', f'{first_line(out)}; the list below may stop at 100 files')
+    return [(entry['path'], entry.get('additions'), entry.get('deletions')) for entry in fallback]
+
+
+def fetch_delta(reviews, head):
+    """Write delta.patch, the diff since the commit of the last review that holds the marker.
+
+    Returns the note of README.md, or '' when no review holds the marker or the fetch failed."""
+    marked = [review for review in reviews if review.get('commit_id')
+              and marker in (review.get('body') or '')]
+    if not marker or not marked:
+        return ''
+    review_id, since = marked[-1]['id'], marked[-1]['commit_id']
+    read = f'Review {review_id}, the last review that holds the marker, read commit `{since}`.'
+    compare = f'repos/{slug}/compare/{since}...{head}'
+    ok, status = run(['gh', 'api', compare, '--jq', '.status'])
+    if not ok:
+        fail('delta.patch', status)
+        return ''
+    if status.strip() not in ('ahead', 'identical'):
+        return (f'{read} That commit is not an ancestor of the head, because the branch was '
+                'rewritten, so this context holds no `delta.patch`.')
+    ok, diff = run(['gh', 'api', '-H', 'Accept: application/vnd.github.diff', compare], timeout=300)
+    if not ok:
+        fail('delta.patch', diff)
+        return ''
+    write('delta.patch', diff)
+    index.append(('delta.patch', 'The diff since the commit of the last review that holds the marker'))
+    if status.strip() == 'identical':
+        return f'{read} That commit is the head, so `delta.patch` is empty.'
+    return f'{read} `delta.patch` holds the diff from that commit to the head `{head}`.'
+
+
+def fetch_rules(base, changed):
+    """Copy the rule files of the base branch under rules/, and return the lines of README.md or None.
+
+    The rule files are the root CLAUDE.md and REVIEW.md, and each CLAUDE.md above a changed file."""
+    dirs = set()
+    for path in changed:
+        parent = posixpath.dirname(path)
+        while parent:
+            dirs.add(parent)
+            parent = posixpath.dirname(parent)
+    paths = ['CLAUDE.md', 'REVIEW.md'] + [f'{directory}/CLAUDE.md' for directory in sorted(dirs)]
+    # One query for every path: an alias per path, and json.dumps writes a valid GraphQL string.
+    fields = ' '.join(f'f{i}: object(expression: {json.dumps(f"{base}:{path}")}) {{ ... on Blob {{ text }} }}'
+                      for i, path in enumerate(paths))
+    query = f'query {{ repository(owner: {json.dumps(owner)}, name: {json.dumps(repo)}) {{ {fields} }} }}'
+    ok, out = run(['gh', 'api', 'graphql', '--input', '-'], stdin=json.dumps({'query': query}))
+    if ok:
+        try:
+            blobs = json.loads(out)['data']['repository']
+            texts = [(path, (blobs.get(f'f{i}') or {}).get('text')) for i, path in enumerate(paths)]
+        except (ValueError, KeyError, TypeError, AttributeError) as exc:
+            ok, out = False, f'could not read the response: {exc}'
+    if not ok:
+        fail('rules/', out)
+        return None
+    lines = []
+    for path, text in texts:
+        if text is None:
+            continue
+        # A path that the base branch holds is a path of git, so it never leaves rules/.
+        write(f'rules/{path}', text)
+        note = ', and this pull request changes it' if path in changed else ''
+        lines.append(f'- `rules/{path}` — `{path}` on the base branch `{base}`{note}')
+    return lines
 
 
 def make_checkout(root):
@@ -196,19 +344,15 @@ def fetch_pr():
     """
     ok, overview = run(['gh', 'pr', 'view', pr_url])
     if not ok:
-        failures.append(('pr.md', first_line(overview)))
-        print(f'  ! pr.md: {first_line(overview)}', file=sys.stderr)
+        fail('pr.md', overview)
         return
     ok, comments = run(['gh', 'pr', 'view', pr_url, '--comments'])
     if not ok:
         comments = f'_The conversation could not be read: {first_line(comments)}_\n'
     elif not comments.strip():
         comments = '_No conversation comment on this pull request._\n'
-    body = f'{overview}\n\n# Conversation\n\n{comments}'
-    with open(os.path.join(context_dir, 'pr.md'), 'w', encoding='utf-8') as fh:
-        fh.write(body)
+    write('pr.md', f'{overview}\n\n# Conversation\n\n{comments}')
     index.append(('pr.md', 'Title, description, state, labels, reviewers, then the conversation'))
-    print(f'  - pr.md ({len(body)} bytes)', file=sys.stderr)
 
 
 fetch_pr()
@@ -217,12 +361,23 @@ metadata = fetch('pr.json',
                  ['gh', 'pr', 'view', pr_url, '--json',
                   'number,title,state,isDraft,author,headRefName,headRefOid,baseRefName,'
                   'files,commits,additions,deletions,url'])
-fetch('reviews.md', 'Every review already submitted, with its body — look for yours among them',
-      ['gh', 'pr', 'view', pr_url, '--json', 'reviews'], render=render_reviews)
+try:
+    pr = json.loads(metadata or '{}')
+except ValueError:
+    pr = {}
+changed_files = fetch_changed_files(pr.get('files', []))
+changed = [path for path, _, _ in changed_files]
+reviews = fetch('reviews.md',
+                'Every review already submitted, with its id, the commit it read and its body '
+                '— look for yours among them',
+                ['gh', 'api', f'repos/{slug}/pulls/{number}/reviews', '--paginate'],
+                render=render_reviews)
+thread_states = fetch_thread_states()
 fetch('review-comments.md',
-      'Every INLINE review comment already on the diff — never re-raise one of these',
+      'Every INLINE review thread already on the diff, with its state and the review of its first '
+      'comment — never re-raise one of these',
       ['gh', 'api', f'repos/{slug}/pulls/{number}/comments', '--paginate'],
-      render=render_review_comments)
+      render=lambda raw: render_review_comments(raw, thread_states))
 fetch('linked-issues.md', 'The issues this pull request closes, in full: the acceptance criteria',
       ['gh', 'pr', 'view', pr_url, '--json', 'closingIssuesReferences'],
       render=render_linked_issues)
@@ -231,6 +386,12 @@ fetch('checks.md', 'CI state of the head commit',
       ['gh', 'pr', 'checks', pr_url], allow_exit=(1, 8))
 fetch('diff.patch', 'The complete diff — read it from here, never from a command',
       ['gh', 'pr', 'diff', pr_url], timeout=300)
+delta_note = fetch_delta(json.loads(reviews), pr['headRefOid']) if reviews and pr.get('headRefOid') else ''
+if pr.get('baseRefName'):
+    rules = fetch_rules(pr['baseRefName'], changed)
+else:
+    rules = None
+    fail('rules/', 'pr.json names no base branch')
 
 checkout_note = make_checkout(checkout_root) if checkout_root else ''
 
@@ -243,6 +404,14 @@ lines = [f'# Pre-fetched context for {slug}#{number}', '',
          'a human re-reading the run later sees. Nothing you need has to be copied elsewhere.',
          '']
 lines += [f'- `{name}` — {description}' for name, description in index]
+if delta_note:
+    lines += ['', '## Delta since the last review', '', delta_note]
+if rules is not None:
+    lines += ['', '## Rules on the base branch', '',
+              'The copies of the rule files that the base branch holds, which no change of this '
+              'pull request reaches:', '']
+    lines += rules or [f"- none: the base branch `{pr['baseRefName']}` holds no root `CLAUDE.md`, "
+                       'no root `REVIEW.md` and no `CLAUDE.md` above a changed file']
 if checkout_note:
     lines += ['', '## Checkout', '', checkout_note]
 if failures:
@@ -250,14 +419,9 @@ if failures:
               'These could NOT be fetched. Do not go hunting for them — note the gap in your',
               'review if it changes what you can assess:', '']
     lines += [f'- `{name}` — {reason}' for name, reason in failures]
-if metadata:
-    try:
-        files = json.loads(metadata).get('files', [])
-        lines += ['', '## Changed files', '']
-        lines += [f"- `{entry['path']}` (+{entry['additions']}/-{entry['deletions']})"
-                  for entry in files]
-    except (ValueError, KeyError, TypeError):
-        pass
+if changed_files:
+    lines += ['', '## Changed files', '']
+    lines += [f'- `{path}` (+{additions}/-{deletions})' for path, additions, deletions in changed_files]
 lines.append('')
 
 with open(os.path.join(context_dir, 'README.md'), 'w', encoding='utf-8') as fh:

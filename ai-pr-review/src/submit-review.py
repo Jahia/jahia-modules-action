@@ -11,10 +11,10 @@ A file of any other contract version is refused, in both modes: Cortex takes
 the next version when the shape changes, and guessing at a shape this script
 does not know would post a wrong review.
 
-"post" submits ONE pull-request review via the GitHub API, with the findings
-attached as inline comments on the lines in question (a comment of several
-lines keeps its start_line/start_side). If GitHub rejects the payload
-(typically an anchor on a line that is not part of the diff), the review is
+"post" submits ONE pull-request review via the GitHub API, always as COMMENT,
+with the findings attached as inline comments on the lines in question (a
+comment of several lines keeps its start_line/start_side). If GitHub rejects
+the payload (typically an anchor on a line that is not part of the diff), the review is
 re-submitted body-only with the findings folded into the body — a bad anchor
 never loses the review. "render" prints the review as markdown (review mode:
 job summary and artifact reading).
@@ -78,13 +78,10 @@ def post(payload):
                           input=json.dumps(payload).encode(), capture_output=True)
 
 
-event = review.get('event', 'COMMENT')
-if event not in ('APPROVE', 'COMMENT'):
-    print(f'::warning::Unexpected review event {event!r} — submitting as COMMENT')
-    event = 'COMMENT'
-if event == 'APPROVE' and comments:
-    print('::warning::APPROVE with findings attached — downgraded to COMMENT (approval requires zero findings)')
-    event = 'COMMENT'
+if review.get('event', 'COMMENT') != 'COMMENT':
+    print(f"::warning::The review file asks for {review['event']!r} — submitting as COMMENT, "
+          'because the review never approves and never blocks the pull request')
+event = 'COMMENT'
 
 # The agent's confidence call, mirrored as a PR label after the review is submitted.
 LABELS = {
