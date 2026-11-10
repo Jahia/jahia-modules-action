@@ -1,6 +1,6 @@
 """Submit (or render) the structured review file the agent produced.
 
-Usage: submit-review.py post <review-file> <pr-url>
+Usage: submit-review.py post <review-file> <pr-url> [<pr.json of the context>]
        submit-review.py render <review-file>
 
 The review file is the one the ci mode of the Cortex skill pr-review writes, in
@@ -13,11 +13,13 @@ does not know would post a wrong review.
 
 "post" submits ONE pull-request review via the GitHub API, always as COMMENT,
 with the findings attached as inline comments on the lines in question (a
-comment of several lines keeps its start_line/start_side). If GitHub rejects
+comment of several lines keeps its start_line/start_side). The review names as
+its commit the head that the prefetch read, from the pr.json of the context, so
+that the next re-review reads its delta from that commit. If GitHub rejects
 the payload (typically an anchor on a line that is not part of the diff), the review is
-re-submitted body-only with the findings folded into the body — a bad anchor
-never loses the review. "render" prints the review as markdown (review mode:
-job summary and artifact reading).
+re-submitted body-only with the findings folded into the body, then on the head
+of the pull request — a bad anchor never loses the review. "render" prints the
+review as markdown (review mode: job summary and artifact reading).
 
 "post" requires GH_TOKEN with pull-request write on the repository.
 """
@@ -86,7 +88,7 @@ event = 'COMMENT'
 # The agent's confidence call, mirrored as a PR label after the review is submitted.
 LABELS = {
     'not-needed': ('🤖 AI-only review OK', '0E8A16',
-                   'The AI reviewer is confident this PR can merge with the AI review alone'),
+                   'The AI reviewer sees no need for a person to read this PR'),
     'recommended': ('🤖 Human review recommended', 'FBCA04',
                     'The AI reviewer suggests a human pass on this PR'),
     'required': ('🤖 Human review required', 'B60205',
@@ -109,6 +111,9 @@ def apply_label():
     # Create the label when the repo does not have it yet (422 when it already exists).
     gh(['-X', 'POST', f'repos/{owner}/{repo}/labels', '--input', '-'],
        {'name': name, 'color': color, 'description': description})
+    # The POST leaves an existing label as it is, so the PATCH brings its description up to date.
+    gh(['-X', 'PATCH', f'repos/{owner}/{repo}/labels/{quote(name, safe="")}', '--input', '-'],
+       {'color': color, 'description': description})
     for key, (other, _, _) in LABELS.items():
         if key != human:
             gh(['-X', 'DELETE',
@@ -132,22 +137,33 @@ def anchor(comment):
     return entry
 
 
-payload = {'event': event, 'body': body}
+def reviewed_head():
+    """The head commit that the prefetch read, or None when the pr.json of the context has none."""
+    try:
+        with open(sys.argv[4], encoding='utf-8') as fh:
+            return json.load(fh)['headRefOid']
+    except (IndexError, OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+reviewed = reviewed_head()
+pinned = {'commit_id': reviewed} if reviewed else {}
+folded = {'event': event, 'body': fold(body, comments)}
+attempts = []
 if comments:
-    payload['comments'] = [anchor(c) for c in comments]
-result = post(payload)
-if result.returncode == 0:
-    print(f'Review submitted ({event}) with {len(comments)} inline comment(s)')
-    apply_label()
-    sys.exit(0)
-sys.stderr.write(result.stderr.decode(errors='replace')[-800:] + '\n')
-if comments:
-    print('::warning::GitHub rejected the review payload (usually an anchor outside the diff) — submitting body-only with the findings folded in')
-    result = post({'event': event, 'body': fold(body, comments)})
+    attempts.append(({'event': event, 'body': body, 'comments': [anchor(c) for c in comments], **pinned},
+                     f'with {len(comments)} inline comment(s)'))
+attempts.append(({**folded, **pinned}, 'body-only, with the findings folded in'))
+if pinned:
+    # A force-push during the run removes the commit that the prefetch read, and GitHub refuses it.
+    attempts.append((folded, 'body-only, on the head of the pull request'))
+for payload, form in attempts:
+    result = post(payload)
     if result.returncode == 0:
-        print('Review submitted body-only')
+        print(f'Review submitted ({event}) {form}')
         apply_label()
         sys.exit(0)
     sys.stderr.write(result.stderr.decode(errors='replace')[-800:] + '\n')
+    print(f'::warning::GitHub rejected the review payload {form}')
 print('::error::Could not submit the review — the review request stays pending')
 sys.exit(1)

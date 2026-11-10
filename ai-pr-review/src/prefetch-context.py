@@ -58,6 +58,9 @@ query($owner: String!, $repo: String!, $number: Int!, $after: String) {
 }
 '''
 
+# An import of Claude Code: `@` after a space or a line start, then a relative path.
+IMPORT = re.compile(r'(?:^|\s)@((?:\.{1,2}/)*[\w.-]+(?:/[\w.-]+)*)')
+
 
 def run(args, timeout=120, allow_exit=(), stdin=None):
     """Run a command, returning (ok, output). Never raises: see the module docstring.
@@ -224,46 +227,104 @@ def fetch_changed_files(fallback):
     return [(entry['path'], entry.get('additions'), entry.get('deletions')) for entry in fallback]
 
 
-def fetch_delta(reviews, head):
-    """Write delta.patch, the diff since the commit of the last review that holds the marker.
+def keep_changed_files(diff, changed):
+    """Keep the file sections of `diff` that name a file of the pull request."""
+    suffixes = tuple(f' b/{path}' for path in changed)
+    kept = []
+    for section in re.split(r'(?m)^(?=diff --git )', diff):
+        header = section.split('\n', 1)[0]
+        # git quotes a path with unusual characters, which no suffix matches, so keep that section.
+        if header.endswith(suffixes) or '"' in header:
+            kept.append(section)
+    return ''.join(kept)
 
-    Returns the note of README.md, or '' when no review holds the marker or the fetch failed."""
+
+def fetch_delta(reviews, head, login, changed):
+    """Write delta.patch, the diff since the commit of the last review of `login` with the marker.
+
+    Returns the note of README.md, or '' when no such review exists or the fetch failed."""
     marked = [review for review in reviews if review.get('commit_id')
+              and (review.get('user') or {}).get('login') == login
               and marker in (review.get('body') or '')]
-    if not marker or not marked:
+    if not marked:
         return ''
     review_id, since = marked[-1]['id'], marked[-1]['commit_id']
-    read = f'Review {review_id}, the last review that holds the marker, read commit `{since}`.'
+    read = f'Review {review_id}, the last review of `{login}` with the marker, read commit `{since}`.'
     compare = f'repos/{slug}/compare/{since}...{head}'
-    ok, status = run(['gh', 'api', compare, '--jq', '.status'])
-    if not ok:
+    # Page 2 of one commit drops the files and their patches, which only the first page carries.
+    ok, status = run(['gh', 'api', f'{compare}?per_page=1&page=2', '--jq', '.status'])
+    # A force-push can remove the commit of the review, and the compare then answers 404.
+    rewritten = not ok and 'HTTP 404' in status
+    if not ok and not rewritten:
         fail('delta.patch', status)
         return ''
-    if status.strip() not in ('ahead', 'identical'):
+    if rewritten or status.strip() not in ('ahead', 'identical'):
         return (f'{read} That commit is not an ancestor of the head, because the branch was '
-                'rewritten, so this context holds no `delta.patch`.')
+                'rewritten, so this context has no `delta.patch`.')
     ok, diff = run(['gh', 'api', '-H', 'Accept: application/vnd.github.diff', compare], timeout=300)
     if not ok:
         fail('delta.patch', diff)
         return ''
-    write('delta.patch', diff)
-    index.append(('delta.patch', 'The diff since the commit of the last review that holds the marker'))
+    write('delta.patch', keep_changed_files(diff, changed))
+    index.append(('delta.patch', 'The diff since the commit of the last review with the marker'))
     if status.strip() == 'identical':
         return f'{read} That commit is the head, so `delta.patch` is empty.'
-    return f'{read} `delta.patch` holds the diff from that commit to the head `{head}`.'
+    return (f'{read} `delta.patch` is the diff from that commit to the head `{head}`, in the files '
+            'that the pull request changes only: a merge of the base adds no other file to it.')
 
 
 def fetch_rules(base, changed):
     """Copy the rule files of the base branch under rules/, and return the lines of README.md or None.
 
-    The rule files are the root CLAUDE.md and REVIEW.md, and each CLAUDE.md above a changed file."""
+    The rule files are the root CLAUDE.md and REVIEW.md, each CLAUDE.md above a changed file, and
+    each file that one of them imports."""
     dirs = set()
     for path in changed:
         parent = posixpath.dirname(path)
         while parent:
             dirs.add(parent)
             parent = posixpath.dirname(parent)
-    paths = ['CLAUDE.md', 'REVIEW.md'] + [f'{directory}/CLAUDE.md' for directory in sorted(dirs)]
+    rule_files = ['CLAUDE.md', 'REVIEW.md'] + [f'{directory}/CLAUDE.md' for directory in sorted(dirs)]
+    texts = {}
+    wanted = rule_files
+    # The rule files, then the files they import, five hops deep as Claude Code follows them.
+    for _ in range(6):
+        ok, found = fetch_blobs(base, wanted)
+        if not ok:
+            fail('rules/', found)
+            return None
+        texts.update(found)
+        wanted = list(dict.fromkeys(target for path, text in found.items() if text
+                                    for target in rule_imports(path, text) if target not in texts))
+        if not wanted:
+            break
+    lines = []
+    for path, text in texts.items():
+        if text is None:
+            continue
+        # A path that the base branch holds is a path of git, so it never leaves rules/.
+        write(f'rules/{path}', text)
+        note = '' if path in rule_files else ', which a rule file imports'
+        if path in changed:
+            note += ', and this pull request changes it'
+        lines.append(f'- `rules/{path}` — `{path}` on the base branch `{base}`{note}')
+    return lines
+
+
+def rule_imports(path, text):
+    """The paths of the repository that a rule file imports with `@<path>`, from its directory."""
+    found = []
+    for target in IMPORT.findall(text):
+        resolved = posixpath.normpath(posixpath.join(posixpath.dirname(path), target))
+        if resolved != '..' and not resolved.startswith(('../', '/')):
+            found.append(resolved)
+    return found
+
+
+def fetch_blobs(base, paths):
+    """Return (ok, texts), where texts maps each path to its text on `base`, None when it has none.
+
+    On a failure, the second value is the reason."""
     # One query for every path: an alias per path, and json.dumps writes a valid GraphQL string.
     fields = ' '.join(f'f{i}: object(expression: {json.dumps(f"{base}:{path}")}) {{ ... on Blob {{ text }} }}'
                       for i, path in enumerate(paths))
@@ -272,21 +333,10 @@ def fetch_rules(base, changed):
     if ok:
         try:
             blobs = json.loads(out)['data']['repository']
-            texts = [(path, (blobs.get(f'f{i}') or {}).get('text')) for i, path in enumerate(paths)]
+            return True, {path: (blobs.get(f'f{i}') or {}).get('text') for i, path in enumerate(paths)}
         except (ValueError, KeyError, TypeError, AttributeError) as exc:
-            ok, out = False, f'could not read the response: {exc}'
-    if not ok:
-        fail('rules/', out)
-        return None
-    lines = []
-    for path, text in texts:
-        if text is None:
-            continue
-        # A path that the base branch holds is a path of git, so it never leaves rules/.
-        write(f'rules/{path}', text)
-        note = ', and this pull request changes it' if path in changed else ''
-        lines.append(f'- `rules/{path}` — `{path}` on the base branch `{base}`{note}')
-    return lines
+            out = f'could not read the response: {exc}'
+    return False, out
 
 
 def make_checkout(root):
@@ -314,8 +364,7 @@ def make_checkout(root):
     if ok:
         ok, out = run(['git', '-C', target, 'checkout', '--detach', 'FETCH_HEAD'], timeout=120)
     if not ok:
-        failures.append(('checkout', first_line(out)))
-        print(f'  ! checkout: {first_line(out)}', file=sys.stderr)
+        fail('checkout', out)
         return ('No checkout is available (it could not be created: '
                 f'{first_line(out)}). Review from `diff.patch` alone.')
     # The clone is the one thing the agent reads that the run artifact does not carry -- it
@@ -386,7 +435,16 @@ fetch('checks.md', 'CI state of the head commit',
       ['gh', 'pr', 'checks', pr_url], allow_exit=(1, 8))
 fetch('diff.patch', 'The complete diff — read it from here, never from a command',
       ['gh', 'pr', 'diff', pr_url], timeout=300)
-delta_note = fetch_delta(json.loads(reviews), pr['headRefOid']) if reviews and pr.get('headRefOid') else ''
+login = None
+if marker:
+    ok, out = run(['gh', 'api', 'user', '--jq', '.login'])
+    if ok:
+        login = out.strip()
+    else:
+        fail('login of the token user', out)
+delta_note = ''
+if reviews and login and pr.get('headRefOid'):
+    delta_note = fetch_delta(json.loads(reviews), pr['headRefOid'], login, changed)
 if pr.get('baseRefName'):
     rules = fetch_rules(pr['baseRefName'], changed)
 else:
@@ -404,6 +462,9 @@ lines = [f'# Pre-fetched context for {slug}#{number}', '',
          'a human re-reading the run later sees. Nothing you need has to be copied elsewhere.',
          '']
 lines += [f'- `{name}` — {description}' for name, description in index]
+if login:
+    lines += ['', f'This run posts as `{login}`: the reviews of this agent are the reviews of '
+              f'`{login}` whose body contains the marker.']
 if delta_note:
     lines += ['', '## Delta since the last review', '', delta_note]
 if rules is not None:

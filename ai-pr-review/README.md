@@ -18,7 +18,7 @@ submit step posts every review as `COMMENT`, whatever event the review file asks
 approval gets it from a person. Blocking a pull request and merging it stay human decisions.
 
 Every review also carries the **human review** of the agent, which states whether a person must
-read the pull request before it merges. The field `human_review` of the review file holds the value
+read the pull request before it merges. In the review file, the field `human_review` has the value
 `not-needed`, `recommended` or `required`. When the body has an opening, its fold
 **Extended reasoning...** gives the reason. The submit step mirrors the value as a PR label:
 
@@ -142,7 +142,7 @@ files rather than spending its budget gathering them.
 `src/prefetch-context.py` runs in the prep step, before the agent, and writes
 `logs_dir/context/`. Unless `prefetch_checkout` is `false`, it also writes a blobless checkout of
 the PR head under the git-ignored `sources/` of the cortex checkout. It takes seconds, and it
-replaces the ten-odd turns the agent used to spend making the same `gh` calls. The context holds
+replaces the ten-odd turns the agent used to spend making the same `gh` calls. The context contains
 these files:
 
 - `README.md`: the index the prompt points at.
@@ -153,13 +153,19 @@ these files:
 - `linked-issues.md`: the issues that the pull request closes.
 - `checks.md`: the CI state of the head commit.
 - `diff.patch`: the whole diff of the pull request.
-- `delta.patch`: the diff since the commit of the last review that holds the marker. A re-review
-  reads in it the lines that the last push adds. The file is absent on a first review. It is absent
-  too when the branch was rewritten after that review, and the `README.md` of the context then says
-  so.
+- `delta.patch`: the diff since the commit of the last review of the AI reviewer account whose body
+  contains the marker. A re-review reads in it the lines that the last push adds. The diff keeps
+  only the files that the pull request changes, so a merge of the base adds no other file to it.
+  The file is absent on a first review. It is absent too when the branch was rewritten after that
+  review, and the `README.md` of the context then says so.
 - `rules/`: the copies, from the base branch, of the root `CLAUDE.md`, of the root `REVIEW.md` and
-  of each `CLAUDE.md` above a changed file. A rule file that the pull request changes keeps its
-  version of the base branch in this copy, and the `README.md` of the context names it.
+  of each `CLAUDE.md` above a changed file, with each file that they import as `@<path>`. A rule
+  file that the pull request changes keeps its version of the base branch in this copy, and the
+  `README.md` of the context names it.
+
+The review names as its commit the head that the prefetch read, so a push during the run stays in
+the next `delta.patch`. The `README.md` of the context also names the account that posts the
+reviews, because a review of another account can carry the marker too.
 
 Three things make this the prep step's job rather than the agent's:
 

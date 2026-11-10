@@ -297,7 +297,7 @@ runs:
           echo "::error title=No review produced::The agent ended without writing the review file — nothing to submit, the review request stays pending. Start with denied-calls.md and review.transcript.log in the run's ai-pr-review-logs artifact: a refused Write (for example a harness prerequisite missing on the runner) is the usual cause."
           exit 1
         fi
-        python3 "$GITHUB_ACTION_PATH/src/submit-review.py" post "$FILE" "$PR_URL"
+        python3 "$GITHUB_ACTION_PATH/src/submit-review.py" post "$FILE" "$PR_URL" "$LOG_DIR/context/pr.json"
 
     - name: Publish the stored review to the job summary
       if: always() && inputs.post_review != 'true'
