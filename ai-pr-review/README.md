@@ -153,13 +153,16 @@ these files:
   its first comment. A re-review finds its own open threads by that id.
 - `linked-issues.md`: the issues that the pull request closes.
 - `checks.md`: the CI state of the head commit.
-- `diff.patch`: the whole diff of the pull request, at the head that `pr.json` names.
+- `diff.patch`: the whole diff of the pull request, at the head that `pr.json` names. When the
+  compare of that head fails twice, `gh pr diff` gives the diff of the live head, and the index
+  says so.
 - `delta.patch`: the diff since the commit of the last review of the AI reviewer account whose body
   contains the marker. A re-review reads in it the lines that the last push adds. The diff keeps
-  the hunks that add a line of the pull request and the hunks that only remove lines, so a merge of
-  the base brings no other hunk to it. A hunk of the base can stay when one of its added lines
-  repeats a line of the pull request. The file is absent on a first review. It is absent too when
-  the branch was rewritten after that review, and the `README.md` of the context then says so.
+  the files that the pull request changes at that commit or at the head, renames included, so a
+  merge of the base adds no other file to it. Its hunks can still stay in a file of the pull
+  request. The diff keeps every file when one of the two lists of files may be partial. The file
+  is absent on a first review. It is absent too when the branch was rewritten after that review,
+  and the `README.md` of the context then says so.
 - `rules/`: the copies, from the base branch, of the root `CLAUDE.md`, of the root `REVIEW.md` and
   of each `CLAUDE.md` above a changed file, with each file that they import as `@<path>`. A rule
   file that the pull request changes keeps its version of the base branch in this copy, and the

@@ -18,9 +18,11 @@ class FakeGh:
         test.addCleanup(shutil.rmtree, self.dir)
         bin_dir = self.dir / "bin"
         bin_dir.mkdir()
-        gh = bin_dir / "gh"
-        shutil.copy(pathlib.Path(__file__).with_name("fake_gh.py"), gh)
-        gh.chmod(gh.stat().st_mode | stat.S_IEXEC)
+        # git answers from the same scenario, so a checkout runs with no clone.
+        for name in ("gh", "git"):
+            program = bin_dir / name
+            shutil.copy(pathlib.Path(__file__).with_name("fake_gh.py"), program)
+            program.chmod(program.stat().st_mode | stat.S_IEXEC)
         self.scenario = self.dir / "scenario.json"
         self.scenario.write_text(json.dumps(rules), encoding="utf-8")
         self.log = self.dir / "calls.log"

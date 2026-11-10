@@ -112,9 +112,9 @@ def gh(args, data=None):
 def apply_label():
     """Mirror the recommendation as a PR label. Best-effort: never fails the review."""
     name, color, description = LABELS[human]
-    # Bring an existing label to the current description, and create the label when it is missing.
+    # Bring an existing label to the current description, keep its color, and create it when missing.
     patched = gh(['-X', 'PATCH', f'repos/{owner}/{repo}/labels/{quote(name, safe="")}', '--input', '-'],
-                 {'color': color, 'description': description})
+                 {'description': description})
     if patched.returncode != 0:
         gh(['-X', 'POST', f'repos/{owner}/{repo}/labels', '--input', '-'],
            {'name': name, 'color': color, 'description': description})
@@ -142,13 +142,19 @@ def anchor(comment):
 
 
 def landed():
-    """True when a review of this run is on the pull request, although its POST answered an error."""
+    """True when a review of this run by the token account is on the pull request, after an error."""
     marker, started = os.environ.get('MARKER'), os.environ.get('STARTED_AT')
     if not marker or not started:
         return False
+    login = subprocess.run(['gh', 'api', 'user', '--jq', '.login'], capture_output=True, text=True)
     listed = subprocess.run(['gh', 'api', endpoint, '--paginate'], capture_output=True)
+    if login.returncode != 0 or listed.returncode != 0:
+        return False
     try:
-        return any(marker in (review.get('body') or '') and (review.get('submitted_at') or '') >= started
+        # The verify step of action.yml compares the same way: a review strictly after the start.
+        return any((review.get('user') or {}).get('login') == login.stdout.strip()
+                   and marker in (review.get('body') or '')
+                   and (review.get('submitted_at') or '') > started
                    for review in json.loads(listed.stdout))
     except (ValueError, TypeError, AttributeError):
         return False

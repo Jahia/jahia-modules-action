@@ -12,7 +12,7 @@ MARKER = "<!-- cortex-pr-review -->"
 POST = "-X POST repos/o/r/pulls/1/reviews"
 REFUSED = {"exit": 1, "err": "gh: Unprocessable Entity (HTTP 422)\n"}
 GATEWAY = {"exit": 1, "err": "gh: HTTP 502\n"}
-LABELS = [{"args": "labels"}]
+LABELS = [{"args": "labels"}, {"args": "api user", "out": "jahia-ai\n"}]
 FINDING = {"path": "a.py", "line": 3, "side": "RIGHT", "body": "a finding"}
 
 
@@ -54,12 +54,18 @@ class TestTheSubmit(unittest.TestCase):
         self.assertEqual([post["commit_id"] for post in self.posts()], [HEAD, HEAD])
 
     def test_a_gateway_error_is_not_retried_and_a_review_of_this_run_counts(self):
-        landed = [{"body": f"{MARKER}\nLGTM.", "submitted_at": "2026-11-10T10:05:00Z"}]
+        landed = [{"user": {"login": "jahia-ai"}, "body": f"{MARKER}\nLGTM.", "submitted_at": "2026-11-10T10:05:00Z"}]
         done = self.submit([{"args": POST, **GATEWAY},
                             {"args": "pulls/1/reviews --paginate", "out": json.dumps(landed)}],
                            review(comments=[FINDING]))
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
         self.assertEqual(len(self.posts()), 1)
+
+    def test_a_review_of_another_account_with_the_marker_does_not_count(self):
+        quoted = [{"user": {"login": "mallory"}, "body": f"{MARKER}\nquoted", "submitted_at": "2026-11-10T10:05:00Z"}]
+        done = self.submit([{"args": POST, **GATEWAY},
+                            {"args": "pulls/1/reviews --paginate", "out": json.dumps(quoted)}], review())
+        self.assertEqual(done.returncode, 1)
 
     def test_a_gateway_error_with_no_review_of_this_run_fails(self):
         older = [{"body": f"{MARKER}\nan earlier run", "submitted_at": "2026-11-10T09:00:00Z"}]
