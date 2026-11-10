@@ -302,7 +302,7 @@ def fetch_rules(base, changed):
     for path, text in texts.items():
         if text is None:
             continue
-        # A path that the base branch holds is a path of git, so it never leaves rules/.
+        # A path of a file on the base branch is a path of git, so it never leaves rules/.
         write(f'rules/{path}', text)
         note = '' if path in rule_files else ', which a rule file imports'
         if path in changed:
@@ -469,9 +469,9 @@ if delta_note:
     lines += ['', '## Delta since the last review', '', delta_note]
 if rules is not None:
     lines += ['', '## Rules on the base branch', '',
-              'The copies of the rule files that the base branch holds, which no change of this '
+              'The copies of the rule files on the base branch, which no change of this '
               'pull request reaches:', '']
-    lines += rules or [f"- none: the base branch `{pr['baseRefName']}` holds no root `CLAUDE.md`, "
+    lines += rules or [f"- none: the base branch `{pr['baseRefName']}` has no root `CLAUDE.md`, "
                        'no root `REVIEW.md` and no `CLAUDE.md` above a changed file']
 if checkout_note:
     lines += ['', '## Checkout', '', checkout_note]
