@@ -10,6 +10,8 @@ Env:   PR_URL         - URL of the pull request to review
 
 Writes <context-dir>/*, whose index is <context-dir>/README.md -- the file the
 prompt points the agent at, and which also names what could NOT be fetched.
+Prints the head that pr.json read, and nothing else, on stdout: the prep step
+reads it as the commit of the review, so every other print goes to stderr.
 
 Why this step exists rather than the agent running the same commands: the agent
 runs under an allowlist, so every fetch it makes costs turns, and the ones the
@@ -245,11 +247,13 @@ def keep_pull_request_lines(delta, changed, diff):
         if not hunks:
             kept.append(section)  # a rename, a mode change or a binary file has no hunk
             continue
-        hunks = [hunk for hunk in hunks
-                 if not any(line.startswith('+') for line in hunk.splitlines()[1:])
-                 or any(line in added for line in hunk.splitlines()[1:])]
-        if hunks:
-            kept.append(head + ''.join(hunks))
+        kept_hunks = []
+        for hunk in hunks:
+            plus = [line for line in hunk.splitlines()[1:] if line.startswith('+')]
+            if not plus or any(line in added for line in plus):
+                kept_hunks.append(hunk)
+        if kept_hunks:
+            kept.append(head + ''.join(kept_hunks))
     return ''.join(kept)
 
 

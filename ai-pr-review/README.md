@@ -8,8 +8,8 @@ reaches the LiteLLM gateway through the IT mTLS bastion.
 The agent submits one review of the type `COMMENT`. Each finding on a line of the diff is a native
 inline comment on that line. A finding outside the diff goes to the **Additional findings** of the
 review body. If GitHub refuses an anchor, the submit step submits the review again with the
-findings in the body. After any other error, the submit step looks for the review of the run on
-the pull request before it fails, so it never posts the same review twice. The review body follows the shape of
+findings in the body. After any other error, which GitHub may have applied, the submit step does
+not post again: it looks for the review of the run on the pull request before it fails. The review body follows the shape of
 [the body](https://github.com/Jahia/cortex/blob/main/.claude/skills/pr-review/references/threads.md#the-body)
 of the Cortex skill `pr-review`.
 
