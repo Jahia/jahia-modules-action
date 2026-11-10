@@ -107,8 +107,12 @@ runs:
         export CHECKOUT_ROOT
         # Best-effort by design (see the script): a review missing the CI state beats no
         # review, so a failed fetch is recorded in the index the agent reads, not raised.
-        python3 "$GITHUB_ACTION_PATH/src/prefetch-context.py" "$LOG_DIR/context"
+        REVIEWED_SHA=$(python3 "$GITHUB_ACTION_PATH/src/prefetch-context.py" "$LOG_DIR/context")
         echo "::endgroup::"
+        # The submit step names this head as the commit of the review. A step output, and not a
+        # file of the log directory, because the agent can write that directory.
+        [[ "$REVIEWED_SHA" =~ ^[0-9a-f]{40}$ ]] || REVIEWED_SHA=""
+        echo "reviewed_sha=$REVIEWED_SHA" >> "$GITHUB_OUTPUT"
         # The prompt is the call of the Cortex skill pr-review in its ci mode: Cortex owns the
         # review and the shape of the file, this action owns the CI around it.
         PR_KEY=$(python3 "$GITHUB_ACTION_PATH/src/build-prompt.py" "$LOG_DIR")
@@ -287,6 +291,9 @@ runs:
         PR_URL: ${{ inputs.pr_url }}
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
         PR_KEY: ${{ steps.prep.outputs.pr_key }}
+        REVIEWED_SHA: ${{ steps.prep.outputs.reviewed_sha }}
+        MARKER: ${{ inputs.marker }}
+        STARTED_AT: ${{ steps.prep.outputs.started_at }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
         FILE="$LOG_DIR/reviews/pr-$PR_KEY.review.json"
@@ -297,7 +304,7 @@ runs:
           echo "::error title=No review produced::The agent ended without writing the review file — nothing to submit, the review request stays pending. Start with denied-calls.md and review.transcript.log in the run's ai-pr-review-logs artifact: a refused Write (for example a harness prerequisite missing on the runner) is the usual cause."
           exit 1
         fi
-        python3 "$GITHUB_ACTION_PATH/src/submit-review.py" post "$FILE" "$PR_URL" "$LOG_DIR/context/pr.json"
+        python3 "$GITHUB_ACTION_PATH/src/submit-review.py" post "$FILE" "$PR_URL"
 
     - name: Publish the stored review to the job summary
       if: always() && inputs.post_review != 'true'

@@ -7,8 +7,9 @@ reaches the LiteLLM gateway through the IT mTLS bastion.
 
 The agent submits one review of the type `COMMENT`. Each finding on a line of the diff is a native
 inline comment on that line. A finding outside the diff goes to the **Additional findings** of the
-review body. If GitHub rejects an anchor, the submit step submits the review again with the
-findings in the body, so the review is never lost. The review body follows the shape of
+review body. If GitHub refuses an anchor, the submit step submits the review again with the
+findings in the body. After any other error, the submit step looks for the review of the run on
+the pull request before it fails, so it never posts the same review twice. The review body follows the shape of
 [the body](https://github.com/Jahia/cortex/blob/main/.claude/skills/pr-review/references/threads.md#the-body)
 of the Cortex skill `pr-review`.
 
@@ -152,20 +153,24 @@ these files:
   its first comment. A re-review finds its own open threads by that id.
 - `linked-issues.md`: the issues that the pull request closes.
 - `checks.md`: the CI state of the head commit.
-- `diff.patch`: the whole diff of the pull request.
+- `diff.patch`: the whole diff of the pull request, at the head that `pr.json` names.
 - `delta.patch`: the diff since the commit of the last review of the AI reviewer account whose body
   contains the marker. A re-review reads in it the lines that the last push adds. The diff keeps
-  only the files that the pull request changes, so a merge of the base adds no other file to it.
-  The file is absent on a first review. It is absent too when the branch was rewritten after that
-  review, and the `README.md` of the context then says so.
+  the hunks that add a line of the pull request and the hunks that only remove lines, so a merge of
+  the base brings no other hunk to it. A hunk of the base can stay when one of its added lines
+  repeats a line of the pull request. The file is absent on a first review. It is absent too when
+  the branch was rewritten after that review, and the `README.md` of the context then says so.
 - `rules/`: the copies, from the base branch, of the root `CLAUDE.md`, of the root `REVIEW.md` and
   of each `CLAUDE.md` above a changed file, with each file that they import as `@<path>`. A rule
   file that the pull request changes keeps its version of the base branch in this copy, and the
   `README.md` of the context names it.
 
-The review names as its commit the head that the prefetch read, so a push during the run stays in
-the next `delta.patch`. The `README.md` of the context also names the account that posts the
-reviews, because a review of another account can carry the marker too.
+The diff, the checkout and the review all name the head that `pr.json` reads, so a push during the
+run stays in the next `delta.patch`. The prep step passes that head to the submit step as a step
+output, because the agent can write the files of the log directory. When GitHub refuses that head,
+for example after a force-push during the run, the submit step fails and the review request stays
+pending. The `README.md` of the context also names the account that posts the reviews, because a
+review of another account can carry the marker too.
 
 Three things make this the prep step's job rather than the agent's:
 

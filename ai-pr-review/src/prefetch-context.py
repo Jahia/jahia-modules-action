@@ -28,6 +28,7 @@ import posixpath
 import re
 import subprocess
 import sys
+from urllib.parse import quote
 
 context_dir = sys.argv[1]
 pr_url = os.environ['PR_URL']
@@ -213,36 +214,49 @@ def render_linked_issues(raw):
 
 
 def fetch_changed_files(fallback):
-    """Each changed file as (path, additions, deletions): `gh pr view` stops at 100 files, REST does not.
+    """Return (files, complete), each file as (path, additions, deletions), from REST: `gh pr view` stops at 100.
 
-    On a failure, returns the `fallback` entries of pr.json, and names the gap."""
+    On a failure, the files are the `fallback` entries of pr.json, and `complete` is False."""
     ok, out = run(['gh', 'api', f'repos/{slug}/pulls/{number}/files', '--paginate'])
     if ok:
         try:
             return [(entry['filename'], entry['additions'], entry['deletions'])
-                    for entry in json.loads(out)]
+                    for entry in json.loads(out)], True
         except (ValueError, KeyError, TypeError) as exc:
             out = f'could not read the response: {exc}'
-    fail('changed files', f'{first_line(out)}; the list below may stop at 100 files')
-    return [(entry['path'], entry.get('additions'), entry.get('deletions')) for entry in fallback]
+    fail('changed files', f'{first_line(out)}; the list below, the filter of delta.patch and the '
+         'search of rules/ may stop at 100 files')
+    return [(entry['path'], entry.get('additions'), entry.get('deletions')) for entry in fallback], False
 
 
-def keep_changed_files(diff, changed):
-    """Keep the file sections of `diff` that name a file of the pull request."""
+def keep_pull_request_lines(delta, changed, diff):
+    """Keep the hunks of `delta` in a file of the pull request that add a line of `diff`.
+
+    A hunk with no added line stays, because a removal of the last push has no line in `diff`."""
     suffixes = tuple(f' b/{path}' for path in changed)
+    added = {line for line in diff.splitlines() if line.startswith('+') and not line.startswith('+++')}
     kept = []
-    for section in re.split(r'(?m)^(?=diff --git )', diff):
+    for section in re.split(r'(?m)^(?=diff --git )', delta):
         header = section.split('\n', 1)[0]
         # git quotes a path with unusual characters, which no suffix matches, so keep that section.
-        if header.endswith(suffixes) or '"' in header:
-            kept.append(section)
+        if not (header.endswith(suffixes) or '"' in header):
+            continue
+        head, *hunks = re.split(r'(?m)^(?=@@ )', section)
+        if not hunks:
+            kept.append(section)  # a rename, a mode change or a binary file has no hunk
+            continue
+        hunks = [hunk for hunk in hunks
+                 if not any(line.startswith('+') for line in hunk.splitlines()[1:])
+                 or any(line in added for line in hunk.splitlines()[1:])]
+        if hunks:
+            kept.append(head + ''.join(hunks))
     return ''.join(kept)
 
 
-def fetch_delta(reviews, head, login, changed):
+def fetch_delta(reviews, head, login, changed, diff):
     """Write delta.patch, the diff since the commit of the last review of `login` with the marker.
 
-    Returns the note of README.md, or '' when no such review exists or the fetch failed."""
+    Returns the note of README.md, or ''. With `changed` None, a partial list, every hunk stays."""
     marked = [review for review in reviews if review.get('commit_id')
               and (review.get('user') or {}).get('login') == login
               and marker in (review.get('body') or '')]
@@ -261,16 +275,28 @@ def fetch_delta(reviews, head, login, changed):
     if rewritten or status.strip() not in ('ahead', 'identical'):
         return (f'{read} That commit is not an ancestor of the head, because the branch was '
                 'rewritten, so this context has no `delta.patch`.')
-    ok, diff = run(['gh', 'api', '-H', 'Accept: application/vnd.github.diff', compare], timeout=300)
-    if not ok:
-        fail('delta.patch', diff)
-        return ''
-    write('delta.patch', keep_changed_files(diff, changed))
-    index.append(('delta.patch', 'The diff since the commit of the last review with the marker'))
     if status.strip() == 'identical':
-        return f'{read} That commit is the head, so `delta.patch` is empty.'
-    return (f'{read} `delta.patch` is the diff from that commit to the head `{head}`, in the files '
-            'that the pull request changes only: a merge of the base adds no other file to it.')
+        delta, note = '', f'{read} That commit is the head, so `delta.patch` is empty.'
+    else:
+        ok, delta = run(['gh', 'api', '-H', 'Accept: application/vnd.github.diff', compare], timeout=300)
+        if not ok:
+            fail('delta.patch', delta)
+            return ''
+        if changed is None:
+            note = (f'{read} `delta.patch` is the diff from that commit to the head `{head}`, with '
+                    'every file, because the list of the files of the pull request is partial.')
+        else:
+            delta = keep_pull_request_lines(delta, changed, diff)
+            note = (f'{read} `delta.patch` is the diff from that commit to the head `{head}`, with '
+                    'the hunks that add a line of the pull request and the hunks that only remove '
+                    'lines. A hunk of a merged base can stay when one of its added lines repeats a '
+                    'line of the pull request.')
+            if not delta:
+                note = (f'{read} The pushes since that commit change no line of the pull request, '
+                        'such as a merge of the base alone, so `delta.patch` is empty.')
+    write('delta.patch', delta)
+    index.append(('delta.patch', 'The diff since the commit of the last review with the marker'))
+    return note
 
 
 def fetch_rules(base, changed):
@@ -339,8 +365,8 @@ def fetch_blobs(base, paths):
     return False, out
 
 
-def make_checkout(root):
-    """Check the PR head out for the agent, returning the note the README carries.
+def make_checkout(root, head):
+    """Check out `head`, or the PR head when it is None, returning the note the README carries.
 
     The agent cannot do this itself: cortex denies `cd`, so it has no way into a clone
     it creates. Blobless keeps the clone cheap -- file contents arrive on first read.
@@ -360,7 +386,7 @@ def make_checkout(root):
                    '--filter=blob:none', '--no-tags'], timeout=300)
     if ok:
         ok, out = run(['git', '-C', target, 'fetch', '--no-tags', 'origin',
-                       f'pull/{number}/head'], timeout=300)
+                       head or f'pull/{number}/head'], timeout=300)
     if ok:
         ok, out = run(['git', '-C', target, 'checkout', '--detach', 'FETCH_HEAD'], timeout=120)
     if not ok:
@@ -414,7 +440,8 @@ try:
     pr = json.loads(metadata or '{}')
 except ValueError:
     pr = {}
-changed_files = fetch_changed_files(pr.get('files', []))
+head = pr.get('headRefOid')
+changed_files, complete = fetch_changed_files(pr.get('files', []))
 changed = [path for path, _, _ in changed_files]
 reviews = fetch('reviews.md',
                 'Every review already submitted, with its id, the commit it read and its body '
@@ -433,8 +460,11 @@ fetch('linked-issues.md', 'The issues this pull request closes, in full: the acc
 # exits 8 while checks are pending and 1 when one is failing -- both are the answer, not an error.
 fetch('checks.md', 'CI state of the head commit',
       ['gh', 'pr', 'checks', pr_url], allow_exit=(1, 8))
-fetch('diff.patch', 'The complete diff — read it from here, never from a command',
-      ['gh', 'pr', 'diff', pr_url], timeout=300)
+# The compare of the base and the head of pr.json is the diff of `gh pr diff`, pinned to that head.
+diff = fetch('diff.patch', 'The complete diff — read it from here, never from a command',
+             ['gh', 'api', '-H', 'Accept: application/vnd.github.diff',
+              f"repos/{slug}/compare/{quote(pr['baseRefName'], safe='/')}...{head}"]
+             if head and pr.get('baseRefName') else ['gh', 'pr', 'diff', pr_url], timeout=300)
 login = None
 if marker:
     ok, out = run(['gh', 'api', 'user', '--jq', '.login'])
@@ -443,15 +473,15 @@ if marker:
     else:
         fail('login of the token user', out)
 delta_note = ''
-if reviews and login and pr.get('headRefOid'):
-    delta_note = fetch_delta(json.loads(reviews), pr['headRefOid'], login, changed)
+if reviews and login and head and diff is not None:
+    delta_note = fetch_delta(json.loads(reviews), head, login, changed if complete else None, diff)
 if pr.get('baseRefName'):
     rules = fetch_rules(pr['baseRefName'], changed)
 else:
     rules = None
     fail('rules/', 'pr.json names no base branch')
 
-checkout_note = make_checkout(checkout_root) if checkout_root else ''
+checkout_note = make_checkout(checkout_root, head) if checkout_root else ''
 
 lines = [f'# Pre-fetched context for {slug}#{number}', '',
          'Every file below was fetched for you before you started. Read them instead of',
@@ -489,3 +519,5 @@ with open(os.path.join(context_dir, 'README.md'), 'w', encoding='utf-8') as fh:
     fh.write('\n'.join(lines))
 
 print(f'Pre-fetched {len(index)} files, {len(failures)} unavailable', file=sys.stderr)
+# The prep step passes this head to the submit step, outside the files that the agent can write.
+print(head or '')

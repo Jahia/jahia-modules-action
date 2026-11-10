@@ -1,7 +1,9 @@
 """Submit (or render) the structured review file the agent produced.
 
-Usage: submit-review.py post <review-file> <pr-url> [<pr.json of the context>]
+Usage: submit-review.py post <review-file> <pr-url>
        submit-review.py render <review-file>
+Env:   REVIEWED_SHA - optional, for post: the head that the prefetch read
+       MARKER, STARTED_AT - optional, for post: find a review of this run after an error
 
 The review file is the one the ci mode of the Cortex skill pr-review writes, in
 the shape of its contract (`.claude/skills/pr-review/assets/ci-review.md` in
@@ -14,16 +16,18 @@ does not know would post a wrong review.
 "post" submits ONE pull-request review via the GitHub API, always as COMMENT,
 with the findings attached as inline comments on the lines in question (a
 comment of several lines keeps its start_line/start_side). The review names as
-its commit the head that the prefetch read, from the pr.json of the context, so
-that the next re-review reads its delta from that commit. If GitHub rejects
-the payload (typically an anchor on a line that is not part of the diff), the review is
-re-submitted body-only with the findings folded into the body, then on the head
-of the pull request — a bad anchor never loses the review. "render" prints the
-review as markdown (review mode: job summary and artifact reading).
+its commit the head that the prefetch read, so that the next re-review reads its
+delta from that commit. If GitHub refuses the payload with a 422 (typically an
+anchor on a line that is not part of the diff), the review is submitted again
+body-only, with the findings folded into the body, so a bad anchor never loses
+the review. After any other error, a review of this run that is already on the
+pull request counts as submitted. "render" prints the review as markdown
+(review mode: job summary and artifact reading).
 
 "post" requires GH_TOKEN with pull-request write on the repository.
 """
 import json
+import os
 import re
 import subprocess
 import sys
@@ -81,8 +85,8 @@ def post(payload):
 
 
 if review.get('event', 'COMMENT') != 'COMMENT':
-    print(f"::warning::The review file asks for {review['event']!r} — submitting as COMMENT, "
-          'because the review never approves and never blocks the pull request')
+    print(f"::warning::The review file asks for {review['event']!r}. The review is submitted as "
+          'COMMENT, because it never approves and never blocks the pull request.')
 event = 'COMMENT'
 
 # The agent's confidence call, mirrored as a PR label after the review is submitted.
@@ -108,12 +112,12 @@ def gh(args, data=None):
 def apply_label():
     """Mirror the recommendation as a PR label. Best-effort: never fails the review."""
     name, color, description = LABELS[human]
-    # Create the label when the repo does not have it yet (422 when it already exists).
-    gh(['-X', 'POST', f'repos/{owner}/{repo}/labels', '--input', '-'],
-       {'name': name, 'color': color, 'description': description})
-    # The POST leaves an existing label as it is, so the PATCH brings its description up to date.
-    gh(['-X', 'PATCH', f'repos/{owner}/{repo}/labels/{quote(name, safe="")}', '--input', '-'],
-       {'color': color, 'description': description})
+    # Bring an existing label to the current description, and create the label when it is missing.
+    patched = gh(['-X', 'PATCH', f'repos/{owner}/{repo}/labels/{quote(name, safe="")}', '--input', '-'],
+                 {'color': color, 'description': description})
+    if patched.returncode != 0:
+        gh(['-X', 'POST', f'repos/{owner}/{repo}/labels', '--input', '-'],
+           {'name': name, 'color': color, 'description': description})
     for key, (other, _, _) in LABELS.items():
         if key != human:
             gh(['-X', 'DELETE',
@@ -137,33 +141,41 @@ def anchor(comment):
     return entry
 
 
-def reviewed_head():
-    """The head commit that the prefetch read, or None when the pr.json of the context has none."""
+def landed():
+    """True when a review of this run is on the pull request, although its POST answered an error."""
+    marker, started = os.environ.get('MARKER'), os.environ.get('STARTED_AT')
+    if not marker or not started:
+        return False
+    listed = subprocess.run(['gh', 'api', endpoint, '--paginate'], capture_output=True)
     try:
-        with open(sys.argv[4], encoding='utf-8') as fh:
-            return json.load(fh)['headRefOid']
-    except (IndexError, OSError, ValueError, KeyError, TypeError):
-        return None
+        return any(marker in (review.get('body') or '') and (review.get('submitted_at') or '') >= started
+                   for review in json.loads(listed.stdout))
+    except (ValueError, TypeError, AttributeError):
+        return False
 
 
-reviewed = reviewed_head()
-pinned = {'commit_id': reviewed} if reviewed else {}
-folded = {'event': event, 'body': fold(body, comments)}
+pinned = {'commit_id': os.environ['REVIEWED_SHA']} if os.environ.get('REVIEWED_SHA') else {}
 attempts = []
 if comments:
     attempts.append(({'event': event, 'body': body, 'comments': [anchor(c) for c in comments], **pinned},
                      f'with {len(comments)} inline comment(s)'))
-attempts.append(({**folded, **pinned}, 'body-only, with the findings folded in'))
-if pinned:
-    # A force-push during the run removes the commit that the prefetch read, and GitHub refuses it.
-    attempts.append((folded, 'body-only, on the head of the pull request'))
+attempts.append(({'event': event, 'body': fold(body, comments), **pinned},
+                 'body-only, with the findings folded in'))
 for payload, form in attempts:
     result = post(payload)
     if result.returncode == 0:
         print(f'Review submitted ({event}) {form}')
         apply_label()
         sys.exit(0)
-    sys.stderr.write(result.stderr.decode(errors='replace')[-800:] + '\n')
-    print(f'::warning::GitHub rejected the review payload {form}')
-print('::error::Could not submit the review — the review request stays pending')
+    error = result.stderr.decode(errors='replace')
+    sys.stderr.write(error[-800:] + '\n' + result.stdout.decode(errors='replace')[-800:] + '\n')
+    # Only a 422 says that GitHub created no review: after any other error, a retry can post twice.
+    if 'HTTP 422' not in error:
+        break
+    print(f'::warning::GitHub refused the review payload {form} (HTTP 422)')
+if landed():
+    print('GitHub answered an error, but the review of this run is on the pull request')
+    apply_label()
+    sys.exit(0)
+print('::error::Could not submit the review. The review request stays pending, and a re-request retries.')
 sys.exit(1)
