@@ -228,7 +228,7 @@ exists.
 
 ## Credentials in the output of a tool
 
-The run action passes `--plugin-dir "$CORTEX_SECRET_MASK_DIR"` to `claude -p`, so the session loads the
+The run action passes `--plugin-dir "$CORTEX_MASK_MOD_DIR"` to `claude -p`, so the session loads the
 `cortex-secret-mask` mod that [`ai-agent-setup`](../ai-agent-setup#credentials-in-the-output-of-a-tool)
 prepares. The mod masks each credential in the output of a tool before the model reads it, and
 `session.stream.jsonl` then shows the mask. After the session, the step writes the warning

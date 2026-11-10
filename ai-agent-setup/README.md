@@ -33,7 +33,7 @@ Provisions a self-hosted runner to run [Claude Code](https://code.claude.com) he
    harness refuses every `Write`, and an agent that finished its work cannot deliver its
    result file.
 7. Prepares the `cortex-secret-mask` mod of the cortex checkout: exports its path as
-   `CORTEX_SECRET_MASK_DIR`, adds the folder of `gitleaks` to the `PATH`, and runs the tests of
+   `CORTEX_MASK_MOD_DIR`, adds the folder of `gitleaks` to the `PATH`, and runs the tests of
    the mod. [Credentials in the output of a tool](#credentials-in-the-output-of-a-tool) states
    how each duty uses it.
 8. Runs two live checks and fails fast if either breaks: a hello-world round trip through the
@@ -94,7 +94,7 @@ gateway smoke test below, before any agent starts, so the job says so instead of
 ## Credentials in the output of a tool
 
 The setup prepares the `cortex-secret-mask` mod of the Cortex harness, and exports its path as
-`CORTEX_SECRET_MASK_DIR`. Each duty passes `${CORTEX_SECRET_MASK_DIR:+--plugin-dir "$CORTEX_SECRET_MASK_DIR"}`
+`CORTEX_MASK_MOD_DIR`. Each duty passes `${CORTEX_MASK_MOD_DIR:+--plugin-dir "$CORTEX_MASK_MOD_DIR"}`
 to `claude -p`, which keeps the path in one word and passes nothing when the variable is unset.
 The mod replaces each credential in the output of a tool with a mask such as
 `[MASKED: GitHub token]`, before the model reads that output. The job log and the stream file of
@@ -152,5 +152,5 @@ mod masks neither. Claude Code writes no request header and no environment varia
         working-directory: ${{ steps.setup.outputs.cortex_path }}
         run: |
           export PATH="$HOME/.local/bin:$PATH"
-          claude -p "your prompt" --allowedTools "Read" --permission-mode dontAsk ${CORTEX_SECRET_MASK_DIR:+--plugin-dir "$CORTEX_SECRET_MASK_DIR"}
+          claude -p "your prompt" --allowedTools "Read" --permission-mode dontAsk ${CORTEX_MASK_MOD_DIR:+--plugin-dir "$CORTEX_MASK_MOD_DIR"}
 ```
