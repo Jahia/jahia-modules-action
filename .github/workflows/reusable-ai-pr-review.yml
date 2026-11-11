@@ -137,7 +137,7 @@ jobs:
 
       - name: Review the pull request
         id: review
-        uses: jahia/jahia-modules-action/ai-pr-review@v2
+        uses: jahia/jahia-modules-action/ai-pr-review@test/ai-pr-review-492-consumer
         with:
           pr_url: ${{ github.event.pull_request.html_url }}
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}

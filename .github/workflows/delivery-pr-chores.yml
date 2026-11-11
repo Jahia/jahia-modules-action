@@ -16,7 +16,7 @@ on:
 
 jobs:
   WF:
-    uses: Jahia/jahia-modules-action/.github/workflows/reusable-delivery-pr-chores.yml@v2
+    uses: Jahia/jahia-modules-action/.github/workflows/reusable-delivery-pr-chores.yml@test/ai-pr-review-492-consumer
     permissions:
       pull-requests: write
       contents: read
