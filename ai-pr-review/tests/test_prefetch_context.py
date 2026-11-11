@@ -49,11 +49,13 @@ NO_THREAD = {"data": {"repository": {"pullRequest": {"reviewThreads": {
 
 
 def rules(reviews=(OWN, FORGED), status="ahead\n", status_exit=0, files_exit=0,
-          earlier=(["src/a.py", None], ["src/new.py", None]), diff_exit=0, comments=(), threads=NO_THREAD):
+          earlier=(["src/a.py", None], ["src/new.py", None]), earlier_exit=0, diff_exit=0, comments=(),
+          threads=NO_THREAD):
     pr = {"number": 1, "headRefOid": HEAD, "baseRefName": "main",
           "files": [{"path": "src/a.py", "additions": 1, "deletions": 0}]}
     return [
-        {"args": f"compare/main...{SINCE}", "out": json.dumps(list(earlier))},
+        {"args": f"compare/main...{SINCE}", "exit": earlier_exit, "err": "gh: HTTP 502\n",
+         "out": "" if earlier_exit else json.dumps(list(earlier))},
         {"args": f"compare/main...{HEAD}", "exit": diff_exit, "err": "gh: HTTP 502\n",
          "out": "" if diff_exit else PR_DIFF},
         {"args": "pr diff", "out": PR_DIFF},
@@ -122,6 +124,11 @@ class TestThePrefetch(unittest.TestCase):
     def test_a_cut_list_of_the_files_at_the_reviewed_commit_keeps_every_file(self):
         self.prefetch(rules(earlier=[[f"f{i}.py", None] for i in range(300)]))
         self.assertIn("other.txt", (self.context / "delta.patch").read_text(encoding="utf-8"))
+
+    def test_an_unread_list_of_the_files_at_the_reviewed_commit_keeps_every_file_and_says_why(self):
+        self.prefetch(rules(earlier_exit=1))
+        self.assertIn("other.txt", (self.context / "delta.patch").read_text(encoding="utf-8"))
+        self.assertIn("`files at the reviewed commit` — gh: HTTP 502", self.readme)
 
     def test_each_thread_gives_its_state_the_review_of_its_first_comment_and_its_replies(self):
         self.prefetch(rules(comments=THREADED, threads=RESOLVED))

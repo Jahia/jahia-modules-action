@@ -247,15 +247,18 @@ def keep_pull_request_files(delta, paths):
 
 
 def reviewed_files(base, since):
-    """The paths of the pull request at the reviewed commit, or None when the list may be partial."""
+    """The paths of the pull request at the reviewed commit, or None when the list may be partial or is unread."""
     ok, out = run(['gh', 'api', f'repos/{slug}/compare/{quote(base, safe="/")}...{since}',
                    '--jq', '.files | map([.filename, .previous_filename])'], timeout=300)
     try:
         files = json.loads(out) if ok else None
     except ValueError:
         files = None
+    if not isinstance(files, list):
+        fail('files at the reviewed commit', out if not ok else 'could not read the response')
+        return None
     # The compare lists 300 files at most, and says nothing when it cuts the list.
-    if not isinstance(files, list) or len(files) >= 300:
+    if len(files) >= 300:
         return None
     return [path for names in files for path in names if path]
 
@@ -292,7 +295,8 @@ def fetch_delta(reviews, head, login, base, changed):
         earlier = reviewed_files(base, since) if changed is not None else None
         if earlier is None:
             note = (f'{read} `delta.patch` is the diff from that commit to the head `{head}`, with '
-                    'every file, because a list of the files of the pull request is partial.')
+                    'every file, because a list of the files of the pull request is partial or '
+                    'could not be read.')
         else:
             delta = keep_pull_request_files(delta, set(changed) | set(earlier))
             note = (f'{read} `delta.patch` is the diff from that commit to the head `{head}`, in the '

@@ -87,9 +87,8 @@ def post(payload):
 if review.get('event', 'COMMENT') != 'COMMENT':
     print(f"::warning::The review file asks for {review['event']!r}. The review is submitted as "
           'COMMENT, because it never approves and never blocks the pull request.')
-event = 'COMMENT'
 
-# The agent's confidence call, mirrored as a PR label after the review is submitted.
+# The human review of the agent, mirrored as a PR label after the review is submitted.
 LABELS = {
     'not-needed': ('🤖 AI-only review OK', '0E8A16',
                    'The AI reviewer sees no need for a person to read this PR'),
@@ -160,17 +159,18 @@ def landed():
         return False
 
 
-pinned = {'commit_id': os.environ['REVIEWED_SHA']} if os.environ.get('REVIEWED_SHA') else {}
+reviewed = os.environ.get('REVIEWED_SHA')
+pinned = {'commit_id': reviewed} if reviewed else {}
 attempts = []
 if comments:
-    attempts.append(({'event': event, 'body': body, 'comments': [anchor(c) for c in comments], **pinned},
+    attempts.append(({'event': 'COMMENT', 'body': body, 'comments': [anchor(c) for c in comments], **pinned},
                      f'with {len(comments)} inline comment(s)'))
-attempts.append(({'event': event, 'body': fold(body, comments), **pinned},
+attempts.append(({'event': 'COMMENT', 'body': fold(body, comments), **pinned},
                  'body-only, with the findings folded in'))
 for payload, form in attempts:
     result = post(payload)
     if result.returncode == 0:
-        print(f'Review submitted ({event}) {form}')
+        print(f'Review submitted (COMMENT) {form}')
         apply_label()
         sys.exit(0)
     error = result.stderr.decode(errors='replace')

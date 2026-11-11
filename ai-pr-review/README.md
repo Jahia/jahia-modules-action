@@ -6,12 +6,12 @@ request. The agent runs from inside the [cortex harness](https://github.com/Jahi
 reaches the LiteLLM gateway through the IT mTLS bastion.
 
 The agent submits one review of the type `COMMENT`. Each finding on a line of the diff is a native
-inline comment on that line. A finding outside the diff goes to the **Additional findings** of the
-review body. If GitHub refuses an anchor, the submit step submits the review again with the
-findings in the body. After any other error, which GitHub may have applied, the submit step does
-not post again: it looks for the review of the run on the pull request before it fails. The review body follows the shape of
-[the body](https://github.com/Jahia/cortex/blob/main/.claude/skills/pr-review/references/threads.md#the-body)
-of the Cortex skill `pr-review`.
+inline comment on that line, and the review body carries each finding outside the diff. If GitHub
+refuses an anchor, the submit step submits the review again with the findings in the body. After
+any other error, which GitHub may have applied, the submit step does not post again: it looks for
+the review of the run on the pull request before it fails. The Cortex skill `pr-review` states the
+shape of the review body, in the contract that
+[Who owns what](#who-owns-what) names.
 
 The review never approves the pull request, never requests changes and never touches code. The
 submit step posts every review as `COMMENT`, whatever event the review file asks for. An approval of
@@ -20,8 +20,8 @@ approval gets it from a person. Blocking a pull request and merging it stay huma
 
 Every review also carries the **human review** of the agent, which states whether a person must
 read the pull request before it merges. In the review file, the field `human_review` has the value
-`not-needed`, `recommended` or `required`. When the body has an opening, its fold
-**Extended reasoning...** gives the reason. The submit step mirrors the value as a PR label:
+`not-needed`, `recommended` or `required`, and the review body gives the reason. The submit step
+mirrors the value as a PR label:
 
 - `🤖 AI-only review OK` (green) for `not-needed`;
 - `🤖 Human review recommended` (yellow) for `recommended`;
