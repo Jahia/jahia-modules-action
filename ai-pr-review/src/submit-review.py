@@ -166,7 +166,7 @@ def landed():
                    for review in json.loads(listed.stdout)):
                 return True
         except (ValueError, TypeError, AttributeError):
-            continue
+            pass
     return False
 
 

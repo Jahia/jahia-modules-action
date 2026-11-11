@@ -444,8 +444,8 @@ def make_checkout(root, head):
         ok, out = run(['git', '-C', target, 'checkout', '--detach', 'FETCH_HEAD'], timeout=120)
     if not ok:
         fail('checkout', out)
-        return ('No checkout is available (it could not be created: '
-                f'{first_line(out)}). Review from `diff.patch` alone.')
+        # The index can lack diff.patch too, so this note gives no order: ci.md states each case.
+        return f'No checkout is available (it could not be created: {first_line(out)}).'
     # The clone is the one thing the agent reads that the run artifact does not carry -- it
     # is large, and it is reproducible. Reproducible only from its commit, though, so the
     # index records that: without it the artifact cannot say what the agent actually read.
