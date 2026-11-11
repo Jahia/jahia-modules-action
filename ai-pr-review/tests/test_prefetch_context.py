@@ -50,7 +50,7 @@ NO_THREAD = {"data": {"repository": {"pullRequest": {"reviewThreads": {
 
 def rules(reviews=(OWN, FORGED), status="ahead\n", status_exit=0, files_exit=0,
           earlier=(["src/a.py", None], ["src/new.py", None]), earlier_exit=0, diff_exit=0, comments=(),
-          threads=NO_THREAD):
+          threads=NO_THREAD, files=("src/a.py",), blobs=()):
     pr = {"number": 1, "headRefOid": HEAD, "baseRefName": "main",
           "files": [{"path": "src/a.py", "additions": 1, "deletions": 0}]}
     return [
@@ -70,7 +70,8 @@ def rules(reviews=(OWN, FORGED), status="ahead\n", status_exit=0, files_exit=0,
         {"args": f"pr view {URL}", "out": "title: a change\n"},
         {"args": "pr checks", "out": "all checks pass\n"},
         {"args": "pulls/1/files", "exit": files_exit, "err": "gh: HTTP 502\n",
-         "out": json.dumps([{"filename": "src/a.py", "additions": 1, "deletions": 0}]) if not files_exit else ""},
+         "out": "" if files_exit else json.dumps([{"filename": path, "additions": 1, "deletions": 0}
+                                                  for path in files])},
         {"args": "pulls/1/reviews", "out": json.dumps(list(reviews))},
         {"args": "pulls/1/comments", "out": json.dumps(list(comments))},
         {"args": "reviewThreads", "out": json.dumps(threads)},
@@ -78,6 +79,7 @@ def rules(reviews=(OWN, FORGED), status="ahead\n", status_exit=0, files_exit=0,
         {"args": f"compare/{SINCE}...{HEAD}?per_page=1&page=2", "out": status, "exit": status_exit,
          "err": "gh: Not Found (HTTP 404)\n" if status_exit else ""},
         {"args": f"compare/{SINCE}...{HEAD}", "out": DELTA},
+        *blobs,
         {"args": "graphql --input", "stdin": "main:AGENTS.md",
          "out": json.dumps({"data": {"repository": {"f0": {"text": "the rules of the agents\n"}}}})},
         {"args": "graphql --input", "stdin": "main:CLAUDE.md",
@@ -105,11 +107,12 @@ class TestThePrefetch(unittest.TestCase):
         self.assertEqual(self.gh.calls("pr diff"), [])
         self.assertEqual(len(self.gh.calls(f"fetch --no-tags origin {HEAD}")), 1)
 
-    def test_a_failed_compare_of_the_head_falls_back_to_gh_pr_diff_and_says_so(self):
+    def test_a_failed_compare_of_the_head_gives_no_diff_of_another_head(self):
         self.prefetch(rules(diff_exit=1))
         self.assertEqual(len(self.gh.calls(f"compare/main...{HEAD}")), 2)
-        self.assertEqual((self.context / "diff.patch").read_text(encoding="utf-8"), PR_DIFF)
-        self.assertIn("from `gh pr diff` at the live head", self.readme)
+        self.assertFalse((self.context / "diff.patch").exists())
+        self.assertEqual(self.gh.calls("pr diff"), [])
+        self.assertIn("- `diff.patch` — the compare of the head of `pr.json` failed twice: gh: HTTP 502", self.readme)
 
     def test_the_delta_keeps_the_files_of_the_pull_request_since_the_own_review(self):
         self.prefetch(rules())
@@ -120,6 +123,12 @@ class TestThePrefetch(unittest.TestCase):
         self.assertNotIn("other.txt", delta)
         self.assertIn(f"read commit `{SINCE}`", self.readme)
         self.assertIn("This run posts as `jahia-ai`", self.readme)
+        self.assertEqual(len(self.gh.calls(f"compare/main...{SINCE}?per_page=1 ")), 1)
+
+    def test_a_list_of_3000_changed_files_keeps_every_file_of_the_delta_and_says_why(self):
+        self.prefetch(rules(files=[f"f{i}.py" for i in range(3000)]))
+        self.assertIn("other.txt", (self.context / "delta.patch").read_text(encoding="utf-8"))
+        self.assertIn("`changed files` — GitHub lists 3000 files at most", self.readme)
 
     def test_a_cut_list_of_the_files_at_the_reviewed_commit_keeps_every_file(self):
         self.prefetch(rules(earlier=[[f"f{i}.py", None] for i in range(300)]))
@@ -158,6 +167,16 @@ class TestThePrefetch(unittest.TestCase):
         self.prefetch(rules(files_exit=1))
         self.assertIn("other.txt", (self.context / "delta.patch").read_text(encoding="utf-8"))
         self.assertIn("`changed files`", self.readme)
+
+    def test_the_rules_query_100_paths_at_a_time_and_keep_the_batches_that_answer(self):
+        # 150 directories and the 2 root files make 2 batches, and the second one fails twice.
+        self.prefetch(rules(files=[f"d{i:03}/x.py" for i in range(150)],
+                            blobs=[{"args": "graphql --input", "stdin": "main:d149/CLAUDE.md", "exit": 1,
+                                    "err": "gh: HTTP 502\n"}]))
+        batches = [call for call in self.gh.calls("graphql --input") if "main:d" in call["stdin"]]
+        self.assertEqual(len(batches), 3)
+        self.assertTrue((self.context / "rules" / "CLAUDE.md").exists())
+        self.assertIn("- `rules/` — 52 rule paths from `d098/CLAUDE.md`: gh: HTTP 502", self.readme)
 
     def test_the_rules_copy_each_file_that_a_rule_file_imports_inside_the_repository(self):
         self.prefetch(rules())

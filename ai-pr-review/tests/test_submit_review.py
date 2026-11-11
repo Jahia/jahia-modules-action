@@ -1,5 +1,5 @@
 """The submit step: one COMMENT review on the head that the prefetch read, a second try only when GitHub
-refuses an anchor, and a review of this run already on the pull request after any other error."""
+refuses an anchor, and a review of this run on the pull request within three searches after any other error."""
 
 import json
 import unittest
@@ -27,7 +27,8 @@ class TestTheSubmit(unittest.TestCase):
         path = self.gh.dir / "review.json"
         path.write_text(json.dumps(review_file), encoding="utf-8")
         return self.gh.run("submit-review.py", "post", str(path), URL,
-                           env={"REVIEWED_SHA": HEAD, "MARKER": MARKER, "STARTED_AT": "2026-11-10T10:00:00Z"})
+                           env={"REVIEWED_SHA": HEAD, "MARKER": MARKER, "STARTED_AT": "2026-11-10T10:00:00Z",
+                                "LANDED_PAUSE": "0"})
 
     def posts(self):
         return [json.loads(call["stdin"]) for call in self.gh.calls(POST)]
@@ -47,11 +48,11 @@ class TestTheSubmit(unittest.TestCase):
         self.assertIn("a finding", second["body"])
         self.assertEqual(second["commit_id"], HEAD)
 
-    def test_a_refused_head_fails_with_no_post_on_another_commit(self):
-        done = self.submit([{"args": POST, **REFUSED}, {"args": "pulls/1/reviews --paginate", "out": "[]"}],
-                           review(comments=[FINDING]))
+    def test_a_refused_head_fails_with_no_post_on_another_commit_and_no_search(self):
+        done = self.submit([{"args": POST, **REFUSED}], review(comments=[FINDING]))
         self.assertEqual(done.returncode, 1)
         self.assertEqual([post["commit_id"] for post in self.posts()], [HEAD, HEAD])
+        self.assertEqual(self.gh.calls("pulls/1/reviews --paginate"), [])
 
     def test_a_gateway_error_is_not_retried_and_a_review_of_this_run_counts(self):
         landed = [{"user": {"login": "jahia-ai"}, "body": f"{MARKER}\nLGTM.", "submitted_at": "2026-11-10T10:05:00Z"}]
@@ -60,6 +61,14 @@ class TestTheSubmit(unittest.TestCase):
                            review(comments=[FINDING]))
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
         self.assertEqual(len(self.posts()), 1)
+
+    def test_a_review_that_github_creates_after_the_error_counts_at_a_later_search(self):
+        landed = [{"user": {"login": "jahia-ai"}, "body": f"{MARKER}\nLGTM.", "submitted_at": "2026-11-10T10:05:00Z"}]
+        done = self.submit([{"args": POST, **GATEWAY},
+                            {"args": "pulls/1/reviews --paginate", "from_call": 2, "out": json.dumps(landed)},
+                            {"args": "pulls/1/reviews --paginate", "out": "[]"}], review())
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        self.assertEqual(len(self.gh.calls("pulls/1/reviews --paginate")), 2)
 
     def test_a_review_of_another_account_with_the_marker_does_not_count(self):
         quoted = [{"user": {"login": "mallory"}, "body": f"{MARKER}\nquoted", "submitted_at": "2026-11-10T10:05:00Z"}]
@@ -73,6 +82,7 @@ class TestTheSubmit(unittest.TestCase):
                             {"args": "pulls/1/reviews --paginate", "out": json.dumps(older)}], review())
         self.assertEqual(done.returncode, 1)
         self.assertEqual(len(self.posts()), 1)
+        self.assertEqual(len(self.gh.calls("pulls/1/reviews --paginate")), 3)
 
 
 if __name__ == "__main__":

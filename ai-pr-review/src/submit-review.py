@@ -4,6 +4,7 @@ Usage: submit-review.py post <review-file> <pr-url>
        submit-review.py render <review-file>
 Env:   REVIEWED_SHA - optional, for post: the head that the prefetch read
        MARKER, STARTED_AT - optional, for post: find a review of this run after an error
+       LANDED_PAUSE - optional, for post: the seconds between two of those searches, 10 by default
 
 The review file is the one the ci mode of the Cortex skill pr-review writes, in
 the shape of its contract (`.claude/skills/pr-review/assets/ci-review.md` in
@@ -21,7 +22,8 @@ delta from that commit. If GitHub refuses the payload with a 422 (typically an
 anchor on a line that is not part of the diff), the review is submitted again
 body-only, with the findings folded into the body, so a bad anchor never loses
 the review. After any other error, a review of this run that is already on the
-pull request counts as submitted. "render" prints the review as markdown
+pull request counts as submitted. GitHub can create the review after it answers
+the error, so the search runs three times. "render" prints the review as markdown
 (review mode: job summary and artifact reading).
 
 "post" requires GH_TOKEN with pull-request write on the repository.
@@ -31,6 +33,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from urllib.parse import quote
 
 # The contract versions of the review file this script reads.
@@ -146,17 +149,25 @@ def landed():
     if not marker or not started:
         return False
     login = subprocess.run(['gh', 'api', 'user', '--jq', '.login'], capture_output=True, text=True)
-    listed = subprocess.run(['gh', 'api', endpoint, '--paginate'], capture_output=True)
-    if login.returncode != 0 or listed.returncode != 0:
+    if login.returncode != 0:
         return False
-    try:
-        # The verify step of action.yml compares the same way: a review strictly after the start.
-        return any((review.get('user') or {}).get('login') == login.stdout.strip()
+    pause = float(os.environ.get('LANDED_PAUSE', '10'))
+    for search in range(3):
+        if search:
+            time.sleep(pause)
+        listed = subprocess.run(['gh', 'api', endpoint, '--paginate'], capture_output=True)
+        if listed.returncode != 0:
+            continue
+        try:
+            # The verify step of action.yml also requires a review strictly after the start.
+            if any((review.get('user') or {}).get('login') == login.stdout.strip()
                    and marker in (review.get('body') or '')
                    and (review.get('submitted_at') or '') > started
-                   for review in json.loads(listed.stdout))
-    except (ValueError, TypeError, AttributeError):
-        return False
+                   for review in json.loads(listed.stdout)):
+                return True
+        except (ValueError, TypeError, AttributeError):
+            continue
+    return False
 
 
 reviewed = os.environ.get('REVIEWED_SHA')
@@ -179,7 +190,7 @@ for payload, form in attempts:
     if 'HTTP 422' not in error:
         break
     print(f'::warning::GitHub refused the review payload {form} (HTTP 422)')
-if landed():
+if 'HTTP 422' not in error and landed():
     print('GitHub answered an error, but the review of this run is on the pull request')
     apply_label()
     sys.exit(0)

@@ -72,7 +72,9 @@ Two deterministic mechanisms make this idempotent:
 - **The review request is *fulfilled* by the review**: the agent submits with the `jahia-ai`
   account's token, so GitHub clears the pending request the moment the review lands. A
   crashed agent submits nothing, the request stays pending, and re-running the workflow (or
-  re-requesting) retries.
+  re-requesting) retries. After an error other than HTTP 422, the submit step looks three times,
+  10 seconds apart, for a review of this run, because GitHub can create a review after it
+  answers an error.
 
 As soon as the guard passes, a **status comment** is posted on the PR as the reviewer
 account, and that one comment tracks the stage of the run: "waiting for a runner" at the
@@ -154,19 +156,22 @@ these files:
 - `linked-issues.md`: the issues that the pull request closes.
 - `checks.md`: the CI state of the head commit.
 - `diff.patch`: the whole diff of the pull request, at the head that `pr.json` names. When the
-  compare of that head fails twice, `gh pr diff` gives the diff of the live head, and the index
-  says so.
+  compare of that head fails twice, the context has no `diff.patch`, because a diff of the live
+  head can name another commit than the checkout and the review. The `README.md` of the context
+  then names the error.
 - `delta.patch`: the diff since the commit of the last review of the AI reviewer account whose body
   contains the marker. A re-review reads in it the lines that the last push adds. The diff keeps
   the files that the pull request changes at that commit or at the head, renames included, so a
   merge of the base adds no other file to it. Its hunks can still stay in a file of the pull
-  request. The diff keeps every file when one of the two lists of files may be partial. The file
+  request. The diff keeps every file when one of the two lists of files may be partial: GitHub
+  lists 3000 files of a pull request and 300 files of a compare at most. The file
   is absent on a first review. It is absent too when the branch was rewritten after that review,
   and the `README.md` of the context then says so.
 - `rules/`: the copies, from the base branch, of the root `CLAUDE.md`, of the root `REVIEW.md` and
   of each `CLAUDE.md` above a changed file, with each file that they import as `@<path>`. A rule
   file that the pull request changes keeps its version of the base branch in this copy, and the
-  `README.md` of the context names it.
+  `README.md` of the context names it. The prefetch reads these files 100 paths at a time, and
+  the `README.md` of the context names a batch that it could not read.
 
 The diff, the checkout and the review all name the head that `pr.json` reads, so a push during the
 run stays in the next `delta.patch`. The prep step passes that head to the submit step as a step

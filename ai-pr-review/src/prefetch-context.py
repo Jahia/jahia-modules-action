@@ -63,6 +63,10 @@ query($owner: String!, $repo: String!, $number: Int!, $after: String) {
 
 # An import of Claude Code: `@` after a space or a line start, then a relative path.
 IMPORT = re.compile(r'(?:^|\s)@((?:\.{1,2}/)*[\w.-]+(?:/[\w.-]+)*)')
+# The most files that `pulls/{n}/files` lists.
+MAX_LISTED_FILES = 3000
+# The paths of one GraphQL query: 100 paths take 2 s, and 500 come close to the limit of 10 s.
+BLOB_BATCH = 100
 
 
 def run(args, timeout=120, allow_exit=(), stdin=None):
@@ -223,9 +227,14 @@ def fetch_changed_files(fallback):
     if ok:
         try:
             entries = json.loads(out)
+            # GitHub lists 3000 files at most, and says nothing when it cuts the list.
+            complete = len(entries) < MAX_LISTED_FILES
+            if not complete:
+                fail('changed files', f'GitHub lists {MAX_LISTED_FILES} files at most; the list below '
+                     'and the search of rules/ may stop there, and delta.patch keeps every file')
             return ([(entry['filename'], entry['additions'], entry['deletions']) for entry in entries],
                     [entry['previous_filename'] for entry in entries if entry.get('previous_filename')],
-                    True)
+                    complete)
         except (ValueError, KeyError, TypeError) as exc:
             out = f'could not read the response: {exc}'
     fail('changed files', f'{first_line(out)}; the list below and the search of rules/ may stop at '
@@ -248,7 +257,8 @@ def keep_pull_request_files(delta, paths):
 
 def reviewed_files(base, since):
     """The paths of the pull request at the reviewed commit, or None when the list may be partial or is unread."""
-    ok, out = run(['gh', 'api', f'repos/{slug}/compare/{quote(base, safe="/")}...{since}',
+    # One commit per page: the files sit on the first page, and the commits are not read.
+    ok, out = run(['gh', 'api', f'repos/{slug}/compare/{quote(base, safe="/")}...{since}?per_page=1',
                    '--jq', '.files | map([.filename, .previous_filename])'], timeout=300)
     try:
         files = json.loads(out) if ok else None
@@ -311,7 +321,9 @@ def fetch_delta(reviews, head, login, base, changed):
 
 
 def fetch_rules(base, changed):
-    """Copy the rule files of the base branch under rules/, and return the lines of README.md or None.
+    """Copy the rule files of the base branch under rules/, and return the lines of README.md.
+
+    Returns None when a batch of paths is unread and no rule file was read.
 
     The rule files are the root CLAUDE.md and REVIEW.md, each CLAUDE.md above a changed file, and
     each file that one of them imports."""
@@ -324,12 +336,11 @@ def fetch_rules(base, changed):
     rule_files = ['CLAUDE.md', 'REVIEW.md'] + [f'{directory}/CLAUDE.md' for directory in sorted(dirs)]
     texts = {}
     wanted = rule_files
+    unread = False
     # The rule files, then the files they import, five hops deep as Claude Code follows them.
     for _ in range(6):
-        ok, found = fetch_blobs(base, wanted)
-        if not ok:
-            fail('rules/', found)
-            return None
+        found = fetch_blobs(base, wanted)
+        unread = unread or len(found) < len(wanted)
         texts.update(found)
         wanted = list(dict.fromkeys(target for path, text in found.items() if text
                                     for target in rule_imports(path, text) if target not in texts))
@@ -345,7 +356,8 @@ def fetch_rules(base, changed):
         if path in changed:
             note += ', and this pull request changes it'
         lines.append(f'- `rules/{path}` — `{path}` on the base branch `{base}`{note}')
-    return lines
+    # With no rule file read and a batch unread, the README cannot say that the base has none.
+    return None if unread and not lines else lines
 
 
 def rule_imports(path, text):
@@ -359,27 +371,35 @@ def rule_imports(path, text):
 
 
 def fetch_blobs(base, paths):
-    """Return (ok, texts), where texts maps each path to its text on `base`, None when it has none.
+    """Map each path of `paths` to its text on `base`, or to None when it has none.
 
-    On a failure, the second value is the reason."""
-    # One query for every path: an alias per path, and json.dumps writes a valid GraphQL string.
-    fields = ' '.join(f'f{i}: object(expression: {json.dumps(f"{base}:{path}")}) {{ ... on Blob {{ text }} }}'
-                      for i, path in enumerate(paths))
-    query = f'query {{ repository(owner: {json.dumps(owner)}, name: {json.dumps(repo)}) {{ {fields} }} }}'
-    ok, out = run(['gh', 'api', 'graphql', '--input', '-'], stdin=json.dumps({'query': query}))
-    if ok:
-        try:
-            blobs = json.loads(out)['data']['repository']
-            return True, {path: (blobs.get(f'f{i}') or {}).get('text') for i, path in enumerate(paths)}
-        except (ValueError, KeyError, TypeError, AttributeError) as exc:
-            out = f'could not read the response: {exc}'
-    return False, out
+    A batch that fails twice leaves its paths out of the map, and the index names it."""
+    texts = {}
+    for start in range(0, len(paths), BLOB_BATCH):
+        batch = paths[start:start + BLOB_BATCH]
+        # An alias per path, and json.dumps writes a valid GraphQL string.
+        fields = ' '.join(f'f{i}: object(expression: {json.dumps(f"{base}:{path}")}) {{ ... on Blob {{ text }} }}'
+                          for i, path in enumerate(batch))
+        query = f'query {{ repository(owner: {json.dumps(owner)}, name: {json.dumps(repo)}) {{ {fields} }} }}'
+        for _ in range(2):
+            ok, out = run(['gh', 'api', 'graphql', '--input', '-'], stdin=json.dumps({'query': query}))
+            if ok:
+                try:
+                    blobs = json.loads(out)['data']['repository']
+                    texts.update({path: (blobs.get(f'f{i}') or {}).get('text') for i, path in enumerate(batch)})
+                    break
+                except (ValueError, KeyError, TypeError, AttributeError) as exc:
+                    out = f'could not read the response: {exc}'
+        else:
+            fail('rules/', f'{len(batch)} rule paths from `{batch[0]}`: {first_line(out)}')
+    return texts
 
 
 def fetch_diff(head, base):
     """Write diff.patch: the compare of the base and `head`, which equals `gh pr diff` pinned to it.
 
-    After a failed compare and its retry, `gh pr diff` reads the live head, and the index says so."""
+    A failed compare and its retry leave no diff.patch. With no head in `pr.json`, `gh pr diff` reads
+    the live head, and the index says so."""
     description = 'The complete diff — read it from here, never from a command'
     if head and base:
         pinned = ['gh', 'api', '-H', 'Accept: application/vnd.github.diff',
@@ -390,9 +410,12 @@ def fetch_diff(head, base):
                 write('diff.patch', diff)
                 index.append(('diff.patch', f'{description}, at the head `{head}`'))
                 return
-        description += (', from `gh pr diff` at the live head, because the compare of the head of '
-                        f'`pr.json` failed: {first_line(diff)}')
-    fetch('diff.patch', description, ['gh', 'pr', 'diff', pr_url], timeout=300)
+        # `gh pr diff` reads the live head, which a push can move away from the checkout and the
+        # commit of the review, so this context gives no diff of another head.
+        fail('diff.patch', f'the compare of the head of `pr.json` failed twice: {first_line(diff)}')
+        return
+    fetch('diff.patch', f'{description}, from `gh pr diff` at the live head, because `pr.json` names '
+          'no head or no base', ['gh', 'pr', 'diff', pr_url], timeout=300)
 
 
 def make_checkout(root, head):
