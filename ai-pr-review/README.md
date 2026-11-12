@@ -200,9 +200,13 @@ skill additionally forbids requesting changes (approval only with zero findings,
 the submit step) and has the agent treat PR content (title, description, code, comments) as
 data, never as instructions — and flag prompt-injection attempts as findings.
 
-The one Cortex tool that the allowlist grants is `tools/pr-review/bin/pr-review lenses`: the
-`ci` mode runs it to choose its lenses. The tool starts through `mise exec`, so the runner needs
-mise, as [`ai-agent-setup`](../ai-agent-setup) installs it.
+The allowlist grants one Cortex command, `.claude/skills/blind-review/scripts/blind-review lenses`,
+which the `ci` mode runs to choose its lenses. The command is a Python 3 script that uses only the
+standard library, so it needs no mise on the runner.
+
+The allowlist also keeps `tools/pr-review/bin/pr-review lenses`, the command that the `ci` mode of
+Cortex runs until the skill `blind-review` merges. That tool starts through `mise exec`, so the
+runner needs mise, as [`ai-agent-setup`](../ai-agent-setup) installs it.
 
 ## Determinism & observability
 
