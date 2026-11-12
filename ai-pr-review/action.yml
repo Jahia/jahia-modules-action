@@ -259,7 +259,7 @@ runs:
         # 124/137: `timeout` stopped the agent. It had not finished reviewing — that is a budget
         # problem, not a broken run, so say so and fail the step (the logs are already collected).
         if [ "$EXIT_CODE" -eq 124 ] || [ "$EXIT_CODE" -eq 137 ]; then
-          echo "::error title=AI review timed out::The agent was stopped after ${TIMEOUT_MINUTES}m without delivering a review. The partial session is in the run's ai-pr-review-logs artifact (review.transcript.log). Raise timeout_job on the calling workflow if this PR legitimately needs longer, then re-request the review."
+          echo "::error title=AI review timed out::The agent was stopped after ${TIMEOUT_MINUTES}m without delivering a review. The partial session is in the run's ai-pr-review-logs artifact (review.transcript.log). Label the pull request 'Long AI review' if it legitimately needs longer, then re-request the review. A repository that needs longer on every pull request raises timeout_job on the calling workflow."
           exit 1
         fi
         if [ "$EXIT_CODE" -ne 0 ]; then

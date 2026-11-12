@@ -270,6 +270,13 @@ So a review that runs out of time is meant to fail on the agent budget, never on
 big diff, a gateway that rate-limits), raise `timeout_job` on the caller — the workflow
 forwards it as `job_timeout_minutes` and the agent budget follows.
 
+One pull request gets a longer review with a label, and no change to a workflow. A label whose
+name contains `Long AI review` (any casing, such as `⏱️ Long AI review`) makes the job use
+`timeout_job_long` (default **60 minutes**, so an agent budget of **55 minutes**) in place of
+`timeout_job`. The workflow reads the labels when the review is requested: add the label, then
+request the review from the reviewer again. The label stays on the pull request, so each later
+review of it is long too.
+
 The reserve is subtracted inside the action rather than in the workflow's `with:` block on
 purpose: **GitHub Actions expressions have no arithmetic operators**, so `${{ inputs.x - 5 }}`
 is not a value but a workflow syntax error, and a workflow that fails to compile takes every
@@ -316,5 +323,5 @@ plus the mTLS bastion surface
 
 Tuning inputs on `reusable-ai-pr-review.yml` (all optional — `reusable-delivery-pr-chores.yml`
 calls it with the defaults): `reviewer` (default `jahia-ai`), `post_review` (default `true`;
-`false` = review mode), `model` (default `opus`), `instance_type`, `timeout_job`,
+`false` = review mode), `model` (default `opus`), `instance_type`, `timeout_job`, `timeout_job_long`,
 `cortex_ref`, `claude_code_version`, `tunnel_hosts`.
