@@ -195,6 +195,9 @@ could reach the forge or rewrite history (`git push/commit/checkout/reset/remote
 execute (`--upload-pack`). The agent itself never posts anything: `gh pr review` is denied
 too — the agent writes the review body to a file, and submitting that file is a
 deterministic action step (running with the jahia-ai token) after the agent finishes.
+The deny rule `Edit(./**)` keeps the cortex checkout as `ai-agent-setup` checked it out. An Edit
+rule applies to the `Write` tool and to a Bash redirection too, so every file that the agent
+writes lands in the log directory, outside the checkout.
 `--permission-mode dontAsk` denies everything not explicitly allowed. The `ci` mode of the
 skill additionally forbids requesting changes (approval only with zero findings, re-enforced by
 the submit step) and has the agent treat PR content (title, description, code, comments) as
