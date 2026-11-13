@@ -83,10 +83,10 @@ def split_tools(value):
     for entry in (e for e in entries if e):
         match = re.fullmatch(r'Bash\((.*)\)', entry)
         if match:
-            # `git log:*` is a prefix, which the prompt marks with ` …`; `git branch -a` is the
-            # whole command.
+            # `git log:*` and `git log *` are a prefix, which the prompt marks with ` …`;
+            # `git branch -a` is the whole command.
             rule = match.group(1).strip()
-            shell.append(f'{rule[:-2]} …' if rule.endswith(':*') else rule)
+            shell.append(f'{rule[:-2].rstrip()} …' if rule.endswith((':*', ' *')) else rule)
         else:
             plain.append(entry)
     return plain, shell
@@ -106,7 +106,7 @@ denied_plain, denied_shell = split_tools(os.environ.get('DISALLOWED_TOOLS', ''))
 
 
 def bullets(commands):
-    """One command prefix per line, so a long list stays readable in the log."""
+    """One shell command per line, so a long list stays readable in the log."""
     return [f'  - `{command}`' for command in commands]
 
 
