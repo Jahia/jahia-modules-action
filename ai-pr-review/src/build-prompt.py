@@ -5,7 +5,8 @@ Env:   PR_URL            - URL of the pull request to review
        MARKER            - hidden marker string, the first line of the review body
        AGENT             - human-readable identity of the agent (CLI + model)
        RUN_URL           - URL of the workflow run performing this review
-       ALLOWED_TOOLS     - the --allowedTools value the agent will run under
+       ALLOWED_TOOLS     - the allowed_tools input, to which this script adds the rules
+                           that name a path of this run
        DISALLOWED_TOOLS  - the --disallowedTools value
 
 Cortex owns the review: its method, its decision rules and the shape of the review file
@@ -23,15 +24,15 @@ The agent never posts to GitHub itself: it writes the review file
 <log-dir>/reviews/pr-<key>.review.json, and posting it (when post_review is true) is a
 deterministic step of the action.
 
-Writes <log-dir>/review.prompt.md (the call) and <log-dir>/review.system.md (the tool
-surface), then prints the PR key (owner-repo-number, used for file names) to stdout.
+Writes <log-dir>/review.prompt.md (the call), <log-dir>/review.system.md (the tool
+surface) and <log-dir>/allowed-tools.txt (the --allowedTools value), then prints the PR key (owner-repo-number, used for file names) to stdout.
 """
 import os
 import re
 import shlex
 import sys
 
-log_dir = sys.argv[1]
+log_dir = os.path.abspath(sys.argv[1])
 pr_url = os.environ['PR_URL']
 
 match = re.search(r'([^/]+)/([^/]+)/pull/(\d+)$', pr_url)
@@ -88,7 +89,15 @@ def split_tools(value):
     return plain, shell
 
 
-allowed_plain, allowed_shell = split_tools(os.environ.get('ALLOWED_TOOLS', ''))
+# The rules that name a path of this run: the one directory the agent writes in, and the
+# check of the review file that the ci mode runs. `/` + an absolute path gives the `//<path>`
+# form that Claude Code reads from the filesystem root.
+allowed_tools = ','.join(filter(None, [
+    os.environ.get('ALLOWED_TOOLS', ''),
+    f'Edit(/{log_dir}/**)',
+    f'Bash(python3 -m json.tool {review_file})',
+]))
+allowed_plain, allowed_shell = split_tools(allowed_tools)
 denied_plain, denied_shell = split_tools(os.environ.get('DISALLOWED_TOOLS', ''))
 
 
@@ -131,8 +140,7 @@ surface += [
     f'- Every file you write goes under `{log_dir}`, where the review file and `--collect` are.',
     '  A write in the working directory, the cortex checkout, is refused, through Write and',
     '  through a shell redirection alike, so a scratch file goes under that directory too.',
-    '  `python3 -m json.tool <file>` checks one file. Its form with a second file, which it',
-    '  writes, is refused.',
+    '  `python3 -m json.tool` runs on the review file, in the one form that the list names.',
     '- cortex routes every `gh` write through `tools/gh-wrapper/bin/gh-wrapper`. You make no',
     '  write, and the list above carries the reads under both spellings, so either route',
     '  works. Use the one the list names; never retry a denied call through the other.',
@@ -147,5 +155,7 @@ with open(os.path.join(log_dir, 'review.prompt.md'), 'w', encoding='utf-8') as f
     fh.write(CALL + '\n')
 with open(os.path.join(log_dir, 'review.system.md'), 'w', encoding='utf-8') as fh:
     fh.write('\n'.join(surface) + '\n')
+with open(os.path.join(log_dir, 'allowed-tools.txt'), 'w', encoding='utf-8') as fh:
+    fh.write(allowed_tools + '\n')
 
 print(key)
