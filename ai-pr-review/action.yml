@@ -187,6 +187,9 @@ runs:
         PR_KEY: ${{ steps.prep.outputs.pr_key }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
+        # The input, plus the rules that name a path of this run, for the CLI and denied-calls.py.
+        ALLOWED_TOOLS=$(cat "$LOG_DIR/allowed-tools.txt")
+        export ALLOWED_TOOLS
         # The agent gets a budget of its own, below the job timeout. Reaching it is a plain
         # step failure we control: the steps below still render the trace and the transcript,
         # and the workflow still uploads the artifact. A job timeout instead cancels the job
@@ -237,7 +240,7 @@ runs:
         timeout --signal=TERM --kill-after=30s "${TIMEOUT_MINUTES}m" \
           claude -p "$(cat "$LOG_DIR/review.prompt.md")" \
           --append-system-prompt "$(cat "$LOG_DIR/review.system.md")" \
-          --allowedTools "$(cat "$LOG_DIR/allowed-tools.txt")" \
+          --allowedTools "$ALLOWED_TOOLS" \
           --disallowedTools "$DISALLOWED_TOOLS" \
           --add-dir "$LOG_DIR" \
           --permission-mode dontAsk \
