@@ -184,8 +184,8 @@ for its own background work, which always comes from the haiku alias.
 ## Review-only guarantee
 
 The agent runs with an explicit allow list AND deny list (`--allowedTools` /
-`--disallowedTools`). The allow list grants read/search tools, local file writes (staging
-the review body — the runner is ephemeral, so nothing leaves the machine), granular
+`--disallowedTools`). The allow list grants read/search tools, file writes in the log directory
+(staging the review body — the runner is ephemeral, so nothing leaves the machine), granular
 read-only `git`/`gh` commands (each under both the bare and the `gh-wrapper` spelling, and
 `git -C <dir> <read>` for the pre-fetched checkout). The deny list — and a deny rule beats an allow rule, including one the
 cloned repository's own settings could carry — names every editing tool, every way a review
@@ -195,9 +195,13 @@ could reach the forge or rewrite history (`git push/commit/checkout/reset/remote
 execute (`--upload-pack`). The agent itself never posts anything: `gh pr review` is denied
 too — the agent writes the review body to a file, and submitting that file is a
 deterministic action step (running with the jahia-ai token) after the agent finishes.
-The deny rule `Edit(./**)` keeps the cortex checkout as `ai-agent-setup` checked it out. An Edit
-rule applies to the `Write` tool and to a Bash redirection too, so every file that the agent
-writes lands in the log directory, outside the checkout.
+The default deny list carries `Edit(./**)`, which denies a write in the cortex checkout, the
+working directory of the agent. A path rule of Edit applies to the `Write` tool and to the target
+of a Bash redirection too. The run adds one write rule, `Edit(/<log dir>/**)`, which admits the
+log directory, outside the checkout. The allow list holds no command that writes a file on its
+own, and the deny list refuses `python3 -m json.tool` with two arguments, because its second
+argument is a file that it writes. Every file that the agent writes lands in the log directory.
+A caller that passes its own `disallowed_tools` names `Edit(./**)` in it to keep that rule.
 `--permission-mode dontAsk` denies everything not explicitly allowed. The `ci` mode of the
 skill additionally forbids requesting changes (approval only with zero findings, re-enforced by
 the submit step) and has the agent treat PR content (title, description, code, comments) as
