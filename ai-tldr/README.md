@@ -76,6 +76,10 @@ resolves and why every duty pins one.
 comment it *would* have posted lands in the job summary and the run artifact. Use it to iterate on
 the prompt without writing to a real thread.
 
+The session loads the `cortex-secret-mask` mod, which masks each credential in the output of a
+tool before the model reads it. [`ai-agent-setup`](../ai-agent-setup#credentials-in-the-output-of-a-tool)
+states what the mask covers and when a step warns.
+
 ## Artifacts
 
 `ai-tldr-logs` holds the prompt, the agent's full stream and rendered transcript, and the comment

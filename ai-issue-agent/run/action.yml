@@ -51,7 +51,7 @@ inputs:
     required: false
     default: '30'
   debug:
-    description: 'Run the Claude Code CLI with --debug: API/CLI-level detail lands in session.stderr.log inside the logs artifact'
+    description: 'Run the Claude Code CLI with --debug-file: its debug log lands in session.debug.log inside the logs artifact. --debug alone writes it to the config folder of Claude Code, outside the artifact'
     required: false
     default: 'false'
   jahia_artifacts_url:
@@ -333,8 +333,8 @@ runs:
         cat "$LOG_DIR/session.prompt.md"
         echo "::endgroup::"
         STREAM_FILE="$LOG_DIR/session.stream.jsonl"
-        DEBUG_FLAG=""
-        [ "$CLAUDE_DEBUG" = "true" ] && DEBUG_FLAG="--debug"
+        DEBUG_FILE=""
+        [ "$CLAUDE_DEBUG" = "true" ] && DEBUG_FILE="$LOG_DIR/session.debug.log"
         # --model rather than ANTHROPIC_MODEL: the flag is scoped to this one invocation.
         MODEL_FLAG=""
         [ -n "$AGENT_MODEL" ] && MODEL_FLAG="--model $AGENT_MODEL"
@@ -354,11 +354,20 @@ runs:
           --add-dir "$LOG_DIR" \
           --permission-mode dontAsk \
           --output-format stream-json \
-          --verbose $DEBUG_FLAG $MODEL_FLAG \
+          --verbose ${DEBUG_FILE:+--debug-file "$DEBUG_FILE"} $MODEL_FLAG ${CORTEX_MASK_MOD_DIR:+--plugin-dir "$CORTEX_MASK_MOD_DIR"} \
           2> "$LOG_DIR/session.stderr.log" \
           | "$NODE_BIN" "$ACTION_PATH/src/stream-progress.mjs" "$STREAM_FILE"
         EXIT_CODE=${PIPESTATUS[0]}
         set -e
+        # ai-agent-setup sets CORTEX_MASK_MOD_DIR. The init event lists a mod of --plugin-dir as
+        # <name>@inline once Claude Code loads it, and the anchor reads that event alone, because
+        # a tool input of the model can hold the same text.
+        if ! grep -m1 '^{"type":"system","subtype":"init"' "$STREAM_FILE" 2>/dev/null \
+            | grep -q '"source":"cortex-secret-mask@inline"'; then
+          echo "::warning title=No secret mask::the init event of the stream names no cortex-secret-mask, so the session ran with no mask or died before its init event"
+        fi
+        # --debug-file also links <dir>/latest to the log, which the upload would copy twice.
+        rm -f "$LOG_DIR/latest"
         {
           echo "### AI issue agent session"
           echo ""
