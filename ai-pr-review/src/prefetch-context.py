@@ -177,8 +177,9 @@ def make_checkout(root):
     sha = sha.strip() if resolved else 'unknown'
     print(f'  - checkout at {target} ({sha[:12]})', file=sys.stderr)
     return (f'The pull request head is checked out at `{target}`, at commit `{sha}` '
-            '(detached, blobless clone). Read, Grep and Glob work there; run git in it with '
-            '`git -C` — never `cd`.\n\n'
+            '(detached, blobless clone). Read, Grep and Glob work there, with an absolute '
+            'path and never `cd`. git does not run there: read the history from `diff.patch` '
+            'and `pr.json`.\n\n'
             'This clone is NOT in the run artifact — it is large, and this commit reproduces '
             f'it: `git clone {slug} && git checkout {sha}`. Everything else in this directory '
             'is uploaded.')
