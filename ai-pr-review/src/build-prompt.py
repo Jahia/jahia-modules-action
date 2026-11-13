@@ -125,9 +125,12 @@ surface.append('- These shell commands:')
 surface += bullets(denied_shell)
 surface += [
     '',
-    'Two consequences of working from inside the cortex harness. On these two points THIS',
+    'Three consequences of working from inside the cortex harness. On these three points THIS',
     'section wins — it is what the CLI enforces:',
     '',
+    f'- Every file you write goes under `{log_dir}`, where the review file and `--collect` are.',
+    '  A write in the working directory, the cortex checkout, is refused, through Write and',
+    '  through a shell redirection alike, so a scratch file goes under that directory too.',
     '- cortex routes every `gh` write through `tools/gh-wrapper/bin/gh-wrapper`. You make no',
     '  write, and the list above carries the reads under both spellings, so either route',
     '  works. Use the one the list names; never retry a denied call through the other.',
