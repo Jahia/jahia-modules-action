@@ -25,7 +25,8 @@ The agent never posts to GitHub itself: it writes the review file
 deterministic step of the action.
 
 Writes <log-dir>/review.prompt.md (the call), <log-dir>/review.system.md (the tool
-surface) and <log-dir>/allowed-tools.txt (the --allowedTools value), then prints the PR key (owner-repo-number, used for file names) to stdout.
+surface) and <log-dir>/allowed-tools.txt (the --allowedTools value), then prints the PR
+key (owner-repo-number, used for file names) to stdout.
 """
 import os
 import re
