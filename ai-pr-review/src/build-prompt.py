@@ -33,7 +33,7 @@ import re
 import shlex
 import sys
 
-log_dir = os.path.abspath(sys.argv[1])
+log_dir = os.path.realpath(sys.argv[1])
 pr_url = os.environ['PR_URL']
 
 match = re.search(r'([^/]+)/([^/]+)/pull/(\d+)$', pr_url)
@@ -83,19 +83,22 @@ def split_tools(value):
     for entry in (e for e in entries if e):
         match = re.fullmatch(r'Bash\((.*)\)', entry)
         if match:
-            # `git log:*` and `git log --oneline` both describe one command prefix.
-            shell.append(match.group(1).rstrip('*').rstrip(':').strip())
+            # `git log:*` is a prefix, which the prompt marks with ` …`; `git branch -a` is the
+            # whole command.
+            rule = match.group(1).strip()
+            shell.append(f'{rule[:-2]} …' if rule.endswith(':*') else rule)
         else:
             plain.append(entry)
     return plain, shell
 
 
-# The rules that name a path of this run: the one directory the agent writes in, and the
+# The rules that name a path of this run: the two directories the agent writes in, and the
 # check of the review file that the ci mode runs. `/` + an absolute path gives the `//<path>`
 # form that Claude Code reads from the filesystem root.
 allowed_tools = ','.join(filter(None, [
     os.environ.get('ALLOWED_TOOLS', ''),
-    f'Edit(/{log_dir}/**)',
+    f'Edit(/{reviews_dir}/**)',
+    f'Edit(/{collect_dir}/**)',
     f'Bash(python3 -m json.tool {review_file})',
 ]))
 allowed_plain, allowed_shell = split_tools(allowed_tools)
@@ -119,8 +122,8 @@ surface = [
 ]
 if allowed_plain:
     surface.append(f"- Tools: {', '.join(allowed_plain)}.")
-surface += ['- These shell commands, and NOTHING else. Each entry is a command prefix — any',
-            '  arguments are allowed after it — but an entry that names a file is the whole',
+surface += ['- These shell commands, and NOTHING else. An entry that ends on `…` is a command',
+            '  prefix, and any arguments are allowed after it. An entry with no `…` is the whole',
             '  command:']
 surface += bullets(allowed_shell)
 surface += [
@@ -139,9 +142,11 @@ surface += [
     'Three consequences of working from inside the cortex harness. On these three points THIS',
     'section wins — it is what the CLI enforces:',
     '',
-    f'- Every file you write goes under `{log_dir}`, where the review file and `--collect` are.',
-    '  A write in the working directory, the cortex checkout, is refused, through Write and',
-    '  through a shell redirection alike, so a scratch file goes under that directory too.',
+    f'- Every file you write goes under `{reviews_dir}`, the directory of the review file, or',
+    f'  under `{collect_dir}`, the `--collect` directory, where a scratch file goes too. A write',
+    '  anywhere else is refused, through Write and through a shell redirection alike. Write each',
+    '  file with the Write tool: an `Edit(…)` rule of the list admits Write under its path, and',
+    '  the Edit tool itself is denied, so a fix of the review file writes the whole file again.',
     '  `python3 -m json.tool` runs on the review file, in the one form that the list names.',
     '- cortex routes every `gh` write through `tools/gh-wrapper/bin/gh-wrapper`. You make no',
     '  write, and the list above carries the reads under both spellings, so either route',

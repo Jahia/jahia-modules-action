@@ -184,8 +184,8 @@ for its own background work, which always comes from the haiku alias.
 ## Review-only guarantee
 
 The agent runs with an explicit allow list AND deny list (`--allowedTools` /
-`--disallowedTools`). The allow list grants read/search tools, file writes in the log directory
-(staging the review body — the runner is ephemeral, so nothing leaves the machine), granular
+`--disallowedTools`). The allow list grants read/search tools, file writes in the directory of the
+review file and in the `--collect` directory (staging the review body — the runner is ephemeral, so nothing leaves the machine), granular
 read-only `git`/`gh` commands (each under both the bare and the `gh-wrapper` spelling). The deny list — and a deny rule beats an allow rule, including one the
 cloned repository's own settings could carry — names every editing tool, every way a review
 could reach the forge or rewrite history (`git push/commit/checkout/reset/remote`,
@@ -196,12 +196,12 @@ too — the agent writes the review body to a file, and submitting that file is 
 deterministic action step (running with the jahia-ai token) after the agent finishes.
 The default deny list carries `Edit(./**)`, which denies a write in the cortex checkout, the
 working directory of the agent. A path rule of Edit applies to the `Write` tool and to the target
-of a Bash redirection too. `src/build-prompt.py` adds the two rules that name a path of the run.
-The write rule of the log directory, outside the checkout, reads
-`Edit(//home/runner/work/_temp/pr-review-logs/**)` on a GitHub-hosted runner. The other rule
-admits `python3 -m json.tool` on the review file alone, the check that the `ci` mode runs. The
-allow list holds no command that writes a file on its own, so every file that the agent writes
-lands in the log directory.
+of a Bash redirection too. `src/build-prompt.py` adds the three rules that name a path of the
+run. Two write rules name the directory of the review file and the `--collect` directory, both in
+the log directory outside the checkout, such as
+`Edit(//home/runner/work/_temp/pr-review-logs/reviews/**)` on a GitHub-hosted runner. The third
+rule admits `python3 -m json.tool` on the review file alone, the check that the `ci` mode runs.
+The allow list of the action holds no command that writes a file on its own.
 A caller that passes its own `disallowed_tools` names `Edit(./**)` in it to keep that rule.
 `--permission-mode dontAsk` denies everything not explicitly allowed. The `ci` mode of the
 skill additionally forbids requesting changes (approval only with zero findings, re-enforced by
