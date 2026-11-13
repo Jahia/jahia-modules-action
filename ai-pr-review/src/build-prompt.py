@@ -120,7 +120,8 @@ surface = [
 if allowed_plain:
     surface.append(f"- Tools: {', '.join(allowed_plain)}.")
 surface += ['- These shell commands, and NOTHING else. Each entry is a command prefix — any',
-            '  arguments are allowed after it:']
+            '  arguments are allowed after it — but an entry that names a file is the whole',
+            '  command:']
 surface += bullets(allowed_shell)
 surface += [
     '- A pipeline or a `;`-chain runs only when EVERY command in it is allowed:',
