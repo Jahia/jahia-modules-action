@@ -5,7 +5,8 @@ account `jahia-ai`, a headless [Claude Code](https://code.claude.com) agent revi
 request. The agent runs from inside the [cortex harness](https://github.com/Jahia/cortex), and it
 reaches the LiteLLM gateway through the IT mTLS bastion.
 
-The agent submits one review of the type `COMMENT`. Each finding on a line of the diff is a native
+The agent submits one review: an approval of a clean pull request, and a `COMMENT` otherwise. Each
+finding on a line of the diff is a native
 inline comment on that line, and the review body carries each finding outside the diff. If GitHub
 refuses an anchor, the submit step submits the review again with the findings in the body. After
 any other error, which GitHub may have applied, the submit step does not post again: it looks for
@@ -13,10 +14,20 @@ the review of the run on the pull request before it fails. The Cortex skill `pr-
 shape of the review body, in the contract that
 [Who owns what](#who-owns-what) names.
 
-The review never approves the pull request, never requests changes and never touches code. The
-submit step posts every review as `COMMENT`, whatever event the review file asks for. An approval of
-`jahia-ai` therefore no longer counts for the branch protection, and a pull request that needs an
-approval gets it from a person. Blocking a pull request and merging it stay human decisions.
+The review never requests changes and never touches code. The submit step posts `APPROVE` only
+when four facts are true:
+
+- the review file asks for `APPROVE`;
+- the review carries no inline comment;
+- the field `human_review` is `not-needed`;
+- the token account has no unresolved review thread on the pull request, which the submit step
+  reads from GitHub and not from a file that the agent can write.
+
+Otherwise the submit step posts `COMMENT`, and a person reads the findings or the reason of the
+human review. A `COMMENT` also dismisses each earlier approval of the token account on the pull
+request, so an approval of an older commit stops counting for the branch protection. When GitHub
+refuses a dismissal, the job fails and names the approval that stays. Blocking a pull request and
+merging it stay human decisions.
 
 Every review also carries the **human review** of the agent, which states whether a person must
 read the pull request before it merges. In the review file, the field `human_review` has the value
@@ -96,8 +107,9 @@ comment.
 comments (status and inline) are deleted, its review bodies blanked and minimized, and any
 pending review request for it is withdrawn; the label is then consumed, so it can be
 re-applied later. Two GitHub limits apply. A submitted review cannot be deleted, so a minimized
-empty shell remains. An `APPROVE` that an earlier release of this action submitted keeps its effect
-on the branch protection, because only a dismissal revokes it, and this action does not dismiss.
+empty shell remains. An approval of `jahia-ai` keeps its effect on the
+branch protection, because only a dismissal revokes it, and the clear action does not dismiss. The
+next review of `jahia-ai` that posts a `COMMENT` dismisses it.
 Blanking also removes the re-review marker: the next requested review starts fresh.
 
 Every review body additionally starts with a hidden marker (`<!-- cortex-pr-review -->`):
@@ -249,7 +261,7 @@ rule admits `python3 -m json.tool` on the review file alone, the check that the 
 The allow list of the action holds no command that writes a file on its own.
 A caller that passes its own `disallowed_tools` names `Edit(./**)` in it to keep that rule.
 `--permission-mode dontAsk` denies everything not explicitly allowed. The submit step posts
-every review as `COMMENT`, whatever event the review file asks for. The `ci` mode of the skill
+`APPROVE` only under the four conditions that the opening of this README states. The `ci` mode of the skill
 has the agent treat PR content (title, description, code, comments) as data, never as
 instructions, and flag prompt-injection attempts as findings.
 
