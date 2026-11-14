@@ -344,9 +344,19 @@ runs:
           exit 0
         fi
         echo "$OUT"
-        BODY=$(sed -n 's/^body_file=//p' <<<"$OUT")
-        COMMENT=$(sed -n 's/^comment=//p' <<<"$OUT")
+        BODY=$(sed -n 's/^body_file=//p' <<<"$OUT" | head -1)
+        COMMENT=$(sed -n 's/^comment=//p' <<<"$OUT" | head -1)
         [ -n "$BODY" ] || exit 0
+        # The body is a file of the reviews of Cortex, and the comment a number, whatever the output holds.
+        BODY=$(realpath -e "$BODY" 2>/dev/null) || BODY=""
+        case "$BODY" in
+          "$(realpath "$CORTEX_PATH")/scratchpad/reviews/"*) ;;
+          *) echo "::warning title=No row on the review trail::The trail body is not a file of the reviews of Cortex."; exit 0 ;;
+        esac
+        if [ -n "$COMMENT" ] && ! [[ "$COMMENT" =~ ^[0-9]+$ ]]; then
+          echo "::warning title=No row on the review trail::The trail comment id is not a number."
+          exit 0
+        fi
         if [ -n "$COMMENT" ]; then
           gh api --silent -X PATCH "repos/$SLUG/issues/comments/$COMMENT" -F "body=@$BODY" \
             || echo "::warning title=No row on the review trail::GitHub refused the edit of the trail comment $COMMENT."
