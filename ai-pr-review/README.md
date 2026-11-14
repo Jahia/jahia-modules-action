@@ -152,7 +152,7 @@ these files:
 - `pr.md` and `pr.json`: the pull request with its conversation, and its metadata.
 - `reviews.md`: each submitted review, with its id and the commit that it read.
 - `review-comments.md`: each inline thread, with its resolution state and the id of the review of
-  its first comment. A re-review finds its own open threads by that id.
+  its first comment.
 - `linked-issues.md`: the issues that the pull request closes.
 - `checks.md`: the CI state of the head commit.
 - `diff.patch`: the whole diff of the pull request, at the head that `pr.json` names. When the
@@ -160,7 +160,7 @@ these files:
   head can name another commit than the checkout and the review. The `README.md` of the context
   then names the error.
 - `delta.patch`: the diff since the commit of the last review of the AI reviewer account whose body
-  contains the marker. A re-review reads in it the lines that the last push adds. The diff keeps
+  contains the marker. The diff keeps
   the files that the pull request changes at that commit or at the head, renames included, so a
   merge of the base adds no other file to it. Its hunks can still stay in a file of the pull
   request. The diff keeps every file when one of the two lists of files may be partial: GitHub
@@ -170,8 +170,8 @@ these files:
 - `rules/`: the copies, from the base branch, of the root `CLAUDE.md`, of the root `REVIEW.md` and
   of each `CLAUDE.md` above a changed file, with each file that they import as `@<path>`. A rule
   file that the pull request changes keeps its version of the base branch in this copy, and the
-  `README.md` of the context names it. The prefetch reads these files 100 paths at a time, and
-  the `README.md` of the context names a batch that it could not read.
+  `README.md` of the context names it. The prefetch reads these files in batches, and the
+  `README.md` of the context names a batch that it could not read.
 
 The diff, the checkout and the review all name the head that `pr.json` reads, so a push during the
 run stays in the next `delta.patch`. The prep step passes that head to the submit step as a step

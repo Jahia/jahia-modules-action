@@ -63,6 +63,8 @@ query($owner: String!, $repo: String!, $number: Int!, $after: String) {
 
 # An import of Claude Code: `@` after a space or a line start, then a relative path.
 IMPORT = re.compile(r'(?:^|\s)@((?:\.{1,2}/)*[\w.-]+(?:/[\w.-]+)*)')
+# A code block or a code span, where Claude Code reads no import.
+CODE = re.compile(r'(```|~~~).*?\1|`[^`\n]*`', re.S)
 # The most files that `pulls/{n}/files` lists.
 MAX_LISTED_FILES = 3000
 # The paths of one GraphQL query: 100 paths take 2 s, and 500 come close to the limit of 10 s.
@@ -244,13 +246,16 @@ def fetch_changed_files(fallback):
 
 
 def keep_pull_request_files(delta, paths):
-    """Keep the file sections of `delta` that name one of `paths`."""
-    suffixes = tuple(f' b/{path}' for path in paths)
+    """Keep the file sections of `delta` whose old and new paths are in `paths`."""
     kept = []
     for section in re.split(r'(?m)^(?=diff --git )', delta):
         header = section.split('\n', 1)[0]
-        # git quotes a path with unusual characters, which no suffix matches, so keep that section.
-        if header.endswith(suffixes) or '"' in header:
+        names = header[len('diff --git a/'):]
+        # A path can hold ' b/', so the header splits at each ' b/' and not at the first one.
+        split = any(names[:at] in paths and names[at + 3:] in paths
+                    for at in (match.start() for match in re.finditer(' b/', names)))
+        # git quotes a path with unusual characters, which no path matches, so keep that section.
+        if split or '"' in header:
             kept.append(section)
     return ''.join(kept)
 
@@ -361,9 +366,9 @@ def fetch_rules(base, changed):
 
 
 def rule_imports(path, text):
-    """The paths of the repository that a rule file imports with `@<path>`, from its directory."""
+    """The paths of the repository that a rule file imports with `@<path>` outside code, from its directory."""
     found = []
-    for target in IMPORT.findall(text):
+    for target in IMPORT.findall(CODE.sub(' ', text)):
         resolved = posixpath.normpath(posixpath.join(posixpath.dirname(path), target))
         if resolved != '..' and not resolved.startswith(('../', '/')):
             found.append(resolved)
@@ -444,7 +449,7 @@ def make_checkout(root, head):
         ok, out = run(['git', '-C', target, 'checkout', '--detach', 'FETCH_HEAD'], timeout=120)
     if not ok:
         fail('checkout', out)
-        # The index can lack diff.patch too, so this note gives no order: ci.md states each case.
+        # The index can lack diff.patch too, so this note names no file to review from.
         return f'No checkout is available (it could not be created: {first_line(out)}).'
     # The clone is the one thing the agent reads that the run artifact does not carry -- it
     # is large, and it is reproducible. Reproducible only from its commit, though, so the
@@ -526,7 +531,7 @@ if reviews and login and head and pr.get('baseRefName'):
     delta_note = fetch_delta(json.loads(reviews), head, login, pr['baseRefName'],
                              changed + renamed if complete else None)
 if pr.get('baseRefName'):
-    rules = fetch_rules(pr['baseRefName'], changed)
+    rules = fetch_rules(pr['baseRefName'], changed + renamed)
 else:
     rules = None
     fail('rules/', 'pr.json names no base branch')

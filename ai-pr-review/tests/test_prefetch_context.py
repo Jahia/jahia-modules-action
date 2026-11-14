@@ -50,7 +50,7 @@ NO_THREAD = {"data": {"repository": {"pullRequest": {"reviewThreads": {
 
 def rules(reviews=(OWN, FORGED), status="ahead\n", status_exit=0, files_exit=0,
           earlier=(["src/a.py", None], ["src/new.py", None]), earlier_exit=0, diff_exit=0, comments=(),
-          threads=NO_THREAD, files=("src/a.py",), blobs=()):
+          threads=NO_THREAD, files=("src/a.py",), previous=None, blobs=(), delta=DELTA):
     pr = {"number": 1, "headRefOid": HEAD, "baseRefName": "main",
           "files": [{"path": "src/a.py", "additions": 1, "deletions": 0}]}
     return [
@@ -70,7 +70,8 @@ def rules(reviews=(OWN, FORGED), status="ahead\n", status_exit=0, files_exit=0,
         {"args": f"pr view {URL}", "out": "title: a change\n"},
         {"args": "pr checks", "out": "all checks pass\n"},
         {"args": "pulls/1/files", "exit": files_exit, "err": "gh: HTTP 502\n",
-         "out": "" if files_exit else json.dumps([{"filename": path, "additions": 1, "deletions": 0}
+         "out": "" if files_exit else json.dumps([{"filename": path, "additions": 1, "deletions": 0,
+                                                   "previous_filename": (previous or {}).get(path)}
                                                   for path in files])},
         {"args": "pulls/1/reviews", "out": json.dumps(list(reviews))},
         {"args": "pulls/1/comments", "out": json.dumps(list(comments))},
@@ -78,7 +79,7 @@ def rules(reviews=(OWN, FORGED), status="ahead\n", status_exit=0, files_exit=0,
         {"args": "api user", "out": "jahia-ai\n"},
         {"args": f"compare/{SINCE}...{HEAD}?per_page=1&page=2", "out": status, "exit": status_exit,
          "err": "gh: Not Found (HTTP 404)\n" if status_exit else ""},
-        {"args": f"compare/{SINCE}...{HEAD}", "out": DELTA},
+        {"args": f"compare/{SINCE}...{HEAD}", "out": delta},
         *blobs,
         {"args": "graphql --input", "stdin": "main:AGENTS.md",
          "out": json.dumps({"data": {"repository": {"f0": {"text": "the rules of the agents\n"}}}})},
@@ -185,6 +186,30 @@ class TestThePrefetch(unittest.TestCase):
                          ["AGENTS.md", "CLAUDE.md"])
         self.assertIn("`rules/AGENTS.md` — `AGENTS.md` on the base branch `main`, which a rule file imports",
                       self.readme)
+
+    def test_the_delta_drops_a_file_whose_path_only_ends_with_a_path_of_the_pull_request(self):
+        spaced = ("diff --git a/lib b/src/a.py b/lib b/src/a.py\n--- a/lib b/src/a.py\n"
+                  "+++ b/lib b/src/a.py\n@@ -1 +1 @@\n-c\n+d\n")
+        self.prefetch(rules(delta=DELTA + spaced))
+        delta = (self.context / "delta.patch").read_text(encoding="utf-8")
+        self.assertIn("+added by the pr", delta)
+        self.assertNotIn("lib b/src/a.py", delta)
+
+    def test_the_rules_skip_an_import_inside_code(self):
+        claude = "Run `npm i @types/node` first.\n```\n@docs/x.md\n```\nsee @./AGENTS.md\n"
+        self.prefetch(rules(blobs=[{"args": "graphql --input", "stdin": "main:CLAUDE.md",
+                                    "out": json.dumps({"data": {"repository": {"f0": {"text": claude},
+                                                                               "f1": None, "f2": None}}})}]))
+        queried = " ".join(call["stdin"] for call in self.gh.calls("graphql --input"))
+        self.assertNotIn("types/node", queried)
+        self.assertNotIn("docs/x.md", queried)
+        self.assertTrue((self.context / "rules" / "AGENTS.md").exists())
+
+    def test_the_rules_read_the_claude_md_above_the_old_path_of_a_renamed_file(self):
+        self.prefetch(rules(files=("moduleB/src/Foo.java",),
+                            previous={"moduleB/src/Foo.java": "moduleA/src/Foo.java"}))
+        queried = " ".join(call["stdin"] for call in self.gh.calls("graphql --input"))
+        self.assertIn("main:moduleA/CLAUDE.md", queried)
 
 
 if __name__ == "__main__":
