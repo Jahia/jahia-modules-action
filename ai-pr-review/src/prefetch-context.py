@@ -278,10 +278,10 @@ def reviewed_files(base, since):
     return [path for names in files for path in names if path]
 
 
-def fetch_delta(reviews, head, login, base, changed):
+def fetch_delta(reviews, head, login, base, changed, complete):
     """Write delta.patch, the diff since the commit of the last review of `login` with the marker.
 
-    Returns the note of README.md, or ''. With `changed` None, a partial list, every file stays."""
+    Returns the note of README.md, or ''. When `changed` may be partial, every file stays."""
     marked = [review for review in reviews if review.get('commit_id')
               and (review.get('user') or {}).get('login') == login
               and marker in (review.get('body') or '')]
@@ -307,7 +307,7 @@ def fetch_delta(reviews, head, login, base, changed):
         if not ok:
             fail('delta.patch', delta)
             return ''
-        earlier = reviewed_files(base, since) if changed is not None else None
+        earlier = reviewed_files(base, since) if complete else None
         if earlier is None:
             note = (f'{read} `delta.patch` is the diff from that commit to the head `{head}`, with '
                     'every file, because a list of the files of the pull request is partial or '
@@ -528,8 +528,8 @@ if marker:
         fail('login of the token user', out)
 delta_note = ''
 if reviews and login and head and pr.get('baseRefName'):
-    delta_note = fetch_delta(json.loads(reviews), head, login, pr['baseRefName'],
-                             changed + renamed if complete else None)
+    delta_note = fetch_delta(json.loads(reviews), head, login, pr['baseRefName'], changed + renamed,
+                             complete)
 if pr.get('baseRefName'):
     rules = fetch_rules(pr['baseRefName'], changed + renamed)
 else:
