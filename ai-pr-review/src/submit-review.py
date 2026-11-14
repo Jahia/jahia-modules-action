@@ -120,6 +120,17 @@ if human not in LABELS:
     human = 'recommended'
 
 
+def write_review_url(stdout):
+    """Give the URL of the posted review to the step that posts the row of the trail, which links its date."""
+    try:
+        url = json.loads(stdout or b'{}').get('html_url')
+    except ValueError:
+        url = None
+    if url and os.environ.get('GITHUB_OUTPUT'):
+        with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as fh:
+            fh.write(f'review_url={url}\n')
+
+
 def gh(args, data=None):
     body_bytes = json.dumps(data).encode() if data is not None else None
     return subprocess.run(['gh', 'api'] + args, input=body_bytes, capture_output=True)
@@ -279,6 +290,7 @@ for payload, form in attempts:
     if result.returncode == 0:
         print(f"Review submitted ({payload['event']}) {form}")
         posted = payload['event']
+        write_review_url(result.stdout)
         break
     error = result.stderr.decode(errors='replace')
     sys.stderr.write(error[-800:] + '\n' + result.stdout.decode(errors='replace')[-800:] + '\n')

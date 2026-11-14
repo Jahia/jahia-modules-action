@@ -5,6 +5,8 @@ Env:   PR_URL            - URL of the pull request to review
        MARKER            - hidden marker string, the first line of the review body
        AGENT             - human-readable identity of the agent (CLI + model)
        RUN_URL           - URL of the workflow run performing this review
+       REVIEW_ROUND      - optional: the round that the run records, read from the trail
+                           Review Logs of the pull request; empty records no round
        ALLOWED_TOOLS     - the allowed_tools input, to which this script adds the rules
                            that name a path of this run
        DISALLOWED_TOOLS  - the --disallowedTools value
@@ -14,7 +16,7 @@ Cortex owns the review: its method, its decision rules and the shape of the revi
 This action owns the CI around it, so the prompt is one line, the call of that skill:
 
     /pr-review ci <pr-url> --context <dir> --out <file> --marker <marker>
-                           --run-url <url> --agent <label> --collect <dir>
+                           --run-url <url> --agent <label> --collect <dir> [--round <n>]
 
 The tool surface is the one thing the action still tells the agent, because the action
 decides it. It is rendered from the very strings the run passes to the CLI, so the text and
@@ -60,7 +62,7 @@ CALL = ' '.join(['/pr-review', 'ci', shlex.quote(pr_url)] + [
         ('--run-url', os.environ.get('RUN_URL', '')),
         ('--agent', os.environ.get('AGENT', 'Claude Code')),
         ('--collect', collect_dir),
-    )])
+    )] + ([f"--round {shlex.quote(os.environ['REVIEW_ROUND'])}"] if os.environ.get('REVIEW_ROUND') else []))
 
 
 def split_tools(value):
