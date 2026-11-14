@@ -33,6 +33,11 @@ on:
         type: number
         required: false
         default: 30
+      timeout_job_long:
+        description: "Timeout (in minutes) of the agent job when the pull request carries a label whose name contains `Long AI review` (any casing, such as `⏱️ Long AI review`). The label is how one pull request gets a longer review without a change to any workflow: add it, then request the review again."
+        type: number
+        required: false
+        default: 60
       model:
         description: "Model the agent runs on (an `opus`/`sonnet`/`haiku` alias the LiteLLM gateway maps, or a model name it serves verbatim). Empty leaves the installed CLI's own default, which moves with claude_code_version."
         type: string
@@ -88,7 +93,10 @@ jobs:
     needs: check-request
     if: needs.check-request.outputs.eligible == 'true'
     runs-on: ${{ inputs.instance_type }}
-    timeout-minutes: ${{ inputs.timeout_job }}
+    # A pull request labelled `Long AI review` gets the longer budget. `join` then `contains`
+    # matches a part of a label name, whatever its emoji and its casing. The same expression
+    # feeds `job_timeout_minutes` below, and the two must stay the same.
+    timeout-minutes: ${{ contains(join(github.event.pull_request.labels.*.name, ','), 'Long AI review') && inputs.timeout_job_long || inputs.timeout_job }}
     # One review at a time per PR: a re-request arriving while a review is in flight waits.
     concurrency:
       group: ai-pr-review-${{ github.event.pull_request.number }}
@@ -155,7 +163,7 @@ jobs:
           # to spare. Hitting timeout-minutes instead cancels the job mid-step and loses the
           # whole session. The reserve is subtracted inside the action: GitHub Actions
           # expressions have no arithmetic operators, so doing it here would not even parse.
-          job_timeout_minutes: ${{ inputs.timeout_job }}
+          job_timeout_minutes: ${{ contains(join(github.event.pull_request.labels.*.name, ','), 'Long AI review') && inputs.timeout_job_long || inputs.timeout_job }}
 
       # outcome != 'skipped': no logs exist when an earlier step already failed
       - name: Upload review logs to GitHub

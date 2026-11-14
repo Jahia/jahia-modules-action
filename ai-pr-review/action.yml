@@ -44,13 +44,13 @@ inputs:
     required: false
     default: 'true'
   allowed_tools:
-    description: 'Claude Code --allowedTools value for the agent: read/search tools, local file writes (the review body file), read-only git/gh, and the pre-fetched checkout surface. The agent never posts — submitting the review file is a deterministic step of this action. It carries each read twice, as `gh …` and as `tools/gh-wrapper/bin/gh-wrapper …`: the agent works from inside cortex, whose CLAUDE.md routes gh through that wrapper, and a list that names only one of the two routes denies the agent''s first call for a reason it cannot see. `tools/pr-review/bin/pr-review lenses` is the one Cortex tool the ci mode of the skill pr-review runs, to choose its lenses; it starts through `mise exec`, so it needs mise on the runner. The system prompt states this list verbatim (build-prompt.py renders it), so widening it here widens what the agent is told it may do.'
+    description: 'Claude Code --allowedTools value for the agent: read/search tools and read-only git/gh. build-prompt.py adds the three rules that name a path of the run: the write rules of the directory of the review file and of the --collect directory, such as `Edit(//home/runner/work/_temp/pr-review-logs/reviews/**)`, and `python3 -m json.tool` on the review file, the check that the ci mode runs. The list holds no command that writes a file or switches a checkout on its own. The agent never posts — submitting the review file is a deterministic step of this action. It carries each read twice, as `gh …` and as `tools/gh-wrapper/bin/gh-wrapper …`: the agent works from inside cortex, whose CLAUDE.md routes gh through that wrapper, and a list that names only one of the two routes denies the agent''s first call for a reason it cannot see. `tools/pr-review/bin/pr-review lenses` is the one Cortex tool the ci mode of the skill pr-review runs, to choose its lenses; it starts through `mise exec`, so it needs mise on the runner. The system prompt states this list and the rules that build-prompt.py adds (the script renders them), so widening it here widens what the agent is told it may do.'
     required: false
-    default: 'Read,Write,Grep,Glob,Skill,Task,Agent,TodoWrite,ReportFindings,Bash(git log:*),Bash(git diff:*),Bash(git show:*),Bash(git status:*),Bash(git branch --show-current),Bash(git branch --list),Bash(git branch -a),Bash(git branch -r),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(git blame:*),Bash(git cat-file:*),Bash(git fetch:*),Bash(git merge-base:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr checkout:*),Bash(gh issue view:*),Bash(gh repo view:*),Bash(gh repo clone:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr view:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr diff:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr checks:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue view:*),Bash(tools/gh-wrapper/bin/gh-wrapper repo view:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(sed -n:*),Bash(sort:*),Bash(uniq:*),Bash(cut:*),Bash(diff:*),Bash(mkdir:*),Bash(python3 -m json.tool:*),Bash(tools/pr-review/bin/pr-review lenses:*)'
+    default: 'Read,Grep,Glob,Skill,Task,Agent,TodoWrite,ReportFindings,Bash(git log:*),Bash(git diff:*),Bash(git show:*),Bash(git status:*),Bash(git branch --show-current),Bash(git branch --list),Bash(git branch -a),Bash(git branch -r),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(git blame:*),Bash(git cat-file:*),Bash(git merge-base:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh issue view:*),Bash(gh repo view:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr view:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr diff:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr checks:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue view:*),Bash(tools/gh-wrapper/bin/gh-wrapper repo view:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(cut:*),Bash(diff:*),Bash(tools/pr-review/bin/pr-review lenses:*)'
   disallowed_tools:
-    description: 'Claude Code --disallowedTools value. A deny rule beats an allow rule, including one the cloned repository''s own settings could carry: editing tools, every way a review could reach the forge or rewrite history, and the options of allowed commands that write (--output) or execute (--upload-pack). Each write is denied in every spelling that reaches it — `git push`, `git -C <dir> push`, `gh pr comment` and `gh-wrapper pr comment` are four prefixes, and a rule matches one prefix, so leaving any of them out leaves the write reachable.'
+    description: 'Claude Code --disallowedTools value. A deny rule beats an allow rule, including one the cloned repository''s own settings could carry: editing tools, every way a review could reach the forge or rewrite history, and the options of allowed commands that write (--output) or execute (--upload-pack). Each write is denied in every spelling that reaches it — `git push`, `git -C <dir> push`, `gh pr comment` and `gh-wrapper pr comment` are four prefixes, and a rule matches one prefix, so leaving any of them out leaves the write reachable. The bare `Edit` names the Edit tool. A path rule of Edit, such as `Edit(./**)`, applies to the Write tool and to the target of a Bash redirection too, so `Edit(./**)` denies a write in the cortex checkout, the working directory of the agent. A caller that passes its own list names `Edit(./**)` in it to keep that rule.'
     required: false
-    default: 'Edit,NotebookEdit,MultiEdit,Bash(git push:*),Bash(git commit:*),Bash(git switch:*),Bash(git checkout:*),Bash(git reset:*),Bash(git remote:*),Bash(git * --output*),Bash(git * --upload-pack*),Bash(git -C * push:*),Bash(git -C * commit:*),Bash(git -C * switch:*),Bash(git -C * checkout:*),Bash(git -C * reset:*),Bash(git -C * remote:*),Bash(gh pr create:*),Bash(gh pr comment:*),Bash(gh pr review:*),Bash(gh pr edit:*),Bash(gh pr ready:*),Bash(gh pr merge:*),Bash(gh pr close:*),Bash(gh issue create:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh api:*),Bash(gh release:*),Bash(gh workflow:*),Bash(gh secret:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr create:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr comment:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr review:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr edit:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr ready:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr merge:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr close:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue create:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue comment:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue edit:*),Bash(tools/gh-wrapper/bin/gh-wrapper api:*)'
+    default: 'Edit,Edit(./**),NotebookEdit,MultiEdit,Bash(git push:*),Bash(git commit:*),Bash(git switch:*),Bash(git checkout:*),Bash(git reset:*),Bash(git remote:*),Bash(git * --output*),Bash(git * --upload-pack*),Bash(git -C * push:*),Bash(git -C * commit:*),Bash(git -C * switch:*),Bash(git -C * checkout:*),Bash(git -C * reset:*),Bash(git -C * remote:*),Bash(gh pr create:*),Bash(gh pr comment:*),Bash(gh pr review:*),Bash(gh pr edit:*),Bash(gh pr ready:*),Bash(gh pr merge:*),Bash(gh pr close:*),Bash(gh issue create:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh api:*),Bash(gh release:*),Bash(gh workflow:*),Bash(gh secret:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr create:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr comment:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr review:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr edit:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr ready:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr merge:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr close:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue create:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue comment:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue edit:*),Bash(tools/gh-wrapper/bin/gh-wrapper api:*)'
 
 outputs:
   logs_dir:
@@ -82,6 +82,8 @@ runs:
         # exist even when this step dies, otherwise the failure costs us the logs too.
         LOG_DIR="$RUNNER_TEMP/pr-review-logs"
         mkdir -p "$LOG_DIR"
+        # The resolved path, which every step and the write rules of build-prompt.py name.
+        LOG_DIR=$(cd "$LOG_DIR" && pwd -P)
         AGENT="Claude Code $(claude --version 2>/dev/null | head -1 || echo '(version unknown)')"
         # Name the model that answers, not the alias we asked for: the alias is ours, the
         # deployment behind it is the gateway's, and only the latter tells a reader of the
@@ -183,7 +185,6 @@ runs:
       working-directory: ${{ inputs.cortex_path }}
       env:
         GH_TOKEN: ${{ inputs.github_token }}
-        ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
         DISALLOWED_TOOLS: ${{ inputs.disallowed_tools }}
         CLAUDE_DEBUG: ${{ inputs.debug }}
         AGENT_MODEL: ${{ inputs.model }}
@@ -192,6 +193,9 @@ runs:
         PR_KEY: ${{ steps.prep.outputs.pr_key }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
+        # The input, plus the rules that name a path of this run, for the CLI and denied-calls.py.
+        ALLOWED_TOOLS=$(cat "$LOG_DIR/allowed-tools.txt")
+        export ALLOWED_TOOLS
         # The agent gets a budget of its own, below the job timeout. Reaching it is a plain
         # step failure we control: the steps below still render the trace and the transcript,
         # and the workflow still uploads the artifact. A job timeout instead cancels the job
@@ -263,7 +267,7 @@ runs:
         # 124/137: `timeout` stopped the agent. It had not finished reviewing — that is a budget
         # problem, not a broken run, so say so and fail the step (the logs are already collected).
         if [ "$EXIT_CODE" -eq 124 ] || [ "$EXIT_CODE" -eq 137 ]; then
-          echo "::error title=AI review timed out::The agent was stopped after ${TIMEOUT_MINUTES}m without delivering a review. The partial session is in the run's ai-pr-review-logs artifact (review.transcript.log). Raise timeout_job on the calling workflow if this PR legitimately needs longer, then re-request the review."
+          echo "::error title=AI review timed out::The agent was stopped after ${TIMEOUT_MINUTES}m without delivering a review. The partial session is in the run's ai-pr-review-logs artifact (review.transcript.log). Label the pull request 'Long AI review' if it legitimately needs longer, then re-request the review. A repository that needs longer on every pull request raises timeout_job on the calling workflow."
           exit 1
         fi
         if [ "$EXIT_CODE" -ne 0 ]; then

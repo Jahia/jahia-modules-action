@@ -229,10 +229,9 @@ for its own background work, which always comes from the haiku alias.
 ## Review-only guarantee
 
 The agent runs with an explicit allow list AND deny list (`--allowedTools` /
-`--disallowedTools`). The allow list grants read/search tools, local file writes (staging
-the review body — the runner is ephemeral, so nothing leaves the machine), granular
-read-only `git`/`gh` commands (each under both the bare and the `gh-wrapper` spelling, and
-`git -C <dir> <read>` for the pre-fetched checkout). The deny list — and a deny rule beats an allow rule, including one the
+`--disallowedTools`). The allow list grants read/search tools, file writes in the directory of the
+review file and in the `--collect` directory (staging the review body — the runner is ephemeral, so nothing leaves the machine), granular
+read-only `git`/`gh` commands (each under both the bare and the `gh-wrapper` spelling). The deny list — and a deny rule beats an allow rule, including one the
 cloned repository's own settings could carry — names every editing tool, every way a review
 could reach the forge or rewrite history (`git push/commit/checkout/reset/remote`,
 `gh pr create/comment/edit/ready/merge/close`, `gh issue *`, `gh api`, `gh release`,
@@ -240,6 +239,15 @@ could reach the forge or rewrite history (`git push/commit/checkout/reset/remote
 execute (`--upload-pack`). The agent itself never posts anything: `gh pr review` is denied
 too — the agent writes the review body to a file, and submitting that file is a
 deterministic action step (running with the jahia-ai token) after the agent finishes.
+The default deny list carries `Edit(./**)`, which denies a write in the cortex checkout, the
+working directory of the agent. A path rule of Edit applies to the `Write` tool and to the target
+of a Bash redirection too. `src/build-prompt.py` adds the three rules that name a path of the
+run. Two write rules name the directory of the review file and the `--collect` directory, both in
+the log directory outside the checkout, such as
+`Edit(//home/runner/work/_temp/pr-review-logs/reviews/**)` on a GitHub-hosted runner. The third
+rule admits `python3 -m json.tool` on the review file alone, the check that the `ci` mode runs.
+The allow list of the action holds no command that writes a file on its own.
+A caller that passes its own `disallowed_tools` names `Edit(./**)` in it to keep that rule.
 `--permission-mode dontAsk` denies everything not explicitly allowed. The submit step posts
 every review as `COMMENT`, whatever event the review file asks for. The `ci` mode of the skill
 has the agent treat PR content (title, description, code, comments) as data, never as
@@ -315,6 +323,13 @@ So a review that runs out of time is meant to fail on the agent budget, never on
 big diff, a gateway that rate-limits), raise `timeout_job` on the caller — the workflow
 forwards it as `job_timeout_minutes` and the agent budget follows.
 
+One pull request gets a longer review with a label, and no change to a workflow. A label whose
+name contains `Long AI review` (any casing, such as `⏱️ Long AI review`) makes the job use
+`timeout_job_long` (default **60 minutes**, so an agent budget of **55 minutes**) in place of
+`timeout_job`. The workflow reads the labels when the review is requested: add the label, then
+request the review from the reviewer again. The label stays on the pull request, so each later
+review of it is long too.
+
 The reserve is subtracted inside the action rather than in the workflow's `with:` block on
 purpose: **GitHub Actions expressions have no arithmetic operators**, so `${{ inputs.x - 5 }}`
 is not a value but a workflow syntax error, and a workflow that fails to compile takes every
@@ -361,5 +376,5 @@ plus the mTLS bastion surface
 
 Tuning inputs on `reusable-ai-pr-review.yml` (all optional — `reusable-delivery-pr-chores.yml`
 calls it with the defaults): `reviewer` (default `jahia-ai`), `post_review` (default `true`;
-`false` = review mode), `model` (default `opus`), `instance_type`, `timeout_job`,
+`false` = review mode), `model` (default `opus`), `instance_type`, `timeout_job`, `timeout_job_long`,
 `cortex_ref`, `claude_code_version`, `tunnel_hosts`.
