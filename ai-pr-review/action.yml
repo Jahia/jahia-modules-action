@@ -82,6 +82,8 @@ runs:
         # exist even when this step dies, otherwise the failure costs us the logs too.
         LOG_DIR="$RUNNER_TEMP/pr-review-logs"
         mkdir -p "$LOG_DIR"
+        # The resolved path, which every step and the write rules of build-prompt.py name.
+        LOG_DIR=$(cd "$LOG_DIR" && pwd -P)
         AGENT="Claude Code $(claude --version 2>/dev/null | head -1 || echo '(version unknown)')"
         # Name the model that answers, not the alias we asked for: the alias is ours, the
         # deployment behind it is the gateway's, and only the latter tells a reader of the
