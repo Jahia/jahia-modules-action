@@ -1,5 +1,5 @@
 name: AI PR Review
-description: Runs a Claude Code agent from the cortex harness to review one pull request and submit its findings as a single COMMENT review
+description: Runs a Claude Code agent from the cortex harness to review one pull request and submit one review: an approval of a clean pull request, a COMMENT with its findings otherwise
 
 inputs:
   pr_url:

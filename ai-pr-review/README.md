@@ -6,8 +6,8 @@ request. The agent runs from inside the [cortex harness](https://github.com/Jahi
 reaches the LiteLLM gateway through the IT mTLS bastion.
 
 The agent submits one review: an approval of a clean pull request, and a `COMMENT` otherwise. Each
-finding on a line of the diff is a native
-inline comment on that line, and the review body carries each finding outside the diff. If GitHub
+finding on a line of the diff is a native inline comment on that line, and the review body carries
+each finding outside the diff. If GitHub
 refuses an anchor, the submit step submits the review again with the findings in the body. After
 any other error, which GitHub may have applied, the submit step does not post again: it looks for
 the review of the run on the pull request before it fails. The Cortex skill `pr-review` states the
@@ -23,10 +23,16 @@ when four facts are true:
 - the token account has no unresolved review thread on the pull request, which the submit step
   reads from GitHub and not from a file that the agent can write.
 
-Otherwise the submit step posts `COMMENT`, and a person reads the findings or the reason of the
-human review. A `COMMENT` also dismisses each earlier approval of the token account on the pull
-request, so an approval of an older commit stops counting for the branch protection. When GitHub
-refuses a dismissal, the job fails and names the approval that stays. Blocking a pull request and
+The submit step reads no finding in the review body, so the agent alone decides that a finding
+outside the diff withholds the approval. Otherwise the submit step posts `COMMENT`, and a person
+reads the findings or the reason of the human review. An approval that GitHub refuses with a 422
+posts as `COMMENT`.
+
+A run that does not approve the head dismisses each earlier approval of the token account on the
+pull request, even when its own review fails to post. An approval of an older commit therefore
+stops counting for the branch protection. When GitHub refuses a dismissal, the job fails and names
+the approval that stays. A branch protection that restricts who can dismiss reviews must list the
+token account. Blocking a pull request and
 merging it stay human decisions.
 
 Every review also carries the **human review** of the agent, which states whether a person must
@@ -378,7 +384,8 @@ deny-by-default on both the tunneled hosts and the calling repository).
 Requirements otherwise mirror [`ai-incident-triage`](../ai-incident-triage): a self-hosted
 (typically ephemeral) Ubuntu runner providing `gh`, `python3`, `git`, `curl`, and the org
 secrets/vars `AI_AGENT_GH_ISSUES_PRS_CHORES` (the `jahia-ai` account token, with
-pull-request read/write on the repository), `AI_LITELLM_AUTH_TOKEN_USAGE_PRS`,
+pull-request read/write on the repository, and the right to dismiss a review where the branch
+protection restricts it), `AI_LITELLM_AUTH_TOKEN_USAGE_PRS`,
 `AI_LITELLM_BASE_URL`,
 `AI_LITELLM_ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL`,
 `CORTEX_TELEMETRY_TOKEN` (cortex's own usage reporting; a run without it still succeeds and reports nothing),

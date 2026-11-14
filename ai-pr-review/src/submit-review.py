@@ -18,8 +18,9 @@ does not know would post a wrong review.
 attached as inline comments on the lines in question (a comment of several
 lines keeps its start_line/start_side). The review approves only when the file
 asks for it, carries no inline comment, needs no human, and the token account
-has no unresolved thread on the pull request; it is a COMMENT otherwise, and a
-COMMENT dismisses each earlier approval of the token account. The review names as
+has no unresolved thread on the pull request; it is a COMMENT otherwise, and so
+is an approval that GitHub refuses with a 422. A run that does not approve the
+head dismisses each earlier approval of the token account, posted or not. The review names as
 its commit the head that the prefetch read, so that the next re-review reads its
 delta from that commit. If GitHub refuses the payload with a 422 (typically an
 anchor on a line that is not part of the diff), the review is submitted again
@@ -229,21 +230,11 @@ def dismiss_approvals():
     errors = []
     for review_id in listed.stdout.decode().split():
         done = gh(['-X', 'PUT', f'{endpoint}/{review_id}/dismissals', '--input', '-'],
-                  {'message': f'A later review of {login} asks for changes or for a human review.',
+                  {'message': f'A later review of {login} does not approve the head of the pull request.',
                    'event': 'DISMISS'})
         if done.returncode != 0:
             errors.append(f'review {review_id}: ' + done.stderr.decode(errors='replace')[-200:])
     return errors
-
-
-def done_after(event):
-    """Label the pull request, dismiss the earlier approvals after a COMMENT, and exit."""
-    apply_label()
-    errors = dismiss_approvals() if event == 'COMMENT' else []
-    for error in errors:
-        print(f'::error title=An approval of {login} stays::{error.strip()} The approval still counts '
-              'for the branch protection: dismiss it by hand, or give the account the right to dismiss reviews.')
-    sys.exit(1 if errors else 0)
 
 
 whoami = subprocess.run(['gh', 'api', 'user', '--jq', '.login'], capture_output=True, text=True)
@@ -267,19 +258,32 @@ if comments:
                      f'with {len(comments)} inline comment(s)'))
 attempts.append(({'event': event, 'body': fold(body, comments), **pinned},
                  'body-only, with the findings folded in'))
+if event == 'APPROVE':
+    # GitHub can refuse an approval that it accepts as a comment, such as on a pull request of the account.
+    attempts.append(({'event': 'COMMENT', 'body': body, **pinned}, 'as COMMENT, after a refused approval'))
+submitted = False
 for payload, form in attempts:
     result = post(payload)
     if result.returncode == 0:
-        print(f'Review submitted ({event}) {form}')
-        done_after(event)
+        print(f"Review submitted ({payload['event']}) {form}")
+        submitted = True
+        break
     error = result.stderr.decode(errors='replace')
     sys.stderr.write(error[-800:] + '\n' + result.stdout.decode(errors='replace')[-800:] + '\n')
     # Only a 422 says that GitHub created no review: after any other error, a retry can post twice.
     if 'HTTP 422' not in error:
         break
     print(f'::warning::GitHub refused the review payload {form} (HTTP 422)')
-if 'HTTP 422' not in error and landed():
+if not submitted and 'HTTP 422' not in error and landed():
     print('GitHub answered an error, but the review of this run is on the pull request')
-    done_after(event)
-print('::error::Could not submit the review. The review request stays pending, and a re-request retries.')
-sys.exit(1)
+    submitted = True
+if submitted:
+    apply_label()
+else:
+    print('::error::Could not submit the review. The review request stays pending, and a re-request retries.')
+# An approval of an older commit must not outlive a review that does not approve the head, posted or not.
+errors = dismiss_approvals() if payload['event'] == 'COMMENT' else []
+for error in errors:
+    print(f'::error title=An approval of {login} stays::{error.strip()} The approval still counts for the '
+          'branch protection: dismiss it by hand, or let the account dismiss reviews on this branch.')
+sys.exit(0 if submitted and not errors else 1)

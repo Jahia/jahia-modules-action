@@ -63,6 +63,7 @@ class TestTheSubmit(unittest.TestCase):
     def test_an_approve_that_asks_for_a_human_posts_as_comment(self):
         done = self.submit([{"args": POST, "out": "{}"}, threads()],
                            review(event="APPROVE", human_review="recommended"))
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
         self.assertEqual([post["event"] for post in self.posts()], ["COMMENT"])
         self.assertEqual(self.gh.calls("graphql"), [])
 
@@ -75,6 +76,35 @@ class TestTheSubmit(unittest.TestCase):
         done = self.submit([{"args": POST, "out": "{}"}, {"args": "graphql", **GATEWAY}], review(event="APPROVE"))
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
         self.assertEqual([post["event"] for post in self.posts()], ["COMMENT"])
+
+    def test_an_approve_on_a_later_page_of_threads_sees_an_open_thread(self):
+        first = threads((True, "jahia-ai"))
+        page = json.loads(first["out"])
+        page["data"]["repository"]["pullRequest"]["reviewThreads"]["pageInfo"] = {"hasNextPage": True, "endCursor": "c1"}
+        done = self.submit([{"args": POST, "out": "{}"}, {**threads((False, "jahia-ai")), "args": "after=c1"},
+                            {"args": "graphql", "out": json.dumps(page)}], review(event="APPROVE"))
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        self.assertEqual([post["event"] for post in self.posts()], ["COMMENT"])
+
+    def test_an_approve_with_an_unknown_login_posts_as_comment_and_fails_on_the_approvals(self):
+        done = self.submit([{"args": POST, "out": "{}"}, {"args": "api user", **GATEWAY}], review(event="APPROVE"))
+        self.assertEqual(done.returncode, 1)
+        self.assertEqual([post["event"] for post in self.posts()], ["COMMENT"])
+        self.assertIn("login of the token account is unknown", done.stdout)
+
+    def test_a_refused_approve_posts_as_comment_and_dismisses(self):
+        done = self.submit([{"args": POST, "stdin": '"APPROVE"', **REFUSED}, {"args": POST, "out": "{}"},
+                            threads(), {"args": APPROVALS, "out": "11\n"}, {"args": DISMISS, "out": "{}"}],
+                           review(event="APPROVE"))
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        self.assertEqual([post["event"] for post in self.posts()], ["APPROVE", "COMMENT"])
+        self.assertEqual(len(self.gh.calls(DISMISS)), 1)
+
+    def test_a_comment_that_fails_still_dismisses_the_earlier_approvals(self):
+        done = self.submit([{"args": POST, **REFUSED}, {"args": APPROVALS, "out": "11\n"},
+                            {"args": DISMISS, "out": "{}"}], review(comments=[FINDING]))
+        self.assertEqual(done.returncode, 1)
+        self.assertEqual(len(self.gh.calls(DISMISS)), 1)
 
     def test_a_comment_dismisses_an_earlier_approval_of_the_account(self):
         done = self.submit([{"args": POST, "out": "{}"}, {"args": APPROVALS, "out": "11\n"},
