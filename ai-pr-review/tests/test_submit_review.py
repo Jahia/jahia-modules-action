@@ -106,6 +106,14 @@ class TestTheSubmit(unittest.TestCase):
         self.assertEqual(done.returncode, 1)
         self.assertEqual(len(self.gh.calls(DISMISS)), 1)
 
+    def test_an_approve_that_fails_to_post_dismisses_the_earlier_approvals(self):
+        done = self.submit([{"args": POST, **GATEWAY}, threads(), {"args": "pulls/1/reviews --paginate", "out": "[]"},
+                            {"args": APPROVALS, "out": "11\n"}, {"args": DISMISS, "out": "{}"}],
+                           review(event="APPROVE"))
+        self.assertEqual(done.returncode, 1)
+        self.assertEqual([post["event"] for post in self.posts()], ["APPROVE"])
+        self.assertEqual(len(self.gh.calls(DISMISS)), 1)
+
     def test_a_comment_dismisses_an_earlier_approval_of_the_account(self):
         done = self.submit([{"args": POST, "out": "{}"}, {"args": APPROVALS, "out": "11\n"},
                             {"args": DISMISS, "out": "{}"}], review())

@@ -15,20 +15,20 @@ the next version when the shape changes, and guessing at a shape this script
 does not know would post a wrong review.
 
 "post" submits ONE pull-request review via the GitHub API, with the findings
-attached as inline comments on the lines in question (a comment of several
-lines keeps its start_line/start_side). The review approves only when the file
-asks for it, carries no inline comment, needs no human, and the token account
-has no unresolved thread on the pull request; it is a COMMENT otherwise, and so
-is an approval that GitHub refuses with a 422. A run that does not approve the
-head dismisses each earlier approval of the token account, posted or not. The review names as
-its commit the head that the prefetch read, so that the next re-review reads its
-delta from that commit. If GitHub refuses the payload with a 422 (typically an
-anchor on a line that is not part of the diff), the review is submitted again
-body-only, with the findings folded into the body, so a bad anchor never loses
-the review. After any other error, a review of this run that is already on the
-pull request counts as submitted. GitHub can create the review after it answers
-the error, so the search runs three times. "render" prints the review as markdown
-(review mode: job summary and artifact reading).
+attached as inline comments on the lines in question (a comment of several lines
+keeps its start_line/start_side). The review approves only when the file asks
+for it, carries no inline comment, needs no human, and the token account has no
+unresolved thread on the pull request; it is a COMMENT otherwise, and so is an
+approval that GitHub refuses with a 422. A run that does not approve the head
+dismisses each earlier approval of the token account, posted or not. The review
+names as its commit the head that the prefetch read, so that the next re-review
+reads its delta from that commit. If GitHub refuses the payload with a 422
+(typically an anchor on a line that is not part of the diff), the review is
+submitted again body-only, with the findings folded into the body, so a bad
+anchor never loses the review. After any other error, a review of this run that
+is already on the pull request counts as submitted. GitHub can create the review
+after it answers the error, so the search runs three times. "render" prints the
+review as markdown (review mode: job summary and artifact reading).
 
 "post" requires GH_TOKEN with pull-request write on the repository.
 """
@@ -281,8 +281,9 @@ if submitted:
     apply_label()
 else:
     print('::error::Could not submit the review. The review request stays pending, and a re-request retries.')
-# An approval of an older commit must not outlive a review that does not approve the head, posted or not.
-errors = dismiss_approvals() if payload['event'] == 'COMMENT' else []
+# An approval of an older commit must not outlive a run that does not approve the head.
+approved = submitted and payload['event'] == 'APPROVE'
+errors = [] if approved else dismiss_approvals()
 for error in errors:
     print(f'::error title=An approval of {login} stays::{error.strip()} The approval still counts for the '
           'branch protection: dismiss it by hand, or let the account dismiss reviews on this branch.')

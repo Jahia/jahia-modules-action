@@ -7,12 +7,11 @@ reaches the LiteLLM gateway through the IT mTLS bastion.
 
 The agent submits one review: an approval of a clean pull request, and a `COMMENT` otherwise. Each
 finding on a line of the diff is a native inline comment on that line, and the review body carries
-each finding outside the diff. If GitHub
-refuses an anchor, the submit step submits the review again with the findings in the body. After
-any other error, which GitHub may have applied, the submit step does not post again: it looks for
-the review of the run on the pull request before it fails. The Cortex skill `pr-review` states the
-shape of the review body, in the contract that
-[Who owns what](#who-owns-what) names.
+each finding outside the diff. If GitHub refuses an anchor, the submit step submits the review again
+with the findings in the body. After any other error, which GitHub may have applied, the submit step
+does not post again: it looks for the review of the run on the pull request before it fails. The
+Cortex skill `pr-review` states the shape of the review body, in the contract that [Who owns
+what](#who-owns-what) names.
 
 The review never requests changes and never touches code. The submit step posts `APPROVE` only
 when four facts are true:
@@ -29,11 +28,10 @@ reads the findings or the reason of the human review. An approval that GitHub re
 posts as `COMMENT`.
 
 A run that does not approve the head dismisses each earlier approval of the token account on the
-pull request, even when its own review fails to post. An approval of an older commit therefore
-stops counting for the branch protection. When GitHub refuses a dismissal, the job fails and names
-the approval that stays. A branch protection that restricts who can dismiss reviews must list the
-token account. Blocking a pull request and
-merging it stay human decisions.
+pull request, even when its own review fails to post. An approval of an older commit therefore stops
+counting for the branch protection. When GitHub refuses a dismissal, the job fails and names the
+approval that stays. A branch protection that restricts who can dismiss reviews must list the token
+account. Blocking a pull request and merging it stay human decisions.
 
 Every review also carries the **human review** of the agent, which states whether a person must
 read the pull request before it merges. In the review file, the field `human_review` has the value
@@ -115,7 +113,7 @@ pending review request for it is withdrawn; the label is then consumed, so it ca
 re-applied later. Two GitHub limits apply. A submitted review cannot be deleted, so a minimized
 empty shell remains. An approval of `jahia-ai` keeps its effect on the
 branch protection, because only a dismissal revokes it, and the clear action does not dismiss. The
-next review of `jahia-ai` that posts a `COMMENT` dismisses it.
+next run of `jahia-ai` that does not approve the head dismisses it.
 Blanking also removes the re-review marker: the next requested review starts fresh.
 
 Every review body additionally starts with a hidden marker (`<!-- cortex-pr-review -->`):
