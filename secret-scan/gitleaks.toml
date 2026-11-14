@@ -18,3 +18,34 @@ regexes = [
   # @azure/storage-blob carries it into the dist/ of an action that bundles @actions/artifact.
   '''^Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==$''',
 ]
+
+# A password in the user part of a URL, such as postgresql://user:password@host/db.
+# The default rules miss it, because such a password is often short and has a low entropy.
+[[rules]]
+id = "url-with-password"
+description = "A database or message broker URL that carries a password"
+# The user part can be empty, such as redis://:password@host.
+regex = '''(?i)\b(?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|rediss?|amqps?|clickhouse)://[^\s:/?#@"'`]*:([^\s/?#@"'`]{4,})@'''
+secretGroup = 1
+keywords = ["postgres", "mysql", "mariadb", "mongodb", "redis", "amqp", "clickhouse"]
+
+# The default allowlist of gitleaks already skips ${DB_PASSWORD}, $DB_PASSWORD and {{password}}.
+# The rule never matches %s, which is shorter than 4 characters.
+# Each regex matches the whole placeholder, so a real password that starts with $ or % stays reported.
+# A default value, as in ${DB_PASSWORD:-value}, is committed, so it stays reported.
+[[rules.allowlists]]
+description = "A placeholder in place of the password, such as <password>, $DB_PASSWORD2, ${DbPassword} or %(password)s."
+regexes = [
+  '''^<[^<>]+>$''',
+  '''^\$[A-Z_][A-Z0-9_]*$''',
+  '''^\$\{[A-Za-z_][A-Za-z0-9_]*\}$''',
+  '''^\{\{[^{}]+\}\}$''',
+  '''^%\([A-Za-z_][A-Za-z0-9_]*\)s$''',
+]
+
+# A file that holds the settings or the credentials of one developer, whatever its content.
+# A rule on the path reports a commit that adds or changes the file, and not one that deletes it.
+[[rules]]
+id = "local-settings-file"
+description = "A file of per-developer settings or credentials, which stays out of git"
+path = '''(?:^|/)(?:\.claude/settings\.local\.json|mise\.local\.toml|\.netrc|\.git-credentials|\.aws/credentials)$'''
