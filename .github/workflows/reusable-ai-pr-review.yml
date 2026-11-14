@@ -1,6 +1,6 @@
 # On-demand AI review of a pull request: a Claude Code agent (cortex harness, LiteLLM through
-# the IT mTLS bastion) reviews the PR and submits one COMMENT review, with its findings as inline
-# comments. It never approves, never requests changes and never touches code.
+# the IT mTLS bastion) reviews the PR and submits one review: an approval of a clean PR, or a
+# COMMENT with its findings as inline comments. It never requests changes and never touches code.
 # Trigger filtering (which event, which reviewer) belongs to the caller, typically
 # reusable-delivery-pr-chores.yml. Requirements: ai-pr-review/README.md.
 name: AI PR Review

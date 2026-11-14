@@ -18,7 +18,8 @@ does not know would post a wrong review.
 attached as inline comments on the lines in question (a comment of several lines
 keeps its start_line/start_side). The review approves only when the file asks
 for it, carries no inline comment, needs no human, and the token account has no
-unresolved thread on the pull request; it is a COMMENT otherwise, and so is an
+unresolved thread on the pull request, and the reviewed commit is still the head
+of the pull request; it is a COMMENT otherwise, and so is an
 approval that GitHub refuses with a 422. A run that does not approve the head
 dismisses each earlier approval of the token account, posted or not. The review
 names as its commit the head that the prefetch read, so that the next re-review
@@ -193,9 +194,13 @@ def open_threads():
             return None
         try:
             threads = json.loads(done.stdout)['data']['repository']['pullRequest']['reviewThreads']
-            count += sum(1 for thread in threads['nodes'] if not thread['isResolved']
-                         and ((thread['comments']['nodes'] or [{}])[0].get('author') or {}).get('login') == login)
-        except (ValueError, KeyError, TypeError, IndexError, AttributeError):
+            for thread in threads['nodes']:
+                first = thread['comments']['nodes']
+                # A deleted account leaves a comment with no author.
+                author = (first[0].get('author') or {}).get('login') if first else None
+                if not thread['isResolved'] and author == login:
+                    count += 1
+        except (ValueError, KeyError, TypeError, AttributeError):
             return None
         if not threads['pageInfo']['hasNextPage']:
             return count
@@ -210,6 +215,13 @@ def refusal():
         return f'its human review is {human!r}'
     if not login:
         return 'the login of the token account is unknown'
+    if not reviewed:
+        return 'the run names no reviewed head'
+    head = gh([f'repos/{owner}/{repo}/pulls/{number}', '--jq', '.head.sha'])
+    if head.returncode != 0:
+        return 'the head of the pull request could not be read'
+    if head.stdout.decode().strip() != reviewed:
+        return f'the reviewed commit {reviewed[:12]} is no longer the head, after a push during the run'
     unresolved = open_threads()
     if unresolved is None:
         return 'the review threads of the pull request could not be read'
@@ -237,6 +249,8 @@ def dismiss_approvals():
     return errors
 
 
+reviewed = os.environ.get('REVIEWED_SHA')
+pinned = {'commit_id': reviewed} if reviewed else {}
 whoami = subprocess.run(['gh', 'api', 'user', '--jq', '.login'], capture_output=True, text=True)
 login = whoami.stdout.strip() if whoami.returncode == 0 else None
 asked = review.get('event', 'COMMENT')
@@ -250,8 +264,6 @@ if asked == 'APPROVE':
 elif asked != 'COMMENT':
     print(f'::warning::Unexpected review event {asked!r}. The review is submitted as COMMENT.')
 
-reviewed = os.environ.get('REVIEWED_SHA')
-pinned = {'commit_id': reviewed} if reviewed else {}
 attempts = []
 if comments:
     attempts.append(({'event': event, 'body': body, 'comments': [anchor(c) for c in comments], **pinned},
@@ -261,12 +273,12 @@ attempts.append(({'event': event, 'body': fold(body, comments), **pinned},
 if event == 'APPROVE':
     # GitHub can refuse an approval that it accepts as a comment, such as on a pull request of the account.
     attempts.append(({'event': 'COMMENT', 'body': body, **pinned}, 'as COMMENT, after a refused approval'))
-submitted = False
+posted = None
 for payload, form in attempts:
     result = post(payload)
     if result.returncode == 0:
         print(f"Review submitted ({payload['event']}) {form}")
-        submitted = True
+        posted = payload['event']
         break
     error = result.stderr.decode(errors='replace')
     sys.stderr.write(error[-800:] + '\n' + result.stdout.decode(errors='replace')[-800:] + '\n')
@@ -274,17 +286,16 @@ for payload, form in attempts:
     if 'HTTP 422' not in error:
         break
     print(f'::warning::GitHub refused the review payload {form} (HTTP 422)')
-if not submitted and 'HTTP 422' not in error and landed():
+if not posted and 'HTTP 422' not in error and landed():
     print('GitHub answered an error, but the review of this run is on the pull request')
-    submitted = True
-if submitted:
+    posted = payload['event']
+if posted:
     apply_label()
 else:
     print('::error::Could not submit the review. The review request stays pending, and a re-request retries.')
 # An approval of an older commit must not outlive a run that does not approve the head.
-approved = submitted and payload['event'] == 'APPROVE'
-errors = [] if approved else dismiss_approvals()
-for error in errors:
-    print(f'::error title=An approval of {login} stays::{error.strip()} The approval still counts for the '
+stays = [] if posted == 'APPROVE' else dismiss_approvals()
+for message in stays:
+    print(f'::error title=An approval of {login} stays::{message.strip()} The approval still counts for the '
           'branch protection: dismiss it by hand, or let the account dismiss reviews on this branch.')
-sys.exit(0 if submitted and not errors else 1)
+sys.exit(0 if posted and not stays else 1)

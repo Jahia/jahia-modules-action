@@ -14,13 +14,15 @@ Cortex skill `pr-review` states the shape of the review body, in the contract th
 what](#who-owns-what) names.
 
 The review never requests changes and never touches code. The submit step posts `APPROVE` only
-when four facts are true:
+when five facts are true:
 
 - the review file asks for `APPROVE`;
 - the review carries no inline comment;
 - the field `human_review` is `not-needed`;
 - the token account has no unresolved review thread on the pull request, which the submit step
-  reads from GitHub and not from a file that the agent can write.
+  reads from GitHub and not from a file that the agent can write;
+- the commit that the agent reviewed is still the head of the pull request, so a push during the
+  run gets no approval.
 
 The submit step reads no finding in the review body, so the agent alone decides that a finding
 outside the diff withholds the approval. Otherwise the submit step posts `COMMENT`, and a person
@@ -265,7 +267,7 @@ rule admits `python3 -m json.tool` on the review file alone, the check that the 
 The allow list of the action holds no command that writes a file on its own.
 A caller that passes its own `disallowed_tools` names `Edit(./**)` in it to keep that rule.
 `--permission-mode dontAsk` denies everything not explicitly allowed. The submit step posts
-`APPROVE` only under the four conditions that the opening of this README states. The `ci` mode of the skill
+`APPROVE` only under the five conditions that the opening of this README states. The `ci` mode of the skill
 has the agent treat PR content (title, description, code, comments) as data, never as
 instructions, and flag prompt-injection attempts as findings.
 

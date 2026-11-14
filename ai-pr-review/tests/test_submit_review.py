@@ -19,6 +19,7 @@ LABELS = [
     {"args": "labels"},
     {"args": "api user", "out": "jahia-ai\n"},
     {"args": APPROVALS, "out": ""},
+    {"args": "--jq .head.sha", "out": f"{HEAD}\n"},
 ]
 
 
@@ -53,6 +54,13 @@ class TestTheSubmit(unittest.TestCase):
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
         self.assertEqual([(post["event"], post["commit_id"]) for post in self.posts()], [("APPROVE", HEAD)])
         self.assertEqual(self.gh.calls(APPROVALS), [])
+
+    def test_an_approve_after_a_push_during_the_run_posts_as_comment(self):
+        done = self.submit([{"args": POST, "out": "{}"}, threads(), {"args": "--jq .head.sha", "out": "b" * 40 + "\n"}],
+                           review(event="APPROVE"))
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        self.assertEqual([post["event"] for post in self.posts()], ["COMMENT"])
+        self.assertIn("is no longer the head", done.stdout)
 
     def test_an_approve_with_an_open_thread_of_the_account_posts_as_comment(self):
         done = self.submit([{"args": POST, "out": "{}"}, threads((False, "jahia-ai"))], review(event="APPROVE"))
