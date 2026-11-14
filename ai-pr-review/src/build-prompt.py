@@ -5,7 +5,8 @@ Env:   PR_URL            - URL of the pull request to review
        MARKER            - hidden marker string, the first line of the review body
        AGENT             - human-readable identity of the agent (CLI + model)
        RUN_URL           - URL of the workflow run performing this review
-       ALLOWED_TOOLS     - the --allowedTools value the agent will run under
+       ALLOWED_TOOLS     - the allowed_tools input, to which this script adds the rules
+                           that name a path of this run
        DISALLOWED_TOOLS  - the --disallowedTools value
 
 Cortex owns the review: its method, its decision rules and the shape of the review file
@@ -23,15 +24,16 @@ The agent never posts to GitHub itself: it writes the review file
 <log-dir>/reviews/pr-<key>.review.json, and posting it (when post_review is true) is a
 deterministic step of the action.
 
-Writes <log-dir>/review.prompt.md (the call) and <log-dir>/review.system.md (the tool
-surface), then prints the PR key (owner-repo-number, used for file names) to stdout.
+Writes <log-dir>/review.prompt.md (the call), <log-dir>/review.system.md (the tool
+surface) and <log-dir>/allowed-tools.txt (the --allowedTools value), then prints the PR
+key (owner-repo-number, used for file names) to stdout.
 """
 import os
 import re
 import shlex
 import sys
 
-log_dir = sys.argv[1]
+log_dir = os.path.realpath(sys.argv[1])
 pr_url = os.environ['PR_URL']
 
 match = re.search(r'([^/]+)/([^/]+)/pull/(\d+)$', pr_url)
@@ -81,19 +83,30 @@ def split_tools(value):
     for entry in (e for e in entries if e):
         match = re.fullmatch(r'Bash\((.*)\)', entry)
         if match:
-            # `git log:*` and `git log --oneline` both describe one command prefix.
-            shell.append(match.group(1).rstrip('*').rstrip(':').strip())
+            # `git log:*` and `git log *` are a prefix, which the prompt marks with ` …`;
+            # `git branch -a` is the whole command.
+            rule = match.group(1).strip()
+            shell.append(f'{rule[:-2].rstrip()} …' if rule.endswith((':*', ' *')) else rule)
         else:
             plain.append(entry)
     return plain, shell
 
 
-allowed_plain, allowed_shell = split_tools(os.environ.get('ALLOWED_TOOLS', ''))
+# The rules that name a path of this run: the two directories the agent writes in, and the
+# check of the review file that the ci mode runs. `/` + an absolute path gives the `//<path>`
+# form that Claude Code reads from the filesystem root.
+allowed_tools = ','.join(filter(None, [
+    os.environ.get('ALLOWED_TOOLS', ''),
+    f'Edit(/{reviews_dir}/**)',
+    f'Edit(/{collect_dir}/**)',
+    f'Bash(python3 -m json.tool {review_file})',
+]))
+allowed_plain, allowed_shell = split_tools(allowed_tools)
 denied_plain, denied_shell = split_tools(os.environ.get('DISALLOWED_TOOLS', ''))
 
 
 def bullets(commands):
-    """One command prefix per line, so a long list stays readable in the log."""
+    """One shell command per line, so a long list stays readable in the log."""
     return [f'  - `{command}`' for command in commands]
 
 
@@ -109,8 +122,9 @@ surface = [
 ]
 if allowed_plain:
     surface.append(f"- Tools: {', '.join(allowed_plain)}.")
-surface += ['- These shell commands, and NOTHING else. Each entry is a command prefix — any',
-            '  arguments are allowed after it:']
+surface += ['- These shell commands, and NOTHING else. An entry that ends on `…` is a command',
+            '  prefix, and any arguments are allowed after it. An entry with no `…` is the whole',
+            '  command:']
 surface += bullets(allowed_shell)
 surface += [
     '- A pipeline or a `;`-chain runs only when EVERY command in it is allowed:',
@@ -125,9 +139,15 @@ surface.append('- These shell commands:')
 surface += bullets(denied_shell)
 surface += [
     '',
-    'Two consequences of working from inside the cortex harness. On these two points THIS',
+    'Three consequences of working from inside the cortex harness. On these three points THIS',
     'section wins — it is what the CLI enforces:',
     '',
+    f'- Every file you write goes under `{reviews_dir}`, the directory of the review file, or',
+    f'  under `{collect_dir}`, the `--collect` directory, where a scratch file goes too. A write',
+    '  anywhere else is refused, through Write and through a shell redirection alike. Write each',
+    '  file with the Write tool: an `Edit(…)` rule of the list admits Write under its path, and',
+    '  the Edit tool itself is denied, so a fix of the review file writes the whole file again.',
+    '  `python3 -m json.tool` runs on the review file, in the one form that the list names.',
     '- cortex routes every `gh` write through `tools/gh-wrapper/bin/gh-wrapper`. You make no',
     '  write, and the list above carries the reads under both spellings, so either route',
     '  works. Use the one the list names; never retry a denied call through the other.',
@@ -142,5 +162,7 @@ with open(os.path.join(log_dir, 'review.prompt.md'), 'w', encoding='utf-8') as f
     fh.write(CALL + '\n')
 with open(os.path.join(log_dir, 'review.system.md'), 'w', encoding='utf-8') as fh:
     fh.write('\n'.join(surface) + '\n')
+with open(os.path.join(log_dir, 'allowed-tools.txt'), 'w', encoding='utf-8') as fh:
+    fh.write(allowed_tools + '\n')
 
 print(key)
