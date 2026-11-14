@@ -28,7 +28,8 @@ runs:
     # removable: issue comments and inline review comments are deleted, review bodies are
     # blanked (which also removes the re-review marker) and minimized, and any pending
     # review request for the reviewer is withdrawn. Approvals are deliberately NOT
-    # dismissed: an already-submitted APPROVE keeps its effect (only dismissal revokes it).
+    # dismissed: an approval keeps its effect until the next review of the account that does
+    # not approve, which the submit step of ai-pr-review follows with a dismissal.
     - name: Clear the reviewer's comments and reviews
       uses: actions/github-script@v9
       env:

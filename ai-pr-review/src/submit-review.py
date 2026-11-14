@@ -2,6 +2,9 @@
 
 Usage: submit-review.py post <review-file> <pr-url>
        submit-review.py render <review-file>
+Env:   REVIEWED_SHA - optional, for post: the head that the prefetch read
+       MARKER, STARTED_AT - optional, for post: find a review of this run after an error
+       LANDED_PAUSE - optional, for post: the seconds between two of those searches, 10 by default
 
 The review file is the one the ci mode of the Cortex skill pr-review writes, in
 the shape of its contract (`.claude/skills/pr-review/assets/ci-review.md` in
@@ -12,23 +15,47 @@ the next version when the shape changes, and guessing at a shape this script
 does not know would post a wrong review.
 
 "post" submits ONE pull-request review via the GitHub API, with the findings
-attached as inline comments on the lines in question (a comment of several
-lines keeps its start_line/start_side). If GitHub rejects the payload
+attached as inline comments on the lines in question (a comment of several lines
+keeps its start_line/start_side). The review approves only when the file asks
+for it, carries no inline comment, needs no human, and the token account has no
+unresolved thread on the pull request, and the reviewed commit is still the head
+of the pull request; it is a COMMENT otherwise, and so is an
+approval that GitHub refuses with a 422. A run that does not approve the head
+dismisses each earlier approval of the token account, posted or not. The review
+names as its commit the head that the prefetch read, so that the next re-review
+reads its delta from that commit. If GitHub refuses the payload with a 422
 (typically an anchor on a line that is not part of the diff), the review is
-re-submitted body-only with the findings folded into the body — a bad anchor
-never loses the review. "render" prints the review as markdown (review mode:
-job summary and artifact reading).
+submitted again body-only, with the findings folded into the body, so a bad
+anchor never loses the review. After any other error, a review of this run that
+is already on the pull request counts as submitted. GitHub can create the review
+after it answers the error, so the search runs three times. "render" prints the
+review as markdown (review mode: job summary and artifact reading).
 
 "post" requires GH_TOKEN with pull-request write on the repository.
 """
 import json
+import os
 import re
 import subprocess
 import sys
+import time
 from urllib.parse import quote
 
 # The contract versions of the review file this script reads.
 KNOWN_CONTRACTS = ('v1',)
+# The review threads of the pull request, with the author of the first comment of each one.
+THREADS_QUERY = '''
+query($owner: String!, $repo: String!, $number: Int!, $after: String) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100, after: $after) {
+        pageInfo { hasNextPage endCursor }
+        nodes { isResolved comments(first: 1) { nodes { author { login } } } }
+      }
+    }
+  }
+}
+'''
 
 mode, path = sys.argv[1], sys.argv[2]
 try:
@@ -78,18 +105,10 @@ def post(payload):
                           input=json.dumps(payload).encode(), capture_output=True)
 
 
-event = review.get('event', 'COMMENT')
-if event not in ('APPROVE', 'COMMENT'):
-    print(f'::warning::Unexpected review event {event!r} — submitting as COMMENT')
-    event = 'COMMENT'
-if event == 'APPROVE' and comments:
-    print('::warning::APPROVE with findings attached — downgraded to COMMENT (approval requires zero findings)')
-    event = 'COMMENT'
-
-# The agent's confidence call, mirrored as a PR label after the review is submitted.
+# The human review of the agent, mirrored as a PR label after the review is submitted.
 LABELS = {
     'not-needed': ('🤖 AI-only review OK', '0E8A16',
-                   'The AI reviewer is confident this PR can merge with the AI review alone'),
+                   'The AI reviewer sees no need for a person to read this PR'),
     'recommended': ('🤖 Human review recommended', 'FBCA04',
                     'The AI reviewer suggests a human pass on this PR'),
     'required': ('🤖 Human review required', 'B60205',
@@ -109,9 +128,12 @@ def gh(args, data=None):
 def apply_label():
     """Mirror the recommendation as a PR label. Best-effort: never fails the review."""
     name, color, description = LABELS[human]
-    # Create the label when the repo does not have it yet (422 when it already exists).
-    gh(['-X', 'POST', f'repos/{owner}/{repo}/labels', '--input', '-'],
-       {'name': name, 'color': color, 'description': description})
+    # Bring an existing label to the current description, keep its color, and create it when missing.
+    patched = gh(['-X', 'PATCH', f'repos/{owner}/{repo}/labels/{quote(name, safe="")}', '--input', '-'],
+                 {'description': description})
+    if patched.returncode != 0:
+        gh(['-X', 'POST', f'repos/{owner}/{repo}/labels', '--input', '-'],
+           {'name': name, 'color': color, 'description': description})
     for key, (other, _, _) in LABELS.items():
         if key != human:
             gh(['-X', 'DELETE',
@@ -135,22 +157,145 @@ def anchor(comment):
     return entry
 
 
-payload = {'event': event, 'body': body}
+def landed():
+    """True when a review of this run by the token account is on the pull request, after an error."""
+    marker, started = os.environ.get('MARKER'), os.environ.get('STARTED_AT')
+    if not marker or not started or not login:
+        return False
+    pause = float(os.environ.get('LANDED_PAUSE', '10'))
+    for search in range(3):
+        if search:
+            time.sleep(pause)
+        listed = subprocess.run(['gh', 'api', endpoint, '--paginate'], capture_output=True)
+        if listed.returncode != 0:
+            continue
+        try:
+            # The verify step of action.yml also requires a review strictly after the start.
+            if any((review.get('user') or {}).get('login') == login
+                   and marker in (review.get('body') or '')
+                   and (review.get('submitted_at') or '') > started
+                   for review in json.loads(listed.stdout)):
+                return True
+        except (ValueError, TypeError, AttributeError):
+            pass
+    return False
+
+
+def open_threads():
+    """The count of unresolved review threads that the token account opened, or None when unread."""
+    count, after = 0, None
+    while True:
+        args = ['graphql', '-f', f'query={THREADS_QUERY}', '-f', f'owner={owner}', '-f', f'repo={repo}',
+                '-F', f'number={number}']
+        if after:
+            args += ['-f', f'after={after}']
+        done = gh(args)
+        if done.returncode != 0:
+            return None
+        try:
+            threads = json.loads(done.stdout)['data']['repository']['pullRequest']['reviewThreads']
+            for thread in threads['nodes']:
+                first = thread['comments']['nodes']
+                # A deleted account leaves a comment with no author.
+                author = (first[0].get('author') or {}).get('login') if first else None
+                if not thread['isResolved'] and author == login:
+                    count += 1
+        except (ValueError, KeyError, TypeError, AttributeError):
+            return None
+        if not threads['pageInfo']['hasNextPage']:
+            return count
+        after = threads['pageInfo']['endCursor']
+
+
+def refusal():
+    """Why the review cannot approve, or None when it can."""
+    if comments:
+        return f'it carries {len(comments)} inline comment(s)'
+    if human != 'not-needed':
+        return f'its human review is {human!r}'
+    if not login:
+        return 'the login of the token account is unknown'
+    if not reviewed:
+        return 'the run names no reviewed head'
+    head = gh([f'repos/{owner}/{repo}/pulls/{number}', '--jq', '.head.sha'])
+    if head.returncode != 0:
+        return 'the head of the pull request could not be read'
+    if head.stdout.decode().strip() != reviewed:
+        return f'the reviewed commit {reviewed[:12]} is no longer the head, after a push during the run'
+    unresolved = open_threads()
+    if unresolved is None:
+        return 'the review threads of the pull request could not be read'
+    if unresolved:
+        return f'{unresolved} thread(s) of {login} are still unresolved'
+    return None
+
+
+def dismiss_approvals():
+    """Dismiss each approval of the token account, and return the error of each one that stays."""
+    if not login:
+        return ['the login of the token account is unknown, so its approvals could not be listed']
+    # One id per line: --jq runs on each page, so the pages need no merge.
+    listed = gh([f'{endpoint}?per_page=100', '--paginate', '--jq',
+                 f'.[] | select(.state == "APPROVED" and .user.login == {json.dumps(login)}) | .id'])
+    if listed.returncode != 0:
+        return ['the reviews could not be listed: ' + listed.stderr.decode(errors='replace')[-200:]]
+    errors = []
+    for review_id in listed.stdout.decode().split():
+        done = gh(['-X', 'PUT', f'{endpoint}/{review_id}/dismissals', '--input', '-'],
+                  {'message': f'A later review of {login} does not approve the head of the pull request.',
+                   'event': 'DISMISS'})
+        if done.returncode != 0:
+            errors.append(f'review {review_id}: ' + done.stderr.decode(errors='replace')[-200:])
+    return errors
+
+
+reviewed = os.environ.get('REVIEWED_SHA')
+pinned = {'commit_id': reviewed} if reviewed else {}
+whoami = subprocess.run(['gh', 'api', 'user', '--jq', '.login'], capture_output=True, text=True)
+login = whoami.stdout.strip() if whoami.returncode == 0 else None
+asked = review.get('event', 'COMMENT')
+event = 'COMMENT'
+if asked == 'APPROVE':
+    reason = refusal()
+    if reason:
+        print(f'::warning::The review file asks for APPROVE. The review is submitted as COMMENT, because {reason}.')
+    else:
+        event = 'APPROVE'
+elif asked != 'COMMENT':
+    print(f'::warning::Unexpected review event {asked!r}. The review is submitted as COMMENT.')
+
+attempts = []
 if comments:
-    payload['comments'] = [anchor(c) for c in comments]
-result = post(payload)
-if result.returncode == 0:
-    print(f'Review submitted ({event}) with {len(comments)} inline comment(s)')
-    apply_label()
-    sys.exit(0)
-sys.stderr.write(result.stderr.decode(errors='replace')[-800:] + '\n')
-if comments:
-    print('::warning::GitHub rejected the review payload (usually an anchor outside the diff) — submitting body-only with the findings folded in')
-    result = post({'event': event, 'body': fold(body, comments)})
+    attempts.append(({'event': event, 'body': body, 'comments': [anchor(c) for c in comments], **pinned},
+                     f'with {len(comments)} inline comment(s)'))
+attempts.append(({'event': event, 'body': fold(body, comments), **pinned},
+                 'body-only, with the findings folded in'))
+if event == 'APPROVE':
+    # GitHub can refuse an approval that it accepts as a comment, such as on a pull request of the account.
+    attempts.append(({'event': 'COMMENT', 'body': body, **pinned}, 'as COMMENT, after a refused approval'))
+posted = None
+for payload, form in attempts:
+    result = post(payload)
     if result.returncode == 0:
-        print('Review submitted body-only')
-        apply_label()
-        sys.exit(0)
-    sys.stderr.write(result.stderr.decode(errors='replace')[-800:] + '\n')
-print('::error::Could not submit the review — the review request stays pending')
-sys.exit(1)
+        print(f"Review submitted ({payload['event']}) {form}")
+        posted = payload['event']
+        break
+    error = result.stderr.decode(errors='replace')
+    sys.stderr.write(error[-800:] + '\n' + result.stdout.decode(errors='replace')[-800:] + '\n')
+    # Only a 422 says that GitHub created no review: after any other error, a retry can post twice.
+    if 'HTTP 422' not in error:
+        break
+    print(f'::warning::GitHub refused the review payload {form} (HTTP 422)')
+if not posted and 'HTTP 422' not in error and landed():
+    print('GitHub answered an error, but the review of this run is on the pull request')
+    posted = payload['event']
+if posted:
+    apply_label()
+else:
+    print('::error::Could not submit the review. The review request stays pending, and a re-request retries.')
+# An approval of an older commit must not outlive a run that does not approve the head.
+stays = [] if posted == 'APPROVE' else dismiss_approvals()
+for message in stays:
+    print(f'::error title=An approval of {login} stays::{message.strip()} The approval still counts for the '
+          'branch protection: dismiss it by hand, or let the account dismiss reviews on this branch.')
+sys.exit(0 if posted and not stays else 1)
