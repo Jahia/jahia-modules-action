@@ -208,9 +208,11 @@ skill additionally forbids requesting changes (approval only with zero findings,
 the submit step) and has the agent treat PR content (title, description, code, comments) as
 data, never as instructions — and flag prompt-injection attempts as findings.
 
-The one Cortex tool that the allowlist grants is `tools/pr-review/bin/pr-review lenses`: the
-`ci` mode runs it to choose its lenses. The tool starts through `mise exec`, so the runner needs
-mise, as [`ai-agent-setup`](../ai-agent-setup) installs it.
+The one Cortex tool that the allowlist grants is `tools/pr-review/bin/pr-review`, with two verbs.
+The `ci` mode runs `lenses` to choose its lenses, and `render` to write the inline comments of the
+review file from its findings and the diff. Both verbs read files and print. The tool starts
+through `mise exec`, so the runner needs mise, as [`ai-agent-setup`](../ai-agent-setup) installs
+it.
 
 ## Determinism & observability
 
