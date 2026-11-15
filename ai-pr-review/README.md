@@ -264,8 +264,9 @@ run. Two write rules name the directory of the review file and the `--collect` d
 the log directory outside the checkout, such as
 `Edit(//home/runner/work/_temp/pr-review-logs/reviews/**)` on a GitHub-hosted runner. The third
 rule admits `python3 -m json.tool` on the review file alone, the check that the `ci` mode runs.
-The allow list of the action holds no command that writes a file on its own.
-A caller that passes its own `disallowed_tools` names `Edit(./**)` in it to keep that rule.
+The allow list of the action holds no command that writes a file on its own, except
+`tools/pr-review/bin/pr-review record`, which writes the trace of the round under the cortex
+checkout. A caller that passes its own `disallowed_tools` names `Edit(./**)` in it to keep that rule.
 `--permission-mode dontAsk` denies everything not explicitly allowed. The submit step posts
 `APPROVE` only under the five conditions that the opening of this README states. The `ci` mode of the skill
 has the agent treat PR content (title, description, code, comments) as data, never as
