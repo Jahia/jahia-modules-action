@@ -62,7 +62,9 @@ CALL = ' '.join(['/pr-review', 'ci', shlex.quote(pr_url)] + [
         ('--run-url', os.environ.get('RUN_URL', '')),
         ('--agent', os.environ.get('AGENT', 'Claude Code')),
         ('--collect', collect_dir),
-    )] + ([f"--round {shlex.quote(os.environ['REVIEW_ROUND'])}"] if os.environ.get('REVIEW_ROUND') else []))
+    )])
+if os.environ.get('REVIEW_ROUND'):
+    CALL += f" --round {shlex.quote(os.environ['REVIEW_ROUND'])}"
 
 
 def split_tools(value):
