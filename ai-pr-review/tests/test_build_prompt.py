@@ -12,10 +12,10 @@ PR_URL = 'https://github.com/Jahia/example/pull/7'
 REVIEW_NAME = 'pr-Jahia-example-7.review.json'
 
 
-def run_build_prompt(log_dir, allowed_tools, disallowed_tools=''):
+def run_build_prompt(log_dir, allowed_tools, disallowed_tools='', review_round=''):
     """Run the script as the prep step does, and return the allow list and the surface it writes."""
     env = dict(os.environ, PR_URL=PR_URL, MARKER='<!-- marker -->',
-               ALLOWED_TOOLS=allowed_tools, DISALLOWED_TOOLS=disallowed_tools)
+               ALLOWED_TOOLS=allowed_tools, DISALLOWED_TOOLS=disallowed_tools, REVIEW_ROUND=review_round)
     subprocess.run([sys.executable, SCRIPT, log_dir], env=env, check=True,
                    capture_output=True, text=True)
     with open(os.path.join(log_dir, 'allowed-tools.txt'), encoding='utf-8') as fh:
@@ -40,6 +40,22 @@ class BuildPromptTest(unittest.TestCase):
             f'Edit(/{log_dir}/collected/**)',
             f'Bash(python3 -m json.tool {log_dir}/reviews/{REVIEW_NAME})',
         ]))
+
+    def read_call(self, log_dir):
+        with open(os.path.join(log_dir, 'review.prompt.md'), encoding='utf-8') as fh:
+            return fh.read()
+
+    def test_the_call_passes_the_round_that_the_trail_gives(self):
+        """A runner keeps no trace between runs, so the prep step reads the round from the trail of the PR."""
+        log_dir = os.path.join(self.root, 'logs')
+        run_build_prompt(log_dir, 'Read', review_round='3')
+        self.assertTrue(self.read_call(log_dir).rstrip('\n').endswith(' --round 3'))
+
+    def test_the_call_with_no_round_passes_none(self):
+        """With no checkout, or with a Cortex that has no trail, the run records no round."""
+        log_dir = os.path.join(self.root, 'logs')
+        run_build_prompt(log_dir, 'Read')
+        self.assertNotIn('--round', self.read_call(log_dir))
 
     def test_the_rules_name_the_resolved_log_directory(self):
         """A rule that names a symbolic link may not match the path that the CLI compares."""

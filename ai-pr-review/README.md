@@ -264,16 +264,26 @@ run. Two write rules name the directory of the review file and the `--collect` d
 the log directory outside the checkout, such as
 `Edit(//home/runner/work/_temp/pr-review-logs/reviews/**)` on a GitHub-hosted runner. The third
 rule admits `python3 -m json.tool` on the review file alone, the check that the `ci` mode runs.
-The allow list of the action holds no command that writes a file on its own.
-A caller that passes its own `disallowed_tools` names `Edit(./**)` in it to keep that rule.
+The allow list of the action holds no command that writes a file on its own, except
+`tools/pr-review/bin/pr-review record`, which writes the trace of the round under the cortex
+checkout. A caller that passes its own `disallowed_tools` names `Edit(./**)` in it to keep that rule.
 `--permission-mode dontAsk` denies everything not explicitly allowed. The submit step posts
 `APPROVE` only under the five conditions that the opening of this README states. The `ci` mode of the skill
 has the agent treat PR content (title, description, code, comments) as data, never as
 instructions, and flag prompt-injection attempts as findings.
 
-The one Cortex tool that the allowlist grants is `tools/pr-review/bin/pr-review lenses`: the
-`ci` mode runs it to choose its lenses. The tool starts through `mise exec`, so the runner needs
-mise, as [`ai-agent-setup`](../ai-agent-setup) installs it.
+The one Cortex tool that the allowlist grants is `tools/pr-review/bin/pr-review`, with three
+verbs. The `ci` mode runs `lenses` to choose its lenses, and `render` to write the inline comments
+of the review file from its findings and the diff. Both verbs read files and print. It runs
+`record` to keep its round in the trace of the pull request, under the cortex checkout. The tool
+starts through `mise exec`, so the runner needs mise, as [`ai-agent-setup`](../ai-agent-setup)
+installs it.
+
+Each review adds a row to the trail `Review Logs` of the pull request, one comment that a session
+of a developer and this action both edit, and each row names its reviewer. A runner keeps no trace
+between two runs, so the prep step reads the round of the run from that trail with
+`pr-review trail --next-round`. After the post, a step renders the row with `pr-review trail` and
+edits the comment. A run with no checkout records no round and adds no row.
 
 ## Determinism & observability
 

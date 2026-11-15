@@ -3,6 +3,8 @@ a second try only when GitHub refuses an anchor, a review of this run on the pul
 after any other error, and no earlier approval of the account left after a comment."""
 
 import json
+import pathlib
+import tempfile
 import unittest
 
 from fakes import FakeGh
@@ -37,13 +39,19 @@ def review(event="COMMENT", comments=(), human_review="not-needed"):
 
 
 class TestTheSubmit(unittest.TestCase):
-    def submit(self, scenario, review_file):
+    def submit(self, scenario, review_file, output=None):
         self.gh = FakeGh(self, scenario + LABELS)
         path = self.gh.dir / "review.json"
         path.write_text(json.dumps(review_file), encoding="utf-8")
-        return self.gh.run("submit-review.py", "post", str(path), URL,
-                           env={"REVIEWED_SHA": HEAD, "MARKER": MARKER, "STARTED_AT": "2026-11-10T10:00:00Z",
-                                "LANDED_PAUSE": "0"})
+        env = {"REVIEWED_SHA": HEAD, "MARKER": MARKER, "STARTED_AT": "2026-11-10T10:00:00Z", "LANDED_PAUSE": "0"}
+        if output:
+            env["GITHUB_OUTPUT"] = str(output)
+        return self.gh.run("submit-review.py", "post", str(path), URL, env=env)
+
+    def gh_output(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        return pathlib.Path(folder.name) / "github-output"
 
     def posts(self):
         return [json.loads(call["stdin"]) for call in self.gh.calls(POST)]
@@ -54,6 +62,14 @@ class TestTheSubmit(unittest.TestCase):
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
         self.assertEqual([(post["event"], post["commit_id"]) for post in self.posts()], [("APPROVE", HEAD)])
         self.assertEqual(self.gh.calls(APPROVALS), [])
+
+    def test_a_posted_review_gives_its_url_to_the_next_step(self):
+        """The step that posts the row of the trail links the date of the row to the review."""
+        output = self.gh_output()
+        url = f"{URL}#pullrequestreview-9"
+        done = self.submit([{"args": POST, "out": json.dumps({"html_url": url})}], review(), output)
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        self.assertIn(f"review_url={url}\n", output.read_text(encoding="utf-8"))
 
     def test_an_approve_after_a_push_during_the_run_posts_as_comment(self):
         done = self.submit([{"args": POST, "out": "{}"}, threads(), {"args": "--jq .head.sha", "out": "b" * 40 + "\n"}],
