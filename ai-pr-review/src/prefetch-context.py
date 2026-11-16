@@ -457,8 +457,6 @@ def make_checkout(root, head):
     resolved, sha = run(['git', '-C', target, 'rev-parse', 'HEAD'], timeout=30)
     sha = sha.strip() if resolved else 'unknown'
     print(f'  - checkout at {target} ({sha[:12]})', file=sys.stderr)
-    # The tool surface of build-prompt.py states how the agent reads the checkout, and this note
-    # does not repeat it.
     return (f'The pull request head is checked out at `{target}`, at commit `{sha}` '
             '(detached, blobless clone). The section `The tool surface of this CI run` of the '
             'system prompt states how to read it.\n\n'
