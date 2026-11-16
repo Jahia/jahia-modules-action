@@ -1,5 +1,5 @@
 name: AI PR Review
-description: Runs a Claude Code agent from the cortex harness to review one pull request and submit its findings as a single COMMENT review
+description: Runs a Claude Code agent from the cortex harness to review one pull request and submit one review: an approval of a clean pull request, a COMMENT with its findings otherwise
 
 inputs:
   pr_url:
@@ -44,13 +44,13 @@ inputs:
     required: false
     default: 'true'
   allowed_tools:
-    description: 'Claude Code --allowedTools value for the agent: read/search tools, local file writes (the review body file), read-only git/gh, and the pre-fetched checkout surface. The agent never posts — submitting the review file is a deterministic step of this action. It carries each read twice, as `gh …` and as `tools/gh-wrapper/bin/gh-wrapper …`: the agent works from inside cortex, whose CLAUDE.md routes gh through that wrapper, and a list that names only one of the two routes denies the agent''s first call for a reason it cannot see. `tools/pr-review/bin/pr-review lenses` is the one Cortex tool the ci mode of the skill pr-review runs, to choose its lenses; it starts through `mise exec`, so it needs mise on the runner. The system prompt states this list verbatim (build-prompt.py renders it), so widening it here widens what the agent is told it may do.'
+    description: 'Claude Code --allowedTools value for the agent: read/search tools and read-only git/gh. build-prompt.py adds the three rules that name a path of the run: the write rules of the directory of the review file and of the --collect directory, such as `Edit(//home/runner/work/_temp/pr-review-logs/reviews/**)`, and `python3 -m json.tool` on the review file, the check that the ci mode runs. The list holds no command that writes a file or switches a checkout on its own, except `tools/pr-review/bin/pr-review record`, which writes the trace of the round. The agent never posts — submitting the review file is a deterministic step of this action. It carries each read twice, as `gh …` and as `tools/gh-wrapper/bin/gh-wrapper …`: the agent works from inside cortex, whose CLAUDE.md routes gh through that wrapper, and a list that names only one of the two routes denies the agent''s first call for a reason it cannot see. `tools/pr-review/bin/pr-review` is the one Cortex tool the ci mode of the skill pr-review runs: `lenses` chooses its lenses, `render` writes the inline comments of the review file from the findings and the diff, and `record` records the round of the run in the trace, from which a step of this action posts the row of the trail Review Logs. `lenses` and `render` read files and print, and `record` writes the trace under `scratchpad/reviews` of the cortex checkout. The tool starts through `mise exec`, so it needs mise on the runner. The system prompt states this list and the rules that build-prompt.py adds (the script renders them), so widening it here widens what the agent is told it may do.'
     required: false
-    default: 'Read,Write,Grep,Glob,Skill,Task,Agent,TodoWrite,ReportFindings,Bash(git log:*),Bash(git diff:*),Bash(git show:*),Bash(git status:*),Bash(git branch --show-current),Bash(git branch --list),Bash(git branch -a),Bash(git branch -r),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(git blame:*),Bash(git cat-file:*),Bash(git fetch:*),Bash(git merge-base:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr checkout:*),Bash(gh issue view:*),Bash(gh repo view:*),Bash(gh repo clone:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr view:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr diff:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr checks:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue view:*),Bash(tools/gh-wrapper/bin/gh-wrapper repo view:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(sed -n:*),Bash(sort:*),Bash(uniq:*),Bash(cut:*),Bash(diff:*),Bash(mkdir:*),Bash(python3 -m json.tool:*),Bash(tools/pr-review/bin/pr-review lenses:*)'
+    default: 'Read,Grep,Glob,Skill,Task,Agent,TodoWrite,ReportFindings,Bash(git log:*),Bash(git diff:*),Bash(git show:*),Bash(git status:*),Bash(git branch --show-current),Bash(git branch --list),Bash(git branch -a),Bash(git branch -r),Bash(git rev-parse:*),Bash(git ls-files:*),Bash(git blame:*),Bash(git cat-file:*),Bash(git merge-base:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh issue view:*),Bash(gh repo view:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr view:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr diff:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr checks:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue view:*),Bash(tools/gh-wrapper/bin/gh-wrapper repo view:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(grep:*),Bash(cut:*),Bash(diff:*),Bash(tools/pr-review/bin/pr-review lenses:*),Bash(tools/pr-review/bin/pr-review render:*),Bash(tools/pr-review/bin/pr-review record:*)'
   disallowed_tools:
-    description: 'Claude Code --disallowedTools value. A deny rule beats an allow rule, including one the cloned repository''s own settings could carry: editing tools, every way a review could reach the forge or rewrite history, and the options of allowed commands that write (--output) or execute (--upload-pack). Each write is denied in every spelling that reaches it — `git push`, `git -C <dir> push`, `gh pr comment` and `gh-wrapper pr comment` are four prefixes, and a rule matches one prefix, so leaving any of them out leaves the write reachable.'
+    description: 'Claude Code --disallowedTools value. A deny rule beats an allow rule, including one the cloned repository''s own settings could carry: editing tools, every way a review could reach the forge or rewrite history, and the options of allowed commands that write (--output) or execute (--upload-pack). Each write is denied in every spelling that reaches it — `git push`, `git -C <dir> push`, `gh pr comment` and `gh-wrapper pr comment` are four prefixes, and a rule matches one prefix, so leaving any of them out leaves the write reachable. The bare `Edit` names the Edit tool. A path rule of Edit, such as `Edit(./**)`, applies to the Write tool and to the target of a Bash redirection too, so `Edit(./**)` denies a write in the cortex checkout, the working directory of the agent. A caller that passes its own list names `Edit(./**)` in it to keep that rule.'
     required: false
-    default: 'Edit,NotebookEdit,MultiEdit,Bash(git push:*),Bash(git commit:*),Bash(git switch:*),Bash(git checkout:*),Bash(git reset:*),Bash(git remote:*),Bash(git * --output*),Bash(git * --upload-pack*),Bash(git -C * push:*),Bash(git -C * commit:*),Bash(git -C * switch:*),Bash(git -C * checkout:*),Bash(git -C * reset:*),Bash(git -C * remote:*),Bash(gh pr create:*),Bash(gh pr comment:*),Bash(gh pr review:*),Bash(gh pr edit:*),Bash(gh pr ready:*),Bash(gh pr merge:*),Bash(gh pr close:*),Bash(gh issue create:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh api:*),Bash(gh release:*),Bash(gh workflow:*),Bash(gh secret:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr create:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr comment:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr review:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr edit:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr ready:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr merge:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr close:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue create:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue comment:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue edit:*),Bash(tools/gh-wrapper/bin/gh-wrapper api:*)'
+    default: 'Edit,Edit(./**),NotebookEdit,MultiEdit,Bash(git push:*),Bash(git commit:*),Bash(git switch:*),Bash(git checkout:*),Bash(git reset:*),Bash(git remote:*),Bash(git * --output*),Bash(git * --upload-pack*),Bash(git -C * push:*),Bash(git -C * commit:*),Bash(git -C * switch:*),Bash(git -C * checkout:*),Bash(git -C * reset:*),Bash(git -C * remote:*),Bash(gh pr create:*),Bash(gh pr comment:*),Bash(gh pr review:*),Bash(gh pr edit:*),Bash(gh pr ready:*),Bash(gh pr merge:*),Bash(gh pr close:*),Bash(gh issue create:*),Bash(gh issue comment:*),Bash(gh issue edit:*),Bash(gh api:*),Bash(gh release:*),Bash(gh workflow:*),Bash(gh secret:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr create:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr comment:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr review:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr edit:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr ready:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr merge:*),Bash(tools/gh-wrapper/bin/gh-wrapper pr close:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue create:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue comment:*),Bash(tools/gh-wrapper/bin/gh-wrapper issue edit:*),Bash(tools/gh-wrapper/bin/gh-wrapper api:*)'
 
 outputs:
   logs_dir:
@@ -82,6 +82,8 @@ runs:
         # exist even when this step dies, otherwise the failure costs us the logs too.
         LOG_DIR="$RUNNER_TEMP/pr-review-logs"
         mkdir -p "$LOG_DIR"
+        # The resolved path, which every step and the write rules of build-prompt.py name.
+        LOG_DIR=$(cd "$LOG_DIR" && pwd -P)
         AGENT="Claude Code $(claude --version 2>/dev/null | head -1 || echo '(version unknown)')"
         # Name the model that answers, not the alias we asked for: the alias is ours, the
         # deployment behind it is the gateway's, and only the latter tells a reader of the
@@ -107,8 +109,24 @@ runs:
         export CHECKOUT_ROOT
         # Best-effort by design (see the script): a review missing the CI state beats no
         # review, so a failed fetch is recorded in the index the agent reads, not raised.
-        python3 "$GITHUB_ACTION_PATH/src/prefetch-context.py" "$LOG_DIR/context"
+        REVIEWED_SHA=$(python3 "$GITHUB_ACTION_PATH/src/prefetch-context.py" "$LOG_DIR/context")
         echo "::endgroup::"
+        # The submit step names this head as the commit of the review. A step output, and not a
+        # file of the log directory, because the agent can write that directory.
+        [[ "$REVIEWED_SHA" =~ ^[0-9a-f]{40}$ ]] || REVIEWED_SHA=""
+        echo "reviewed_sha=$REVIEWED_SHA" >> "$GITHUB_OUTPUT"
+        # A runner keeps no trace between runs, so the round of this run comes from the trail
+        # Review Logs of the pull request. With no checkout, or with a Cortex that has no trail,
+        # the run records no round and the trail gets no row.
+        SLUG=${PR_URL#https://github.com/}; SLUG=${SLUG%/pull/*}
+        CHECKOUT=""
+        [ -n "$CHECKOUT_ROOT" ] && [ -d "$CHECKOUT_ROOT/${SLUG#*/}" ] && CHECKOUT="$CHECKOUT_ROOT/${SLUG#*/}"
+        REVIEW_ROUND=""
+        if [ -n "$CHECKOUT" ]; then
+          REVIEW_ROUND=$(cd "$CORTEX_PATH" && tools/pr-review/bin/pr-review trail -C "$CHECKOUT" --pr "${PR_URL##*/}" --next-round | sed -n 's/^round=//p') || REVIEW_ROUND=""
+        fi
+        export REVIEW_ROUND
+        echo "checkout=$CHECKOUT" >> "$GITHUB_OUTPUT"
         # The prompt is the call of the Cortex skill pr-review in its ci mode: Cortex owns the
         # review and the shape of the file, this action owns the CI around it.
         PR_KEY=$(python3 "$GITHUB_ACTION_PATH/src/build-prompt.py" "$LOG_DIR")
@@ -179,7 +197,6 @@ runs:
       working-directory: ${{ inputs.cortex_path }}
       env:
         GH_TOKEN: ${{ inputs.github_token }}
-        ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
         DISALLOWED_TOOLS: ${{ inputs.disallowed_tools }}
         CLAUDE_DEBUG: ${{ inputs.debug }}
         AGENT_MODEL: ${{ inputs.model }}
@@ -188,6 +205,9 @@ runs:
         PR_KEY: ${{ steps.prep.outputs.pr_key }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
+        # The input, plus the rules that name a path of this run, for the CLI and denied-calls.py.
+        ALLOWED_TOOLS=$(cat "$LOG_DIR/allowed-tools.txt")
+        export ALLOWED_TOOLS
         # The agent gets a budget of its own, below the job timeout. Reaching it is a plain
         # step failure we control: the steps below still render the trace and the transcript,
         # and the workflow still uploads the artifact. A job timeout instead cancels the job
@@ -268,7 +288,7 @@ runs:
         # 124/137: `timeout` stopped the agent. It had not finished reviewing — that is a budget
         # problem, not a broken run, so say so and fail the step (the logs are already collected).
         if [ "$EXIT_CODE" -eq 124 ] || [ "$EXIT_CODE" -eq 137 ]; then
-          echo "::error title=AI review timed out::The agent was stopped after ${TIMEOUT_MINUTES}m without delivering a review. The partial session is in the run's ai-pr-review-logs artifact (review.transcript.log). Raise timeout_job on the calling workflow if this PR legitimately needs longer, then re-request the review."
+          echo "::error title=AI review timed out::The agent was stopped after ${TIMEOUT_MINUTES}m without delivering a review. The partial session is in the run's ai-pr-review-logs artifact (review.transcript.log). Label the pull request 'Long AI review' if it legitimately needs longer, then re-request the review. A repository that needs longer on every pull request raises timeout_job on the calling workflow."
           exit 1
         fi
         if [ "$EXIT_CODE" -ne 0 ]; then
@@ -289,6 +309,7 @@ runs:
     # outside the agent's permission surface (cortex's own settings ask-gate pr review,
     # which a headless dontAsk run cannot answer).
     - name: Submit the review
+      id: submit
       if: inputs.post_review == 'true'
       shell: bash
       env:
@@ -296,6 +317,9 @@ runs:
         PR_URL: ${{ inputs.pr_url }}
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
         PR_KEY: ${{ steps.prep.outputs.pr_key }}
+        REVIEWED_SHA: ${{ steps.prep.outputs.reviewed_sha }}
+        MARKER: ${{ inputs.marker }}
+        STARTED_AT: ${{ steps.prep.outputs.started_at }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
         FILE="$LOG_DIR/reviews/pr-$PR_KEY.review.json"
@@ -307,6 +331,48 @@ runs:
           exit 1
         fi
         python3 "$GITHUB_ACTION_PATH/src/submit-review.py" post "$FILE" "$PR_URL"
+
+    # The row of this review on the trail Review Logs of the pull request: Cortex renders it from
+    # the trace that the agent recorded, and this step posts it. The trail can be a comment of
+    # another account, which the PATCH edits. A row that fails warns, and the review stays.
+    - name: Post the row of the review trail
+      if: inputs.post_review == 'true' && steps.prep.outputs.checkout != '' && steps.submit.outputs.review_url != ''
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        PR_URL: ${{ inputs.pr_url }}
+        CORTEX_PATH: ${{ inputs.cortex_path }}
+        CHECKOUT: ${{ steps.prep.outputs.checkout }}
+        REVIEW_URL: ${{ steps.submit.outputs.review_url }}
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        SLUG=${PR_URL#https://github.com/}; SLUG=${SLUG%/pull/*}
+        cd "$CORTEX_PATH"
+        if ! OUT=$(tools/pr-review/bin/pr-review trail -C "$CHECKOUT" --pr "${PR_URL##*/}" --review "$REVIEW_URL"); then
+          echo "::warning title=No row on the review trail::Cortex could not render the row of this review, so the trail Review Logs has no row for it."
+          exit 0
+        fi
+        echo "$OUT"
+        BODY=$(sed -n 's/^body_file=//p' <<<"$OUT" | head -1)
+        COMMENT=$(sed -n 's/^comment=//p' <<<"$OUT" | head -1)
+        [ -n "$BODY" ] || exit 0
+        # The body is a file of the reviews of Cortex, and the comment a number, whatever the output holds.
+        BODY=$(realpath -e "$BODY" 2>/dev/null) || BODY=""
+        case "$BODY" in
+          "$(realpath "$CORTEX_PATH")/scratchpad/reviews/"*) ;;
+          *) echo "::warning title=No row on the review trail::The trail body is not a file of the reviews of Cortex."; exit 0 ;;
+        esac
+        if [ -n "$COMMENT" ] && ! [[ "$COMMENT" =~ ^[0-9]+$ ]]; then
+          echo "::warning title=No row on the review trail::The trail comment id is not a number."
+          exit 0
+        fi
+        if [ -n "$COMMENT" ]; then
+          gh api --silent -X PATCH "repos/$SLUG/issues/comments/$COMMENT" -F "body=@$BODY" \
+            || echo "::warning title=No row on the review trail::GitHub refused the edit of the trail comment $COMMENT."
+        else
+          gh pr comment "$PR_URL" --body-file "$BODY" \
+            || echo "::warning title=No row on the review trail::GitHub refused the trail comment."
+        fi
 
     - name: Publish the stored review to the job summary
       if: always() && inputs.post_review != 'true'
