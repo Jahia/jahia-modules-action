@@ -38,7 +38,7 @@ on:
         required: false
         default: true
       debug:
-        description: "Run the Claude Code CLI with --debug (API/CLI detail in the logs artifact's tldr.stderr.log)"
+        description: "Run the Claude Code CLI with --debug-file (its debug log in the logs artifact's tldr.debug.log)"
         type: boolean
         required: false
         default: false

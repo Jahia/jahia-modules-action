@@ -187,6 +187,30 @@ runs:
         mise run libraries
         echo "::endgroup::"
 
+    # The cortex-secret-mask mod masks a credential in the output of a tool before the model
+    # reads it. The README of ai-agent-setup states what it covers and when a step warns.
+    - name: Prepare the secret mask of the agent sessions
+      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.cortex_path }}
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        # A cortex_ref with no mod: each session then warns that its stream names no mod.
+        [ -d mods/cortex-secret-mask ] || exit 0
+        echo "CORTEX_MASK_MOD_DIR=$PWD/mods/cortex-secret-mask" >> "$GITHUB_ENV"
+        if GITLEAKS_BIN=$(mise which gitleaks); then
+          dirname "$GITLEAKS_BIN" >> "$GITHUB_PATH"
+        else
+          echo "::warning title=Partial secret mask::mise found no gitleaks for this cortex_ref, so the mask applies its built-in patterns alone"
+        fi
+        # A hooks module that fails to load still shows in the init event, so the tests decide.
+        echo "::group::claude plugin test mods/cortex-secret-mask"
+        TEST_EXIT=0
+        timeout 30 claude plugin test mods/cortex-secret-mask || TEST_EXIT=$?
+        echo "::endgroup::"
+        if [ "$TEST_EXIT" -ne 0 ]; then
+          echo "::warning title=Broken secret mask::claude plugin test exited $TEST_EXIT on mods/cortex-secret-mask, so the sessions may read the output of their tools unmasked"
+        fi
+
     - name: Install the GitHub CLI if missing
       shell: bash
       run: |
