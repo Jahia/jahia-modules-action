@@ -41,7 +41,7 @@ with open(os.path.join(log_dir, 'selected-issues.json'), 'w', encoding='utf-8') 
 POST_INSTRUCTIONS = (
     'post EXACTLY ONE comment on the issue being processed, no matter the outcome. Write\n'
     '   the body to a file first, then post it with:\n'
-    '   `gh issue comment <number> --repo <repository> --body-file <file>`')
+    '   `tools/gh-wrapper/bin/gh-wrapper issue comment <number> --repo <repository> --body-file <file>`')
 REVIEW_INSTRUCTIONS = (
     'do NOT post anything to any issue — this run is a REVIEW pass. For the issue being\n'
     '   processed, write the comment you WOULD have posted (exact same format below) to the\n'
