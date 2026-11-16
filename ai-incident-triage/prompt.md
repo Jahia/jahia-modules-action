@@ -30,18 +30,22 @@ linked to (and why), or state explicitly that you found no relation to the other
 Use calibrated language either way ("may", "appears to", "no obvious link") — you can be
 wrong, and the goal is to give the maintainer clues, not verdicts.
 
+You run under an allowlist, and a refused call is final. A pipeline, a `;` chain or a `&&`
+chain runs only when EVERY command in it is allowed, so run each command below on its own
+when you do not need the others.
+
 For each issue:
 
-1. **Read the issue**: `gh issue view <number> --repo <repository> --comments`. The most
+1. **Read the issue**: `tools/gh-wrapper/bin/gh-wrapper issue view <number> --repo <repository> --comments`. The most
    recent failure-details comment (or the issue body, if no comment carries failure details)
    describes the failed run to analyze. Use older failure events only as flakiness history.
 2. **Acquire the logs** — try in this exact order and stop at the first source that yields logs:
    1. GitHub run artifacts: extract the numeric run id from the source run URL, then
-      `gh run view <run-id> --repo <repository>` to see the failed jobs and
-      `gh run download <run-id> --repo <repository> --dir sources/incident-<key>`.
-   2. Job logs via the harness tool:
-      `tools/jahia-ci-triage/bin/jahia-ci-triage fetch --run <run-id> --repo <repository>`
-      (add `--job <job-id>` to target a specific failed job).
+      `tools/gh-wrapper/bin/gh-wrapper run view <run-id> --repo <repository>` to see the failed
+      jobs and
+      `tools/gh-wrapper/bin/gh-wrapper run download <run-id> --repo <repository> --dir sources/incident-<key>`.
+   2. Job logs via the harness tool, once for each failed job that the run view lists:
+      `tools/jahia-ci-triage/bin/jahia-ci-triage fetch --job <job-id> --run <run-id> --repo <repository>`.
    3. The restricted archive, when a `https://qa.jahia.com/artifacts-ci/...` URL is available
       (this runner already has a tunnel to internal Jahia services):
       `wget -r -np -nH -P sources/incident-<key> <url>` or the equivalent `curl`.
@@ -59,7 +63,7 @@ For each issue:
 
    the failure typically comes from a temporary glitch of an infrastructure element, and a
    retry usually clears it: restart the failed jobs with
-   `gh run rerun <run-id> --repo <repository> --failed`, classify the issue as
+   `tools/gh-wrapper/bin/gh-wrapper run rerun <run-id> --repo <repository> --failed`, classify the issue as
    `infrastructure flake`, and say in your report that you restarted the run. Do this only
    on those signatures — never restart a run for any other reason.
 4. **Report** — __REPORTING_INSTRUCTIONS__

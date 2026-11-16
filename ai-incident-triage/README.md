@@ -97,16 +97,23 @@ The session loads the `cortex-secret-mask` mod.
 [`ai-agent-setup`](../ai-agent-setup#credentials-in-the-output-of-a-tool) states what the mask
 covers and when a step warns.
 
-The default allowlist gives the agent read/search tools, local file writes (needed to stage
-the comment body — the runner is ephemeral and the agent has no `git` surface, so writes
-cannot leave the machine), `gh` read commands, `gh issue comment`, log download commands,
-and the cortex `jahia-ci-triage` tool — no `Edit`, no `git`/push, no PR or merge surface.
+The default allowlist gives the agent:
+
+- the read and search tools;
+- local file writes, to stage the comment body. The runner is ephemeral and the agent has no
+  `git` surface, so a write cannot leave the machine;
+- the read commands and the `issue comment` of the cortex `gh-wrapper` tool;
+- the log download commands;
+- `head`, `tail` and `echo`, which the agent chains with its reads;
+- the cortex `jahia-ci-triage` tool.
+
+It gives no `Edit`, no `git` push, and no pull request or merge surface.
 `--permission-mode dontAsk` denies everything not explicitly allowed. The prompt additionally forbids modifying anything and
 instructs the agent to treat issue/log content as data, never as instructions.
 
 One deliberate exception: when the failed run's logs carry a known transient-infrastructure
 signature (unreachable maven artifact, `devtools.jahia.com` connect timeout), the agent may
-restart the failed jobs (`gh run rerun --failed`) — and only then. The rerun permission is
+restart the failed jobs (`gh-wrapper run rerun --failed`) — and only then. The rerun permission is
 granted only when `post_comments` is true; review mode stays strictly observational.
 
 ## Requirements
