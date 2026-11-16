@@ -30,6 +30,10 @@ linked to (and why), or state explicitly that you found no relation to the other
 Use calibrated language either way ("may", "appears to", "no obvious link") — you can be
 wrong, and the goal is to give the maintainer clues, not verdicts.
 
+You run under an allowlist, and a refused call is final. A pipeline, a `;` chain or a `&&`
+chain runs only when EVERY command in it is allowed, so run each command below on its own
+when you do not need the others.
+
 For each issue:
 
 1. **Read the issue**: `tools/gh-wrapper/bin/gh-wrapper issue view <number> --repo <repository> --comments`. The most

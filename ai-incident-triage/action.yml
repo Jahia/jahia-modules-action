@@ -26,7 +26,7 @@ inputs:
   allowed_tools:
     description: 'Claude Code --allowedTools value for the agent (analysis-only: no Edit/Write/push surface)'
     required: false
-    default: 'Read,Write,Grep,Glob,Skill,TodoWrite,WebFetch,Bash(tools/gh-wrapper/bin/gh-wrapper issue view *),Bash(tools/gh-wrapper/bin/gh-wrapper issue comment *),Bash(tools/gh-wrapper/bin/gh-wrapper run view *),Bash(tools/gh-wrapper/bin/gh-wrapper run list *),Bash(tools/gh-wrapper/bin/gh-wrapper run download *),Bash(tools/gh-wrapper/bin/gh-wrapper api *),Bash(tools/jahia-ci-triage/bin/jahia-ci-triage *),Bash(curl *),Bash(wget *),Bash(unzip *),Bash(ls *),Bash(cat *),Bash(mkdir *),Bash(python3 *)'
+    default: 'Read,Write,Grep,Glob,Skill,TodoWrite,WebFetch,Bash(tools/gh-wrapper/bin/gh-wrapper issue view *),Bash(tools/gh-wrapper/bin/gh-wrapper issue comment *),Bash(tools/gh-wrapper/bin/gh-wrapper run view *),Bash(tools/gh-wrapper/bin/gh-wrapper run list *),Bash(tools/gh-wrapper/bin/gh-wrapper run download *),Bash(tools/gh-wrapper/bin/gh-wrapper api *),Bash(tools/jahia-ci-triage/bin/jahia-ci-triage *),Bash(curl *),Bash(wget *),Bash(unzip *),Bash(ls *),Bash(cat *),Bash(head *),Bash(tail *),Bash(echo *),Bash(mkdir *),Bash(python3 *)'
 
 outputs:
   logs_dir:
