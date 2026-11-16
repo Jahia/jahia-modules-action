@@ -230,8 +230,7 @@ exists.
 
 The run action passes `--plugin-dir "$CORTEX_MASK_MOD_DIR"` to `claude -p`, so the session loads the
 `cortex-secret-mask` mod that [`ai-agent-setup`](../ai-agent-setup#credentials-in-the-output-of-a-tool)
-prepares. The mod masks each credential in the output of a tool before the model reads it, and
-`session.stream.jsonl` then shows the mask. After the session, the step writes the warning
-`No secret mask` when the init event of that stream names no `cortex-secret-mask@inline` plugin.
+prepares. After the session, the step writes the warning `No secret mask` when the init event of
+`session.stream.jsonl` names no `cortex-secret-mask@inline` plugin.
 
 The input `debug` writes the debug log of Claude Code to `session.debug.log` in the logs artifact.
