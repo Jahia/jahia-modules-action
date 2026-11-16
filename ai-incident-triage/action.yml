@@ -111,7 +111,7 @@ runs:
           > "$STREAM_FILE" 2> "$LOG_DIR/triage.stderr.log" || EXIT_CODE=$?
         # ai-agent-setup sets CORTEX_MASK_MOD_DIR. The init event lists a mod of --plugin-dir as
         # <name>@inline once Claude Code loads it, and the anchor reads that event alone, because
-        # a tool input of the model can hold the same text.
+        # a tool input of the model can contain the same text.
         if ! grep -m1 '^{"type":"system","subtype":"init"' "$STREAM_FILE" 2>/dev/null \
             | grep -q '"source":"cortex-secret-mask@inline"'; then
           echo "::warning title=No secret mask::the init event of the stream names no cortex-secret-mask, so the session ran with no mask or died before its init event"

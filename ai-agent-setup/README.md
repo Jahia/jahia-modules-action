@@ -123,13 +123,13 @@ writes it:
   corrupt manifest of the mod both give this warning. A session that dies before its init event
   gives it too, and its exit code then shows the failure.
 - `claude plugin test` fails on the mod during the setup. A hooks module that fails to load still
-  leaves the mod in the init event, and only the tests of the mod see it. The job log holds the
+  leaves the mod in the init event, and only the tests of the mod see it. The job log shows the
   output of the tests.
 - mise found no `gitleaks` for that commit during the setup. The mod then applies its built-in
   patterns alone.
 
 The input `debug` of a duty writes the debug log of Claude Code to a file of its logs artifact.
-That log holds the output of each command hook and the body of each error of the gateway, and the
+That log contains the output of each command hook and the body of each error of the gateway, and the
 mod masks neither. Claude Code writes no request header and no environment variable to it.
 
 ## Example
