@@ -115,14 +115,11 @@ class TestThePrefetch(unittest.TestCase):
         self.assertEqual(self.gh.calls("pr diff"), [])
         self.assertIn("- `diff.patch` — the compare of the head of `pr.json` failed twice: gh: HTTP 502", self.readme)
 
-    def test_the_checkout_note_sends_the_agent_to_the_history_files_and_never_to_git(self):
+    def test_the_checkout_note_leaves_the_tool_rules_to_the_system_prompt(self):
         self.prefetch(rules(), checkout=True)
-        self.assertIn("git does not run there: read the history from `diff.patch` and `pr.json`.", self.readme)
+        self.assertIn("The section `The tool surface of this CI run` of the system prompt states how to read it.",
+                      self.readme)
         self.assertNotIn("git -C", self.readme)
-
-    def test_the_checkout_note_names_no_diff_that_the_compare_did_not_write(self):
-        self.prefetch(rules(diff_exit=1), checkout=True)
-        self.assertIn("git does not run there: read the history from `pr.json`.", self.readme)
 
     def test_the_delta_keeps_the_files_of_the_pull_request_since_the_own_review(self):
         self.prefetch(rules())
