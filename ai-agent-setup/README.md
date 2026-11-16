@@ -93,12 +93,11 @@ gateway smoke test below, before any agent starts, so the job says so instead of
 
 ## Credentials in the output of a tool
 
-The setup prepares the `cortex-secret-mask` mod of the Cortex harness, and exports its path as
-`CORTEX_MASK_MOD_DIR`. Each duty passes `${CORTEX_MASK_MOD_DIR:+--plugin-dir "$CORTEX_MASK_MOD_DIR"}`
-to `claude -p`, which keeps the path in one word and passes nothing when the variable is unset.
-The mod replaces each credential in the output of a tool with a mask such as
-`[MASKED: GitHub token]`, before the model reads that output. The job log and the stream file of
-the logs artifact then show the mask in the output of each tool.
+Each duty passes `${CORTEX_MASK_MOD_DIR:+--plugin-dir "$CORTEX_MASK_MOD_DIR"}` to `claude -p`,
+which keeps the path in one word and passes nothing when the variable is unset. The mod replaces
+each credential in the output of a tool with a mask such as `[MASKED: GitHub token]`, before the
+model reads that output. The job log and the stream file of the logs artifact then show the mask
+in the output of each tool.
 
 The mod masks no other text, such as the prompt, the text of the model or the output of a hook.
 The mod also refuses a write that puts a mask in a file in place of the real credential. The
