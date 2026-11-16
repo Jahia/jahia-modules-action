@@ -457,10 +457,13 @@ def make_checkout(root, head):
     resolved, sha = run(['git', '-C', target, 'rev-parse', 'HEAD'], timeout=30)
     sha = sha.strip() if resolved else 'unknown'
     print(f'  - checkout at {target} ({sha[:12]})', file=sys.stderr)
+    # A failed fetch leaves its file out of the index, so the note names only the files it lists.
+    listed = {name for name, _ in index}
+    history = ' and '.join(f'`{name}`' for name in ('diff.patch', 'pr.json') if name in listed)
+    read = f': read the history from {history}' if history else ''
     return (f'The pull request head is checked out at `{target}`, at commit `{sha}` '
             '(detached, blobless clone). Read, Grep and Glob work there, with an absolute '
-            'path and never `cd`. git does not run there: read the history from `diff.patch` '
-            'and `pr.json`.\n\n'
+            f'path and never `cd`. git does not run there{read}.\n\n'
             'This clone is NOT in the run artifact — it is large, and this commit reproduces '
             f'it: `git clone {slug} && git checkout {sha}`. Everything else in this directory '
             'is uploaded.')
