@@ -458,8 +458,8 @@ def make_checkout(root, head):
     sha = sha.strip() if resolved else 'unknown'
     print(f'  - checkout at {target} ({sha[:12]})', file=sys.stderr)
     return (f'The pull request head is checked out at `{target}`, at commit `{sha}` '
-            '(detached, blobless clone). Read, Grep and Glob work there; run git in it with '
-            '`git -C` — never `cd`.\n\n'
+            '(detached, blobless clone). The section `The tool surface of this CI run` of the '
+            'system prompt states how to read it.\n\n'
             'This clone is NOT in the run artifact — it is large, and this commit reproduces '
             f'it: `git clone {slug} && git checkout {sha}`. Everything else in this directory '
             'is uploaded.')

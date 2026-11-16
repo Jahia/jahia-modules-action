@@ -115,6 +115,12 @@ class TestThePrefetch(unittest.TestCase):
         self.assertEqual(self.gh.calls("pr diff"), [])
         self.assertIn("- `diff.patch` — the compare of the head of `pr.json` failed twice: gh: HTTP 502", self.readme)
 
+    def test_the_checkout_note_leaves_the_tool_rules_to_the_system_prompt(self):
+        self.prefetch(rules(), checkout=True)
+        self.assertIn("The section `The tool surface of this CI run` of the system prompt states how to read it.",
+                      self.readme)
+        self.assertNotIn("git -C", self.readme)
+
     def test_the_delta_keeps_the_files_of_the_pull_request_since_the_own_review(self):
         self.prefetch(rules())
         delta = (self.context / "delta.patch").read_text(encoding="utf-8")
