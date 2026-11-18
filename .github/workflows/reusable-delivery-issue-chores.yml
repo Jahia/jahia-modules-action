@@ -138,6 +138,13 @@ jobs:
         with:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
 
+      # An Epic titled "JSA-YYYY-NNNN ..." gets a "Prepare and publish JSA-YYYY-NNNN" task in ISMS-Product
+      - name: Create a JSA publication task for every new JSA Epic
+        if: ${{ steps.get-issue.outputs.issue_type == 'Epic' && startsWith(github.event.issue.title, 'JSA-') }}
+        uses: jahia/jahia-modules-action/delivery/create-jsa-publication@v2
+        with:
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+
   # An issue opened as a Bug, or whose type later changes to Bug, goes to the Bugs Triage project
   bug-triage:
     name: Bugs Triage on Bug type
