@@ -7,13 +7,16 @@ export interface FoundIssue {
   pull_request?: unknown
 }
 
-// Most recent first, so a new bug is scored while its ticket is fresh; the oldest bugs wait
-// until the backlog in front of them is scored, and the 1000-result cap of the search drops
-// them first.
-export const searchBugs = async (
+export interface SearchPage {
+  data: FoundIssue[]
+}
+
+// Most recent first, so a new bug is scored while its ticket is fresh. The caller stops the page
+// iterator early, so only the pages it needs count against the strict search rate limit.
+export const searchBugs = (
   octokit: Octokit,
   searchScope: string,
-): Promise<{ query: string; found: FoundIssue[] }> => {
+): { query: string; pages: AsyncIterableIterator<SearchPage> } => {
   const query = `${searchScope} is:issue is:open type:Bug archived:false`
   // advanced_search is not in the typed route parameters yet, hence the cast.
   const parameters = {
@@ -23,6 +26,9 @@ export const searchBugs = async (
     order: 'desc',
     per_page: 100,
   }
-  const found = await octokit.paginate<FoundIssue>('GET /search/issues', parameters as never)
-  return { query, found }
+  const pages = octokit.paginate.iterator(
+    'GET /search/issues',
+    parameters as never,
+  ) as AsyncIterableIterator<SearchPage>
+  return { query, pages }
 }

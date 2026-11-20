@@ -72,6 +72,25 @@ describe('toTicket', () => {
     expect(ticket.body).toHaveLength(7000)
   })
 
+  it('keeps the last 15 comments, each cut at 1500, and leaves the score comment out', () => {
+    const nodes = Array.from({ length: 20 }, (_, index) => ({
+      author: { login: `user-${String(index + 1)}` },
+      createdAt: '2026-01-05T00:00:00Z',
+      body: `comment ${String(index + 1)} ${'x'.repeat(2000)}`,
+    }))
+    nodes.push({
+      author: { login: 'jahia-ai' },
+      createdAt: '2026-01-06T00:00:00Z',
+      body: `${MARKER}\nan old score`,
+    })
+    const ticket = toTicket(bug(1), repo({ comments: { totalCount: 21, nodes } }), MARKER)
+    expect(ticket.comments).toHaveLength(15)
+    expect(ticket.comments[0]?.by).toBe('user-6')
+    expect(ticket.comments[14]?.by).toBe('user-20')
+    for (const comment of ticket.comments) expect(comment.body.length).toBeLessThanOrEqual(1500)
+    expect(ticket.comments.some((comment) => comment.body.includes(MARKER))).toBe(false)
+  })
+
   it('refuses a repository with no such issue', () => {
     expect(() => toTicket(bug(1), { visibility: 'PRIVATE', issue: null }, MARKER)).toThrow(
       'issue not found',

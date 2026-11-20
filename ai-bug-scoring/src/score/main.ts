@@ -3,6 +3,7 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { applyScores } from './applyScores'
 import { renderScoreSummary } from './renderScoreSummary'
+import { runFailure } from './runFailure'
 
 // apply-scores entry point, run inside the composite action once the agent recorded the factors.
 const run = async (): Promise<void> => {
@@ -33,6 +34,8 @@ const run = async (): Promise<void> => {
   if (env.GITHUB_STEP_SUMMARY) {
     appendFileSync(env.GITHUB_STEP_SUMMARY, renderScoreSummary(results, !dryRun))
   }
+  const failure = runFailure(results, dryRun)
+  if (failure) core.setFailed(failure)
 }
 
 void run().catch((error: unknown) => {

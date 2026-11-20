@@ -1,9 +1,10 @@
 import { checkFactors } from '../src/score/checkFactors'
+import { evaluateBug } from '../src/score/evaluateBug'
 import { fieldValue } from '../src/score/fieldValue'
 import { renderComment } from '../src/score/renderComment'
 import { scoreFactors } from '../src/score/scoreFactors'
 import type { Factors } from '../src/types'
-import { factors } from './fixtures'
+import { bug, factors } from './fixtures'
 
 const REF = 'Jahia/example#1'
 
@@ -77,6 +78,28 @@ describe('checkFactors', () => {
 
   it('flags a list', () => {
     expect(checkFactors([factors()], REF)).toEqual(['not a JSON object'])
+  })
+
+  it('flags a decimal and a negative customers count', () => {
+    expect(checkFactors(factors({ customers: 2.5 }), REF).join('; ')).toContain(
+      'customers: expected int',
+    )
+    expect(checkFactors(factors({ customers: -1 }), REF).join('; ')).toContain(
+      'customers: -1 is negative',
+    )
+  })
+})
+
+describe('evaluateBug', () => {
+  it('skips a bug whose ticket was not fetched', () => {
+    const result = evaluateBug(bug(1), new Error('ENOENT'), factors(), {
+      marker: '<!-- m -->',
+      agent: 'Claude Code',
+      runUrl: 'https://run',
+      date: '2026-11-20',
+    })
+    expect(result.outcome).toBe('skipped')
+    expect(result.reason).toBe('ticket not fetched')
   })
 })
 

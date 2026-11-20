@@ -29964,30 +29964,6 @@ exports.buildPrompt = buildPrompt;
 
 /***/ }),
 
-/***/ 4390:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.fetchRubric = void 0;
-// The rubric lives in the jahia-pm-bug-scoring skill of Jahia/cortex — one home for the scoring
-// judgment — and is fetched at the ref the caller pins.
-const fetchRubric = async (octokit, ref) => {
-    const response = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
-        owner: 'Jahia',
-        repo: 'cortex',
-        path: '.claude/skills/jahia-pm-bug-scoring/assets/rubric.md',
-        ref,
-        headers: { accept: 'application/vnd.github.raw+json' },
-    });
-    return response.data;
-};
-exports.fetchRubric = fetchRubric;
-
-
-/***/ }),
-
 /***/ 5659:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -30003,7 +29979,7 @@ query($owner: String!, $name: String!, $number: Int!) {
       title url body createdAt
       issueType { name }
       labels(first: 50) { nodes { name } }
-      comments(last: 30) { totalCount nodes { author { login } createdAt body } }
+      comments(last: 15) { totalCount nodes { author { login } createdAt body } }
     }
   }
 }`;
@@ -30063,24 +30039,21 @@ const core = __importStar(__nccwpck_require__(7484));
 const github = __importStar(__nccwpck_require__(3228));
 const batchKeys_1 = __nccwpck_require__(3963);
 const buildPrompt_1 = __nccwpck_require__(7177);
-const fetchRubric_1 = __nccwpck_require__(4390);
 const fetchTicket_1 = __nccwpck_require__(5659);
 const toTicket_1 = __nccwpck_require__(2110);
-// prepare entry point, run inside the composite action: fetches the rubric and the tickets into
-// the log directory and writes one prompt per batch. The agent then needs no network and no
-// GitHub token.
+// prepare entry point, run inside the composite action: the rubric and the tickets land in the
+// log directory, one prompt per batch, so the agent needs no network and no GitHub token.
 const run = async () => {
     const env = process.env;
     const bugs = JSON.parse(env.BUGS_JSON ?? '[]');
     const marker = env.MARKER ?? '';
     const batchSize = Number(env.BATCH_SIZE ?? '10');
-    const cortexRef = env.CORTEX_REF ?? 'main';
     const logDir = (0, node_path_1.join)(env.RUNNER_TEMP ?? '.', 'bug-scoring-logs');
     const octokit = github.getOctokit(env.GH_TOKEN ?? '');
     for (const sub of ['tickets', 'factors'])
         (0, node_fs_1.mkdirSync)((0, node_path_1.join)(logDir, sub), { recursive: true });
-    // The agent reads only under the log directory, so the rubric is fetched there.
-    (0, node_fs_1.writeFileSync)((0, node_path_1.join)(logDir, 'rubric.md'), await (0, fetchRubric_1.fetchRubric)(octokit, cortexRef));
+    // The agent reads only under the log directory, so the rubric is copied there.
+    (0, node_fs_1.copyFileSync)((0, node_path_1.join)(env.CORTEX_PATH ?? '', '.claude/skills/jahia-pm-bug-scoring/assets/rubric.md'), (0, node_path_1.join)(logDir, 'rubric.md'));
     (0, node_fs_1.writeFileSync)((0, node_path_1.join)(logDir, 'selected-bugs.json'), JSON.stringify(bugs, null, 2));
     const fetched = [];
     for (const bug of bugs) {

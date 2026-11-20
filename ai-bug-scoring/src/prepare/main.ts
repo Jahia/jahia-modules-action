@@ -1,29 +1,29 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import type { Bug } from '../types'
 import { batchKeys } from './batchKeys'
 import { buildPrompt } from './buildPrompt'
-import { fetchRubric } from './fetchRubric'
 import { fetchTicket } from './fetchTicket'
 import { toTicket } from './toTicket'
 
-// prepare entry point, run inside the composite action: fetches the rubric and the tickets into
-// the log directory and writes one prompt per batch. The agent then needs no network and no
-// GitHub token.
+// prepare entry point, run inside the composite action: the rubric and the tickets land in the
+// log directory, one prompt per batch, so the agent needs no network and no GitHub token.
 const run = async (): Promise<void> => {
   const env = process.env
   const bugs = JSON.parse(env.BUGS_JSON ?? '[]') as Bug[]
   const marker = env.MARKER ?? ''
   const batchSize = Number(env.BATCH_SIZE ?? '10')
-  const cortexRef = env.CORTEX_REF ?? 'main'
   const logDir = join(env.RUNNER_TEMP ?? '.', 'bug-scoring-logs')
   const octokit = github.getOctokit(env.GH_TOKEN ?? '')
 
   for (const sub of ['tickets', 'factors']) mkdirSync(join(logDir, sub), { recursive: true })
-  // The agent reads only under the log directory, so the rubric is fetched there.
-  writeFileSync(join(logDir, 'rubric.md'), await fetchRubric(octokit, cortexRef))
+  // The agent reads only under the log directory, so the rubric is copied there.
+  copyFileSync(
+    join(env.CORTEX_PATH ?? '', '.claude/skills/jahia-pm-bug-scoring/assets/rubric.md'),
+    join(logDir, 'rubric.md'),
+  )
   writeFileSync(join(logDir, 'selected-bugs.json'), JSON.stringify(bugs, null, 2))
 
   const fetched: string[] = []

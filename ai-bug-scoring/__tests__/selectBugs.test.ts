@@ -10,6 +10,8 @@ const issue = (repo: string, number: number): Record<string, unknown> => ({
 
 const options = { org: 'Jahia', searchScope: 'org:Jahia', field: 'PM Score', maxBugs: 30 }
 
+const VALUES_ROUTE = 'GET /repos/{owner}/{repo}/issues/{issue_number}/issue-field-values'
+
 const fakeOctokit = (
   found: Record<string, unknown>[],
   valuesByIssue: Record<number, { issue_field_id: number }[]>,
@@ -17,11 +19,20 @@ const fakeOctokit = (
 ): { octokit: Octokit; paginate: jest.Mock } => {
   const paginate = jest.fn((route: string, params: Record<string, unknown>) => {
     if (route === 'GET /orgs/{org}/issue-fields') return Promise.resolve(fields)
-    if (route === 'GET /search/issues') return Promise.resolve(found)
     return Promise.resolve(valuesByIssue[params.issue_number as number] ?? [])
+  })
+  Object.assign(paginate, {
+    iterator: jest.fn(() =>
+      (async function* () {
+        yield await Promise.resolve({ data: found })
+      })(),
+    ),
   })
   return { octokit: { paginate } as unknown as Octokit, paginate }
 }
+
+const valueReads = (paginate: jest.Mock): unknown[][] =>
+  (paginate.mock.calls as unknown[][]).filter((call) => call[0] === VALUES_ROUTE)
 
 describe('selectBugs', () => {
   it('keeps the bugs whose field is empty and sorts them by repository and number', async () => {
@@ -37,7 +48,7 @@ describe('selectBugs', () => {
       url: 'https://github.com/Jahia/alpha/issues/1',
       field_id: FIELD_ID,
     })
-    expect(selection.foundCount).toBe(3)
+    expect(selection.seen).toBe(3)
     expect(selection.read).toBe(3)
   })
 
@@ -51,11 +62,8 @@ describe('selectBugs', () => {
     const { octokit, paginate } = fakeOctokit([{ ...issue('alpha', 1), pull_request: {} }], {})
     const selection = await selectBugs(octokit, options)
     expect(selection.selected).toEqual([])
-    const valueReads = paginate.mock.calls.filter(
-      (call: unknown[]) =>
-        call[0] === 'GET /repos/{owner}/{repo}/issues/{issue_number}/issue-field-values',
-    )
-    expect(valueReads).toHaveLength(0)
+    expect(selection.seen).toBe(1)
+    expect(valueReads(paginate)).toHaveLength(0)
   })
 
   it('stops reading once maxBugs bugs are collected', async () => {
@@ -65,11 +73,7 @@ describe('selectBugs', () => {
     )
     const selection = await selectBugs(octokit, { ...options, maxBugs: 2 })
     expect(selection.selected).toHaveLength(2)
-    const valueReads = paginate.mock.calls.filter(
-      (call: unknown[]) =>
-        call[0] === 'GET /repos/{owner}/{repo}/issues/{issue_number}/issue-field-values',
-    )
-    expect(valueReads).toHaveLength(2)
+    expect(valueReads(paginate)).toHaveLength(2)
   })
 
   it('refuses an organization with no number field of that name', async () => {

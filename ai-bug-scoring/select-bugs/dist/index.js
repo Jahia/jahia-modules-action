@@ -30015,13 +30015,12 @@ const run = async () => {
     const maxBugs = Number(core.getInput('max_bugs') || '30');
     const octokit = github.getOctokit(token);
     const selection = await (0, selectBugs_1.selectBugs)(octokit, { org, searchScope, field, maxBugs });
-    core.info(`${String(selection.foundCount)} open bug(s) found by search: ${selection.query}`);
-    core.info(`${String(selection.selected.length)} bug(s) selected (at most ${String(maxBugs)} per run, ${String(selection.read)} field read(s)):`);
+    core.info(`${String(selection.selected.length)} bug(s) selected after ${String(selection.seen)} issue(s) seen and ${String(selection.read)} field read(s): ${selection.query}`);
     for (const bug of selection.selected)
         core.info(`  - ${bug.repository}#${String(bug.number)}`);
     await core.summary
         .addHeading('Bug selection', 3)
-        .addRaw(`\nSearch: \`${selection.query}\` — ${String(selection.foundCount)} open bug(s); ` +
+        .addRaw(`\nSearch: \`${selection.query}\`, newest first — ${String(selection.seen)} issue(s) read; ` +
         `${String(selection.selected.length)} selected whose "${field}" field is empty ` +
         `(at most ${String(maxBugs)} per run).\n\n`)
         .addTable([
@@ -30046,10 +30045,9 @@ void run().catch((error) => {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.searchBugs = void 0;
-// Most recent first, so a new bug is scored while its ticket is fresh; the oldest bugs wait
-// until the backlog in front of them is scored, and the 1000-result cap of the search drops
-// them first.
-const searchBugs = async (octokit, searchScope) => {
+// Most recent first, so a new bug is scored while its ticket is fresh. The caller stops the page
+// iterator early, so only the pages it needs count against the strict search rate limit.
+const searchBugs = (octokit, searchScope) => {
     const query = `${searchScope} is:issue is:open type:Bug archived:false`;
     // advanced_search is not in the typed route parameters yet, hence the cast.
     const parameters = {
@@ -30059,8 +30057,8 @@ const searchBugs = async (octokit, searchScope) => {
         order: 'desc',
         per_page: 100,
     };
-    const found = await octokit.paginate('GET /search/issues', parameters);
-    return { query, found };
+    const pages = octokit.paginate.iterator('GET /search/issues', parameters);
+    return { query, pages };
 };
 exports.searchBugs = searchBugs;
 
@@ -30077,35 +30075,37 @@ exports.selectBugs = void 0;
 const findScoreField_1 = __nccwpck_require__(8899);
 const isFieldSet_1 = __nccwpck_require__(5554);
 const searchBugs_1 = __nccwpck_require__(769);
-// Deterministic: selects the open issues of type Bug whose score field is empty, and stops once
-// maxBugs are collected. The search cannot filter on an issue field, so the field of each found
-// issue is read, most recent first. The scoring job writes the field, or -1 for a security bug,
-// so a bug is read once. A person who empties the field asks for a new score.
+// Deterministic: keeps the open issues of type Bug whose score field is empty, most recent first,
+// and stops at maxBugs. A person who empties the field asks for a new score.
 const selectBugs = async (octokit, { org, searchScope, field, maxBugs, }) => {
     const scoreField = await (0, findScoreField_1.findScoreField)(octokit, org, field);
-    const { query, found } = await (0, searchBugs_1.searchBugs)(octokit, searchScope);
+    const { query, pages } = (0, searchBugs_1.searchBugs)(octokit, searchScope);
     const selected = [];
+    let seen = 0;
     let read = 0;
-    for (const issue of found) {
-        if (issue.pull_request)
-            continue;
-        if (selected.length >= maxBugs)
-            break;
-        const [owner = '', repo = ''] = issue.repository_url.split('/').slice(-2);
-        read += 1;
-        if (await (0, isFieldSet_1.isFieldSet)(octokit, owner, repo, issue.number, scoreField.id))
-            continue;
-        selected.push({
-            key: `${owner}-${repo}-${String(issue.number)}`,
-            repository: `${owner}/${repo}`,
-            number: issue.number,
-            url: issue.html_url,
-            field_id: scoreField.id,
-        });
+    outer: for await (const page of pages) {
+        for (const issue of page.data) {
+            seen += 1;
+            if (issue.pull_request)
+                continue;
+            const [owner = '', repo = ''] = issue.repository_url.split('/').slice(-2);
+            read += 1;
+            if (await (0, isFieldSet_1.isFieldSet)(octokit, owner, repo, issue.number, scoreField.id))
+                continue;
+            selected.push({
+                key: `${owner}-${repo}-${String(issue.number)}`,
+                repository: `${owner}/${repo}`,
+                number: issue.number,
+                url: issue.html_url,
+                field_id: scoreField.id,
+            });
+            if (selected.length >= maxBugs)
+                break outer;
+        }
     }
     // Deterministic processing order for the agent job.
     selected.sort((a, b) => a.repository.localeCompare(b.repository) || a.number - b.number);
-    return { query, foundCount: found.length, read, field, selected };
+    return { query, seen, read, selected };
 };
 exports.selectBugs = selectBugs;
 

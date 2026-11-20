@@ -22,23 +22,10 @@ ticket is fresh, and the oldest bugs wait until the backlog in front of them is 
 ## System A2
 
 The agent records the factors with the rubric of the `jahia-pm-bug-scoring` skill of
-[Jahia/cortex](https://github.com/Jahia/cortex), fetched at the `cortex_ref` input.
-[`src/score`](src/score) adds the points:
-
-| Factor | Points |
-|---|---|
-| Impact: content loss or corruption, erratic in production, site fully broken | 40 · P1 |
-| Impact: visitors partly impacted | 30 |
-| Impact: editors blocked, developers blocked | 20 |
-| Impact: slowed down, not blocked | 4 |
-| Impact: cosmetic or wording | 1 |
-| Reach: high, medium, low | +15, +5, 0 |
-| Workaround: none, painful, unknown, easy | +8, +4, +4, 0 |
-| Regression | +5 |
-| Customers: the `customer` label, then each customer the ticket names, up to 3 | +5 each |
-| Expected behaviour clear | +6 |
-| Jahia Cloud | +3 |
-| Only versions below 8.2 | −5 |
+[Jahia/cortex](https://github.com/Jahia/cortex), read from the cortex checkout that
+`ai-agent-setup` leaves (the `cortex_path` input). The rubric owns the factor definitions and
+their thresholds, such as the version cut-off of the old-versions penalty, and
+[`src/score/tables.ts`](src/score/tables.ts) holds the points of each factor.
 
 Example: an editor is blocked (+20) on a feature most customers use (+15), with a painful
 workaround (+4). The ticket is a regression (+5), carries the customer label from one customer (+5)
@@ -88,13 +75,13 @@ Runs the agent, then scores and writes. Requires [`ai-agent-setup`](../ai-agent-
 | Input | Default | Description |
 |---|---|---|
 | `bugs` | — | JSON array produced by `select-bugs` |
-| `github_token` | — | Token that reads the issues, fetches the rubric from Jahia/cortex and posts the comments |
+| `github_token` | — | Token that reads the issues and posts the comments |
 | `field_token` | — | Token that writes the PM Score issue field (push access to every selected repository) |
 | `model` | `opus` | Claude Code `--model` value |
 | `dry_run` | `false` | `true` runs the agent but writes nothing; `false` writes the field and posts the comments |
 | `marker` | `<!-- ai-bug-scoring -->` | Hidden marker of the comment |
 | `batch_size` | `10` | Tickets per agent run; each run starts with a fresh context |
-| `cortex_ref` | `main` | Git ref of Jahia/cortex that holds the rubric |
+| `cortex_path` | — | Absolute path of the cortex checkout (from `ai-agent-setup`) that holds the rubric |
 
 | Output | Description |
 |---|---|
@@ -126,9 +113,11 @@ sources, so run it before pushing.
 
 - Self-hosted Ubuntu runner. The scripts run on the Node of the GitHub Actions runtime: no
   `python3`, and no `gh` beyond what `ai-agent-setup` needs.
+- A `workflow_call` caller passes `secrets: inherit`, so the jobs see the org secrets they read.
 - Org secrets and variables: `GH_ISSUES_PRS_CHORES` (searches the issues, reads and writes the PM
-  Score issue field), `AI_AGENT_GH_ISSUES_PRS_CHORES` (reads the issues, fetches the rubric and
-  posts the comments),
+  Score issue field), `AI_AGENT_GH_ISSUES_PRS_CHORES` (reads the issues and
+  posts the comments), `BASTION_SSH_PRIVATE_KEY_JAHIACI` (the 30-day log upload to the Jahia
+  servers),
   `AI_LITELLM_AUTH_TOKEN_USAGE_BUG_SCORING` (the gateway key of this duty), `AI_LITELLM_BASE_URL`,
   `AI_LITELLM_ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL`, `CORTEX_TELEMETRY_TOKEN`, and the mTLS
   bastion surface (`INFRAJAHIA_MTLS_CA_URL`, `INFRAJAHIA_MTLS_BASTION`,

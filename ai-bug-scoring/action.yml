@@ -6,7 +6,7 @@ inputs:
     description: 'JSON array of bugs produced by the select-bugs action'
     required: true
   github_token:
-    description: 'Token that reads the issues, fetches the rubric from Jahia/cortex and posts the score comments'
+    description: 'Token that reads the issues and posts the score comments'
     required: true
   field_token:
     description: 'Token that writes the PM Score issue field (push access to every selected repository)'
@@ -19,10 +19,9 @@ inputs:
     description: 'true: run the agent but write nothing — store the would-be comments under logs_dir/comments instead; false: write the field and post the comments'
     required: false
     default: 'false'
-  cortex_ref:
-    description: 'Git ref of Jahia/cortex that holds the rubric of the jahia-pm-bug-scoring skill'
-    required: false
-    default: 'main'
+  cortex_path:
+    description: 'Absolute path of the cortex checkout (from ai-agent-setup), whose jahia-pm-bug-scoring skill holds the rubric'
+    required: true
   marker:
     description: 'Hidden marker that opens every score comment'
     required: false
@@ -48,10 +47,9 @@ runs:
       with:
         script: core.setOutput('bin', process.execPath)
 
-    # Fetches the rubric (from the jahia-pm-bug-scoring skill of Jahia/cortex) and the tickets
-    # into the log directory, and writes one prompt per batch: the agent then needs no network
-    # and no GitHub token.
-    - name: Fetch the rubric and the tickets, prepare the prompts
+    # The rubric and the tickets land in the log directory, one prompt per batch, so the agent
+    # needs no network and no GitHub token.
+    - name: Copy the rubric, fetch the tickets, prepare the prompts
       id: prep
       shell: bash
       env:
@@ -59,7 +57,7 @@ runs:
         MARKER: ${{ inputs.marker }}
         GH_TOKEN: ${{ inputs.github_token }}
         BATCH_SIZE: ${{ inputs.batch_size }}
-        CORTEX_REF: ${{ inputs.cortex_ref }}
+        CORTEX_PATH: ${{ inputs.cortex_path }}
       run: |
         "${{ steps.node.outputs.bin }}" "$GITHUB_ACTION_PATH/dist/prepare/index.js"
 

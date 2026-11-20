@@ -135,9 +135,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const node_fs_1 = __nccwpck_require__(24);
 const compact_1 = __nccwpck_require__(760);
 const traceRun_1 = __nccwpck_require__(723);
-// summarize-run entry point: prints the deterministic trace of one headless Claude Code run from
-// its stream-json output, writes the final result event next to the stream file, and appends one
-// row to the step summary. It always exits 0 — reporting must not mask the agent's own exit code.
+// summarize-run entry point: prints the trace of one headless run from its stream-json output and
+// appends one summary row. It always exits 0 — reporting must not mask the agent's own exit code.
 const run = () => {
     const [streamPath = '', key = '', exitCode = ''] = process.argv.slice(2);
     const events = [];

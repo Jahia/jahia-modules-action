@@ -1,5 +1,5 @@
-// System A2: the points each factor adds. Pure data — checkFactors validates against it and
-// scoreFactors adds the points.
+// System A2: the points each factor adds — pure data that the validation reads and the scoring
+// sums into the field value.
 
 export const IMPACT: Record<string, [number, string]> = {
   data: [40, 'Content loss or data corruption'],

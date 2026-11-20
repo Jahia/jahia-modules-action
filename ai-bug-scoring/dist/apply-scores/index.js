@@ -29943,9 +29943,7 @@ const loadJson = (path) => {
     }
 };
 // Score each selected bug from its factors file, then write the PM Score field and the comment.
-// A bug with no valid factors gets nothing, so its field stays empty and the next run tries it
-// again. The comment goes before the field, so a failed field write leaves the bug eligible, and
-// the next run edits the same comment instead of posting a second one.
+// The comment goes before the field, so a failed field write leaves the bug eligible next run.
 const applyScores = async ({ comments, fields }, config) => {
     const bugs = JSON.parse((0, node_fs_1.readFileSync)((0, node_path_1.join)(config.logDir, 'selected-bugs.json'), 'utf8'));
     (0, node_fs_1.mkdirSync)((0, node_path_1.join)(config.logDir, 'comments'), { recursive: true });
@@ -30060,7 +30058,7 @@ const renderComment_1 = __nccwpck_require__(5615);
 const scoreFactors_1 = __nccwpck_require__(86);
 const tables_1 = __nccwpck_require__(9637);
 // Return the result of one bug: its value, its comment, or the reason it is skipped. A security
-// bug gets the value -1 and no comment: a comment on a public repository would disclose it.
+// bug gets no comment, because one on a public repository would disclose it.
 const evaluateBug = (bug, ticket, factors, { marker, agent, runUrl, date }) => {
     const ref = `${bug.repository}#${String(bug.number)}`;
     const base = { ref, key: bug.key, url: bug.url };
@@ -30155,6 +30153,7 @@ const core = __importStar(__nccwpck_require__(7484));
 const github = __importStar(__nccwpck_require__(3228));
 const applyScores_1 = __nccwpck_require__(4781);
 const renderScoreSummary_1 = __nccwpck_require__(7506);
+const runFailure_1 = __nccwpck_require__(3961);
 // apply-scores entry point, run inside the composite action once the agent recorded the factors.
 const run = async () => {
     const env = process.env;
@@ -30179,6 +30178,9 @@ const run = async () => {
     if (env.GITHUB_STEP_SUMMARY) {
         (0, node_fs_1.appendFileSync)(env.GITHUB_STEP_SUMMARY, (0, renderScoreSummary_1.renderScoreSummary)(results, !dryRun));
     }
+    const failure = (0, runFailure_1.runFailure)(results, dryRun);
+    if (failure)
+        core.setFailed(failure);
 };
 void run().catch((error) => {
     core.setFailed(error instanceof Error ? error.message : String(error));
@@ -30211,7 +30213,7 @@ const renderComment = ({ marker, points, rows, p1, factors, agent, runUrl, date,
     }
     lines.push('| Factor | Value | Points |', '|---|---|---|');
     for (const row of rows) {
-        lines.push(`| ${row.name} | ${row.text} | ${row.points === 0 ? '0' : signed(row.points)} |`);
+        lines.push(`| ${row.name} | ${row.text} | ${signed(row.points)} |`);
     }
     lines.push(`| **Total** | | **${String(points)}** |`, '');
     lines.push(`**Why:** ${factors.why}`, '');
@@ -30246,6 +30248,23 @@ const renderScoreSummary = (results, writing) => `### PM scores (${writing ? 'wr
     '|---|---|---|---|---|\n' +
     results.map((result) => row(result) + '\n').join('');
 exports.renderScoreSummary = renderScoreSummary;
+
+
+/***/ }),
+
+/***/ 3961:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.runFailure = void 0;
+// A write run that wrote nothing is a dead duty — a wrong token or a revoked scope would stay
+// green forever — so the caller fails and its status output carries the message.
+const runFailure = (results, dryRun) => !dryRun && results.length > 0 && !results.some((result) => result.written)
+    ? 'no PM Score field was written: every bug was skipped or every write failed — the job summary has each reason'
+    : null;
+exports.runFailure = runFailure;
 
 
 /***/ }),
@@ -30335,8 +30354,8 @@ exports.setField = setField;
 
 "use strict";
 
-// System A2: the points each factor adds. Pure data — checkFactors validates against it and
-// scoreFactors adds the points.
+// System A2: the points each factor adds — pure data that the validation reads and the scoring
+// sums into the field value.
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CONFIDENCE = exports.SECURITY_VALUE = exports.P1_OFFSET = exports.OLDER = exports.CLOUD = exports.CLEAR = exports.MAX_CUSTOMERS = exports.PER_CUSTOMER = exports.REGRESSION = exports.WORKAROUND = exports.REACH = exports.P1 = exports.IMPACT = void 0;
 exports.IMPACT = {
@@ -30375,20 +30394,26 @@ exports.CONFIDENCE = new Set(['high', 'medium', 'low']);
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.upsertComment = void 0;
-// Edit the score comment of the bug when there is one, or post a new one.
+const LIST = 'GET /repos/{owner}/{repo}/issues/{issue_number}/comments';
+// Edit the score comment of the bug when there is one, or post a new one. The pages are walked
+// from the newest, so the read stops at the run's own last comment, not the whole history.
 const upsertComment = async (octokit, bug, body, marker) => {
     const [owner = '', repo = ''] = bug.repository.split('/');
-    const comments = (await octokit.paginate('GET /repos/{owner}/{repo}/issues/{issue_number}/comments', { owner, repo, issue_number: bug.number, per_page: 100 }));
-    const mine = comments.filter((comment) => (comment.body ?? '').startsWith(marker));
-    const last = mine[mine.length - 1];
-    if (last) {
-        await octokit.request('PATCH /repos/{owner}/{repo}/issues/comments/{comment_id}', {
-            owner,
-            repo,
-            comment_id: last.id,
-            body,
-        });
-        return 'edited';
+    const base = { owner, repo, issue_number: bug.number, per_page: 100 };
+    const first = await octokit.request(LIST, { ...base, page: 1 });
+    const lastPage = Number(/[?&]page=(\d+)>; rel="last"/.exec(first.headers.link ?? '')?.[1] ?? '1');
+    for (let page = lastPage; page >= 1; page -= 1) {
+        const comments = (page === 1 ? first.data : (await octokit.request(LIST, { ...base, page })).data);
+        const mine = [...comments].reverse().find((comment) => (comment.body ?? '').startsWith(marker));
+        if (mine) {
+            await octokit.request('PATCH /repos/{owner}/{repo}/issues/comments/{comment_id}', {
+                owner,
+                repo,
+                comment_id: mine.id,
+                body,
+            });
+            return 'edited';
+        }
     }
     await octokit.request('POST /repos/{owner}/{repo}/issues/{issue_number}/comments', {
         owner,

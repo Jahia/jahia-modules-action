@@ -39,7 +39,7 @@ export const renderComment = ({
   }
   lines.push('| Factor | Value | Points |', '|---|---|---|')
   for (const row of rows) {
-    lines.push(`| ${row.name} | ${row.text} | ${row.points === 0 ? '0' : signed(row.points)} |`)
+    lines.push(`| ${row.name} | ${row.text} | ${signed(row.points)} |`)
   }
   lines.push(`| **Total** | | **${String(points)}** |`, '')
   lines.push(`**Why:** ${factors.why}`, '')

@@ -24,9 +24,7 @@ export interface ApplyConfig {
 }
 
 // Score each selected bug from its factors file, then write the PM Score field and the comment.
-// A bug with no valid factors gets nothing, so its field stays empty and the next run tries it
-// again. The comment goes before the field, so a failed field write leaves the bug eligible, and
-// the next run edits the same comment instead of posting a second one.
+// The comment goes before the field, so a failed field write leaves the bug eligible next run.
 export const applyScores = async (
   { comments, fields }: { comments: Octokit; fields: Octokit },
   config: ApplyConfig,

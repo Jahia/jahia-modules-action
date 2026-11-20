@@ -6,7 +6,7 @@ import { scoreFactors } from './scoreFactors'
 import { SECURITY_VALUE } from './tables'
 
 // Return the result of one bug: its value, its comment, or the reason it is skipped. A security
-// bug gets the value -1 and no comment: a comment on a public repository would disclose it.
+// bug gets no comment, because one on a public repository would disclose it.
 export const evaluateBug = (
   bug: Bug,
   ticket: Ticket | Error,

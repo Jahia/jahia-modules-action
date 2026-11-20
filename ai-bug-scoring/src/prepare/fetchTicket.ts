@@ -26,7 +26,7 @@ query($owner: String!, $name: String!, $number: Int!) {
       title url body createdAt
       issueType { name }
       labels(first: 50) { nodes { name } }
-      comments(last: 30) { totalCount nodes { author { login } createdAt body } }
+      comments(last: 15) { totalCount nodes { author { login } createdAt body } }
     }
   }
 }`

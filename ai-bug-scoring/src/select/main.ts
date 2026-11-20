@@ -13,16 +13,15 @@ const run = async (): Promise<void> => {
   const octokit = github.getOctokit(token)
 
   const selection = await selectBugs(octokit, { org, searchScope, field, maxBugs })
-  core.info(`${String(selection.foundCount)} open bug(s) found by search: ${selection.query}`)
   core.info(
-    `${String(selection.selected.length)} bug(s) selected (at most ${String(maxBugs)} per run, ${String(selection.read)} field read(s)):`,
+    `${String(selection.selected.length)} bug(s) selected after ${String(selection.seen)} issue(s) seen and ${String(selection.read)} field read(s): ${selection.query}`,
   )
   for (const bug of selection.selected) core.info(`  - ${bug.repository}#${String(bug.number)}`)
 
   await core.summary
     .addHeading('Bug selection', 3)
     .addRaw(
-      `\nSearch: \`${selection.query}\` — ${String(selection.foundCount)} open bug(s); ` +
+      `\nSearch: \`${selection.query}\`, newest first — ${String(selection.seen)} issue(s) read; ` +
         `${String(selection.selected.length)} selected whose "${field}" field is empty ` +
         `(at most ${String(maxBugs)} per run).\n\n`,
     )

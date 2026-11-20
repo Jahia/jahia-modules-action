@@ -2,9 +2,8 @@ import { appendFileSync, readFileSync, writeFileSync } from 'node:fs'
 import { compact } from './compact'
 import { traceRun } from './traceRun'
 
-// summarize-run entry point: prints the deterministic trace of one headless Claude Code run from
-// its stream-json output, writes the final result event next to the stream file, and appends one
-// row to the step summary. It always exits 0 — reporting must not mask the agent's own exit code.
+// summarize-run entry point: prints the trace of one headless run from its stream-json output and
+// appends one summary row. It always exits 0 — reporting must not mask the agent's own exit code.
 const run = (): void => {
   const [streamPath = '', key = '', exitCode = ''] = process.argv.slice(2)
 
