@@ -16,10 +16,14 @@ inputs:
     description: 'GitHub username of the AI reviewer account'
     required: false
     default: 'jahia-ai'
+  reviewer_team:
+    description: 'Slug of a team whose pending review request also makes the review due (empty: only the reviewer account counts)'
+    required: false
+    default: 'engineering-ai'
 
 outputs:
   eligible:
-    description: '"true" when the PR is open and the reviewer is still in its requested reviewers'
+    description: '"true" when the PR is open and the reviewer, or the reviewer team, is still requested'
     value: ${{ steps.check.outputs.eligible }}
 
 runs:
@@ -34,18 +38,22 @@ runs:
         REPOSITORY: ${{ inputs.repository }}
         PR_NUMBER: ${{ inputs.pr_number }}
         REVIEWER: ${{ inputs.reviewer }}
+        REVIEWER_TEAM: ${{ inputs.reviewer_team }}
       with:
         github-token: ${{ inputs.github_token }}
         script: |
           const [owner, repo] = process.env.REPOSITORY.split('/')
           const number = Number(process.env.PR_NUMBER)
           const reviewer = process.env.REVIEWER.toLowerCase()
+          const team = (process.env.REVIEWER_TEAM ?? '').toLowerCase()
           const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number })
           let reason = ''
           if (pr.state !== 'open') {
             reason = `the pull request is ${pr.state}`
-          } else if (!(pr.requested_reviewers ?? []).some(r => r.login.toLowerCase() === reviewer)) {
-            reason = `'${process.env.REVIEWER}' is not (or no longer) a requested reviewer — review already submitted, or request withdrawn`
+          } else if (!(pr.requested_reviewers ?? []).some(r => r.login.toLowerCase() === reviewer)
+                     && !(team && (pr.requested_teams ?? []).some(t => t.slug.toLowerCase() === team))) {
+            const who = team ? `'${process.env.REVIEWER}' (or team '${process.env.REVIEWER_TEAM}')` : `'${process.env.REVIEWER}'`
+            reason = `${who} is not (or no longer) a requested reviewer — review already submitted, or request withdrawn`
           }
           core.setOutput('eligible', String(reason === ''))
           if (reason === '') core.info(`${process.env.REPOSITORY}#${number}: review by '${process.env.REVIEWER}' is due`)

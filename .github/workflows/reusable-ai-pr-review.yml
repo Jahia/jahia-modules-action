@@ -13,6 +13,11 @@ on:
         type: string
         required: false
         default: "jahia-ai"
+      reviewer_team:
+        description: "Slug of a team whose pending review request also makes the review due (empty: only the reviewer account counts)"
+        type: string
+        required: false
+        default: "engineering-ai"
       post_review:
         description: "Submit the review on the PR (false = review mode: store the would-be review in the run artifact instead)"
         type: boolean
@@ -73,6 +78,7 @@ jobs:
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           pr_number: ${{ github.event.pull_request.number }}
           reviewer: ${{ inputs.reviewer }}
+          reviewer_team: ${{ inputs.reviewer_team }}
 
       # Sign off early, as the reviewer account, that the request was heard. One sticky comment
       # tracks the stage of the run from here: "waiting for a runner" now, "review in progress"
