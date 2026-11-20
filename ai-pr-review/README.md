@@ -1,9 +1,10 @@
 # ai-pr-review
 
 On-demand AI review of a pull request. When a human requests a review from the AI reviewer
-account `jahia-ai`, a headless [Claude Code](https://code.claude.com) agent reviews the pull
-request. The agent runs from inside the [cortex harness](https://github.com/Jahia/cortex), and it
-reaches the LiteLLM gateway through the IT mTLS bastion.
+account `jahia-ai`, or from the `Jahia/engineering-ai` team, a headless
+[Claude Code](https://code.claude.com) agent reviews the pull request. The agent runs from inside
+the [cortex harness](https://github.com/Jahia/cortex), and it reaches the LiteLLM gateway through
+the IT mTLS bastion.
 
 The agent submits one review: an approval of a clean pull request, and a `COMMENT` otherwise. Each
 finding on a line of the diff is a native inline comment on that line, and the review body carries
@@ -72,10 +73,12 @@ then needs a release that reads it. Until that release, pin `cortex_ref` to a re
 ## One review per request — the eligibility rule
 
 The trigger is the `review_requested` pull-request event, filtered to the AI reviewer
-account. GitHub only emits that event when someone requests (or re-requests) the reviewer —
-never when the PR is updated — so the wanted semantics hold by construction:
+account or to the `engineering-ai` team. For a team request, GitHub leaves `requested_reviewer`
+empty and fills `requested_team`, so the filter reads the slug of the team. GitHub only emits
+that event when someone requests (or re-requests) the reviewer — never when the PR is updated —
+so the wanted semantics hold by construction:
 
-- Request a review from `jahia-ai` → exactly one review.
+- Request a review from `jahia-ai` or from `Jahia/engineering-ai` → exactly one review.
 - Push more commits → nothing happens.
 - Click "re-request review" on `jahia-ai` → exactly one more review (delivered as a delta
   against the previous one).
@@ -84,10 +87,11 @@ Two deterministic mechanisms make this idempotent:
 
 - **`check-request` guard** (LLM-free, cheap runner): before a self-hosted runner is engaged,
   it re-reads the PR and only proceeds when the PR is open AND the reviewer is still in
-  `requested_reviewers`. Workflow re-runs, duplicate event deliveries, or requests withdrawn
-  in the meantime are skipped.
+  `requested_reviewers`, or the reviewer team is still in `requested_teams`. Workflow re-runs,
+  duplicate event deliveries, or requests withdrawn in the meantime are skipped.
 - **The review request is *fulfilled* by the review**: the agent submits with the `jahia-ai`
-  account's token, so GitHub clears the pending request the moment the review lands. A
+  account's token, so GitHub clears the pending request the moment the review lands. A team
+  request is cleared the same way only because `jahia-ai` is a member of the team. A
   crashed agent submits nothing, the request stays pending, and re-running the workflow (or
   re-requesting) retries. After an error other than HTTP 422, the submit step looks three times,
   10 seconds apart, for a review of this run, because GitHub can create a review after it
@@ -132,10 +136,11 @@ write the diff since that review, and lets the verification step confirm this ru
 | `repository` | no | current repository | Repository of the PR (owner/repo) |
 | `pr_number` | yes | — | Pull request number |
 | `reviewer` | no | `jahia-ai` | GitHub username of the AI reviewer account |
+| `reviewer_team` | no | `engineering-ai` | Slug of a team whose pending request also makes the review due (empty: only the reviewer account counts) |
 
 | Output | Description |
 |---|---|
-| `eligible` | `"true"` when the PR is open and the reviewer is still requested |
+| `eligible` | `"true"` when the PR is open and the reviewer, or the reviewer team, is still requested |
 
 ### `ai-pr-review` (this action)
 
@@ -374,7 +379,8 @@ All the logic lives in the
 workflow (guard job + agent job). The
 [`reusable-delivery-pr-chores.yml`](../.github/workflows/reusable-delivery-pr-chores.yml)
 workflow only holds the trigger condition — `review_requested` event, requested reviewer is
-`jahia-ai` — and calls it. A repository opting in must, in its caller workflow:
+`jahia-ai` or requested team is `engineering-ai` — and calls it. A repository opting in must,
+in its caller workflow:
 
 ```yaml
 on:
@@ -408,6 +414,7 @@ plus the mTLS bastion surface
 `INFRAJAHIA_MTLS_SERVER_CA`).
 
 Tuning inputs on `reusable-ai-pr-review.yml` (all optional — `reusable-delivery-pr-chores.yml`
-calls it with the defaults): `reviewer` (default `jahia-ai`), `post_review` (default `true`;
+calls it with the defaults): `reviewer` (default `jahia-ai`), `reviewer_team` (default
+`engineering-ai`), `post_review` (default `true`;
 `false` = review mode), `model` (default `opus`), `instance_type`, `timeout_job`, `timeout_job_long`,
 `cortex_ref`, `claude_code_version`, `tunnel_hosts`.
