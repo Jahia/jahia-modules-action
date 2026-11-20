@@ -1,0 +1,33 @@
+name: Select bugs for the PM score
+description: Deterministically selects the open issues of type Bug, across the search scope, whose PM Score issue field is empty
+
+inputs:
+  github_token:
+    description: 'Token able to search the issues of the scope and read their issue fields'
+    required: true
+  org:
+    description: 'Organization that owns the issue field'
+    required: false
+    default: 'Jahia'
+  search_scope:
+    description: 'GitHub issue-search scope qualifier, e.g. "org:Jahia" or "repo:Jahia/sandbox"'
+    required: false
+    default: 'org:Jahia'
+  field:
+    description: 'Name of the organization number issue field that holds the score'
+    required: false
+    default: 'PM Score'
+  max_bugs:
+    description: 'Most bugs scored in one run; the next run takes the rest'
+    required: false
+    default: '30'
+
+outputs:
+  bugs:
+    description: 'JSON array of the selected bugs ({key, repository, number, url, field_id}), sorted by repository and number'
+  has_bugs:
+    description: '"true" when at least one bug is selected'
+
+runs:
+  using: 'node24'
+  main: 'dist/index.js'
