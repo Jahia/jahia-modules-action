@@ -1,24 +1,28 @@
 name: AI Bug Scoring
-description: Runs a Claude Code agent to record the PM score factors of each selected bug, then scores them with system A2 and writes the board fields and a breakdown comment
+description: Runs a Claude Code agent to record the PM score factors of each selected bug, then scores them with system A2 and writes the PM Score issue field and a breakdown comment
 
 inputs:
   bugs:
     description: 'JSON array of bugs produced by the select-bugs action'
     required: true
   github_token:
-    description: 'Token that reads the issues and posts the score comments'
+    description: 'Token that reads the issues, fetches the rubric from Jahia/cortex and posts the score comments'
     required: true
-  project_token:
-    description: 'Token that writes the score fields of both organization projects'
+  field_token:
+    description: 'Token that writes the PM Score issue field (push access to every selected repository)'
     required: true
   model:
     description: 'Model the agent runs on, passed to the Claude Code CLI as --model: an alias the gateway maps (`opus`, `sonnet`, `haiku`) or a model name it serves verbatim. Empty means no --model at all. The factors are judgment calls that the rubric was calibrated on with an Opus model, so the default is opus.'
     required: false
     default: 'opus'
   write:
-    description: 'true: write the board fields and post the comments; false: review mode — store the would-be comments under logs_dir/comments and write nothing'
+    description: 'true: write the field and post the comments; false: review mode — store the would-be comments under logs_dir/comments and write nothing'
     required: false
     default: 'false'
+  cortex_ref:
+    description: 'Git ref of Jahia/cortex that holds the rubric of the jahia-pm-bug-scoring skill'
+    required: false
+    default: 'main'
   marker:
     description: 'Hidden marker that opens every score comment'
     required: false
@@ -44,11 +48,15 @@ runs:
         MARKER: ${{ inputs.marker }}
         GH_TOKEN: ${{ inputs.github_token }}
         BATCH_SIZE: ${{ inputs.batch_size }}
+        CORTEX_REF: ${{ inputs.cortex_ref }}
       run: |
         LOG_DIR="$RUNNER_TEMP/bug-scoring-logs"
         mkdir -p "$LOG_DIR"
-        # The agent reads only under LOG_DIR, so the rubric is copied there.
-        cp "$GITHUB_ACTION_PATH/rubric.md" "$LOG_DIR/rubric.md"
+        # The rubric lives in the jahia-pm-bug-scoring skill of Jahia/cortex, and the agent reads
+        # only under LOG_DIR, so the rubric is fetched there.
+        gh api -H "Accept: application/vnd.github.raw" \
+          "repos/Jahia/cortex/contents/.claude/skills/jahia-pm-bug-scoring/assets/rubric.md?ref=$CORTEX_REF" \
+          > "$LOG_DIR/rubric.md"
         KEYS=$(python3 "$GITHUB_ACTION_PATH/src/fetch-tickets.py" "$LOG_DIR")
         BATCHES=0
         if [ -n "$KEYS" ]; then
@@ -103,7 +111,7 @@ runs:
         MARKER: ${{ inputs.marker }}
         AGENT_MODEL: ${{ inputs.model }}
         GH_TOKEN: ${{ inputs.github_token }}
-        PROJECT_TOKEN: ${{ inputs.project_token }}
+        FIELD_TOKEN: ${{ inputs.field_token }}
         RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"

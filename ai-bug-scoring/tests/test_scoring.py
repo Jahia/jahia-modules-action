@@ -33,7 +33,7 @@ class ScoreTest(unittest.TestCase):
         self.assertTrue(p1)
         self.assertIn(('Customers', '3', 15), rows)
 
-    def test_a_p1_case_sorts_above_every_other_bug_on_the_board(self):
+    def test_a_p1_case_sorts_above_every_other_bug(self):
         weakest_p1 = scoring.field_value(40, True)
         strongest_other = scoring.field_value(30 + 15 + 8 + 5 + 15 + 6 + 3, False)
         self.assertGreater(weakest_p1, strongest_other)
@@ -92,10 +92,10 @@ class CommentTest(unittest.TestCase):
         self.assertIn('| Impact | Editors blocked | +20 |', body)
         self.assertIn('| Jahia Cloud | No | 0 |', body)
 
-    def test_a_p1_comment_explains_the_board_value(self):
+    def test_a_p1_comment_explains_the_field_value(self):
         body = self.render(impact='data')
         self.assertIn('**🤖 PM score: 175**', body)
-        self.assertIn('The board value is 100 + 75 points.', body)
+        self.assertIn('The field value is 100 + 75 points.', body)
 
     def test_a_low_confidence_asks_for_a_check(self):
         self.assertIn('please check it', self.render(confidence='low'))

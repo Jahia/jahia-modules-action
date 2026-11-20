@@ -1,20 +1,28 @@
-# This workflow gives a PM score to each open bug that waits on the triage board (Status "Triage
-# needed") or on the delivery board (Priority "For Decision"), with system A2: a deterministic job
-# selects the bugs whose score field is empty, a Claude Code agent records the factors of each one,
-# and a script adds the points, writes the board fields and posts a breakdown comment. It never
-# changes code, labels or any other field.
+# This workflow gives a PM score to each open bug of the Jahia organization, with system A2: a
+# deterministic job selects the open issues of type Bug whose PM Score issue field is empty, a
+# Claude Code agent records the factors of each one, and a script adds the points, writes the
+# field and posts a breakdown comment. It never changes code, labels or any other field. A person
+# who empties the field asks for a new score.
 #
 # Runs here via workflow_dispatch, and is callable as a reusable workflow (workflow_call) so a
 # private repository owns the schedule: the run logs hold the text of private tickets, and the
 # runs of a private caller keep them private. That repository must be allowlisted with the mTLS
-# broker for its triggering events.
+# broker for its triggering events. Each job exposes a status output — empty on success, a
+# message on failure — so the caller can report the run to github-incident.
 name: AI Bug Scoring
 
 on:
   workflow_call:
+    outputs:
+      select_status:
+        description: "Empty when the selection job succeeded; its failure message otherwise"
+        value: ${{ jobs.select-bugs.outputs.status }}
+      score_status:
+        description: "Empty when the scoring job succeeded or did not run; its failure message otherwise"
+        value: ${{ jobs.score.outputs.status }}
     inputs:
       write:
-        description: "Write the board fields and post the comments (false = review mode: store the would-be comments in the run artifact instead)"
+        description: "Write the PM Score field and post the comments (false = review mode: store the would-be comments in the run artifact instead)"
         type: boolean
         required: false
         default: false
@@ -56,7 +64,7 @@ on:
   workflow_dispatch:
     inputs:
       write:
-        description: "Write the board fields and post the comments (false = review mode: store the would-be comments in the run artifact instead)"
+        description: "Write the PM Score field and post the comments (false = review mode: store the would-be comments in the run artifact instead)"
         type: boolean
         required: false
         default: false
@@ -103,6 +111,7 @@ jobs:
     outputs:
       bugs: ${{ steps.select.outputs.bugs }}
       has_bugs: ${{ steps.select.outputs.has_bugs }}
+      status: ${{ steps.status.outputs.status }}
     steps:
       - name: Select the bugs whose score field is empty
         id: select
@@ -112,12 +121,24 @@ jobs:
           # fromJSON: number-typed dispatch inputs materialize as strings
           max_bugs: ${{ fromJSON(inputs.max_bugs) }}
 
+      - name: Prepare the status message of the job
+        id: status
+        if: always()
+        run: |
+          STATUS=""
+          if [[ "${{ job.status }}" == "failure" ]]; then
+            STATUS="AI bug scoring: the selection job failed"
+          fi
+          echo "status=${STATUS}" >> "$GITHUB_OUTPUT"
+
   score:
     name: Score the bugs with Claude Code
     needs: select-bugs
     if: needs.select-bugs.outputs.has_bugs == 'true' && !inputs.dry_run
     runs-on: ${{ inputs.instance_type }}
     timeout-minutes: ${{ fromJSON(inputs.timeout_job) }}
+    outputs:
+      status: ${{ steps.status.outputs.status }}
     permissions:
       id-token: write
       contents: read
@@ -153,9 +174,10 @@ jobs:
         with:
           bugs: ${{ needs.select-bugs.outputs.bugs }}
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
-          project_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          field_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           model: ${{ inputs.model || 'opus' }}
           write: ${{ inputs.write }}
+          cortex_ref: ${{ inputs.cortex_ref || 'main' }}
 
       - name: Upload the scoring logs
         if: always()
@@ -164,3 +186,13 @@ jobs:
           name: ai-bug-scoring-logs
           path: ${{ runner.temp }}/bug-scoring-logs
           if-no-files-found: ignore
+
+      - name: Prepare the status message of the job
+        id: status
+        if: always()
+        run: |
+          STATUS=""
+          if [[ "${{ job.status }}" == "failure" ]]; then
+            STATUS="AI bug scoring: the scoring job failed"
+          fi
+          echo "status=${STATUS}" >> "$GITHUB_OUTPUT"

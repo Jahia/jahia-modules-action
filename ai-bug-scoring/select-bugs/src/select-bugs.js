@@ -1,80 +1,60 @@
-// Selects the bugs that wait for a PM score: on each board, the open issues that match the board's
-// filter and whose score field is still empty.
+// Selects the bugs that wait for a PM score: the open issues of type Bug, across every repository
+// the search scope covers, whose PM Score issue field is empty.
 //
 // The rule is deterministic: an empty field means "not scored yet". The scoring job writes the
 // field, or -1 for a security bug, so a bug is read once. A person who empties the field asks for
 // a new score.
-const ITEMS = `
-query($org: String!, $number: Int!, $filter: String!, $after: String) {
-  organization(login: $org) {
-    projectV2(number: $number) {
-      id
-      title
-      fields(first: 100) { nodes { ... on ProjectV2FieldCommon { id name dataType } } }
-      items(first: 100, after: $after, query: $filter) {
-        pageInfo { hasNextPage endCursor }
-        nodes {
-          id
-          content { __typename ... on Issue { number url state repository { nameWithOwner } } }
-        }
-      }
-    }
-  }
-}`
-
-async function readBoard(github, core, org, {board, filter, field}) {
-  const query = `${filter} no:"${field}"`
-  const items = []
-  let after = null
-  let project = null
-  do {
-    const data = await github.graphql(ITEMS, {org, number: board, filter: query, after})
-    project = data.organization.projectV2
-    items.push(...project.items.nodes)
-    after = project.items.pageInfo.hasNextPage ? project.items.pageInfo.endCursor : null
-  } while (after)
-
-  const scoreField = project.fields.nodes.find(f => f && f.name === field)
-  if (!scoreField || scoreField.dataType !== 'NUMBER') {
-    throw new Error(`Board ${board} (${project.title}) has no number field named "${field}"`)
-  }
-  const issues = items.filter(i => i.content?.__typename === 'Issue' && i.content.state === 'OPEN')
-  core.info(`Board ${board} (${project.title}): ${issues.length} open issue(s) match: ${query}`)
-  return issues.map(i => ({
-    repository: i.content.repository.nameWithOwner,
-    number: i.content.number,
-    url: i.content.url,
-    target: {board, project_id: project.id, item_id: i.id, field_id: scoreField.id, field},
-  }))
-}
-
-module.exports = async ({github, core}, {org, boards, maxBugs}) => {
-  // One entry per issue: a bug can wait on both boards, and one score fills both fields.
-  const byIssue = new Map()
-  for (const board of boards) {
-    for (const found of await readBoard(github, core, org, board)) {
-      const key = `${found.repository.replace('/', '-')}-${found.number}`
-      if (!byIssue.has(key)) {
-        byIssue.set(key, {key, repository: found.repository, number: found.number, url: found.url, targets: []})
-      }
-      byIssue.get(key).targets.push(found.target)
-    }
+module.exports = async ({github, core}, {org, searchScope, field, maxBugs}) => {
+  const fields = await github.paginate('GET /orgs/{org}/issue-fields', {org, per_page: 100})
+  const scoreField = fields.find(f => f.name === field)
+  if (!scoreField || scoreField.data_type !== 'number') {
+    throw new Error(`Organization ${org} has no number issue field named "${field}"`)
   }
 
-  const all = [...byIssue.values()]
-    .sort((a, b) => a.repository.localeCompare(b.repository) || a.number - b.number)
-  const selected = all.slice(0, maxBugs)
-  core.info(`${selected.length} of ${all.length} bug(s) selected (at most ${maxBugs} per run):`)
+  // The search cannot filter on an issue field, so the job reads the field of each found issue
+  // and stops once maxBugs bugs with an empty field are collected. Oldest first: the search
+  // returns at most 1000 issues, so the cap drops the newest bugs, which wait until the backlog
+  // in front of them is scored.
+  const query = `${searchScope} is:issue is:open type:Bug archived:false`
+  const found = await github.paginate(github.rest.search.issuesAndPullRequests, {
+    q: query, advanced_search: 'true', sort: 'created', order: 'asc', per_page: 100,
+  })
+  core.info(`${found.length} open bug(s) found by search: ${query}`)
+
+  const selected = []
+  let read = 0
+  for (const issue of found) {
+    if (issue.pull_request) continue
+    if (selected.length >= maxBugs) break
+    const [owner, repo] = issue.repository_url.split('/').slice(-2)
+    const values = await github.paginate(
+      'GET /repos/{owner}/{repo}/issues/{issue_number}/issue-field-values',
+      {owner, repo, issue_number: issue.number, per_page: 100})
+    read += 1
+    if (values.some(v => v.issue_field_id === scoreField.id)) continue
+    selected.push({
+      key: `${owner}-${repo}-${issue.number}`,
+      repository: `${owner}/${repo}`,
+      number: issue.number,
+      url: issue.html_url,
+      field_id: scoreField.id,
+    })
+  }
+
+  // Deterministic processing order for the agent job.
+  selected.sort((a, b) => a.repository.localeCompare(b.repository) || a.number - b.number)
+  core.info(`${selected.length} bug(s) selected (at most ${maxBugs} per run, ${read} field read(s)):`)
   for (const bug of selected) {
-    core.info(`  - ${bug.repository}#${bug.number} → ${bug.targets.map(t => t.field).join(', ')}`)
+    core.info(`  - ${bug.repository}#${bug.number}`)
   }
 
   await core.summary
     .addHeading('Bug selection', 3)
-    .addRaw(`\n${selected.length} of ${all.length} bug(s) wait for a PM score; at most ${maxBugs} per run.\n\n`)
+    .addRaw(`\nSearch: \`${query}\` — ${found.length} open bug(s); ${selected.length} selected ` +
+            `whose "${field}" field is empty (at most ${maxBugs} per run).\n\n`)
     .addTable([
-      [{data: 'Bug', header: true}, {data: 'Fields to fill', header: true}],
-      ...selected.map(b => [`${b.repository}#${b.number}`, b.targets.map(t => t.field).join(', ')]),
+      [{data: 'Bug', header: true}],
+      ...selected.map(b => [`${b.repository}#${b.number}`]),
     ])
     .write()
 

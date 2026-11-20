@@ -1,38 +1,22 @@
 name: Select bugs for the PM score
-description: Deterministically selects the open bugs whose PM score field is empty, on the triage board and on the delivery board
+description: Deterministically selects the open issues of type Bug, across the search scope, whose PM Score issue field is empty
 
 inputs:
   github_token:
-    description: 'Token able to read both organization projects'
+    description: 'Token able to search the issues of the scope and read their issue fields'
     required: true
   org:
-    description: 'Organization that owns both boards'
+    description: 'Organization that owns the issue field'
     required: false
     default: 'Jahia'
-  triage_board:
-    description: 'Number of the triage board'
+  search_scope:
+    description: 'GitHub issue-search scope qualifier, e.g. "org:Jahia" or "repo:Jahia/sandbox"'
     required: false
-    default: '13'
-  triage_filter:
-    description: 'Board filter of the bugs that wait in triage'
+    default: 'org:Jahia'
+  field:
+    description: 'Name of the organization number issue field that holds the score'
     required: false
-    default: 'status:"Triage needed" type:Bug'
-  triage_field:
-    description: 'Number field of the triage board that holds the score'
-    required: false
-    default: 'PM score (for triage)'
-  delivery_board:
-    description: 'Number of the delivery board'
-    required: false
-    default: '50'
-  delivery_filter:
-    description: 'Board filter of the bugs that wait for the PM decision'
-    required: false
-    default: 'priority:"For Decision" -status:Done type:Bug'
-  delivery_field:
-    description: 'Number field of the delivery board that holds the score'
-    required: false
-    default: 'PM score (bugs)'
+    default: 'PM Score'
   max_bugs:
     description: 'Most bugs scored in one run; the next run takes the rest'
     required: false
@@ -40,7 +24,7 @@ inputs:
 
 outputs:
   bugs:
-    description: 'JSON array of the selected bugs ({key, repository, number, url, targets: [{board, project_id, item_id, field_id, field}]})'
+    description: 'JSON array of the selected bugs ({key, repository, number, url, field_id}), sorted by repository and number'
     value: ${{ steps.select.outputs.result }}
   has_bugs:
     description: '"true" when at least one bug is selected'
@@ -54,12 +38,8 @@ runs:
       id: select
       env:
         ORG: ${{ inputs.org }}
-        TRIAGE_BOARD: ${{ inputs.triage_board }}
-        TRIAGE_FILTER: ${{ inputs.triage_filter }}
-        TRIAGE_FIELD: ${{ inputs.triage_field }}
-        DELIVERY_BOARD: ${{ inputs.delivery_board }}
-        DELIVERY_FILTER: ${{ inputs.delivery_filter }}
-        DELIVERY_FIELD: ${{ inputs.delivery_field }}
+        SEARCH_SCOPE: ${{ inputs.search_scope }}
+        FIELD: ${{ inputs.field }}
         MAX_BUGS: ${{ inputs.max_bugs }}
       with:
         github-token: ${{ inputs.github_token }}
@@ -69,9 +49,7 @@ runs:
           const env = process.env
           return await select({github, core}, {
             org: env.ORG,
-            boards: [
-              {board: Number(env.TRIAGE_BOARD), filter: env.TRIAGE_FILTER, field: env.TRIAGE_FIELD},
-              {board: Number(env.DELIVERY_BOARD), filter: env.DELIVERY_FILTER, field: env.DELIVERY_FIELD},
-            ],
+            searchScope: env.SEARCH_SCOPE,
+            field: env.FIELD,
             maxBugs: Number(env.MAX_BUGS),
           })

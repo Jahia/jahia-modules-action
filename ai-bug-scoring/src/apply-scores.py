@@ -1,19 +1,19 @@
-"""Score each selected bug from its factors file, then write the board fields and the comment.
+"""Score each selected bug from its factors file, then write the PM Score field and the comment.
 
 Usage: apply-scores.py <log-dir>
-Env:   WRITE          - "true": write the fields and post the comments; anything else: review
+Env:   WRITE          - "true": write the field and post the comments; anything else: review
                         mode, which writes nothing to GitHub and stores the would-be comments
                         under <log-dir>/comments/
        MARKER         - hidden marker that opens the score comment
        AGENT, RUN_URL - the footer of the comment
        DATE           - the date of the comment (YYYY-MM-DD)
        GH_TOKEN       - token that reads and posts the comments (read by gh)
-       PROJECT_TOKEN  - token that writes the board fields
+       FIELD_TOKEN    - token that writes the PM Score issue field
 
 A bug with no valid factors gets nothing, so its field stays empty and the next run tries it
-again. A security bug gets the value -1 on the board and no comment: a comment on a public
-repository would disclose it. The comment goes before the field, so a failed field write leaves
-the bug eligible, and the next run edits the same comment instead of posting a second one.
+again. A security bug gets the field value -1 and no comment: a comment on a public repository
+would disclose it. The comment goes before the field, so a failed field write leaves the bug
+eligible, and the next run edits the same comment instead of posting a second one.
 Writes <log-dir>/results.json and one row per bug to the job summary. Exits 0 unless a script
 error occurs: a skipped bug is a warning.
 """
@@ -25,13 +25,6 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import scoring  # noqa: E402
-
-SET_FIELD = '''
-mutation($project: ID!, $item: ID!, $field: ID!, $value: Float!) {
-  updateProjectV2ItemFieldValue(input: {projectId: $project, itemId: $item, fieldId: $field,
-                                        value: {number: $value}}) { projectV2Item { id } }
-}'''
-
 
 def gh(args, token, payload=None):
     """Run gh api with one token; a JSON payload goes through a file, never through argv."""
@@ -47,9 +40,9 @@ def gh(args, token, payload=None):
         os.unlink(fh.name)
 
 
-def set_field(target, value, token):
-    gh(['graphql', '-f', f'query={SET_FIELD}', '-f', f'project={target["project_id"]}',
-        '-f', f'item={target["item_id"]}', '-f', f'field={target["field_id"]}', '-F', f'value={value}'], token)
+def set_field(bug, value, token):
+    gh(['--method', 'POST', f'repos/{bug["repository"]}/issues/{bug["number"]}/issue-field-values'],
+       token, {'issue_field_values': [{'field_id': bug['field_id'], 'value': value}]})
 
 
 def upsert_comment(bug, body, marker, token):
@@ -76,7 +69,7 @@ def load(path):
 def evaluate(bug, log_dir, env):
     """Return the result of one bug: its value, its comment, or the reason it is skipped."""
     ref = f'{bug["repository"]}#{bug["number"]}'
-    result = {'ref': ref, 'key': bug['key'], 'url': bug['url'], 'fields': [t['field'] for t in bug['targets']]}
+    result = {'ref': ref, 'key': bug['key'], 'url': bug['url']}
     ticket = load(os.path.join(log_dir, 'tickets', f'{bug["key"]}.json'))
     factors = load(os.path.join(log_dir, 'factors', f'{bug["key"]}.json'))
     if isinstance(ticket, Exception):
@@ -97,11 +90,10 @@ def evaluate(bug, log_dir, env):
 
 
 def write(bug, result, env):
-    """Send the writes of one bug: the comment of a scored bug, then the field of each board."""
+    """Send the writes of one bug: the comment of a scored bug, then its PM Score field."""
     if result['outcome'] == 'scored':
         result['comment_action'] = upsert_comment(bug, result['comment'], env['MARKER'], env['GH_TOKEN'])
-    for target in bug['targets']:
-        set_field(target, result['value'], env['PROJECT_TOKEN'])
+    set_field(bug, result['value'], env['FIELD_TOKEN'])
     result['written'] = True
 
 
@@ -110,7 +102,7 @@ def summary_row(result):
     p1 = 'P1' if result.get('p1') else ''
     detail = result.get('reason') or ' / '.join(str(result[k]) for k in ('impact', 'reach') if k in result)
     outcome = result['outcome'] + (', written' if result.get('written') else '')
-    return f'| [{result["ref"]}]({result["url"]}) | {value} | {p1} | {detail} | {", ".join(result["fields"])} | {outcome} |'
+    return f'| [{result["ref"]}]({result["url"]}) | {value} | {p1} | {detail} | {outcome} |'
 
 
 def main():
@@ -146,8 +138,8 @@ def main():
     if summary:
         with open(summary, 'a', encoding='utf-8') as fh:
             fh.write(f'### PM scores ({"written" if writing else "review mode, nothing written"})\n\n')
-            fh.write('| Bug | Board value | | Impact / reach, or reason | Fields | Outcome |\n')
-            fh.write('|---|---|---|---|---|---|\n')
+            fh.write('| Bug | Field value | | Impact / reach, or reason | Outcome |\n')
+            fh.write('|---|---|---|---|---|\n')
             fh.write(''.join(summary_row(r) + '\n' for r in results))
 
 

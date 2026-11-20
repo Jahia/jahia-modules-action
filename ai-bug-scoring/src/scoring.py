@@ -17,8 +17,8 @@ P1 = {'data', 'unstable', 'siteDown'}
 REACH = {'high': 15, 'medium': 5, 'low': 0}
 WORKAROUND = {'none': 8, 'painful': 4, 'unknown': 4, 'easy': 0}
 REGRESSION, PER_CUSTOMER, MAX_CUSTOMERS, CLEAR, CLOUD, OLDER = 5, 5, 3, 6, 3, -5
-# The board field holds one number, and A2 sorts every P1 case first: the field adds this to a P1
-# score, so sorting the board by the field gives the A2 order.
+# The score field holds one number, and A2 sorts every P1 case first: the field adds this to a P1
+# score, so sorting the bugs by the field gives the A2 order.
 P1_OFFSET = 100
 # The field value of a security bug: out of scope, and never read again.
 SECURITY_VALUE = -1
@@ -76,7 +76,7 @@ def score(factors, labels):
 
 
 def field_value(points, p1):
-    """The number written to the board field."""
+    """The number written to the score field."""
     return points + P1_OFFSET if p1 else points
 
 
@@ -90,12 +90,12 @@ def render_comment(marker, points, rows, p1, factors, agent, run_url, date):
         '',
     ]
     if p1:
-        lines += [f'**P1 case:** it goes before every other bug. The board value is {P1_OFFSET} + {points} points.', '']
+        lines += [f'**P1 case:** it goes before every other bug. The field value is {P1_OFFSET} + {points} points.', '']
     lines += ['| Factor | Value | Points |', '|---|---|---|']
     lines += [f'| {name} | {text} | {pts:+d} |' if pts else f'| {name} | {text} | 0 |' for name, text, pts in rows]
     lines += [f'| **Total** | | **{points}** |', '']
     lines += [f'**Why:** {factors["why"]}', '']
     if factors['confidence'] == 'low':
         lines += ['The agent was not sure about the impact: please check it.', '']
-    lines += [f'<sub>Scored by {agent} · [run]({run_url}). A wrong factor? Fix the board value by hand: the job never overwrites a value.</sub>']
+    lines += [f'<sub>Scored by {agent} · [run]({run_url}). A wrong factor? Fix the field value by hand: the job never overwrites a value.</sub>']
     return '\n'.join(lines) + '\n'
