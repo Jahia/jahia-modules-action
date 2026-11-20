@@ -40,7 +40,18 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    - name: Fetch the tickets and prepare the prompts
+    # A self-hosted runner guarantees no `node` on PATH — this step's own Node is the one the
+    # bundled scripts (dist/*) run on.
+    - name: Resolve the Node runtime
+      id: node
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      with:
+        script: core.setOutput('bin', process.execPath)
+
+    # Fetches the rubric (from the jahia-pm-bug-scoring skill of Jahia/cortex) and the tickets
+    # into the log directory, and writes one prompt per batch: the agent then needs no network
+    # and no GitHub token.
+    - name: Fetch the rubric and the tickets, prepare the prompts
       id: prep
       shell: bash
       env:
@@ -50,23 +61,7 @@ runs:
         BATCH_SIZE: ${{ inputs.batch_size }}
         CORTEX_REF: ${{ inputs.cortex_ref }}
       run: |
-        LOG_DIR="$RUNNER_TEMP/bug-scoring-logs"
-        mkdir -p "$LOG_DIR"
-        # The rubric lives in the jahia-pm-bug-scoring skill of Jahia/cortex, and the agent reads
-        # only under LOG_DIR, so the rubric is fetched there.
-        gh api -H "Accept: application/vnd.github.raw" \
-          "repos/Jahia/cortex/contents/.claude/skills/jahia-pm-bug-scoring/assets/rubric.md?ref=$CORTEX_REF" \
-          > "$LOG_DIR/rubric.md"
-        KEYS=$(python3 "$GITHUB_ACTION_PATH/src/fetch-tickets.py" "$LOG_DIR")
-        BATCHES=0
-        if [ -n "$KEYS" ]; then
-          # shellcheck disable=SC2086 # one argument per key
-          BATCHES=$(python3 "$GITHUB_ACTION_PATH/src/build-prompts.py" "$GITHUB_ACTION_PATH/prompt.md" \
-            "$LOG_DIR/rubric.md" "$LOG_DIR" "$BATCH_SIZE" $KEYS)
-        fi
-        echo "Fetched: ${KEYS:-none}; $BATCHES agent run(s)"
-        echo "logs_dir=$LOG_DIR" >> "$GITHUB_OUTPUT"
-        echo "batches=$BATCHES" >> "$GITHUB_OUTPUT"
+        "${{ steps.node.outputs.bin }}" "$GITHUB_ACTION_PATH/dist/prepare/index.js"
 
     - name: Record the factors with the agent
       shell: bash
@@ -97,7 +92,7 @@ runs:
             --output-format stream-json \
             --verbose $MODEL_FLAG ${CORTEX_MASK_MOD_DIR:+--plugin-dir "$CORTEX_MASK_MOD_DIR"} \
             > "$STREAM_FILE" 2> "$LOG_DIR/batch-$n.stderr.log" || EXIT_CODE=$?
-          python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "batch $n" "$EXIT_CODE"
+          "${{ steps.node.outputs.bin }}" "$GITHUB_ACTION_PATH/dist/summarize-run/index.js" "$STREAM_FILE" "batch $n" "$EXIT_CODE"
           if [ "$EXIT_CODE" -ne 0 ]; then
             echo "::warning::Agent run $n exited with code $EXIT_CODE — its bugs with no factors stay unscored and the next run tries them again"
           fi
@@ -125,7 +120,7 @@ runs:
         esac
         [ -n "$MODEL_LABEL" ] && AGENT="$AGENT · model: $MODEL_LABEL"
         export AGENT
-        DATE=$(date -u +%Y-%m-%d) python3 "$GITHUB_ACTION_PATH/src/apply-scores.py" "$LOG_DIR"
+        "${{ steps.node.outputs.bin }}" "$GITHUB_ACTION_PATH/dist/apply-scores/index.js"
 
     - name: Publish the stored comments to the job summary
       if: always() && inputs.dry_run == 'true'

@@ -1,4 +1,5 @@
-# The tests of the scripts of the action ai-bug-scoring, on each pull request that changes it.
+# The checks of the ai-bug-scoring package, on each pull request that changes it: build, format,
+# lint, tests, and the committed dist bundles matching the sources.
 name: Test ai-bug-scoring
 
 on:
@@ -13,10 +14,21 @@ permissions:
 jobs:
   unittest:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-bug-scoring
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
           persist-credentials: false
-      - name: Run the tests
-        working-directory: ai-bug-scoring/tests
-        run: python3 -m unittest discover -s . -v
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ai-bug-scoring/package-lock.json
+      - name: Install the dependencies
+        run: npm ci
+      - name: Build, check the format, lint, test and package
+        run: npm run all
+      - name: The committed bundles match the sources
+        run: git diff --exit-code

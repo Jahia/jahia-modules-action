@@ -23,7 +23,7 @@ ticket is fresh, and the oldest bugs wait until the backlog in front of them is 
 
 The agent records the factors with the rubric of the `jahia-pm-bug-scoring` skill of
 [Jahia/cortex](https://github.com/Jahia/cortex), fetched at the `cortex_ref` input.
-[`src/scoring.py`](src/scoring.py) adds the points:
+[`src/score`](src/score) adds the points:
 
 | Factor | Points |
 |---|---|
@@ -111,12 +111,21 @@ Runs the agent, then scores and writes. Requires [`ai-agent-setup`](../ai-agent-
 - **Dry run** (`dry_run: true`): the agent runs but nothing is written. Each would-be comment is
   stored under `comments/` in the `ai-bug-scoring-logs` artifact and shown in the job summary, with
   a table of every bug and its field value. The logs also go to the Jahia servers, for 30 days.
-- **Development iteration**: `gh workflow run ai-bug-scoring.yml --ref <branch> -f max_bugs=5`.
+- **Development iteration**: `gh workflow run ai-bug-scoring.yml --ref <branch> -f max_bugs=5 -f dry_run=true`.
   Dispatching a branch requires the workflow file to exist on `main` too.
+
+## Development
+
+The scripts are a TypeScript package in the style of [`ai-issue-agent`](../ai-issue-agent):
+functional, arrow functions, one function per file under [`src/`](src), tests under
+[`__tests__/`](__tests__). `npm run all` builds, checks the format, lints, tests and rebuilds the
+committed `dist/` bundles, which the runtime executes; CI fails when the bundles do not match the
+sources, so run it before pushing.
 
 ## Requirements
 
-- Self-hosted Ubuntu runner with `gh` and `python3`.
+- Self-hosted Ubuntu runner. The scripts run on the Node of the GitHub Actions runtime: no
+  `python3`, and no `gh` beyond what `ai-agent-setup` needs.
 - Org secrets and variables: `GH_ISSUES_PRS_CHORES` (searches the issues, reads and writes the PM
   Score issue field), `AI_AGENT_GH_ISSUES_PRS_CHORES` (reads the issues, fetches the rubric and
   posts the comments),
