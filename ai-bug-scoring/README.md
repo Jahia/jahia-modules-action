@@ -118,7 +118,7 @@ sources, so run it before pushing.
   Score issue field), `AI_AGENT_GH_ISSUES_PRS_CHORES` (reads the issues and
   posts the comments), `BASTION_SSH_PRIVATE_KEY_JAHIACI` (the 30-day log upload to the Jahia
   servers),
-  `AI_LITELLM_AUTH_TOKEN_USAGE_BUG_SCORING` (the gateway key of this duty), `AI_LITELLM_BASE_URL`,
+  `AI_LITELLM_AUTH_TOKEN` (the shared gateway key), `AI_LITELLM_BASE_URL`,
   `AI_LITELLM_ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL`, `CORTEX_TELEMETRY_TOKEN`, and the mTLS
   bastion surface (`INFRAJAHIA_MTLS_CA_URL`, `INFRAJAHIA_MTLS_BASTION`,
   `INFRAJAHIA_MTLS_STEP_ROOT`, `INFRAJAHIA_MTLS_SERVER_CA`).
