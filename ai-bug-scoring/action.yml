@@ -15,8 +15,8 @@ inputs:
     description: 'Model the agent runs on, passed to the Claude Code CLI as --model: an alias the gateway maps (`opus`, `sonnet`, `haiku`) or a model name it serves verbatim. Empty means no --model at all. The factors are judgment calls that the rubric was calibrated on with an Opus model, so the default is opus.'
     required: false
     default: 'opus'
-  write:
-    description: 'true: write the field and post the comments; false: review mode — store the would-be comments under logs_dir/comments and write nothing'
+  dry_run:
+    description: 'true: run the agent but write nothing — store the would-be comments under logs_dir/comments instead; false: write the field and post the comments'
     required: false
     default: 'false'
   cortex_ref:
@@ -107,7 +107,7 @@ runs:
       shell: bash
       env:
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
-        WRITE: ${{ inputs.write }}
+        DRY_RUN: ${{ inputs.dry_run }}
         MARKER: ${{ inputs.marker }}
         AGENT_MODEL: ${{ inputs.model }}
         GH_TOKEN: ${{ inputs.github_token }}
@@ -128,13 +128,13 @@ runs:
         DATE=$(date -u +%Y-%m-%d) python3 "$GITHUB_ACTION_PATH/src/apply-scores.py" "$LOG_DIR"
 
     - name: Publish the stored comments to the job summary
-      if: always() && inputs.write != 'true'
+      if: always() && inputs.dry_run == 'true'
       shell: bash
       env:
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
       run: |
         {
-          echo "### Review mode — comments that WOULD have been posted"
+          echo "### Dry run — comments that WOULD have been posted"
           echo ""
           for f in "$LOG_DIR"/comments/*.comment.md; do
             [ -e "$f" ] || { echo "_No comment files were produced._"; break; }

@@ -1,4 +1,4 @@
-"""apply-scores.py: what review mode stores, and what write mode sends, in which order."""
+"""apply-scores.py: what a dry run stores, and what write mode sends, in which order."""
 import json
 import os
 import shutil
@@ -64,7 +64,7 @@ class ApplyScoresTest(unittest.TestCase):
         with open(os.path.join(self.dir, name), 'w', encoding='utf-8') as fh:
             json.dump(data, fh)
 
-    def run_apply(self, write):
+    def run_apply(self, dry_run):
         bin_dir = os.path.join(self.dir, 'bin')
         os.makedirs(bin_dir, exist_ok=True)
         fake = os.path.join(bin_dir, 'gh')
@@ -73,7 +73,7 @@ class ApplyScoresTest(unittest.TestCase):
         os.chmod(fake, os.stat(fake).st_mode | stat.S_IEXEC)
         self.log = os.path.join(self.dir, 'gh.log')
         env = dict(os.environ, PATH=bin_dir + os.pathsep + os.environ['PATH'], FAKE_GH_LOG=self.log,
-                   WRITE='true' if write else 'false', MARKER=MARKER, GH_TOKEN='comment-credential',
+                   DRY_RUN='true' if dry_run else 'false', MARKER=MARKER, GH_TOKEN='comment-credential',
                    FIELD_TOKEN='field-credential', DATE='2026-11-20', RUN_URL='https://run')
         env.pop('GITHUB_STEP_SUMMARY', None)
         subprocess.run([sys.executable, os.path.join(SRC, 'apply-scores.py'), self.dir], env=env, check=True,
@@ -87,8 +87,8 @@ class ApplyScoresTest(unittest.TestCase):
         with open(self.log, encoding='utf-8') as fh:
             return [json.loads(line) for line in fh]
 
-    def test_review_mode_stores_the_comment_and_sends_nothing(self):
-        results = self.run_apply(write=False)
+    def test_dry_run_stores_the_comment_and_sends_nothing(self):
+        results = self.run_apply(dry_run=True)
         self.assertEqual(results['Jahia/example#1']['outcome'], 'scored')
         self.assertEqual(results['Jahia/example#1']['value'], 55)
         self.assertEqual(results['Jahia/example#2']['outcome'], 'security')
@@ -98,7 +98,7 @@ class ApplyScoresTest(unittest.TestCase):
         self.assertEqual(self.calls(), [])
 
     def test_write_mode_edits_the_comment_then_sets_the_field(self):
-        results = self.run_apply(write=True)
+        results = self.run_apply(dry_run=False)
         self.assertTrue(results['Jahia/example#1']['written'])
         self.assertEqual(results['Jahia/example#1']['comment_action'], 'edited')
         # The bugs go in order, so the first three calls are those of bug 1.
@@ -114,7 +114,7 @@ class ApplyScoresTest(unittest.TestCase):
         self.assertEqual(first[2]['credential'], 'field-credential')
 
     def test_write_mode_gives_a_security_bug_minus_one_and_no_comment(self):
-        self.run_apply(write=True)
+        self.run_apply(dry_run=False)
         security = [c for c in self.calls() if any('issues/2' in a for a in c['args'])]
         self.assertEqual(len(security), 1)
         self.assertEqual(security[0]['args'][:3],
@@ -122,7 +122,7 @@ class ApplyScoresTest(unittest.TestCase):
         self.assertEqual(security[0]['payload'], {'issue_field_values': [{'field_id': FIELD_ID, 'value': -1}]})
 
     def test_write_mode_sends_nothing_for_a_bug_with_no_factors(self):
-        results = self.run_apply(write=True)
+        results = self.run_apply(dry_run=False)
         self.assertNotIn('written', results['Jahia/example#3'])
         self.assertFalse([c for c in self.calls() if any('issues/3' in a for a in c['args'])])
 

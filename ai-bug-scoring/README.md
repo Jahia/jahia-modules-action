@@ -16,7 +16,8 @@ is empty. An empty field means "not scored yet", so each bug is scored once. To 
 empty its field. Each run scores at most `max_bugs` bugs, and the next run takes the rest.
 
 The search cannot filter on an issue field, so the selection reads the field of each found issue,
-oldest first, and stops once `max_bugs` bugs are collected.
+most recent first, and stops once `max_bugs` bugs are collected: a new bug is scored while its
+ticket is fresh, and the oldest bugs wait until the backlog in front of them is scored.
 
 ## System A2
 
@@ -90,7 +91,7 @@ Runs the agent, then scores and writes. Requires [`ai-agent-setup`](../ai-agent-
 | `github_token` | — | Token that reads the issues, fetches the rubric from Jahia/cortex and posts the comments |
 | `field_token` | — | Token that writes the PM Score issue field (push access to every selected repository) |
 | `model` | `opus` | Claude Code `--model` value |
-| `write` | `false` | `true` writes the field and posts the comments; `false` is review mode |
+| `dry_run` | `false` | `true` runs the agent but writes nothing; `false` writes the field and posts the comments |
 | `marker` | `<!-- ai-bug-scoring -->` | Hidden marker of the comment |
 | `batch_size` | `10` | Tickets per agent run; each run starts with a fresh context |
 | `cortex_ref` | `main` | Git ref of Jahia/cortex that holds the rubric |
@@ -107,9 +108,9 @@ Runs the agent, then scores and writes. Requires [`ai-agent-setup`](../ai-agent-
   repository. Each job exposes a `status` output — empty on success, a message on failure — and
   the workflow exposes them as `select_status` and `score_status`, so the caller can report the
   run to github-incident.
-- **Review mode** (`write: false`, the default): nothing is written. Each would-be comment is stored
-  under `comments/` in the `ai-bug-scoring-logs` artifact and shown in the job summary, with a table
-  of every bug and its field value.
+- **Dry run** (`dry_run: true`): the agent runs but nothing is written. Each would-be comment is
+  stored under `comments/` in the `ai-bug-scoring-logs` artifact and shown in the job summary, with
+  a table of every bug and its field value. The logs also go to the Jahia servers, for 30 days.
 - **Development iteration**: `gh workflow run ai-bug-scoring.yml --ref <branch> -f max_bugs=5`.
   Dispatching a branch requires the workflow file to exist on `main` too.
 

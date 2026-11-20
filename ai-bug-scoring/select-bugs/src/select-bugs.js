@@ -12,12 +12,12 @@ module.exports = async ({github, core}, {org, searchScope, field, maxBugs}) => {
   }
 
   // The search cannot filter on an issue field, so the job reads the field of each found issue
-  // and stops once maxBugs bugs with an empty field are collected. Oldest first: the search
-  // returns at most 1000 issues, so the cap drops the newest bugs, which wait until the backlog
-  // in front of them is scored.
+  // and stops once maxBugs bugs with an empty field are collected. Most recent first, so a new
+  // bug is scored while its ticket is fresh; the oldest bugs wait until the backlog in front of
+  // them is scored, and the 1000-result cap of the search drops them first.
   const query = `${searchScope} is:issue is:open type:Bug archived:false`
   const found = await github.paginate(github.rest.search.issuesAndPullRequests, {
-    q: query, advanced_search: 'true', sort: 'created', order: 'asc', per_page: 100,
+    q: query, advanced_search: 'true', sort: 'created', order: 'desc', per_page: 100,
   })
   core.info(`${found.length} open bug(s) found by search: ${query}`)
 

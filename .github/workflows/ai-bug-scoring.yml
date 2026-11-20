@@ -21,13 +21,8 @@ on:
         description: "Empty when the scoring job succeeded or did not run; its failure message otherwise"
         value: ${{ jobs.score.outputs.status }}
     inputs:
-      write:
-        description: "Write the PM Score field and post the comments (false = review mode: store the would-be comments in the run artifact instead)"
-        type: boolean
-        required: false
-        default: false
       dry_run:
-        description: "Only run the selection; do not start the agent"
+        description: "Run the agent but write nothing: store the would-be comments in the run artifact instead, for testing"
         type: boolean
         required: false
         default: false
@@ -63,13 +58,8 @@ on:
         default: "stable"
   workflow_dispatch:
     inputs:
-      write:
-        description: "Write the PM Score field and post the comments (false = review mode: store the would-be comments in the run artifact instead)"
-        type: boolean
-        required: false
-        default: false
       dry_run:
-        description: "Only run the selection; do not start the agent"
+        description: "Run the agent but write nothing: store the would-be comments in the run artifact instead, for testing"
         type: boolean
         required: false
         default: false
@@ -134,7 +124,7 @@ jobs:
   score:
     name: Score the bugs with Claude Code
     needs: select-bugs
-    if: needs.select-bugs.outputs.has_bugs == 'true' && !inputs.dry_run
+    if: needs.select-bugs.outputs.has_bugs == 'true'
     runs-on: ${{ inputs.instance_type }}
     timeout-minutes: ${{ fromJSON(inputs.timeout_job) }}
     outputs:
@@ -176,16 +166,28 @@ jobs:
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           field_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
           model: ${{ inputs.model || 'opus' }}
-          write: ${{ inputs.write }}
+          dry_run: ${{ inputs.dry_run }}
           cortex_ref: ${{ inputs.cortex_ref || 'main' }}
 
-      - name: Upload the scoring logs
+      # The logs hold the tickets, the prompts, the agent streams, the factors and results.json.
+      - name: Upload the scoring logs to GitHub
         if: always()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: jahia/jahia-modules-action/upload-artifact@v2
         with:
+          destination: "github"
           name: ai-bug-scoring-logs
           path: ${{ runner.temp }}/bug-scoring-logs
-          if-no-files-found: ignore
+          retention-days: 2
+
+      - name: Upload the scoring logs to Jahia servers
+        if: always()
+        uses: jahia/jahia-modules-action/upload-artifact@v2
+        with:
+          destination: "jahia"
+          name: ai-bug-scoring-${{ github.run_number }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/bug-scoring-logs
+          retention-days: 30
+          ssh-key: ${{ secrets.BASTION_SSH_PRIVATE_KEY_JAHIACI }}
 
       - name: Prepare the status message of the job
         id: status

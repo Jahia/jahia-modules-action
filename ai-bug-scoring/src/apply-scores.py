@@ -1,9 +1,9 @@
 """Score each selected bug from its factors file, then write the PM Score field and the comment.
 
 Usage: apply-scores.py <log-dir>
-Env:   WRITE          - "true": write the field and post the comments; anything else: review
-                        mode, which writes nothing to GitHub and stores the would-be comments
-                        under <log-dir>/comments/
+Env:   DRY_RUN        - "true": write nothing to GitHub and store the would-be comments under
+                        <log-dir>/comments/; anything else: write the field and post the
+                        comments
        MARKER         - hidden marker that opens the score comment
        AGENT, RUN_URL - the footer of the comment
        DATE           - the date of the comment (YYYY-MM-DD)
@@ -108,7 +108,7 @@ def summary_row(result):
 def main():
     log_dir = sys.argv[1]
     env = os.environ
-    writing = env.get('WRITE') == 'true'
+    writing = env.get('DRY_RUN') != 'true'
     with open(os.path.join(log_dir, 'selected-bugs.json'), encoding='utf-8') as fh:
         bugs = json.load(fh)
     comments_dir = os.path.join(log_dir, 'comments')
@@ -137,7 +137,7 @@ def main():
     summary = env.get('GITHUB_STEP_SUMMARY')
     if summary:
         with open(summary, 'a', encoding='utf-8') as fh:
-            fh.write(f'### PM scores ({"written" if writing else "review mode, nothing written"})\n\n')
+            fh.write(f'### PM scores ({"written" if writing else "dry run, nothing written"})\n\n')
             fh.write('| Bug | Field value | | Impact / reach, or reason | Outcome |\n')
             fh.write('|---|---|---|---|---|\n')
             fh.write(''.join(summary_row(r) + '\n' for r in results))
