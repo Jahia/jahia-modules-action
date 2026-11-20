@@ -1,0 +1,166 @@
+# This workflow gives a PM score to each open bug that waits on the triage board (Status "Triage
+# needed") or on the delivery board (Priority "For Decision"), with system A2: a deterministic job
+# selects the bugs whose score field is empty, a Claude Code agent records the factors of each one,
+# and a script adds the points, writes the board fields and posts a breakdown comment. It never
+# changes code, labels or any other field.
+#
+# Runs here via workflow_dispatch, and is callable as a reusable workflow (workflow_call) so a
+# private repository owns the schedule: the run logs hold the text of private tickets, and the
+# runs of a private caller keep them private. That repository must be allowlisted with the mTLS
+# broker for its triggering events.
+name: AI Bug Scoring
+
+on:
+  workflow_call:
+    inputs:
+      write:
+        description: "Write the board fields and post the comments (false = review mode: store the would-be comments in the run artifact instead)"
+        type: boolean
+        required: false
+        default: false
+      dry_run:
+        description: "Only run the selection; do not start the agent"
+        type: boolean
+        required: false
+        default: false
+      max_bugs:
+        description: "Most bugs scored in one run; the next run takes the rest"
+        type: number
+        required: false
+        default: 30
+      instance_type:
+        description: "Type of instances to run the agent job on"
+        type: string
+        required: false
+        default: "self-hosted"
+      timeout_job:
+        description: "Timeout (in minutes) of the agent job"
+        type: number
+        required: false
+        default: 60
+      model:
+        description: "Model the agent runs on (an `opus`/`sonnet`/`haiku` alias the LiteLLM gateway maps, or a model name it serves verbatim)"
+        type: string
+        required: false
+        default: "opus"
+      cortex_ref:
+        description: "Git ref of the cortex harness to use"
+        type: string
+        required: false
+        default: "main"
+      claude_code_version:
+        description: "Claude Code CLI version to install"
+        type: string
+        required: false
+        default: "stable"
+  workflow_dispatch:
+    inputs:
+      write:
+        description: "Write the board fields and post the comments (false = review mode: store the would-be comments in the run artifact instead)"
+        type: boolean
+        required: false
+        default: false
+      dry_run:
+        description: "Only run the selection; do not start the agent"
+        type: boolean
+        required: false
+        default: false
+      max_bugs:
+        description: "Most bugs scored in one run; the next run takes the rest"
+        type: number
+        required: false
+        default: 30
+      instance_type:
+        description: "Type of instances to run the agent job on"
+        type: string
+        required: false
+        default: "self-hosted"
+      timeout_job:
+        description: "Timeout (in minutes) of the agent job"
+        type: number
+        required: false
+        default: 60
+      model:
+        description: "Model the agent runs on (an `opus`/`sonnet`/`haiku` alias the LiteLLM gateway maps, or a model name it serves verbatim)"
+        type: string
+        required: false
+        default: "opus"
+      cortex_ref:
+        description: "Git ref of the cortex harness to use"
+        type: string
+        required: false
+        default: "main"
+      claude_code_version:
+        description: "Claude Code CLI version to install"
+        type: string
+        required: false
+        default: "stable"
+
+jobs:
+  select-bugs:
+    name: Select the bugs to score
+    runs-on: ubuntu-slim
+    outputs:
+      bugs: ${{ steps.select.outputs.bugs }}
+      has_bugs: ${{ steps.select.outputs.has_bugs }}
+    steps:
+      - name: Select the bugs whose score field is empty
+        id: select
+        uses: jahia/jahia-modules-action/ai-bug-scoring/select-bugs@v2
+        with:
+          github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          # fromJSON: number-typed dispatch inputs materialize as strings
+          max_bugs: ${{ fromJSON(inputs.max_bugs) }}
+
+  score:
+    name: Score the bugs with Claude Code
+    needs: select-bugs
+    if: needs.select-bugs.outputs.has_bugs == 'true' && !inputs.dry_run
+    runs-on: ${{ inputs.instance_type }}
+    timeout-minutes: ${{ fromJSON(inputs.timeout_job) }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Open the mTLS tunnel to the LiteLLM gateway
+        uses: jahia/jahia-modules-action/mtls-tunnel@v2
+        with:
+          hosts: litellm-prod.int.jahia.com
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
+          server-name: ci-egress.jahia.com
+          audience: jahia-ci-egress
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
+          canary-url: ${{ vars.AI_LITELLM_BASE_URL }}/health/liveliness
+
+      - name: Set up Claude Code and the cortex harness
+        id: setup
+        uses: jahia/jahia-modules-action/ai-agent-setup@v2
+        with:
+          claude_code_version: ${{ inputs.claude_code_version || 'stable' }}
+          anthropic_base_url: ${{ vars.AI_LITELLM_BASE_URL }}
+          anthropic_auth_token: ${{ secrets.AI_LITELLM_AUTH_TOKEN_USAGE_BUG_SCORING }}
+          default_opus_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_OPUS_MODEL }}
+          default_sonnet_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_SONNET_MODEL }}
+          default_haiku_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_HAIKU_MODEL }}
+          cortex_ref: ${{ inputs.cortex_ref || 'main' }}
+          cortex_telemetry_token: ${{ secrets.CORTEX_TELEMETRY_TOKEN }}
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+
+      - name: Score the bugs
+        uses: jahia/jahia-modules-action/ai-bug-scoring@v2
+        with:
+          bugs: ${{ needs.select-bugs.outputs.bugs }}
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          project_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
+          model: ${{ inputs.model || 'opus' }}
+          write: ${{ inputs.write }}
+
+      - name: Upload the scoring logs
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: ai-bug-scoring-logs
+          path: ${{ runner.temp }}/bug-scoring-logs
+          if-no-files-found: ignore

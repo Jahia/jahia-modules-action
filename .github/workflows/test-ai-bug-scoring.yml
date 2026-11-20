@@ -1,0 +1,22 @@
+# The tests of the scripts of the action ai-bug-scoring, on each pull request that changes it.
+name: Test ai-bug-scoring
+
+on:
+  pull_request:
+    paths:
+      - "ai-bug-scoring/**"
+      - ".github/workflows/test-ai-bug-scoring.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+        with:
+          persist-credentials: false
+      - name: Run the tests
+        working-directory: ai-bug-scoring/tests
+        run: python3 -m unittest discover -s . -v

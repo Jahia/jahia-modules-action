@@ -1,0 +1,139 @@
+name: AI Bug Scoring
+description: Runs a Claude Code agent to record the PM score factors of each selected bug, then scores them with system A2 and writes the board fields and a breakdown comment
+
+inputs:
+  bugs:
+    description: 'JSON array of bugs produced by the select-bugs action'
+    required: true
+  github_token:
+    description: 'Token that reads the issues and posts the score comments'
+    required: true
+  project_token:
+    description: 'Token that writes the score fields of both organization projects'
+    required: true
+  model:
+    description: 'Model the agent runs on, passed to the Claude Code CLI as --model: an alias the gateway maps (`opus`, `sonnet`, `haiku`) or a model name it serves verbatim. Empty means no --model at all. The factors are judgment calls that the rubric was calibrated on with an Opus model, so the default is opus.'
+    required: false
+    default: 'opus'
+  write:
+    description: 'true: write the board fields and post the comments; false: review mode — store the would-be comments under logs_dir/comments and write nothing'
+    required: false
+    default: 'false'
+  marker:
+    description: 'Hidden marker that opens every score comment'
+    required: false
+    default: '<!-- ai-bug-scoring -->'
+  batch_size:
+    description: 'Tickets per agent run; each run starts with a fresh context'
+    required: false
+    default: '10'
+
+outputs:
+  logs_dir:
+    description: 'Directory holding the run logs (tickets, prompts, agent streams, factors, results) — upload it as an artifact'
+    value: ${{ steps.prep.outputs.logs_dir }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Fetch the tickets and prepare the prompts
+      id: prep
+      shell: bash
+      env:
+        BUGS_JSON: ${{ inputs.bugs }}
+        MARKER: ${{ inputs.marker }}
+        GH_TOKEN: ${{ inputs.github_token }}
+        BATCH_SIZE: ${{ inputs.batch_size }}
+      run: |
+        LOG_DIR="$RUNNER_TEMP/bug-scoring-logs"
+        mkdir -p "$LOG_DIR"
+        # The agent reads only under LOG_DIR, so the rubric is copied there.
+        cp "$GITHUB_ACTION_PATH/rubric.md" "$LOG_DIR/rubric.md"
+        KEYS=$(python3 "$GITHUB_ACTION_PATH/src/fetch-tickets.py" "$LOG_DIR")
+        BATCHES=0
+        if [ -n "$KEYS" ]; then
+          # shellcheck disable=SC2086 # one argument per key
+          BATCHES=$(python3 "$GITHUB_ACTION_PATH/src/build-prompts.py" "$GITHUB_ACTION_PATH/prompt.md" \
+            "$LOG_DIR/rubric.md" "$LOG_DIR" "$BATCH_SIZE" $KEYS)
+        fi
+        echo "Fetched: ${KEYS:-none}; $BATCHES agent run(s)"
+        echo "logs_dir=$LOG_DIR" >> "$GITHUB_OUTPUT"
+        echo "batches=$BATCHES" >> "$GITHUB_OUTPUT"
+
+    - name: Record the factors with the agent
+      shell: bash
+      working-directory: ${{ steps.prep.outputs.logs_dir }}
+      env:
+        AGENT_MODEL: ${{ inputs.model }}
+        LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
+        BATCHES: ${{ steps.prep.outputs.batches }}
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        # The agent reads under LOG_DIR and writes only the factors files: no shell, no network,
+        # no GitHub token. A leading // makes a path rule absolute.
+        ALLOWED_TOOLS="Read(/$LOG_DIR/**),Edit(/$LOG_DIR/factors/**)"
+        MODEL_FLAG=""
+        [ -n "$AGENT_MODEL" ] && MODEL_FLAG="--model $AGENT_MODEL"
+        {
+          echo "### Agent runs"
+          echo ""
+          echo "| Scope | Outcome | Turns | Duration | Cost (USD) | Exit code |"
+          echo "|---|---|---|---|---|---|"
+        } >> "$GITHUB_STEP_SUMMARY"
+        for n in $(seq 1 "$BATCHES"); do
+          STREAM_FILE="$LOG_DIR/batch-$n.stream.jsonl"
+          EXIT_CODE=0
+          claude -p "$(cat "$LOG_DIR/batch-$n.prompt.md")" \
+            --allowedTools "$ALLOWED_TOOLS" \
+            --permission-mode dontAsk \
+            --output-format stream-json \
+            --verbose $MODEL_FLAG ${CORTEX_MASK_MOD_DIR:+--plugin-dir "$CORTEX_MASK_MOD_DIR"} \
+            > "$STREAM_FILE" 2> "$LOG_DIR/batch-$n.stderr.log" || EXIT_CODE=$?
+          python3 "$GITHUB_ACTION_PATH/src/summarize-run.py" "$STREAM_FILE" "batch $n" "$EXIT_CODE"
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            echo "::warning::Agent run $n exited with code $EXIT_CODE — its bugs with no factors stay unscored and the next run tries them again"
+          fi
+        done
+
+    - name: Score the bugs and write the results
+      shell: bash
+      env:
+        LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
+        WRITE: ${{ inputs.write }}
+        MARKER: ${{ inputs.marker }}
+        AGENT_MODEL: ${{ inputs.model }}
+        GH_TOKEN: ${{ inputs.github_token }}
+        PROJECT_TOKEN: ${{ inputs.project_token }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        AGENT="Claude Code $(claude --version 2>/dev/null | head -1 || echo '(version unknown)')"
+        # Name the model that answers, not the alias asked for.
+        case "$AGENT_MODEL" in
+          opus)   MODEL_LABEL="${ANTHROPIC_DEFAULT_OPUS_MODEL:-$AGENT_MODEL}" ;;
+          sonnet) MODEL_LABEL="${ANTHROPIC_DEFAULT_SONNET_MODEL:-$AGENT_MODEL}" ;;
+          haiku)  MODEL_LABEL="${ANTHROPIC_DEFAULT_HAIKU_MODEL:-$AGENT_MODEL}" ;;
+          *)      MODEL_LABEL="$AGENT_MODEL" ;;
+        esac
+        [ -n "$MODEL_LABEL" ] && AGENT="$AGENT · model: $MODEL_LABEL"
+        export AGENT
+        DATE=$(date -u +%Y-%m-%d) python3 "$GITHUB_ACTION_PATH/src/apply-scores.py" "$LOG_DIR"
+
+    - name: Publish the stored comments to the job summary
+      if: always() && inputs.write != 'true'
+      shell: bash
+      env:
+        LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
+      run: |
+        {
+          echo "### Review mode — comments that WOULD have been posted"
+          echo ""
+          for f in "$LOG_DIR"/comments/*.comment.md; do
+            [ -e "$f" ] || { echo "_No comment files were produced._"; break; }
+            echo "<details><summary>$(basename "$f")</summary>"
+            echo ""
+            cat "$f"
+            echo ""
+            echo "</details>"
+          done
+        } >> "$GITHUB_STEP_SUMMARY"
