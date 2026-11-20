@@ -140,7 +140,7 @@ jobs:
   # All the logic lives in reusable-ai-pr-review.yml; requirements in ai-pr-review/README.md.
   ai-review:
     name: AI Review
-    if: github.event.action == 'review_requested' && github.event.requested_reviewer.login == 'jahia-ai'
+    if: github.event.action == 'review_requested' && (github.event.requested_reviewer.login == 'jahia-ai' || github.event.requested_reviewer.login == 'Jahia/engineering-ai')
     uses: jahia/jahia-modules-action/.github/workflows/reusable-ai-pr-review.yml@v2
     permissions:
       id-token: write
