@@ -27,7 +27,11 @@ class PullRequest(NamedTuple):
     @classmethod
     def read(cls, github: GitHubApi, number: int) -> Self:
         """The pull request `number` of `github`."""
-        pull = github.read_pull(number)
+        return cls.parse(github.read_pull(number))
+
+    @classmethod
+    def parse(cls, pull: dict) -> Self:
+        """The pull request that `pull`, the data of the REST API of GitHub, describes."""
         # A draft that closes reads as closed, as its page on GitHub shows it
         state = (
             "merged"

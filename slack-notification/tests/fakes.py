@@ -6,20 +6,35 @@ from github_api import GitHubApi
 
 class FakeSlack:
     """A workspace whose members are `members`, keyed by their email, and which keeps each message it posts.
-    `refusal` is the error that a call raises, if any."""
+    `refusal` is the error that a call raises, if any, and a member that is an error is what its lookup raises.
+    Each post gets the next `ts`."""
 
     def __init__(self, members: dict | None = None, refusal: Exception | None = None) -> None:
         self.members = members or {}
         self.refusal = refusal
         self.posts = []
+        self.updates = []
+        self.finds = []
+        self.found = None
 
     def find_member(self, email: str) -> str:
         if self.refusal:
             raise self.refusal
-        return self.members.get(email, "")
+        member = self.members.get(email, "")
+        if isinstance(member, Exception):
+            raise member
+        return member
 
-    def post(self, channel: str, message) -> None:
+    def post(self, channel: str, message) -> tuple[str, str]:
         self.posts.append((channel, message))
+        return "D1", f"{len(self.posts)}.5"
+
+    def update(self, channel: str, ts: str, message) -> None:
+        self.updates.append((channel, ts, message))
+
+    def find_message(self, member: str, metadata: dict):
+        self.finds.append((member, metadata))
+        return self.found
 
 
 class FakeGitHub:
