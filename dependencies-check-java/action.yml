@@ -144,13 +144,26 @@ runs:
     - name: Check licenses
       shell: bash
       run: |
-        mvn license:add-third-party -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -DlinkOnly=true -Dlicense.includedScopes=runtime -Dlicense.excludedScopes=test,provided -Dlicense.excludedTypes=war,pom -Dlicense.excludedGroups="^org\.jahia\..*" -Dlicense.useMissingFile=true --no-transfer-progress
-        grep -Eiv "^List|^The project has no dependencies|.*Jahia|${ALLOWLIST}" ${{ inputs.root_folder }}/target/generated-sources/license/THIRD-PARTY.txt > bad-licenses.txt || true
+        # add-third-party writes one report per module and none for a pom root, and
+        # aggregate-add-third-party writes the report of the whole reactor but skips any other packaging.
+        PACKAGING=$(mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${{ inputs.root_folder }}/pom.xml help:evaluate -Dexpression=project.packaging -q -DforceStdout --batch-mode)
+        if [[ "${PACKAGING}" == "pom" ]]; then
+          LICENSE_GOAL=license:aggregate-add-third-party
+        else
+          LICENSE_GOAL=license:add-third-party
+        fi
+        mvn -Dmaven.repo.local=${{ env.MVN_LOCAL_REPO }} -f ${{ inputs.root_folder }}/pom.xml ${LICENSE_GOAL} -Dlicense.force=true -Dlicense.includedScopes=compile,runtime -Dlicense.excludedScopes=test,provided -Dlicense.excludedTypes=war,pom -Dlicense.excludedGroups="^org\.jahia\..*" -Dlicense.useMissingFile=true --no-transfer-progress --batch-mode
+        # A dependency line reads "(License A) (License B) Name (groupId:artifactId:version - url)":
+        # the allowlist is matched against its leading licenses only, never its name or coordinates.
+        { grep -E '^[[:space:]]*\(' ${{ inputs.root_folder }}/target/generated-sources/license/THIRD-PARTY.txt || true; } | while IFS= read -r line; do
+          licenses=$(sed -E 's/^[[:space:]]*((\([^)]*\)[[:space:]]*)+).*/\1/' <<<"${line}")
+          grep -Eiq "Jahia|${ALLOWLIST}" <<<"${licenses}" || printf '%s\n' "${line}"
+        done > bad-licenses.txt
         if [[ $(wc -l <bad-licenses.txt) -gt 0 && $(wc -w <bad-licenses.txt) -gt 0 ]]; then
           echo "LICENSE_DIFF_STATUS=1" >> $GITHUB_ENV
           echo "## Maven licenses analysis" >> .github/workflows/bad-licenses.md
           echo "### Incompatible licenses" >> .github/workflows/bad-licenses.md
-          echo "Execute \`mvn license:add-third-party -Dlicense.includedScopes=runtime -Dlicense.excludedScopes=test,provided -Dlicense.excludedTypes=war,pom -Dlicense.excludedGroups=\"^org\.jahia\..*\" --no-transfer-progress\` to get more details (see http://www.mojohaus.org/license-maven-plugin/index.html)" >> .github/workflows/bad-licenses.md
+          echo "Execute \`mvn ${LICENSE_GOAL} -Dlicense.force=true -Dlicense.includedScopes=compile,runtime -Dlicense.excludedScopes=test,provided -Dlicense.excludedTypes=war,pom -Dlicense.excludedGroups=\"^org\.jahia\..*\" -Dlicense.useMissingFile=true --no-transfer-progress\` to get more details (see https://www.mojohaus.org/license-maven-plugin/index.html)" >> .github/workflows/bad-licenses.md
           cat bad-licenses.txt >> .github/workflows/bad-licenses.md
         else
           echo "LICENSE_DIFF_STATUS=0" >> $GITHUB_ENV
