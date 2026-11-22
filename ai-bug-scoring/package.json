@@ -8,7 +8,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"__tests__/**/*.ts\"",
     "format-check": "prettier --check \"src/**/*.ts\" \"__tests__/**/*.ts\"",
     "lint": "eslint src __tests__",
-    "package": "ncc build src/select/main.ts -o select-bugs/dist --license licenses.txt && ncc build src/prepare/main.ts -o dist/prepare --license licenses.txt && ncc build src/score/main.ts -o dist/apply-scores --license licenses.txt && ncc build src/summarize/main.ts -o dist/summarize-run --license licenses.txt",
+    "package": "ncc build src/select/main.ts -o select-bugs/dist --license licenses.txt && ncc build src/prepare/main.ts -o dist/prepare --license licenses.txt && ncc build src/report/main.ts -o dist/report --license licenses.txt && ncc build src/summarize/main.ts -o dist/summarize-run --license licenses.txt",
     "test": "jest",
     "all": "npm run build && npm run format-check && npm run lint && npm test && npm run package"
   },

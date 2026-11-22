@@ -31,23 +31,8 @@ export interface Ticket {
   comments: TicketComment[]
 }
 
-// The factors the agent records. The keys are a contract between the rubric of the cortex
-// jahia-pm-bug-scoring skill and the scoring tables: renaming one is a cross-repo change.
-export interface Factors {
-  ref: string
-  security: boolean
-  impact: string
-  feature: string
-  reach: string
-  workaround: string
-  regression: boolean
-  clear: boolean
-  cloud: boolean
-  older_version_only: boolean
-  customers: number
-  confidence: string
-  why: string
-}
+// The factors the agent records are opaque here: the cortex jahia-pm-bug-scoring skill owns their
+// keys, and its jahia-pm-score tool validates and scores them.
 
 export interface ScoreRow {
   name: string
