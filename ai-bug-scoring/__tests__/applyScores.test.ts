@@ -148,8 +148,7 @@ describe('renderScoreSummary', () => {
       key: 'k1',
       url: 'https://u/1',
       outcome: 'scored',
-      value: 155,
-      p1: true,
+      value: 55,
       impact: 'data',
       reach: 'high',
       written: true,
@@ -175,12 +174,10 @@ describe('renderScoreSummary', () => {
     const table = renderScoreSummary(results, true)
     expect(table).toContain('### PM scores (written)')
     expect(table).toContain(
-      '| [Jahia/example#1](https://u/1) | 155 | P1 | data / high | scored, written |',
+      '| [Jahia/example#1](https://u/1) | 55 | data / high | scored, written |',
     )
-    expect(table).toContain('| [Jahia/example#2](https://u/2) | -1 |  |  | security, written |')
-    expect(table).toContain(
-      '| [Jahia/example#3](https://u/3) |  |  | no factors (Error) | skipped |',
-    )
+    expect(table).toContain('| [Jahia/example#2](https://u/2) | -1 |  | security, written |')
+    expect(table).toContain('| [Jahia/example#3](https://u/3) |  | no factors (Error) | skipped |')
   })
 
   it('names the dry run in the heading', () => {

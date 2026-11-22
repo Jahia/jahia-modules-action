@@ -64,7 +64,6 @@ export interface BugResult {
   reason?: string
   value?: number
   points?: number
-  p1?: boolean
   impact?: string
   reach?: string
   customers?: number

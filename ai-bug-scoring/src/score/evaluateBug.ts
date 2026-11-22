@@ -1,6 +1,5 @@
 import type { Bug, BugResult, Factors, Ticket } from '../types'
 import { checkFactors } from './checkFactors'
-import { fieldValue } from './fieldValue'
 import { renderComment } from './renderComment'
 import { scoreFactors } from './scoreFactors'
 import { SECURITY_VALUE } from './tables'
@@ -25,14 +24,13 @@ export const evaluateBug = (
   }
   const valid = factors as Factors
   if (valid.security) return { ...base, outcome: 'security', value: SECURITY_VALUE }
-  const { points, rows, p1 } = scoreFactors(valid, ticket.labels)
-  const comment = renderComment({ marker, points, rows, p1, factors: valid, agent, runUrl, date })
+  const { points, rows } = scoreFactors(valid, ticket.labels)
+  const comment = renderComment({ marker, points, rows, factors: valid, agent, runUrl, date })
   return {
     ...base,
     outcome: 'scored',
-    value: fieldValue(points, p1),
+    value: points,
     points,
-    p1,
     impact: valid.impact,
     reach: valid.reach,
     customers: valid.customers,
