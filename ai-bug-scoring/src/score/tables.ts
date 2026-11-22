@@ -5,14 +5,21 @@ export const IMPACT: Record<string, [number, string]> = {
   data: [40, 'Content loss or data corruption'],
   unstable: [40, 'Erratic in production'],
   siteDown: [40, 'Site fully broken'],
-  sitePartial: [30, 'Visitors partly impacted'],
+  sitePartial: [35, 'Visitors partly impacted'],
   editorBlocked: [20, 'Editors blocked'],
   devBlocked: [20, 'Developers blocked'],
   hindered: [4, 'Slowed down, not blocked'],
   cosmetic: [1, 'Cosmetic or wording'],
 }
 
-export const REACH: Record<string, number> = { high: 15, medium: 5, low: 0 }
+// Reach & importance: how many customers use the feature, and how much it matters to them.
+export const REACH: Record<string, [number, string]> = {
+  veryHigh: [20, 'Very high'],
+  high: [15, 'High'],
+  medium: [5, 'Medium'],
+  low: [0, 'Low'],
+  none: [-20, 'None'],
+}
 
 export const WORKAROUND: Record<string, number> = { none: 8, painful: 4, unknown: 4, easy: 0 }
 

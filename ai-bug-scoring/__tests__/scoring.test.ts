@@ -22,6 +22,22 @@ describe('scoreFactors', () => {
     expect(rows).toContainEqual({ name: 'Customers', text: '3', points: 15 })
   })
 
+  it('gives a very high reach & importance 20 points, and none minus 20', () => {
+    const veryHigh = scoreFactors(factors({ reach: 'veryHigh' }), ['customer'])
+    expect(veryHigh.points).toBe(55 - 15 + 20)
+    expect(veryHigh.rows).toContainEqual({
+      name: 'Reach & importance',
+      text: 'Very high (jContent paste)',
+      points: 20,
+    })
+    expect(scoreFactors(factors({ reach: 'none' }), ['customer']).points).toBe(55 - 15 - 20)
+  })
+
+  it('gives visitors partly impacted 35 points', () => {
+    const { points } = scoreFactors(factors({ impact: 'sitePartial' }), ['customer'])
+    expect(points).toBe(55 - 20 + 35)
+  })
+
   it('gives a data loss its points with no bonus', () => {
     const { points } = scoreFactors(factors({ impact: 'data' }), ['customer'])
     expect(points).toBe(40 + 15 + 4 + 5 + 5 + 6)

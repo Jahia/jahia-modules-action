@@ -1,4 +1,4 @@
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
@@ -19,11 +19,13 @@ const run = async (): Promise<void> => {
   const octokit = github.getOctokit(env.GH_TOKEN ?? '')
 
   for (const sub of ['tickets', 'factors']) mkdirSync(join(logDir, sub), { recursive: true })
-  // The agent reads only under the log directory, so the rubric is copied there.
-  copyFileSync(
-    join(env.CORTEX_PATH ?? '', '.claude/skills/jahia-pm-bug-scoring/assets/rubric.md'),
-    join(logDir, 'rubric.md'),
-  )
+  // The agent reads only under the log directory, so the rubric is copied there, with the reach
+  // & importance list that the rubric names next to it. An older cortex ref has no list.
+  const assets = join(env.CORTEX_PATH ?? '', '.claude/skills/jahia-pm-bug-scoring/assets')
+  copyFileSync(join(assets, 'rubric.md'), join(logDir, 'rubric.md'))
+  if (existsSync(join(assets, 'reach.md'))) {
+    copyFileSync(join(assets, 'reach.md'), join(logDir, 'reach.md'))
+  }
   writeFileSync(join(logDir, 'selected-bugs.json'), JSON.stringify(bugs, null, 2))
 
   const fetched: string[] = []

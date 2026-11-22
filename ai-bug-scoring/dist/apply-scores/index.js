@@ -30288,12 +30288,13 @@ const scoreFactors = (factors, labels) => {
     const cloud = factors.cloud || labels.includes('cloud');
     const regression = factors.regression || labels.includes('regression');
     const [impactPoints, impactLabel] = tables_1.IMPACT[factors.impact] ?? [0, factors.impact];
+    const [reachPoints, reachLabel] = tables_1.REACH[factors.reach] ?? [0, factors.reach];
     const rows = [
         { name: 'Impact', text: impactLabel, points: impactPoints },
         {
-            name: 'Reach',
-            text: `${capitalize(factors.reach)} (${factors.feature})`,
-            points: tables_1.REACH[factors.reach] ?? 0,
+            name: 'Reach & importance',
+            text: `${reachLabel} (${factors.feature})`,
+            points: reachPoints,
         },
         {
             name: 'Workaround',
@@ -30360,13 +30361,20 @@ exports.IMPACT = {
     data: [40, 'Content loss or data corruption'],
     unstable: [40, 'Erratic in production'],
     siteDown: [40, 'Site fully broken'],
-    sitePartial: [30, 'Visitors partly impacted'],
+    sitePartial: [35, 'Visitors partly impacted'],
     editorBlocked: [20, 'Editors blocked'],
     devBlocked: [20, 'Developers blocked'],
     hindered: [4, 'Slowed down, not blocked'],
     cosmetic: [1, 'Cosmetic or wording'],
 };
-exports.REACH = { high: 15, medium: 5, low: 0 };
+// Reach & importance: how many customers use the feature, and how much it matters to them.
+exports.REACH = {
+    veryHigh: [20, 'Very high'],
+    high: [15, 'High'],
+    medium: [5, 'Medium'],
+    low: [0, 'Low'],
+    none: [-20, 'None'],
+};
 exports.WORKAROUND = { none: 8, painful: 4, unknown: 4, easy: 0 };
 exports.REGRESSION = 5;
 exports.PER_CUSTOMER = 5;

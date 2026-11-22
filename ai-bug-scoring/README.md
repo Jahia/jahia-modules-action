@@ -24,8 +24,9 @@ ticket is fresh, and the oldest bugs wait until the backlog in front of them is 
 The agent records the factors with the rubric of the `jahia-pm-bug-scoring` skill of
 [Jahia/cortex](https://github.com/Jahia/cortex), read from the cortex checkout that
 `ai-agent-setup` leaves (the `cortex_path` input). The rubric owns the factor definitions and
-their thresholds, such as the version cut-off of the old-versions penalty, and
-[`src/score/tables.ts`](src/score/tables.ts) holds the points of each factor.
+their thresholds, such as the version cut-off of the old-versions penalty. Its `reach.md` lists the
+reach & importance of each repository and feature: very high (+20), high (+15), medium (+5), low (0)
+or none (−20). [`src/score/tables.ts`](src/score/tables.ts) holds the points of each factor.
 
 Example: an editor is blocked (+20) on a feature most customers use (+15), with a painful
 workaround (+4). The ticket is a regression (+5), carries the customer label from one customer (+5)
