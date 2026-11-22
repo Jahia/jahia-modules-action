@@ -24,12 +24,13 @@ export const scoreFactors = (
   const cloud = factors.cloud || labels.includes('cloud')
   const regression = factors.regression || labels.includes('regression')
   const [impactPoints, impactLabel] = IMPACT[factors.impact] ?? [0, factors.impact]
+  const [reachPoints, reachLabel] = REACH[factors.reach] ?? [0, factors.reach]
   const rows: ScoreRow[] = [
     { name: 'Impact', text: impactLabel, points: impactPoints },
     {
-      name: 'Reach',
-      text: `${capitalize(factors.reach)} (${factors.feature})`,
-      points: REACH[factors.reach] ?? 0,
+      name: 'Reach & importance',
+      text: `${reachLabel} (${factors.feature})`,
+      points: reachPoints,
     },
     {
       name: 'Workaround',

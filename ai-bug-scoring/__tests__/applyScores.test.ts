@@ -151,7 +151,7 @@ describe('renderScoreSummary', () => {
       title: 'Paste | copy is lost',
       rows: [
         { name: 'Impact', text: 'Content loss or data corruption', points: 40 },
-        { name: 'Reach', text: 'High (jContent paste)', points: 15 },
+        { name: 'Reach & importance', text: 'High (jContent paste)', points: 15 },
       ],
       value: 55,
       impact: 'data',
@@ -179,7 +179,7 @@ describe('renderScoreSummary', () => {
     const table = renderScoreSummary(results, true)
     expect(table).toContain('### PM scores (written)')
     expect(table).toContain(
-      '| Bug | Title | Field value | Impact / reach, or reason | Outcome | Impact | Reach |',
+      '| Bug | Title | Field value | Impact / reach, or reason | Outcome | Impact | Reach & importance |',
     )
     expect(table).toContain(
       '| [Jahia/example#1](https://u/1) | Paste \\| copy is lost | 55 | data / high | scored, written | Content loss or data corruption | High (jContent paste) |',

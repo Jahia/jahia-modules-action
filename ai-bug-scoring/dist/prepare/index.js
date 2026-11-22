@@ -30052,8 +30052,13 @@ const run = async () => {
     const octokit = github.getOctokit(env.GH_TOKEN ?? '');
     for (const sub of ['tickets', 'factors'])
         (0, node_fs_1.mkdirSync)((0, node_path_1.join)(logDir, sub), { recursive: true });
-    // The agent reads only under the log directory, so the rubric is copied there.
-    (0, node_fs_1.copyFileSync)((0, node_path_1.join)(env.CORTEX_PATH ?? '', '.claude/skills/jahia-pm-bug-scoring/assets/rubric.md'), (0, node_path_1.join)(logDir, 'rubric.md'));
+    // The agent reads only under the log directory, so the rubric is copied there, with the reach
+    // & importance list that the rubric names next to it. An older cortex ref has no list.
+    const assets = (0, node_path_1.join)(env.CORTEX_PATH ?? '', '.claude/skills/jahia-pm-bug-scoring/assets');
+    (0, node_fs_1.copyFileSync)((0, node_path_1.join)(assets, 'rubric.md'), (0, node_path_1.join)(logDir, 'rubric.md'));
+    if ((0, node_fs_1.existsSync)((0, node_path_1.join)(assets, 'reach.md'))) {
+        (0, node_fs_1.copyFileSync)((0, node_path_1.join)(assets, 'reach.md'), (0, node_path_1.join)(logDir, 'reach.md'));
+    }
     (0, node_fs_1.writeFileSync)((0, node_path_1.join)(logDir, 'selected-bugs.json'), JSON.stringify(bugs, null, 2));
     const fetched = [];
     for (const bug of bugs) {
