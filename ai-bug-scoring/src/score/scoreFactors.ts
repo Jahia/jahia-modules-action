@@ -5,7 +5,6 @@ import {
   IMPACT,
   MAX_CUSTOMERS,
   OLDER,
-  P1,
   PER_CUSTOMER,
   REACH,
   REGRESSION,
@@ -14,12 +13,12 @@ import {
 
 const capitalize = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1)
 
-// Return the points, the rows of the breakdown and the P1 flag of one bug. The labels decide the
-// customer gate and back the cloud and regression flags the agent may have missed.
+// Return the points and the rows of the breakdown of one bug. The labels decide the customer gate
+// and back the cloud and regression flags the agent may have missed.
 export const scoreFactors = (
   factors: Factors,
   labels: string[],
-): { points: number; rows: ScoreRow[]; p1: boolean } => {
+): { points: number; rows: ScoreRow[] } => {
   const customerLabel = labels.includes('customer')
   const customers = customerLabel ? Math.min(MAX_CUSTOMERS, Math.max(1, factors.customers)) : 0
   const cloud = factors.cloud || labels.includes('cloud')
@@ -55,9 +54,5 @@ export const scoreFactors = (
       points: factors.older_version_only ? OLDER : 0,
     },
   ]
-  return {
-    points: rows.reduce((sum, row) => sum + row.points, 0),
-    rows,
-    p1: P1.has(factors.impact),
-  }
+  return { points: rows.reduce((sum, row) => sum + row.points, 0), rows }
 }

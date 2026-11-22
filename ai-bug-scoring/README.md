@@ -33,8 +33,8 @@ and states the expected behaviour (+6). Its score is 55.
 
 ### The field value
 
-- **A P1 case adds 100.** A2 ranks every P1 case first, whatever its points, and the field holds
-  one number. A P1 case of 75 points shows 175.
+- **The field value is the score**: the sum of the points, with no bonus. A data loss of 75 points
+  shows 75.
 - **A security bug shows −1**, with no comment: security bugs follow the security process, and a
   comment on a public repository would disclose one. The value keeps the bug from being read
   again.

@@ -30053,7 +30053,6 @@ exports.checkFactors = checkFactors;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.evaluateBug = void 0;
 const checkFactors_1 = __nccwpck_require__(1016);
-const fieldValue_1 = __nccwpck_require__(5565);
 const renderComment_1 = __nccwpck_require__(5615);
 const scoreFactors_1 = __nccwpck_require__(86);
 const tables_1 = __nccwpck_require__(9637);
@@ -30072,16 +30071,18 @@ const evaluateBug = (bug, ticket, factors, { marker, agent, runUrl, date }) => {
         return { ...base, outcome: 'skipped', reason: `invalid factors: ${problems.join('; ')}` };
     }
     const valid = factors;
+    // A security bug keeps its title out of the job summary too.
     if (valid.security)
         return { ...base, outcome: 'security', value: tables_1.SECURITY_VALUE };
-    const { points, rows, p1 } = (0, scoreFactors_1.scoreFactors)(valid, ticket.labels);
-    const comment = (0, renderComment_1.renderComment)({ marker, points, rows, p1, factors: valid, agent, runUrl, date });
+    const { points, rows } = (0, scoreFactors_1.scoreFactors)(valid, ticket.labels);
+    const comment = (0, renderComment_1.renderComment)({ marker, points, rows, factors: valid, agent, runUrl, date });
     return {
         ...base,
         outcome: 'scored',
-        value: (0, fieldValue_1.fieldValue)(points, p1),
+        title: ticket.title,
+        rows,
+        value: points,
         points,
-        p1,
         impact: valid.impact,
         reach: valid.reach,
         customers: valid.customers,
@@ -30090,21 +30091,6 @@ const evaluateBug = (bug, ticket, factors, { marker, agent, runUrl, date }) => {
     };
 };
 exports.evaluateBug = evaluateBug;
-
-
-/***/ }),
-
-/***/ 5565:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.fieldValue = void 0;
-const tables_1 = __nccwpck_require__(9637);
-// The number written to the score field.
-const fieldValue = (points, p1) => p1 ? points + tables_1.P1_OFFSET : points;
-exports.fieldValue = fieldValue;
 
 
 /***/ }),
@@ -30190,27 +30176,21 @@ void run().catch((error) => {
 /***/ }),
 
 /***/ 5615:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+/***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.renderComment = void 0;
-const fieldValue_1 = __nccwpck_require__(5565);
-const tables_1 = __nccwpck_require__(9637);
 const signed = (points) => (points > 0 ? `+${String(points)}` : String(points));
 // The breakdown comment posted on the ticket.
-const renderComment = ({ marker, points, rows, p1, factors, agent, runUrl, date, }) => {
-    const value = (0, fieldValue_1.fieldValue)(points, p1);
+const renderComment = ({ marker, points, rows, factors, agent, runUrl, date, }) => {
     const lines = [
         marker,
         '> [!NOTE]',
-        `> **🤖 PM score: ${String(value)}** · system A2 · ${date} · *a suggestion for the PM decision*`,
+        `> **🤖 PM score: ${String(points)}** · system A2 · ${date} · *a suggestion for the PM decision*`,
         '',
     ];
-    if (p1) {
-        lines.push(`**P1 case:** it goes before every other bug. The field value is ${String(tables_1.P1_OFFSET)} + ${String(points)} points.`, '');
-    }
     lines.push('| Factor | Value | Points |', '|---|---|---|');
     for (const row of rows) {
         lines.push(`| ${row.name} | ${row.text} | ${signed(row.points)} |`);
@@ -30235,18 +30215,40 @@ exports.renderComment = renderComment;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.renderScoreSummary = void 0;
-const row = (result) => {
+// A pipe in a title or a value would end its table cell.
+const cell = (text) => text.replace(/\|/g, '\\|');
+const row = (result, factorNames) => {
     const value = result.value === undefined ? '' : String(result.value);
-    const p1 = result.p1 ? 'P1' : '';
     const detail = result.reason ?? [result.impact, result.reach].filter((part) => part !== undefined).join(' / ');
     const outcome = result.outcome + (result.written ? ', written' : '');
-    return `| [${result.ref}](${result.url}) | ${value} | ${p1} | ${detail} | ${outcome} |`;
+    const answers = factorNames.map((name) => result.rows?.find((factor) => factor.name === name)?.text ?? '');
+    const cells = [
+        `[${result.ref}](${result.url})`,
+        cell(result.title ?? ''),
+        value,
+        detail,
+        outcome,
+        ...answers.map(cell),
+    ];
+    return `| ${cells.join(' | ')} |`;
 };
-// The job-summary table: one row per bug, written or not.
-const renderScoreSummary = (results, writing) => `### PM scores (${writing ? 'written' : 'dry run, nothing written'})\n\n` +
-    '| Bug | Field value | | Impact / reach, or reason | Outcome |\n' +
-    '|---|---|---|---|---|\n' +
-    results.map((result) => row(result) + '\n').join('');
+// The job-summary table: one row per bug, written or not, then one column per factor with the
+// answer of the agent. The factor columns follow the breakdown of the first scored bug.
+const renderScoreSummary = (results, writing) => {
+    const factorNames = results.find((result) => result.rows)?.rows?.map((factor) => factor.name) ?? [];
+    const header = [
+        'Bug',
+        'Title',
+        'Field value',
+        'Impact / reach, or reason',
+        'Outcome',
+        ...factorNames,
+    ];
+    return (`### PM scores (${writing ? 'written' : 'dry run, nothing written'})\n\n` +
+        `| ${header.join(' | ')} |\n` +
+        `|${header.map(() => '---').join('|')}|\n` +
+        results.map((result) => row(result, factorNames) + '\n').join(''));
+};
 exports.renderScoreSummary = renderScoreSummary;
 
 
@@ -30278,8 +30280,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.scoreFactors = void 0;
 const tables_1 = __nccwpck_require__(9637);
 const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
-// Return the points, the rows of the breakdown and the P1 flag of one bug. The labels decide the
-// customer gate and back the cloud and regression flags the agent may have missed.
+// Return the points and the rows of the breakdown of one bug. The labels decide the customer gate
+// and back the cloud and regression flags the agent may have missed.
 const scoreFactors = (factors, labels) => {
     const customerLabel = labels.includes('customer');
     const customers = customerLabel ? Math.min(tables_1.MAX_CUSTOMERS, Math.max(1, factors.customers)) : 0;
@@ -30316,11 +30318,7 @@ const scoreFactors = (factors, labels) => {
             points: factors.older_version_only ? tables_1.OLDER : 0,
         },
     ];
-    return {
-        points: rows.reduce((sum, row) => sum + row.points, 0),
-        rows,
-        p1: tables_1.P1.has(factors.impact),
-    };
+    return { points: rows.reduce((sum, row) => sum + row.points, 0), rows };
 };
 exports.scoreFactors = scoreFactors;
 
@@ -30357,7 +30355,7 @@ exports.setField = setField;
 // System A2: the points each factor adds — pure data that the validation reads and the scoring
 // sums into the field value.
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.CONFIDENCE = exports.SECURITY_VALUE = exports.P1_OFFSET = exports.OLDER = exports.CLOUD = exports.CLEAR = exports.MAX_CUSTOMERS = exports.PER_CUSTOMER = exports.REGRESSION = exports.WORKAROUND = exports.REACH = exports.P1 = exports.IMPACT = void 0;
+exports.CONFIDENCE = exports.SECURITY_VALUE = exports.OLDER = exports.CLOUD = exports.CLEAR = exports.MAX_CUSTOMERS = exports.PER_CUSTOMER = exports.REGRESSION = exports.WORKAROUND = exports.REACH = exports.IMPACT = void 0;
 exports.IMPACT = {
     data: [40, 'Content loss or data corruption'],
     unstable: [40, 'Erratic in production'],
@@ -30368,7 +30366,6 @@ exports.IMPACT = {
     hindered: [4, 'Slowed down, not blocked'],
     cosmetic: [1, 'Cosmetic or wording'],
 };
-exports.P1 = new Set(['data', 'unstable', 'siteDown']);
 exports.REACH = { high: 15, medium: 5, low: 0 };
 exports.WORKAROUND = { none: 8, painful: 4, unknown: 4, easy: 0 };
 exports.REGRESSION = 5;
@@ -30377,9 +30374,6 @@ exports.MAX_CUSTOMERS = 3;
 exports.CLEAR = 6;
 exports.CLOUD = 3;
 exports.OLDER = -5;
-// The score field holds one number, and A2 sorts every P1 case first: the field adds this to a
-// P1 score, so sorting the bugs by the field gives the A2 order.
-exports.P1_OFFSET = 100;
 // The field value of a security bug: out of scope, and never read again.
 exports.SECURITY_VALUE = -1;
 exports.CONFIDENCE = new Set(['high', 'medium', 'low']);

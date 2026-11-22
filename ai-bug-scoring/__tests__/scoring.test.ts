@@ -1,35 +1,30 @@
 import { checkFactors } from '../src/score/checkFactors'
 import { evaluateBug } from '../src/score/evaluateBug'
-import { fieldValue } from '../src/score/fieldValue'
 import { renderComment } from '../src/score/renderComment'
 import { scoreFactors } from '../src/score/scoreFactors'
-import type { Factors } from '../src/types'
+import type { Factors, Ticket } from '../src/types'
 import { bug, factors } from './fixtures'
 
 const REF = 'Jahia/example#1'
 
 describe('scoreFactors', () => {
   it('scores the worked example of the documentation at 55', () => {
-    const { points, p1 } = scoreFactors(factors(), ['customer'])
+    const { points } = scoreFactors(factors(), ['customer'])
     expect(points).toBe(55)
-    expect(p1).toBe(false)
-    expect(fieldValue(points, p1)).toBe(55)
   })
 
   it('caps a crash reported by five customers at three', () => {
-    const { points, rows, p1 } = scoreFactors(
+    const { points, rows } = scoreFactors(
       factors({ impact: 'unstable', customers: 5, regression: false, cloud: true }),
       ['customer', 'backport'],
     )
     expect(points).toBe(40 + 15 + 4 + 15 + 6 + 3)
-    expect(p1).toBe(true)
     expect(rows).toContainEqual({ name: 'Customers', text: '3', points: 15 })
   })
 
-  it('sorts a P1 case above every other bug', () => {
-    const weakestP1 = fieldValue(40, true)
-    const strongestOther = fieldValue(30 + 15 + 8 + 5 + 15 + 6 + 3, false)
-    expect(weakestP1).toBeGreaterThan(strongestOther)
+  it('gives a data loss its points with no bonus', () => {
+    const { points } = scoreFactors(factors({ impact: 'data' }), ['customer'])
+    expect(points).toBe(40 + 15 + 4 + 5 + 5 + 6)
   })
 
   it('gates the customer count on the customer label', () => {
@@ -101,17 +96,47 @@ describe('evaluateBug', () => {
     expect(result.outcome).toBe('skipped')
     expect(result.reason).toBe('ticket not fetched')
   })
+
+  const ticket: Ticket = {
+    ref: 'Jahia/example#1',
+    url: 'https://github.com/Jahia/example/issues/1',
+    title: 'Paste is not offered',
+    type: 'Bug',
+    visibility: 'PUBLIC',
+    labels: ['customer'],
+    created: '2026-11-20',
+    body: '',
+    comments_total: 0,
+    comments: [],
+  }
+  const config = {
+    marker: '<!-- m -->',
+    agent: 'Claude Code',
+    runUrl: 'https://run',
+    date: '2026-11-20',
+  }
+
+  it('keeps the title and the answer of each factor of a scored bug', () => {
+    const result = evaluateBug(bug(1), ticket, factors(), config)
+    expect(result.title).toBe('Paste is not offered')
+    expect(result.rows).toContainEqual({ name: 'Impact', text: 'Editors blocked', points: 20 })
+  })
+
+  it('keeps the title of a security bug out of the result', () => {
+    const result = evaluateBug(bug(1), ticket, factors({ security: true }), config)
+    expect(result.outcome).toBe('security')
+    expect(result.title).toBeUndefined()
+  })
 })
 
 describe('renderComment', () => {
   const render = (over: Partial<Factors> = {}): string => {
     const valid = factors(over)
-    const { points, rows, p1 } = scoreFactors(valid, ['customer'])
+    const { points, rows } = scoreFactors(valid, ['customer'])
     return renderComment({
       marker: '<!-- m -->',
       points,
       rows,
-      p1,
       factors: valid,
       agent: 'Claude Code',
       runUrl: 'https://run',
@@ -128,10 +153,10 @@ describe('renderComment', () => {
     expect(body).toContain('| Jahia Cloud | No | 0 |')
   })
 
-  it('explains the field value of a P1 case', () => {
+  it('shows the plain total for a data loss', () => {
     const body = render({ impact: 'data' })
-    expect(body).toContain('**🤖 PM score: 175**')
-    expect(body).toContain('The field value is 100 + 75 points.')
+    expect(body).toContain('**🤖 PM score: 75**')
+    expect(body).not.toContain('P1')
   })
 
   it('asks for a check on a low confidence', () => {

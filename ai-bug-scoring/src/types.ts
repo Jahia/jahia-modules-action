@@ -61,10 +61,11 @@ export interface BugResult {
   key: string
   url: string
   outcome: 'scored' | 'security' | 'skipped' | 'write failed'
+  title?: string
+  rows?: ScoreRow[]
   reason?: string
   value?: number
   points?: number
-  p1?: boolean
   impact?: string
   reach?: string
   customers?: number
