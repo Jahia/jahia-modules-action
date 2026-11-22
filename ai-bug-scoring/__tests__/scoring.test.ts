@@ -33,6 +33,11 @@ describe('scoreFactors', () => {
     expect(scoreFactors(factors({ reach: 'none' }), ['customer']).points).toBe(55 - 15 - 20)
   })
 
+  it('gives visitors partly impacted 35 points', () => {
+    const { points } = scoreFactors(factors({ impact: 'sitePartial' }), ['customer'])
+    expect(points).toBe(55 - 20 + 35)
+  })
+
   it('gives a data loss its points with no bonus', () => {
     const { points } = scoreFactors(factors({ impact: 'data' }), ['customer'])
     expect(points).toBe(40 + 15 + 4 + 5 + 5 + 6)

@@ -30361,7 +30361,7 @@ exports.IMPACT = {
     data: [40, 'Content loss or data corruption'],
     unstable: [40, 'Erratic in production'],
     siteDown: [40, 'Site fully broken'],
-    sitePartial: [30, 'Visitors partly impacted'],
+    sitePartial: [35, 'Visitors partly impacted'],
     editorBlocked: [20, 'Editors blocked'],
     devBlocked: [20, 'Developers blocked'],
     hindered: [4, 'Slowed down, not blocked'],
