@@ -23,12 +23,15 @@ export const evaluateBug = (
     return { ...base, outcome: 'skipped', reason: `invalid factors: ${problems.join('; ')}` }
   }
   const valid = factors as Factors
+  // A security bug keeps its title out of the job summary too.
   if (valid.security) return { ...base, outcome: 'security', value: SECURITY_VALUE }
   const { points, rows } = scoreFactors(valid, ticket.labels)
   const comment = renderComment({ marker, points, rows, factors: valid, agent, runUrl, date })
   return {
     ...base,
     outcome: 'scored',
+    title: ticket.title,
+    rows,
     value: points,
     points,
     impact: valid.impact,
