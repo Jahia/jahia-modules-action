@@ -61,6 +61,8 @@ export interface BugResult {
   key: string
   url: string
   outcome: 'scored' | 'security' | 'skipped' | 'write failed'
+  title?: string
+  rows?: ScoreRow[]
   reason?: string
   value?: number
   points?: number

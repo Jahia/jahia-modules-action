@@ -2,7 +2,7 @@ import { checkFactors } from '../src/score/checkFactors'
 import { evaluateBug } from '../src/score/evaluateBug'
 import { renderComment } from '../src/score/renderComment'
 import { scoreFactors } from '../src/score/scoreFactors'
-import type { Factors } from '../src/types'
+import type { Factors, Ticket } from '../src/types'
 import { bug, factors } from './fixtures'
 
 const REF = 'Jahia/example#1'
@@ -95,6 +95,37 @@ describe('evaluateBug', () => {
     })
     expect(result.outcome).toBe('skipped')
     expect(result.reason).toBe('ticket not fetched')
+  })
+
+  const ticket: Ticket = {
+    ref: 'Jahia/example#1',
+    url: 'https://github.com/Jahia/example/issues/1',
+    title: 'Paste is not offered',
+    type: 'Bug',
+    visibility: 'PUBLIC',
+    labels: ['customer'],
+    created: '2026-11-20',
+    body: '',
+    comments_total: 0,
+    comments: [],
+  }
+  const config = {
+    marker: '<!-- m -->',
+    agent: 'Claude Code',
+    runUrl: 'https://run',
+    date: '2026-11-20',
+  }
+
+  it('keeps the title and the answer of each factor of a scored bug', () => {
+    const result = evaluateBug(bug(1), ticket, factors(), config)
+    expect(result.title).toBe('Paste is not offered')
+    expect(result.rows).toContainEqual({ name: 'Impact', text: 'Editors blocked', points: 20 })
+  })
+
+  it('keeps the title of a security bug out of the result', () => {
+    const result = evaluateBug(bug(1), ticket, factors({ security: true }), config)
+    expect(result.outcome).toBe('security')
+    expect(result.title).toBeUndefined()
   })
 })
 
