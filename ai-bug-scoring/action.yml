@@ -101,6 +101,9 @@ runs:
     # field and posts the breakdown comments. This action only orchestrates around it.
     - name: Score the bugs and write the results
       shell: bash
+      # The tool launches through `mise exec`, which reads the config of the working directory: run
+      # it from the cortex checkout, whose venv ai-agent-setup filled with the harness package.
+      working-directory: ${{ inputs.cortex_path }}
       env:
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
         DRY_RUN: ${{ inputs.dry_run }}
