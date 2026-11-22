@@ -26,7 +26,10 @@ The agent records the factors with the rubric of the `jahia-pm-bug-scoring` skil
 `ai-agent-setup` leaves (the `cortex_path` input). The rubric owns the factor definitions and
 their thresholds, such as the version cut-off of the old-versions penalty. Its `reach.md` lists the
 reach & importance of each repository and feature: very high (+20), high (+15), medium (+5), low (0)
-or none (−20). [`src/score/tables.ts`](src/score/tables.ts) holds the points of each factor.
+or none (−20). The `jahia-pm-score` tool of the same skill holds the points of each factor and
+applies the score — it validates the factors, writes the PM Score issue field and posts the
+breakdown comment — so the whole intelligence lives beside the rubric in cortex, and this action
+only orchestrates: selection, ticket preparation, the agent runs and the run report.
 
 Example: an editor is blocked (+20) on a feature most customers use (+15), with a painful
 workaround (+4). The ticket is a regression (+5), carries the customer label from one customer (+5)

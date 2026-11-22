@@ -1,5 +1,5 @@
 name: AI Bug Scoring
-description: Runs a Claude Code agent to record the PM score factors of each selected bug, then scores them with system A2 and writes the PM Score issue field and a breakdown comment
+description: Runs a Claude Code agent to record the PM score factors of each selected bug, then applies them with the jahia-pm-score tool of the cortex checkout, which adds the points of system A2 and writes the PM Score issue field and a breakdown comment
 
 inputs:
   bugs:
@@ -20,7 +20,7 @@ inputs:
     required: false
     default: 'false'
   cortex_path:
-    description: 'Absolute path of the cortex checkout (from ai-agent-setup), whose jahia-pm-bug-scoring skill holds the rubric'
+    description: 'Absolute path of the cortex checkout (from ai-agent-setup), whose jahia-pm-bug-scoring skill holds the rubric and whose jahia-pm-score tool applies the scores'
     required: true
   marker:
     description: 'Hidden marker that opens every score comment'
@@ -96,6 +96,9 @@ runs:
           fi
         done
 
+    # The scoring intelligence lives in the cortex checkout: the jahia-pm-score tool of the
+    # jahia-pm-bug-scoring skill validates the factors, adds the points, writes the PM Score issue
+    # field and posts the breakdown comments. This action only orchestrates around it.
     - name: Score the bugs and write the results
       shell: bash
       env:
@@ -105,6 +108,7 @@ runs:
         AGENT_MODEL: ${{ inputs.model }}
         GH_TOKEN: ${{ inputs.github_token }}
         FIELD_TOKEN: ${{ inputs.field_token }}
+        CORTEX_PATH: ${{ inputs.cortex_path }}
         RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
@@ -117,8 +121,18 @@ runs:
           *)      MODEL_LABEL="$AGENT_MODEL" ;;
         esac
         [ -n "$MODEL_LABEL" ] && AGENT="$AGENT · model: $MODEL_LABEL"
-        export AGENT
-        "${{ steps.node.outputs.bin }}" "$GITHUB_ACTION_PATH/dist/apply-scores/index.js"
+        DRY_FLAG=""
+        [ "$DRY_RUN" = "true" ] && DRY_FLAG="--dry-run"
+        "$CORTEX_PATH/tools/jahia-pm-score/bin/jahia-pm-score" apply \
+          --log-dir "$LOG_DIR" $DRY_FLAG --marker "$MARKER" --agent "$AGENT" --run-url "$RUN_URL"
+
+    - name: Report the results to the job summary
+      shell: bash
+      env:
+        LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
+        DRY_RUN: ${{ inputs.dry_run }}
+      run: |
+        "${{ steps.node.outputs.bin }}" "$GITHUB_ACTION_PATH/dist/report/index.js"
 
     - name: Publish the stored comments to the job summary
       if: always() && inputs.dry_run == 'true'
