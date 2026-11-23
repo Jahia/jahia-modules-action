@@ -118,9 +118,10 @@ sources, so run it before pushing.
 - Self-hosted Ubuntu runner. The scripts run on the Node of the GitHub Actions runtime: no
   `python3`, and no `gh` beyond what `ai-agent-setup` needs.
 - A `workflow_call` caller passes `secrets: inherit`, so the jobs see the org secrets they read.
-- Org secrets and variables: `GH_ISSUES_PRS_CHORES` (searches the issues, reads and writes the PM
-  Score issue field), `AI_AGENT_GH_ISSUES_PRS_CHORES` (reads the issues and
-  posts the comments), `BASTION_SSH_PRIVATE_KEY_JAHIACI` (the 30-day log upload to the Jahia
+- Org secrets and variables: `GH_ISSUES_PRS_CHORES` (searches the issues),
+  `AI_AGENT_GH_ISSUES_PRS_CHORES` (reads the issues, posts the comments and writes the PM Score
+  issue field, so its account needs push access to every repository that holds a scored bug),
+  `BASTION_SSH_PRIVATE_KEY_JAHIACI` (the 30-day log upload to the Jahia
   servers),
   `AI_LITELLM_AUTH_TOKEN` (the shared gateway key), `AI_LITELLM_BASE_URL`,
   `AI_LITELLM_ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL`, `CORTEX_TELEMETRY_TOKEN`, and the mTLS
