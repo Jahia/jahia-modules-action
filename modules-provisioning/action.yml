@@ -1,0 +1,50 @@
+name: Modules provisioning
+description: >-
+  Write the provisioning script of the modules a Jahia release ships, as one installOrUpgradeBundle
+  block: at the versions the release ships, or each at the version the module manager of that
+  release offers from the Store. The matrix the script is built from is written beside it as JSON.
+
+inputs:
+  jahia_version:
+    description: 'The Jahia release, such as 8.2.3.2'
+    required: true
+  versions:
+    description: >-
+      store: each module at the version the "Installed modules" page of the release offers from the
+      Store, the shipped version when the page offers none. shipped: the versions the release ships.
+    required: false
+    default: 'store'
+  store_url:
+    description: 'The Store whose offers the store mode reads'
+    required: false
+    default: 'https://store.jahia.com/en/sites/private-app-store'
+  nexus_username:
+    description: 'Nexus user, which reads the EE pack of the release; without it, the public packs only'
+    required: false
+    default: ''
+  nexus_password:
+    description: 'Nexus password'
+    required: false
+    default: ''
+  provisioning_path:
+    description: 'Where to write the provisioning script'
+    required: false
+    default: 'modules-provisioning.yml'
+  matrix_path:
+    description: 'Where to write the JSON matrix'
+    required: false
+    default: 'compat-matrix.json'
+
+outputs:
+  provisioning_path:
+    description: 'The provisioning script written'
+  matrix_path:
+    description: 'The JSON matrix written'
+  modules:
+    description: 'How many modules the script installs'
+  upgraded:
+    description: 'How many of them are newer than the version the release ships'
+
+runs:
+  using: 'node24'
+  main: 'dist/index.js'
