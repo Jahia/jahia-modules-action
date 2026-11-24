@@ -7,9 +7,12 @@ Env:   PR_URL            - URL of the pull request to review
        RUN_URL           - URL of the workflow run performing this review
        REVIEW_ROUND      - optional: the round that the run records, read from the trail
                            Review Logs of the pull request; empty records no round
+       CORTEX_PATH       - the cortex checkout, the working directory of the agent, which
+                           holds the checkout of the pull request under sources/
        ALLOWED_TOOLS     - the allowed_tools input, to which this script adds the rules
                            that name a path of this run
-       DISALLOWED_TOOLS  - the --disallowedTools value
+       DISALLOWED_TOOLS  - the disallowed_tools input, to which this script adds the deny
+                           rule of the cortex checkout
 
 Cortex owns the review: its method, its decision rules and the shape of the review file
 (`.claude/skills/pr-review/references/ci.md` and `assets/ci-review.md` in Jahia/cortex).
@@ -27,8 +30,9 @@ The agent never posts to GitHub itself: it writes the review file
 deterministic step of the action.
 
 Writes <log-dir>/review.prompt.md (the call), <log-dir>/review.system.md (the tool
-surface) and <log-dir>/allowed-tools.txt (the --allowedTools value), then prints the PR
-key (owner-repo-number, used for file names) to stdout.
+surface), <log-dir>/allowed-tools.txt (the --allowedTools value) and
+<log-dir>/disallowed-tools.txt (the --disallowedTools value), then prints the PR key
+(owner-repo-number, used for file names) to stdout.
 """
 import os
 import re
@@ -37,6 +41,11 @@ import sys
 
 log_dir = os.path.realpath(sys.argv[1])
 pr_url = os.environ['PR_URL']
+cortex_path = os.path.realpath(os.environ['CORTEX_PATH'])
+# The deny rule of the cortex checkout would cover the log directory, and refuse every write
+# of the agent.
+if os.path.commonpath([log_dir, cortex_path]) == cortex_path:
+    sys.exit(f'The log directory {log_dir} is inside the cortex checkout {cortex_path}')
 
 match = re.search(r'([^/]+)/([^/]+)/pull/(\d+)$', pr_url)
 if not match:
@@ -106,7 +115,15 @@ allowed_tools = ','.join(filter(None, [
     f'Bash(python3 -m json.tool {review_file})',
 ]))
 allowed_plain, allowed_shell = split_tools(allowed_tools)
-denied_plain, denied_shell = split_tools(os.environ.get('DISALLOWED_TOOLS', ''))
+# The deny rule of the cortex checkout, the working directory of the agent, which holds the
+# checkout of the pull request under sources/. A path rule of Edit applies to Write and to the
+# target of a shell redirection too. It names the absolute path, because Claude Code 2.1.325
+# matches `Edit(./**)` in an --add-dir directory as well, the log directory included.
+disallowed_tools = ','.join(filter(None, [
+    os.environ.get('DISALLOWED_TOOLS', ''),
+    f'Edit(/{cortex_path}/**)',
+]))
+denied_plain, denied_shell = split_tools(disallowed_tools)
 
 
 def bullets(commands):
@@ -149,8 +166,9 @@ surface += [
     f'- Every file you write goes under `{reviews_dir}`, the directory of the review file, or',
     f'  under `{collect_dir}`, the `--collect` directory, where a scratch file goes too. A write',
     '  anywhere else is refused, through Write and through a shell redirection alike. Write each',
-    '  file with the Write tool: an `Edit(…)` rule of the list admits Write under its path, and',
-    '  the Edit tool itself is denied, so a fix of the review file writes the whole file again.',
+    '  file with the Write tool: an `Edit(…)` path rule of the allow list admits Write under its',
+    '  path, and the Edit tool itself is denied, so a fix of the review file writes the whole',
+    '  file again.',
     '  `python3 -m json.tool` runs on the review file, in the one form that the list names.',
     '- cortex routes every `gh` write through `tools/gh-wrapper/bin/gh-wrapper`. You make no',
     '  write, and the list above carries the reads under both spellings, so either route',
@@ -168,5 +186,7 @@ with open(os.path.join(log_dir, 'review.system.md'), 'w', encoding='utf-8') as f
     fh.write('\n'.join(surface) + '\n')
 with open(os.path.join(log_dir, 'allowed-tools.txt'), 'w', encoding='utf-8') as fh:
     fh.write(allowed_tools + '\n')
+with open(os.path.join(log_dir, 'disallowed-tools.txt'), 'w', encoding='utf-8') as fh:
+    fh.write(disallowed_tools + '\n')
 
 print(key)

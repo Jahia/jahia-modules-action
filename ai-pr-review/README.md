@@ -266,16 +266,21 @@ could reach the forge or rewrite history (`git push/commit/checkout/reset/remote
 execute (`--upload-pack`). The agent itself never posts anything: `gh pr review` is denied
 too — the agent writes the review body to a file, and submitting that file is a
 deterministic action step (running with the jahia-ai token) after the agent finishes.
-The default deny list carries `Edit(./**)`, which denies a write in the cortex checkout, the
-working directory of the agent. A path rule of Edit applies to the `Write` tool and to the target
-of a Bash redirection too. `src/build-prompt.py` adds the three rules that name a path of the
-run. Two write rules name the directory of the review file and the `--collect` directory, both in
-the log directory outside the checkout, such as
+`src/build-prompt.py` adds a deny rule that names the cortex checkout, the working directory of the
+agent, such as `Edit(//home/runner/work/foo/foo/cortex/**)`. It denies a write in that checkout
+and in the checkout of the pull request under its `sources/`, whatever list the caller passes. A
+path rule of Edit applies to the `Write` tool and to the target of a Bash redirection too. The
+rule names the absolute path, because Claude Code 2.1.325 matches `Edit(./**)` in the `--add-dir`
+log directory as well, so a list that carries `Edit(./**)` denies the write of the review file.
+The script stops when the log directory is inside the cortex checkout, where its deny rule would
+cover it. `src/build-prompt.py` adds the three allow rules that name a path of the run. Two
+write rules name the directory of the review file and the `--collect` directory, both in the log
+directory outside the checkout, such as
 `Edit(//home/runner/work/_temp/pr-review-logs/reviews/**)` on a GitHub-hosted runner. The third
 rule admits `python3 -m json.tool` on the review file alone, the check that the `ci` mode runs.
 The allow list of the action holds no command that writes a file on its own, except
 `tools/pr-review/bin/pr-review record`, which writes the trace of the round under the cortex
-checkout. A caller that passes its own `disallowed_tools` names `Edit(./**)` in it to keep that rule.
+checkout.
 `--permission-mode dontAsk` denies everything not explicitly allowed. The submit step posts
 `APPROVE` only under the five conditions that the opening of this README states. The `ci` mode of the skill
 has the agent treat PR content (title, description, code, comments) as data, never as
