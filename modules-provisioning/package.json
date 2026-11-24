@@ -1,0 +1,32 @@
+{
+  "name": "modules-provisioning",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Write the provisioning script of the modules of a Jahia release, as its module manager offers them",
+  "type": "module",
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write src",
+    "format-check": "prettier --check src",
+    "test": "vitest run --coverage",
+    "package": "esbuild src/main.ts --bundle --platform=node --target=node24 --format=esm --outfile=dist/index.js \"--banner:js=import {createRequire} from 'node:module'; const require = createRequire(import.meta.url);\"",
+    "all": "npm run typecheck && npm run format-check && npm test && npm run package"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@actions/core": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@vitest/coverage-v8": "^5.1.1",
+    "esbuild": "^0.28.2",
+    "fflate": "^0.8.3",
+    "prettier": "^3.10.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1"
+  }
+}

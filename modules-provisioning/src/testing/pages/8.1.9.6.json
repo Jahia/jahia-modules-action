@@ -1,0 +1,2700 @@
+{
+  "jahiaVersion": "8.1.9.6",
+  "modules": [
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "advanced-visibility",
+      "version": "8.0.0",
+      "pack": "jahia-ee-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "app-shell",
+      "version": "2.10.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "article",
+      "version": "3.0.0",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "assets",
+      "version": "8.0.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "bookmarks",
+      "version": "3.1.0",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "bootstrap3-components",
+      "version": "4.2.1",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "bootstrap3-core",
+      "version": "4.2.1",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "calendar",
+      "version": "3.2.0",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "channels",
+      "version": "8.0.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "ckeditor",
+      "version": "4.21.0-jahia8-5",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "contact",
+      "version": "3.0.0",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "content-editor",
+      "version": "3.7.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "content-security-policy",
+      "version": "2.6.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "contentRetrieval",
+      "version": "8.1.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "default",
+      "version": "8.6.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "default-skins",
+      "version": "8.1.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "digitall",
+      "version": "2.3.0",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "dx-base-demo-components",
+      "version": "2.4.0",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "dx-base-demo-core",
+      "version": "2.5.0",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "dx-base-demo-templates",
+      "version": "3.4.0",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "event",
+      "version": "3.1.0",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "external-provider",
+      "version": "4.6.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "external-provider-modules",
+      "version": "4.6.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "external-provider-users-groups",
+      "version": "2.3.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "external-provider-vfs",
+      "version": "4.6.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "facets",
+      "version": "8.1.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "faq",
+      "version": "3.0.0",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "font-awesome",
+      "version": "6.1.5",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "googleAnalytics",
+      "version": "3.0.0",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "graphql-dxm-provider",
+      "version": "2.24.0",
+      "pack": "jahia-core-modules",
+      "startLevel": 85
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "grid",
+      "version": "8.0.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-administration",
+      "version": "1.10.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-category-manager",
+      "version": "1.3.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-csrf-guard",
+      "version": "3.4.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-dashboard",
+      "version": "1.10.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-dashboard-docs",
+      "version": "1.3.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-developer-tools",
+      "version": "1.1.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-page-composer",
+      "version": "1.12.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-repository-explorer",
+      "version": "1.5.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-ui-root",
+      "version": "1.10.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-user-entries",
+      "version": "1.6.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jcontent",
+      "version": "2.18.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jcrestapi",
+      "version": "3.4.1",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jquery",
+      "version": "8.1.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "ldap",
+      "version": "4.8.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "linkchecker",
+      "version": "8.2.0",
+      "pack": "jahia-ee-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "location",
+      "version": "3.2.0",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "macros",
+      "version": "8.5.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "module-manager",
+      "version": "2.8.1",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "news",
+      "version": "3.4.0",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "person",
+      "version": "3.2.0",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "personal-api-tokens",
+      "version": "1.10.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "press",
+      "version": "3.1.0",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "profile",
+      "version": "8.2.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "rating",
+      "version": "3.2.0",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "remotepublish",
+      "version": "9.10.0",
+      "pack": "jahia-ee-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "rolesmanager",
+      "version": "8.10.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "sdl-generator-tools",
+      "version": "2.4.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "search",
+      "version": "8.3.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "security-filter-tools",
+      "version": "2.6.1",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "seo",
+      "version": "8.1.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "serverSettings",
+      "version": "9.7.4",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "serverSettings-ee",
+      "version": "9.3.0",
+      "pack": "jahia-ee-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "site-settings-publication",
+      "version": "2.0.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "site-settings-seo",
+      "version": "4.5.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "siteSettings",
+      "version": "8.7.1",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "skins",
+      "version": "8.0.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "socialsharing",
+      "version": "3.0.0",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "tabularList",
+      "version": "8.1.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "tags",
+      "version": "8.2.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "tasks",
+      "version": "8.3.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "templates-system",
+      "version": "9.0.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "tools",
+      "version": "4.8.0",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "tools-ee",
+      "version": "3.2.0",
+      "pack": "jahia-ee-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "topstories",
+      "version": "3.0.0",
+      "pack": "jahia-additional-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "userDashboard",
+      "version": "8.8.1",
+      "pack": "jahia-core-modules"
+    },
+    {
+      "groupId": "org.jahia.modules",
+      "artifactId": "visibility",
+      "version": "8.0.0",
+      "pack": "jahia-core-modules"
+    }
+  ],
+  "depends": {
+    "advanced-visibility": ["default"],
+    "app-shell": ["default"],
+    "article": ["default"],
+    "assets": ["jquery", "ckeditor"],
+    "bookmarks": ["default", "profile", "skins", "default-skins"],
+    "bootstrap3-components": ["bootstrap3-core"],
+    "bootstrap3-core": ["jquery"],
+    "calendar": ["default"],
+    "channels": ["default"],
+    "ckeditor": [],
+    "contact": ["default"],
+    "content-editor": ["default"],
+    "content-security-policy": [],
+    "contentRetrieval": [],
+    "default": ["assets"],
+    "default-skins": [],
+    "digitall": [
+      "default",
+      "dx-base-demo-components",
+      "dx-base-demo-core",
+      "dx-base-demo-templates",
+      "bookmarks"
+    ],
+    "dx-base-demo-components": [
+      "bootstrap3-components",
+      "font-awesome",
+      "dx-base-demo-core",
+      "skins",
+      "event",
+      "news",
+      "person",
+      "location",
+      "topstories"
+    ],
+    "dx-base-demo-core": [],
+    "dx-base-demo-templates": [
+      "default",
+      "search",
+      "bookmarks",
+      "topstories",
+      "facets",
+      "calendar",
+      "rating",
+      "location",
+      "news",
+      "skins",
+      "dx-base-demo-core",
+      "bootstrap3-core"
+    ],
+    "event": ["default"],
+    "external-provider": ["siteSettings", "assets", "jquery"],
+    "external-provider-modules": ["external-provider", "external-provider-vfs"],
+    "external-provider-users-groups": ["external-provider"],
+    "external-provider-vfs": ["external-provider", "assets", "jquery"],
+    "facets": ["default"],
+    "faq": ["default"],
+    "font-awesome": ["default"],
+    "googleAnalytics": ["default"],
+    "graphql-dxm-provider": ["default"],
+    "grid": ["default"],
+    "jahia-administration": ["graphql-dxm-provider", "jahia-ui-root"],
+    "jahia-category-manager": ["default"],
+    "jahia-csrf-guard": ["default"],
+    "jahia-dashboard": ["graphql-dxm-provider", "jahia-ui-root"],
+    "jahia-dashboard-docs": ["jahia-dashboard"],
+    "jahia-developer-tools": ["jahia-ui-root"],
+    "jahia-page-composer": ["graphql-dxm-provider"],
+    "jahia-repository-explorer": ["default"],
+    "jahia-ui-root": ["default"],
+    "jahia-user-entries": ["default"],
+    "jcontent": ["jahia-ui-root"],
+    "jcrestapi": ["default"],
+    "jquery": [],
+    "ldap": ["default", "external-provider-users-groups", "external-provider"],
+    "linkchecker": ["default", "siteSettings"],
+    "location": ["default"],
+    "macros": ["default"],
+    "module-manager": ["serverSettings"],
+    "news": ["default", "grid", "seo"],
+    "person": ["default"],
+    "personal-api-tokens": ["graphql-dxm-provider"],
+    "press": ["default"],
+    "profile": ["default"],
+    "rating": ["default"],
+    "remotepublish": ["siteSettings"],
+    "rolesmanager": ["serverSettings"],
+    "sdl-generator-tools": ["graphql-dxm-provider"],
+    "search": ["default"],
+    "security-filter-tools": ["graphql-dxm-provider"],
+    "seo": ["default"],
+    "serverSettings": ["default", "siteSettings"],
+    "serverSettings-ee": ["default", "serverSettings", "module-manager", "app-shell"],
+    "site-settings-publication": ["default", "siteSettings"],
+    "site-settings-seo": ["graphql-dxm-provider", "seo", "app-shell"],
+    "siteSettings": ["default"],
+    "skins": ["default"],
+    "socialsharing": ["default"],
+    "tabularList": ["default"],
+    "tags": ["default", "siteSettings"],
+    "tasks": ["default", "userDashboard"],
+    "templates-system": [
+      "contentRetrieval",
+      "default",
+      "default-skins",
+      "facets",
+      "grid",
+      "module-manager",
+      "profile",
+      "serverSettings",
+      "skins",
+      "tabularList",
+      "tags"
+    ],
+    "tools": [],
+    "tools-ee": [],
+    "topstories": ["default"],
+    "userDashboard": ["default", "contentRetrieval", "jcrestapi"],
+    "visibility": ["default"]
+  },
+  "store": {
+    "org.jahia.modules:app-shell": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "app-shell",
+      "versions": {
+        "2.2.1": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.3.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.4.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.5.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.6.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.7.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.8.1": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.9.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.10.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "3.2.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "3.3.0": {
+          "requiredVersion": "8.1.6.0"
+        },
+        "3.4.0": {
+          "requiredVersion": "8.1.8.0"
+        },
+        "4.0.0": {
+          "requiredVersion": "8.2.2.0"
+        }
+      }
+    },
+    "org.jahia.modules:article": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "article",
+      "versions": {
+        "2.0.0": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.1": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.2": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.3": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:assets": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "assets",
+      "versions": {
+        "8.1.0": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "8.3.0": {
+          "requiredVersion": "8.2.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:bookmarks": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "bookmarks",
+      "versions": {
+        "2.0.0": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.1": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.2": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.1.0": {
+          "requiredVersion": "7.2.0.0"
+        },
+        "2.1.1": {
+          "requiredVersion": "7.2.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.1.0": {
+          "requiredVersion": "8.0.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:bootstrap3-components": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "bootstrap3-components",
+      "versions": {
+        "1.1.2": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "1.1.3": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "1.1.4": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "1.1.5": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "1.1.6": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "1.1.7": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "1.1.8": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "1.1.9": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "1.1.10": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "1.1.11": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "1.2.0": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "1.2.1": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.1": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.3": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.4": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.5": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.6": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.7": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.8": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.9": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.10": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.11": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "7.0.0.2"
+        },
+        "3.4.0": {
+          "requiredVersion": "7.0.0.2"
+        },
+        "3.4.1": {
+          "requiredVersion": "7.0.0.2"
+        },
+        "3.5.0": {
+          "requiredVersion": "7.1.2.2"
+        },
+        "3.5.1": {
+          "requiredVersion": "7.1.2.2"
+        },
+        "3.5.2": {
+          "requiredVersion": "7.1.2.2"
+        },
+        "3.6.0": {
+          "requiredVersion": "7.1.2.2"
+        },
+        "4.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "4.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.7.0": {
+          "requiredVersion": "7.1.2.2"
+        },
+        "4.2.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "4.2.1": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "4.3.0": {
+          "requiredVersion": "8.0.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:bootstrap3-core": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "bootstrap3-core",
+      "versions": {
+        "3.3.5": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.3.6": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.4.0": {
+          "requiredVersion": "7.0.0.2"
+        },
+        "3.4.1": {
+          "requiredVersion": "7.0.0.2"
+        },
+        "3.5.0": {
+          "requiredVersion": "7.1.2.2"
+        },
+        "3.5.1": {
+          "requiredVersion": "7.1.2.2"
+        },
+        "3.5.2": {
+          "requiredVersion": "7.1.2.2"
+        },
+        "3.6.0": {
+          "requiredVersion": "7.1.2.2"
+        },
+        "4.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "4.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.7.0": {
+          "requiredVersion": "7.1.2.2"
+        },
+        "4.2.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "4.2.1": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "4.3.0": {
+          "requiredVersion": "8.0.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:calendar": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "calendar",
+      "versions": {
+        "2.0.0": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.1": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.2": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.3": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.4": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.5": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.6": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.1.0": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.2.0": {
+          "requiredVersion": "8.0.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:ckeditor": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "ckeditor",
+      "versions": {
+        "4.7.1-jahia1": {
+          "requiredVersion": "7.0.0.2"
+        },
+        "4.7.1-jahia2": {
+          "requiredVersion": "7.0.0.2"
+        },
+        "4.7.1-jahia3": {
+          "requiredVersion": "7.0.0.2"
+        },
+        "4.7.1-jahia4": {
+          "requiredVersion": "7.0.0.2"
+        },
+        "4.13.1-jahia8-1": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "4.13.1-jahia8-2": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "4.13.1-jahia7.3-1": {
+          "requiredVersion": "7.3.0.0"
+        },
+        "4.17.1-jahia1": {
+          "requiredVersion": "7.3.0.0"
+        },
+        "4.17.1-jahia8-1": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "4.17.1-jahia8-2": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "4.19.1-jahia8-2": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "4.19.1-jahia8-3": {
+          "requiredVersion": "8.1.2.2"
+        },
+        "4.21.0-jahia8-5": {
+          "requiredVersion": "8.1.2.2"
+        },
+        "4.21.0-jahia8-6": {
+          "requiredVersion": "8.1.2.2"
+        },
+        "4.21.0-jahia8-7": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "4.21.0-jahia8-8": {
+          "requiredVersion": "8.2.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:contact": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "contact",
+      "versions": {
+        "2.0.0": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.1": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.2": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.3": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:content-editor": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "content-editor",
+      "versions": {
+        "1.0.0": {
+          "requiredVersion": "7.3.1.1"
+        },
+        "2.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.0.1": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.1.0"
+        },
+        "3.0.1": {
+          "requiredVersion": "8.0.1.0"
+        },
+        "3.2.0": {
+          "requiredVersion": "8.0.2.0"
+        },
+        "3.3.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "3.3.1": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "3.3.2": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "3.4.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "3.4.1": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "4.0.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "4.0.1": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "4.1.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "3.4.2": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "3.4.3": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "4.2.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "4.2.1": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "4.2.2": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "4.2.3": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "3.5.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "4.3.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "4.3.1": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "4.4.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "3.6.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "4.5.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "4.5.1": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "4.6.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "4.7.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "4.8.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "4.9.1": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "3.7.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "4.10.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "4.11.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "3.8.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "4.12.0": {
+          "requiredVersion": "8.1.6.0"
+        },
+        "4.13.0": {
+          "requiredVersion": "8.1.6.0"
+        },
+        "4.14.0": {
+          "requiredVersion": "8.1.6.0"
+        },
+        "4.15.0": {
+          "requiredVersion": "8.1.6.0"
+        },
+        "4.15.1": {
+          "requiredVersion": "8.1.6.0"
+        },
+        "4.16.0": {
+          "requiredVersion": "8.1.6.0"
+        }
+      }
+    },
+    "org.jahia.modules:content-security-policy": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "content-security-policy",
+      "versions": {
+        "1.0.0": {
+          "requiredVersion": "7.2.3.1"
+        },
+        "1.0.1": {
+          "requiredVersion": "7.2.3.1"
+        },
+        "2.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.1.0": {
+          "requiredVersion": "8.0.1.0"
+        },
+        "2.2.0": {
+          "requiredVersion": "8.0.1.0"
+        },
+        "2.3.0": {
+          "requiredVersion": "8.0.1.0"
+        },
+        "2.4.0": {
+          "requiredVersion": "8.0.1.0"
+        },
+        "2.5.0": {
+          "requiredVersion": "8.1.8.0"
+        },
+        "2.6.0": {
+          "requiredVersion": "8.1.8.0"
+        }
+      }
+    },
+    "org.jahia.modules:default-skins": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "default-skins",
+      "versions": {
+        "8.2.0": {
+          "requiredVersion": "8.1.5.0"
+        }
+      }
+    },
+    "org.jahia.modules:digitall": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "digitall",
+      "versions": {
+        "1.0.2": {
+          "requiredVersion": "7.1.1.0"
+        },
+        "1.0.3": {
+          "requiredVersion": "7.1.1.0"
+        },
+        "1.0.4": {
+          "requiredVersion": "7.1.1.0"
+        },
+        "1.1.0": {
+          "requiredVersion": "7.1.1.0"
+        },
+        "2.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.1.1": {
+          "requiredVersion": "7.1.1.0"
+        },
+        "2.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.2.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.3.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.2.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:dx-base-demo-components": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "dx-base-demo-components",
+      "versions": {
+        "1.0.1": {
+          "requiredVersion": "7.1.2.0"
+        },
+        "1.0.2": {
+          "requiredVersion": "7.1.2.3"
+        },
+        "1.0.3": {
+          "requiredVersion": "7.1.2.3"
+        },
+        "1.0.4": {
+          "requiredVersion": "7.1.2.3"
+        },
+        "2.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.2.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.2.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:dx-base-demo-core": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "dx-base-demo-core",
+      "versions": {
+        "1.0.1": {
+          "requiredVersion": "7.1.2.0"
+        },
+        "1.0.2": {
+          "requiredVersion": "7.1.2.0"
+        },
+        "1.0.3": {
+          "requiredVersion": "7.1.2.0"
+        },
+        "1.0.4": {
+          "requiredVersion": "7.1.2.0"
+        },
+        "2.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.1.0": {
+          "requiredVersion": "8.0.1.0"
+        },
+        "2.2.0": {
+          "requiredVersion": "8.0.1.0"
+        },
+        "1.0.5": {
+          "requiredVersion": "7.1.2.0"
+        },
+        "2.3.0": {
+          "requiredVersion": "8.0.1.0"
+        },
+        "2.6.0": {
+          "requiredVersion": "8.0.1.0"
+        }
+      }
+    },
+    "org.jahia.modules:dx-base-demo-templates": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "dx-base-demo-templates",
+      "versions": {
+        "1.0.1": {
+          "requiredVersion": "7.1.2.0"
+        },
+        "2.0.0": {
+          "requiredVersion": "7.2.0.2"
+        },
+        "2.0.1": {
+          "requiredVersion": "7.2.0.2"
+        },
+        "2.0.2": {
+          "requiredVersion": "7.2.0.2"
+        },
+        "2.1.0": {
+          "requiredVersion": "7.2.0.2"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "4.0.0": {
+          "requiredVersion": "8.2.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:event": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "event",
+      "versions": {
+        "2.0.0": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.1": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.2": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.3": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.2.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "4.0.1": {
+          "requiredVersion": "8.2.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:faq": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "faq",
+      "versions": {
+        "2.0.0": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.1": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.2": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:font-awesome": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "font-awesome",
+      "versions": {
+        "4.3.0": {
+          "requiredVersion": "7.0.0.3"
+        },
+        "4.4.0": {
+          "requiredVersion": "7.0.0.6"
+        },
+        "4.5.0": {
+          "requiredVersion": "7.0.0.6"
+        },
+        "4.6.0": {
+          "requiredVersion": "7.0.0.6"
+        },
+        "4.6.3": {
+          "requiredVersion": "7.0.0.6"
+        },
+        "4.7.0": {
+          "requiredVersion": "7.0.0.6"
+        },
+        "4.7.1": {
+          "requiredVersion": "7.0.0.6"
+        },
+        "6.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "6.1.3": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "6.1.4": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "6.1.5": {
+          "requiredVersion": "8.0.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:googleAnalytics": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "googleAnalytics",
+      "versions": {
+        "2.0.0": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.1": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.2": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.3": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.4": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:graphql-dxm-provider": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "graphql-dxm-provider",
+      "versions": {
+        "1.0.2": {
+          "requiredVersion": "7.2.3.0"
+        },
+        "1.0.5": {
+          "requiredVersion": "7.2.3.2"
+        },
+        "1.0.6": {
+          "requiredVersion": "7.2.3.2"
+        },
+        "1.0.7": {
+          "requiredVersion": "7.2.3.2"
+        },
+        "1.1.0": {
+          "requiredVersion": "7.3.1.0"
+        },
+        "1.1.1": {
+          "requiredVersion": "7.3.1.1"
+        },
+        "1.2.0": {
+          "requiredVersion": "7.3.1.1"
+        },
+        "1.4.0": {
+          "requiredVersion": "7.3.1.1"
+        },
+        "1.3.0": {
+          "requiredVersion": "7.3.1.1"
+        },
+        "2.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.5.0": {
+          "requiredVersion": "7.3.1.1"
+        },
+        "2.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.6.0": {
+          "requiredVersion": "7.3.1.1"
+        },
+        "2.2.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.7.0": {
+          "requiredVersion": "7.3.1.1"
+        },
+        "1.7.1": {
+          "requiredVersion": "7.3.1.1"
+        },
+        "2.2.1": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.2.3": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.3.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.8.0": {
+          "requiredVersion": "7.3.1.1"
+        },
+        "2.4.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.5.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.6.0": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "1.9.1": {
+          "requiredVersion": "7.3.1.1"
+        },
+        "1.10.0": {
+          "requiredVersion": "7.3.1.1"
+        },
+        "2.7.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "2.8.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "1.11.0": {
+          "requiredVersion": "7.3.10.0"
+        },
+        "2.9.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "2.10.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "2.11.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "2.8.1": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "2.12.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "2.13.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "2.14.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "2.15.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "2.16.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "2.17.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "2.18.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "2.19.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "2.19.1": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "2.20.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "3.1.0": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "2.21.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "3.2.0": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "2.22.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "3.3.0": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "3.4.0": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "3.5.1": {
+          "requiredVersion": "8.2.0.7"
+        },
+        "2.23.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "3.6.0": {
+          "requiredVersion": "8.2.0.7"
+        },
+        "3.7.0": {
+          "requiredVersion": "8.2.0.7"
+        },
+        "3.8.1": {
+          "requiredVersion": "8.2.0.7"
+        },
+        "3.9.1": {
+          "requiredVersion": "8.2.0.7"
+        },
+        "2.24.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "3.10.0": {
+          "requiredVersion": "8.2.0.7"
+        }
+      }
+    },
+    "org.jahia.modules:grid": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "grid",
+      "versions": {
+        "8.1.0": {
+          "requiredVersion": "8.0.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:jahia-administration": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-administration",
+      "versions": {
+        "1.5.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.6.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.7.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.8.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.9.1": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.10.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "1.11.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "1.12.0": {
+          "requiredVersion": "8.1.8.0"
+        }
+      }
+    },
+    "org.jahia.modules:jahia-category-manager": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-category-manager",
+      "versions": {
+        "1.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.2.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "1.3.0": {
+          "requiredVersion": "8.1.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:jahia-csrf-guard": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-csrf-guard",
+      "versions": {
+        "2.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.1.0": {
+          "requiredVersion": "7.2.3.1"
+        },
+        "1.1.1": {
+          "requiredVersion": "7.2.3.1"
+        },
+        "2.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.2.0": {
+          "requiredVersion": "7.2.3.1"
+        },
+        "1.3.0": {
+          "requiredVersion": "7.2.3.1"
+        },
+        "2.2.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.4.0": {
+          "requiredVersion": "7.2.3.1"
+        },
+        "2.3.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.5.0": {
+          "requiredVersion": "7.2.3.1"
+        },
+        "2.4.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "3.1.0": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "3.2.0": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "3.3.0": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "3.4.0": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "4.0.0": {
+          "requiredVersion": "8.1.6.0"
+        },
+        "4.1.0": {
+          "requiredVersion": "8.1.6.0"
+        },
+        "4.2.0": {
+          "requiredVersion": "8.1.7.0"
+        },
+        "4.2.1": {
+          "requiredVersion": "8.1.7.0"
+        },
+        "4.2.2": {
+          "requiredVersion": "8.1.7.0"
+        },
+        "4.3.0": {
+          "requiredVersion": "8.1.7.0"
+        },
+        "5.0.0": {
+          "requiredVersion": "8.2.1.1"
+        }
+      }
+    },
+    "org.jahia.modules:jahia-dashboard": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-dashboard",
+      "versions": {
+        "1.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.2.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.2.1": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.3.0": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "1.4.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "1.5.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "1.6.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "1.7.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "1.8.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "1.9.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "1.10.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "1.11.0": {
+          "requiredVersion": "8.1.6.0"
+        },
+        "1.12.0": {
+          "requiredVersion": "8.1.8.0"
+        }
+      }
+    },
+    "org.jahia.modules:jahia-dashboard-docs": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-dashboard-docs",
+      "versions": {
+        "1.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.2.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.3.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.4.0": {
+          "requiredVersion": "8.1.6.0"
+        }
+      }
+    },
+    "org.jahia.modules:jahia-page-composer": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-page-composer",
+      "versions": {
+        "1.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.2.0": {
+          "requiredVersion": "8.0.2.0"
+        },
+        "1.3.0": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "1.4.0": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "1.5.0": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "1.6.0": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "1.7.0": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "1.8.0": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "1.9.0": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "1.10.0": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "1.11.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "1.12.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "2.0.0": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "2.1.0": {
+          "requiredVersion": "8.2.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:jahia-repository-explorer": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-repository-explorer",
+      "versions": {
+        "1.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.2.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.3.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "1.4.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "1.5.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "1.6.0": {
+          "requiredVersion": "8.1.8.0"
+        }
+      }
+    },
+    "org.jahia.modules:jahia-ui-root": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-ui-root",
+      "versions": {
+        "1.10.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.11.0": {
+          "requiredVersion": "8.2.1.0"
+        }
+      }
+    },
+    "org.jahia.modules:jahia-user-entries": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jahia-user-entries",
+      "versions": {
+        "1.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.2.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.3.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.4.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.5.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "1.6.0": {
+          "requiredVersion": "8.0.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:jcontent": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "jcontent",
+      "versions": {
+        "2.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.2.0": {
+          "requiredVersion": "8.0.2.0"
+        },
+        "2.3.0": {
+          "requiredVersion": "8.0.2.0"
+        },
+        "2.4.0": {
+          "requiredVersion": "8.0.2.0"
+        },
+        "2.5.0": {
+          "requiredVersion": "8.0.2.0"
+        },
+        "2.6.0": {
+          "requiredVersion": "8.0.2.0"
+        },
+        "2.7.0": {
+          "requiredVersion": "8.0.2.0"
+        },
+        "2.8.0": {
+          "requiredVersion": "8.0.2.0"
+        },
+        "2.9.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "2.10.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "2.11.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "2.12.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "2.13.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "3.0.1": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "2.14.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "2.15.0": {
+          "requiredVersion": "8.1.1.0"
+        },
+        "2.16.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "3.1.0": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "2.17.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "2.18.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "3.2.0": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "3.2.1": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "3.3.0": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "3.3.1": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "2.19.0": {
+          "requiredVersion": "8.1.7.0"
+        },
+        "3.4.1": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "2.20.0": {
+          "requiredVersion": "8.1.7.0"
+        },
+        "3.5.0": {
+          "requiredVersion": "8.2.1.0"
+        },
+        "3.6.0": {
+          "requiredVersion": "8.2.1.0"
+        },
+        "3.6.1": {
+          "requiredVersion": "8.2.1.0"
+        },
+        "3.6.2": {
+          "requiredVersion": "8.2.1.0"
+        },
+        "3.7.1": {
+          "requiredVersion": "8.2.1.0"
+        },
+        "3.8.0": {
+          "requiredVersion": "8.2.1.0"
+        },
+        "3.8.1": {
+          "requiredVersion": "8.2.1.0"
+        }
+      }
+    },
+    "org.jahia.modules:ldap": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "ldap",
+      "versions": {
+        "2.0.0": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.1": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.2": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.3": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "7.1.0.0"
+        },
+        "2.0.4": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.0.1": {
+          "requiredVersion": "7.1.0.0"
+        },
+        "3.0.2": {
+          "requiredVersion": "7.1.0.0"
+        },
+        "3.0.3": {
+          "requiredVersion": "7.1.0.0"
+        },
+        "3.0.4": {
+          "requiredVersion": "7.1.0.0"
+        },
+        "3.0.5": {
+          "requiredVersion": "7.1.0.0"
+        },
+        "3.1.0": {
+          "requiredVersion": "7.2.0.0"
+        },
+        "3.0.6": {
+          "requiredVersion": "7.1.0.0"
+        },
+        "3.1.1": {
+          "requiredVersion": "7.2.0.0"
+        },
+        "3.0.7": {
+          "requiredVersion": "7.1.0.0"
+        },
+        "3.1.2": {
+          "requiredVersion": "7.2.0.0"
+        },
+        "3.1.3": {
+          "requiredVersion": "7.2.0.0"
+        },
+        "3.1.4": {
+          "requiredVersion": "7.2.0.0"
+        },
+        "3.1.5": {
+          "requiredVersion": "7.2.0.0"
+        },
+        "3.1.6": {
+          "requiredVersion": "7.2.0.0"
+        },
+        "3.2.0": {
+          "requiredVersion": "7.2.0.0"
+        },
+        "4.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "4.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.2.1": {
+          "requiredVersion": "7.2.0.0"
+        },
+        "4.1.1": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "4.2.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "4.3.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "3.4.0": {
+          "requiredVersion": "7.2.0.0"
+        },
+        "4.4.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "4.5.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "4.6.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "4.7.1": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "4.8.0": {
+          "requiredVersion": "8.1.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:location": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "location",
+      "versions": {
+        "2.0.0": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.1": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.2": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.3": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.4": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.5": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.2.0": {
+          "requiredVersion": "8.0.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:macros": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "macros",
+      "versions": {
+        "7.1.3": {
+          "requiredVersion": "7.1.0.0"
+        },
+        "8.2.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "8.3.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "8.4.0": {
+          "requiredVersion": "8.1.6.2"
+        },
+        "8.4.1": {
+          "requiredVersion": "8.1.6.1"
+        },
+        "8.5.0": {
+          "requiredVersion": "8.1.6.1"
+        }
+      }
+    },
+    "org.jahia.modules:news": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "news",
+      "versions": {
+        "2.0.0": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.1": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.2": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.3": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.4": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.2.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.3.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.0.5": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.4.0": {
+          "requiredVersion": "8.0.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:person": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "person",
+      "versions": {
+        "2.0.0": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.1": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.2": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.2.0": {
+          "requiredVersion": "8.0.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:personal-api-tokens": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "personal-api-tokens",
+      "versions": {
+        "1.0.0": {
+          "requiredVersion": "8.0.1.0"
+        },
+        "0.5.0": {
+          "requiredVersion": "7.3.1.0"
+        },
+        "1.1.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "1.0.1": {
+          "requiredVersion": "8.0.1.0"
+        },
+        "1.2.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "1.3.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "1.4.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "1.4.1": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "1.5.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "1.6.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "1.7.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "1.8.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "1.9.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "1.10.0": {
+          "requiredVersion": "8.1.3.0"
+        }
+      }
+    },
+    "org.jahia.modules:press": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "press",
+      "versions": {
+        "2.0.0": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.1": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.2": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.1.0": {
+          "requiredVersion": "8.0.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:rating": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "rating",
+      "versions": {
+        "2.0.0": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.1": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.2": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.3": {
+          "requiredVersion": "7.2.3.0"
+        },
+        "2.0.4": {
+          "requiredVersion": "7.2.3.0"
+        },
+        "2.0.5": {
+          "requiredVersion": "7.2.3.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.2.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.3.0": {
+          "requiredVersion": "8.2.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:remotepublish": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "remotepublish",
+      "versions": {
+        "8.1.2": {
+          "requiredVersion": "7.2.1.1"
+        },
+        "8.1.3": {
+          "requiredVersion": "7.2.3.0"
+        },
+        "8.1.4": {
+          "requiredVersion": "7.2.3.0"
+        },
+        "8.2.0": {
+          "requiredVersion": "7.3.0.0"
+        },
+        "8.2.1": {
+          "requiredVersion": "7.3.0.0"
+        },
+        "8.1.5": {
+          "requiredVersion": "7.2.3.0"
+        },
+        "8.2.2": {
+          "requiredVersion": "7.3.0.0"
+        },
+        "8.1.6": {
+          "requiredVersion": "7.2.3.0"
+        },
+        "8.3.0": {
+          "requiredVersion": "7.3.0.0"
+        },
+        "9.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "8.4.0": {
+          "requiredVersion": "7.3.0.0"
+        },
+        "9.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "8.5.0": {
+          "requiredVersion": "7.3.0.0"
+        },
+        "9.2.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "9.3.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "9.5.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "9.6.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "9.7.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "9.8.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "10.0.0": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "10.2.0": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "9.10.0": {
+          "requiredVersion": "8.1.5.0"
+        },
+        "10.3.0": {
+          "requiredVersion": "8.2.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:sdl-generator-tools": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "sdl-generator-tools",
+      "versions": {
+        "2.3.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "2.4.0": {
+          "requiredVersion": "8.1.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:security-filter-tools": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "security-filter-tools",
+      "versions": {
+        "1.0.3": {
+          "requiredVersion": "7.2.1.1"
+        },
+        "1.0.4": {
+          "requiredVersion": "7.2.1.1"
+        },
+        "2.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.1.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.2.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "2.3.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "2.4.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "2.5.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "2.6.1": {
+          "requiredVersion": "8.1.9.0"
+        }
+      }
+    },
+    "org.jahia.modules:site-settings-publication": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "site-settings-publication",
+      "versions": {
+        "1.0.0": {
+          "requiredVersion": "7.2.1.0"
+        },
+        "1.0.1": {
+          "requiredVersion": "7.2.1.0"
+        },
+        "2.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.2.1": {
+          "requiredVersion": "8.1.7.0"
+        }
+      }
+    },
+    "org.jahia.modules:site-settings-seo": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "site-settings-seo",
+      "versions": {
+        "1.0.3": {
+          "requiredVersion": "7.2.3.0"
+        },
+        "2.0.0": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "3.1.0": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "3.2.0": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "3.2.1": {
+          "requiredVersion": "8.0.3.0"
+        },
+        "3.4.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "3.5.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "4.1.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "4.2.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "4.3.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "4.4.0": {
+          "requiredVersion": "8.1.3.0"
+        },
+        "5.0.0": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "5.1.0": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "4.5.0": {
+          "requiredVersion": "8.1.8.0"
+        },
+        "5.2.0": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "5.3.0": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "5.4.0": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "5.5.0": {
+          "requiredVersion": "8.2.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:skins": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "skins",
+      "versions": {
+        "8.2.0": {
+          "requiredVersion": "8.1.5.0"
+        }
+      }
+    },
+    "org.jahia.modules:socialsharing": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "socialsharing",
+      "versions": {
+        "2.0.0": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.1": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.2": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:tabularList": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "tabularList",
+      "versions": {
+        "8.2.0": {
+          "requiredVersion": "8.2.0.0"
+        }
+      }
+    },
+    "org.jahia.modules:tools": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "tools",
+      "versions": {
+        "3.3.1": {
+          "requiredVersion": "8.0.0.0"
+        },
+        "2.8.0": {
+          "requiredVersion": "7.3.1.0"
+        },
+        "4.0.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "4.1.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "4.2.0": {
+          "requiredVersion": "8.1.0.0"
+        },
+        "4.3.0": {
+          "requiredVersion": "8.1.4.0"
+        },
+        "4.4.0": {
+          "requiredVersion": "8.1.4.0"
+        },
+        "5.0.1": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "4.5.0": {
+          "requiredVersion": "8.1.4.0"
+        },
+        "4.6.0": {
+          "requiredVersion": "8.1.6.0"
+        },
+        "5.1.2": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "5.2.2": {
+          "requiredVersion": "8.2.0.0"
+        },
+        "5.4.1": {
+          "requiredVersion": "8.2.1.0"
+        },
+        "4.7.0": {
+          "requiredVersion": "8.1.6.0"
+        },
+        "4.8.0": {
+          "requiredVersion": "8.1.6.0"
+        },
+        "5.5.0": {
+          "requiredVersion": "8.2.1.0"
+        }
+      }
+    },
+    "org.jahia.modules:topstories": {
+      "groupId": "org.jahia.modules",
+      "artifactId": "topstories",
+      "versions": {
+        "2.0.0": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.1": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "2.0.2": {
+          "requiredVersion": "7.0.0.0"
+        },
+        "3.0.0": {
+          "requiredVersion": "8.0.0.0"
+        }
+      }
+    }
+  },
+  "page": {
+    "installed": {
+      "content-editor": "3.7.0",
+      "jahia-csrf-guard": "3.4.0",
+      "jahia-dashboard": "1.10.0",
+      "jahia-dashboard-docs": "1.3.0",
+      "jahia-repository-explorer": "1.5.0",
+      "jcontent": "2.18.0",
+      "site-settings-publication": "2.0.0",
+      "advanced-visibility": "8.0.0",
+      "channels": "8.0.0",
+      "content-security-policy": "2.6.0",
+      "external-provider": "4.6.0",
+      "external-provider-modules": "4.6.0",
+      "external-provider-users-groups": "2.3.0",
+      "external-provider-vfs": "4.6.0",
+      "jahia-category-manager": "1.3.0",
+      "jahia-developer-tools": "1.1.0",
+      "jahia-page-composer": "1.12.0",
+      "jahia-user-entries": "1.6.0",
+      "jcrestapi": "3.4.1",
+      "linkchecker": "8.2.0",
+      "macros": "8.5.0",
+      "personal-api-tokens": "1.10.0",
+      "rolesmanager": "8.10.0",
+      "search": "8.3.0",
+      "security-filter-tools": "2.6.1",
+      "seo": "8.1.0",
+      "site-settings-seo": "4.5.0",
+      "tasks": "8.3.0",
+      "tools": "4.8.0",
+      "userDashboard": "8.8.1",
+      "visibility": "8.0.0",
+      "app-shell": "2.10.0",
+      "assets": "8.0.0",
+      "ckeditor": "4.21.0-jahia8-5",
+      "contentRetrieval": "8.1.0",
+      "default": "8.6.0",
+      "default-skins": "8.1.0",
+      "facets": "8.1.0",
+      "graphql-dxm-provider": "2.24.0",
+      "grid": "8.0.0",
+      "jahia-administration": "1.10.0",
+      "jahia-ui-root": "1.10.0",
+      "jquery": "8.1.0",
+      "module-manager": "2.8.1",
+      "profile": "8.2.0",
+      "serverSettings": "9.7.4",
+      "serverSettings-ee": "9.3.0",
+      "siteSettings": "8.7.1",
+      "skins": "8.0.0",
+      "tabularList": "8.1.0",
+      "tags": "8.2.0",
+      "templates-system": "9.0.0"
+    },
+    "updates": {
+      "content-editor": "4.16.0",
+      "jahia-csrf-guard": "4.3.0",
+      "jahia-dashboard": "1.12.0",
+      "jahia-dashboard-docs": "1.4.0",
+      "jahia-repository-explorer": "1.6.0",
+      "jcontent": "2.20.0",
+      "site-settings-publication": "2.2.1"
+    },
+    "mandatory": [
+      "app-shell",
+      "assets",
+      "ckeditor",
+      "contentRetrieval",
+      "default",
+      "default-skins",
+      "facets",
+      "graphql-dxm-provider",
+      "grid",
+      "jahia-administration",
+      "jahia-ui-root",
+      "jquery",
+      "module-manager",
+      "profile",
+      "serverSettings",
+      "serverSettings-ee",
+      "siteSettings",
+      "skins",
+      "tabularList",
+      "tags",
+      "templates-system"
+    ]
+  }
+}
