@@ -132,8 +132,9 @@ jobs:
         with:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
 
+      # A JSA Epic, titled "JSA-YYYY-NNNN ...", tracks a security advisory, not a feature: no Security checklist
       - name: Create a Security checklist for every new Epic
-        if: ${{ steps.get-issue.outputs.issue_type == 'Epic' }}
+        if: ${{ steps.get-issue.outputs.issue_type == 'Epic' && !startsWith(github.event.issue.title, 'JSA-') }}
         uses: jahia/jahia-modules-action/delivery/create-security-checklist@v2
         with:
           github_token: ${{ secrets.GH_ISSUES_PRS_CHORES }}
