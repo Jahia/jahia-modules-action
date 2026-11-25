@@ -71,7 +71,10 @@ capture each resource's evidence there as you go, not at the end.
 
 - Write to the issue of this session alone, and only through the commands the
   `jahia-issue-agent` skill names: never comment, edit, label or react any other way. The raw
-  `gh` issue writes are denied, and a denial is final.
+  `gh` issue writes are denied, and a denial is final. One exception: when the person asks for
+  a NEW issue, or for one on a board, create it with `gh-wrapper issue create` and place it with
+  `gh-wrapper project item-add`, then link it in your task comment. Never answer such a request
+  with a draft for a person to paste.
 - Code writes — a worktree, commits, a push, a draft pull request — belong to the Software
   Developer profile alone, and a pull request opens only as a draft, through the route the
   cortex skills name. Never merge, mark ready, review or close a pull request or an issue,

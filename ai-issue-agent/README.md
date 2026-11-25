@@ -144,11 +144,13 @@ action only states the floor.
 The permission surface is one list for all profiles, because the profile is only known once
 the session runs. The runner is ephemeral, so local operations (file writes, read-only plain
 git) are allowed generously; the `disallowed_tools` default is the floor no
-profile may cross — merge/ready/review/close, issue creation and the raw `gh` issue writes,
+profile may cross — merge/ready/review/close, the raw `gh` issue writes (`gh issue create` included),
 arbitrary forge writes (`gh api`, releases, workflows, secrets), force/mirror/delete pushes,
 `git remote`, and `EnterWorktree`, which would mint a worktree outside `cortex-sources`. Which
 profile *uses* the write verbs is governed by the skill: only the Software Developer ships
 code.
+
+A person may ask the agent for a new issue, or for a place on a board. The agent runs `gh-wrapper issue create`, which keeps the duplicate check, then `gh-wrapper project item-add` and `project item-edit`. It never answers such a request with a draft for a person to paste.
 
 An issue write runs through `gh-wrapper issue comment` and `gh-wrapper issue edit`, the
 route the cortex `jahia-issue-agent` skill moves to, or through the issue-agent tool, which
