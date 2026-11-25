@@ -37,12 +37,12 @@ on:
         description: "Timeout (in minutes) of the agent job. The agent itself is stopped 5 minutes earlier, so the logs artifact is still collected — this is also the knob to raise when a review keeps getting cut short."
         type: number
         required: false
-        default: 30
+        default: 45
       timeout_job_long:
         description: "Timeout (in minutes) of the agent job when the pull request carries a label whose name contains `Long AI review` (any casing, such as `⏱️ Long AI review`). The label is how one pull request gets a longer review without a change to any workflow: add it, then request the review again."
         type: number
         required: false
-        default: 60
+        default: 75
       model:
         description: "Model the agent runs on (an `opus`/`sonnet`/`haiku` alias the LiteLLM gateway maps, or a model name it serves verbatim). Empty leaves the installed CLI's own default, which moves with claude_code_version."
         type: string
