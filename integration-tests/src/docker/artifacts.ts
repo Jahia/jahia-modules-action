@@ -23,7 +23,8 @@ export async function copyRunArtifacts(
 
     // When the environment never started, no container holds results to copy, and the
     // logs and reports written below still need the folder. It must not exist before
-    // the copy, or docker cp nests the copy as results/results.
+    // the copy, or docker cp nests the copy as results/results. When the environment
+    // started, docker cp has created the folder already, and this call does nothing.
     fs.mkdirSync(path.join(destinationPath, 'results'), {recursive: true})
 
     await runShellCommands(

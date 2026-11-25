@@ -445,7 +445,8 @@ function copyRunArtifacts(containerName, destinationPath, testsFolder, dockerCom
         });
         // When the environment never started, no container holds results to copy, and the
         // logs and reports written below still need the folder. It must not exist before
-        // the copy, or docker cp nests the copy as results/results.
+        // the copy, or docker cp nests the copy as results/results. When the environment
+        // started, docker cp has created the folder already, and this call does nothing.
         fs.mkdirSync(posix_1.default.join(destinationPath, 'results'), { recursive: true });
         yield (0, utils_1.runShellCommands)([`docker stats --all --no-stream`], 'artifacts/results/cypress-stats.log', {
             ignoreReturnCode: true
