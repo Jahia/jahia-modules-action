@@ -1,4 +1,5 @@
 import * as exec from '@actions/exec'
+import * as fs from 'fs'
 import path from 'path/posix'
 
 import {runShellCommands} from '../utils'
@@ -19,6 +20,12 @@ export async function copyRunArtifacts(
             ignoreReturnCode: true
         }
     )
+
+    // When the environment never started, no container holds results to copy, and the
+    // logs and reports written below still need the folder. It must not exist before
+    // the copy, or docker cp nests the copy as results/results. When the environment
+    // started, docker cp has created the folder already, and this call does nothing.
+    fs.mkdirSync(path.join(destinationPath, 'results'), {recursive: true})
 
     await runShellCommands(
         [`docker stats --all --no-stream`],

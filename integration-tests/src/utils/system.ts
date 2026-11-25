@@ -135,6 +135,7 @@ export async function runShellCommands(
         }
       }
 
+      fs.mkdirSync(path.dirname(filepath), {recursive: true})
       const logFileStream = fs.createWriteStream(filepath, {flags: 'a+'})
       logFileStream.write(`Executing: ${cmd} \n`)
       logFileStream.write('\n ===== STDOUT ===== \n')

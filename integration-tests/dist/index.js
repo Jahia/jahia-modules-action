@@ -433,6 +433,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.copyRunArtifacts = void 0;
 const exec = __importStar(__nccwpck_require__(95236));
+const fs = __importStar(__nccwpck_require__(79896));
 const posix_1 = __importDefault(__nccwpck_require__(23236));
 const utils_1 = __nccwpck_require__(71750);
 const silent = { silent: true };
@@ -442,6 +443,11 @@ function copyRunArtifacts(containerName, destinationPath, testsFolder, dockerCom
         yield (0, utils_1.runShellCommands)([`docker cp ${containerName}:/home/jahians/results ${destinationPath}`], 'artifacts/cypress-artifacts.log', {
             ignoreReturnCode: true
         });
+        // When the environment never started, no container holds results to copy, and the
+        // logs and reports written below still need the folder. It must not exist before
+        // the copy, or docker cp nests the copy as results/results. When the environment
+        // started, docker cp has created the folder already, and this call does nothing.
+        fs.mkdirSync(posix_1.default.join(destinationPath, 'results'), { recursive: true });
         yield (0, utils_1.runShellCommands)([`docker stats --all --no-stream`], 'artifacts/results/cypress-stats.log', {
             ignoreReturnCode: true
         });
@@ -2198,6 +2204,7 @@ function runShellCommands(commands, logfile = null, options = {}) {
                         logs.slice(-250).forEach(line => core.info(line));
                     }
                 }
+                fs.mkdirSync(path.dirname(filepath), { recursive: true });
                 const logFileStream = fs.createWriteStream(filepath, { flags: 'a+' });
                 logFileStream.write(`Executing: ${cmd} \n`);
                 logFileStream.write('\n ===== STDOUT ===== \n');
