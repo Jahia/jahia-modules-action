@@ -49,7 +49,7 @@ inputs:
   job_timeout_minutes:
     description: 'The timeout-minutes of the job running this action. The agent is stopped a few minutes BEFORE it, by this action, so the stream and the logs artifact are still produced — letting the job timeout hit instead cancels the job mid-step and loses all of that. Pass the job timeout unchanged: the reserve is subtracted here, because GitHub Actions expressions have no arithmetic operators.'
     required: false
-    default: '30'
+    default: '65'
   debug:
     description: 'Run the Claude Code CLI with --debug-file: its debug log lands in session.debug.log inside the logs artifact. --debug alone writes it to the config folder of Claude Code, outside the artifact'
     required: false
@@ -318,7 +318,7 @@ runs:
         # mid-step and nothing survives.
         RESERVE_MINUTES=5
         case "$JOB_TIMEOUT_MINUTES" in
-          ''|*[!0-9]*|0) echo "::warning::job_timeout_minutes='$JOB_TIMEOUT_MINUTES' is not a positive integer, falling back to 30"; JOB_TIMEOUT_MINUTES=30 ;;
+          ''|*[!0-9]*|0) echo "::warning::job_timeout_minutes='$JOB_TIMEOUT_MINUTES' is not a positive integer, falling back to 65"; JOB_TIMEOUT_MINUTES=65 ;;
         esac
         TIMEOUT_MINUTES=$((JOB_TIMEOUT_MINUTES - RESERVE_MINUTES))
         case "$REMAINING_SECONDS" in

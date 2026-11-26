@@ -35,7 +35,7 @@ on:
         description: "Timeout (in minutes) of the agent job. Also feeds the guard's stale-lock rule."
         type: number
         required: false
-        default: 30
+        default: 65
       budget_seconds:
         description: "Cumulative agent-runtime budget for one issue, across all sessions (fixed on the issue's first session)"
         type: number

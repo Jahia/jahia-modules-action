@@ -30,7 +30,7 @@ inputs:
   job_timeout_minutes:
     description: 'The timeout-minutes of the job running this action. The agent is stopped a few minutes BEFORE it, by this action, so the trace, the transcript and the logs artifact are still produced — letting the job timeout hit instead cancels the job mid-step and loses all of that. Pass the job timeout unchanged: the reserve is subtracted here, because GitHub Actions expressions have no arithmetic operators.'
     required: false
-    default: '30'
+    default: '65'
   status_comment_marker:
     description: 'Hidden marker of the PR status comment this run keeps rewriting with its progress (elapsed time, tool calls, last activity) while the agent works. The updates are written by a small Node sidecar (src/status-comment.mjs) reading the stream file the narrator tees to disk — no model call, so they cost no tokens — and are best-effort: a failing GitHub API never fails the review. Empty (the default) disables them; the calling workflow passes the marker of the sticky comment it posted, and every rewrite preserves it so the workflow still finds the comment afterwards.'
     required: false
@@ -219,7 +219,7 @@ runs:
         # bodies before the shell sees them, so even one in a comment is evaluated.)
         RESERVE_MINUTES=5
         case "$JOB_TIMEOUT_MINUTES" in
-          ''|*[!0-9]*|0) echo "::warning::job_timeout_minutes='$JOB_TIMEOUT_MINUTES' is not a positive integer, falling back to 30"; JOB_TIMEOUT_MINUTES=30 ;;
+          ''|*[!0-9]*|0) echo "::warning::job_timeout_minutes='$JOB_TIMEOUT_MINUTES' is not a positive integer, falling back to 65"; JOB_TIMEOUT_MINUTES=65 ;;
         esac
         TIMEOUT_MINUTES=$((JOB_TIMEOUT_MINUTES - RESERVE_MINUTES))
         if [ "$TIMEOUT_MINUTES" -lt 1 ]; then
