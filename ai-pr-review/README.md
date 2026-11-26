@@ -286,9 +286,10 @@ checkout.
 has the agent treat PR content (title, description, code, comments) as data, never as
 instructions, and flag prompt-injection attempts as findings.
 
-The one Cortex tool that the allowlist grants is `tools/pr-review/bin/pr-review`, with three
-verbs. The `ci` mode runs `lenses` to choose its lenses, and `render` to write the inline comments
-of the review file from its findings and the diff. Both verbs read files and print. It runs
+The one Cortex tool that the allowlist grants is `tools/pr-review/bin/pr-review`, with four
+verbs. The `ci` mode runs `lenses` to choose its lenses, and `nl` to print the diff with each row
+of a hunk behind its line in the head version. It runs `render` to write the inline comments of the
+review file from its findings and the diff. These three verbs read files and print. It runs
 `record` to keep its round in the trace of the pull request, under the cortex checkout. The tool
 starts through `mise exec`, so the runner needs mise, as [`ai-agent-setup`](../ai-agent-setup)
 installs it.
