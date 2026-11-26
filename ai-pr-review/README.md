@@ -158,7 +158,7 @@ files rather than spending its budget gathering them.
 | `model` | no | `opus` | Claude Code `--model` value: an `opus`/`sonnet`/`haiku` alias the gateway maps, or a model name it serves verbatim (see [Which model runs](#which-model-runs)) |
 | `marker` | no | `<!-- cortex-pr-review -->` | Marker the agent must put in every review body |
 | `post_review` | no | `true` | `false` = review mode: store the would-be review in `logs_dir/reviews` instead of submitting |
-| `job_timeout_minutes` | no | `30` | The calling job's `timeout-minutes`; the agent's own budget is this minus a 5-minute reserve (see [Timeouts](#timeouts)) |
+| `job_timeout_minutes` | no | `65` | The calling job's `timeout-minutes`; the agent's own budget is this minus a 5-minute reserve (see [Timeouts](#timeouts)) |
 | `prefetch_checkout` | no | `true` | Also check the PR head out for the agent; `false` reviews from the diff alone |
 | `allowed_tools` | no | see `action.yml` | Claude Code `--allowedTools` value |
 | `disallowed_tools` | no | see `action.yml` | Claude Code `--disallowedTools` value (a deny rule beats an allow rule) |
@@ -349,11 +349,11 @@ edits the comment. A run with no checkout records no round and adds no row.
 
 Two nested budgets, and only the inner one is safe to hit:
 
-- `timeout_job` (default **30 minutes**) is the job's `timeout-minutes`. Reaching it makes
+- `timeout_job` (default **65 minutes**) is the job's `timeout-minutes`. Reaching it makes
   GitHub **cancel the job mid-step**: the agent is killed without the run ever producing its
   trace, its transcript or its job-summary row, and the review request is left pending with
   no explanation.
-- The **agent budget** is `job_timeout_minutes` minus a 5-minute reserve (so **25 minutes**
+- The **agent budget** is `job_timeout_minutes` minus a 5-minute reserve (so **60 minutes**
   by default), enforced by this action with `timeout(1)` around the CLI. Reaching it is an
   ordinary step failure we control: the partial `review.stream.jsonl` is still rendered into
   `review.transcript.log`, the artifact is still uploaded to both destinations, the PR status
