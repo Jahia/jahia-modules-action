@@ -9,10 +9,12 @@ Env:   PR_URL            - URL of the pull request to review
                            Review Logs of the pull request; empty records no round
        CORTEX_PATH       - the cortex checkout, the working directory of the agent, which
                            holds the checkout of the pull request under sources/
+       CHECKOUT          - optional: the checkout of the pull request, as the prep step and
+                           the README of the context name it; empty adds no git rule
        ALLOWED_TOOLS     - the allowed_tools input, to which this script adds the rules
                            that name a path of this run
        DISALLOWED_TOOLS  - the disallowed_tools input, to which this script adds the deny
-                           rule of the cortex checkout
+                           rules that name a path of this run
 
 Cortex owns the review: its method, its decision rules and the shape of the review file
 (`.claude/skills/pr-review/references/ci.md` and `assets/ci-review.md` in Jahia/cortex).
@@ -105,23 +107,44 @@ def split_tools(value):
     return plain, shell
 
 
-# The rules that name a path of this run: the two directories the agent writes in, and the
-# check of the review file that the ci mode runs. `/` + an absolute path gives the `//<path>`
-# form that Claude Code reads from the filesystem root.
+# The checkout path as the README of the context names it, which is the text the agent types.
+checkout = os.environ.get('CHECKOUT', '')
+# The commands that `.claude/agents/review-inspector.md` of Cortex runs in the checkout.
+GIT_READS = ('diff', 'log', 'show', 'grep', 'blame')
+# The literal path leaves no `*` before the subcommand, where a global option such as
+# `-c core.fsmonitor=<program>` would run a program.
+git_allowed = [f'Bash(git -C {checkout} {verb}:*)' for verb in GIT_READS] if checkout else []
+# Each fence closes a spelling, after the subcommand, that writes a file or runs a program:
+# `--output` writes the diff to a file, and `git grep -O<program>` opens the matching files
+# with a program, alone or in a bundle such as `-lO<program>`, and `--op` abbreviates
+# `--open-files-in-pager`. The shell turns a quote, a backslash, `$`, a backtick or a brace
+# into such an option, which the text of the command then hides from the fences.
+# Claude Code matches one backslash with four in a rule.
+git_denied = [f'Bash(git -C {checkout} {rest})' for rest in (
+    '*--output*', 'grep *O*', 'grep *--op*',
+    "*'*", '*"*', '*\\\\\\\\*', '*$*', '*`*', '*{*',
+)] if checkout else []
+
+# The rules that name a path of this run: the two directories the agent writes in, the
+# check of the review file that the ci mode runs, and the git reads of the checkout. `/` +
+# an absolute path gives the `//<path>` form that Claude Code reads from the filesystem root.
 allowed_tools = ','.join(filter(None, [
     os.environ.get('ALLOWED_TOOLS', ''),
     f'Edit(/{reviews_dir}/**)',
     f'Edit(/{collect_dir}/**)',
     f'Bash(python3 -m json.tool {review_file})',
+    *git_allowed,
 ]))
 allowed_plain, allowed_shell = split_tools(allowed_tools)
 # The deny rule of the cortex checkout, the working directory of the agent, which holds the
 # checkout of the pull request under sources/. A path rule of Edit applies to Write and to the
 # target of a shell redirection too. It names the absolute path, because Claude Code 2.1.325
-# matches `Edit(./**)` in an --add-dir directory as well, the log directory included.
+# matches `Edit(./**)` in an --add-dir directory as well, the log directory included. The
+# fences of the git reads follow it, whatever list the caller passes.
 disallowed_tools = ','.join(filter(None, [
     os.environ.get('DISALLOWED_TOOLS', ''),
     f'Edit(/{cortex_path}/**)',
+    *git_denied,
 ]))
 denied_plain, denied_shell = split_tools(disallowed_tools)
 
@@ -174,10 +197,20 @@ surface += [
     '  write, and the list above carries the reads under both spellings, so either route',
     '  works. Use the one the list names; never retry a denied call through the other.',
     '- cortex denies `cd`, and it is not on the list above, so a directory is reached by',
-    '  naming it: Read, Grep and Glob all take an absolute path. `git` is NOT available',
-    '  inside the pre-fetched checkout — read the history from `diff.patch` and `pr.json`',
-    '  instead, and the files themselves with Read/Grep/Glob.',
+    '  naming it: Read, Grep and Glob all take an absolute path.',
 ]
+if checkout:
+    surface += [
+        f'  `git` runs in the pre-fetched checkout only as `git -C {checkout}`, with the path',
+        '  written exactly so, followed by `diff`, `log`, `show`, `grep` or `blame`. Such a',
+        '  command holds no quote, backslash, `$`, backtick or brace, and a `git grep` holds no',
+        '  uppercase `O`, so search the files with Grep.',
+    ]
+else:
+    surface += [
+        '  `git` reads no pull request: this run has no checkout of it. Read the history from',
+        '  `diff.patch` and `pr.json` instead.',
+    ]
 
 os.makedirs(log_dir, exist_ok=True)
 with open(os.path.join(log_dir, 'review.prompt.md'), 'w', encoding='utf-8') as fh:
