@@ -1,0 +1,46 @@
+name: AI Issue Agent — Parse dispatch
+description: Deterministic (LLM-free) validation of the payload of a dispatched agent session. Every field is checked against a strict pattern before it becomes an output, because an output is read as an expression later on. The payload contract (version 1) is in ../README.md.
+
+inputs:
+  payload:
+    description: 'JSON object: runner, timeout_minutes, model, origin {repository, number, target}, session_index, remaining_seconds, guard_run_id and optional tuning fields.'
+    required: true
+  prompt:
+    description: 'The request of the session. Only its presence is checked here.'
+    required: true
+
+outputs:
+  runs_on:
+    description: 'The runner labels, as JSON: a string, or a list of up to 5 labels. `default` reads as `self-hosted`.'
+  timeout_minutes:
+    description: 'Timeout of the agent job, from 6 to 360 minutes (default 65)'
+  model:
+    description: 'Model alias or name (default opus)'
+  issue_url:
+    description: 'URL of the issue or pull request the session reports on'
+  origin_repository:
+    description: 'owner/repo of the thread. It always belongs to the owner of the running repository.'
+  origin_number:
+    description: 'Number of the issue or pull request'
+  origin_target:
+    description: '"issue" or "pull_request"'
+  session_index:
+    description: '1-based index of the session (default 1)'
+  remaining_seconds:
+    description: 'Seconds left in the budget of the thread (default: the timeout)'
+  guard_run_id:
+    description: 'Run id of the guard that took the lock, or empty'
+  cortex_ref:
+    description: 'Ref of the cortex harness to set up (default main)'
+  claude_code_version:
+    description: 'Claude Code version to install (default stable)'
+  debug:
+    description: '"true" or "false"'
+  skip_smoke_tests:
+    description: '"true" or "false"'
+  reuse_claude_code:
+    description: '"true" or "false"'
+
+runs:
+  using: 'node24'
+  main: 'dist/index.js'
