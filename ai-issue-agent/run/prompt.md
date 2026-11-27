@@ -14,6 +14,7 @@ agent budget.
   be fetched. Start there. In particular, `trigger.md` holds the comment that started this
   session: that comment's request is your task, with the whole issue as its context. The
   guard already reacted 👍 on it — do not acknowledge it again.
+__REQUEST_NOTE__
 
 ## Your tool surface
 

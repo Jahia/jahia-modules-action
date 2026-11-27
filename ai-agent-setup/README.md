@@ -69,6 +69,8 @@ Claude-on-runner duty should reuse it as-is.
 | `cortex_path` | no | `cortex` | Path (relative to the workspace) to clone cortex into |
 | `cortex_telemetry_token` | no | `''` | Credential cortex sends with its own usage telemetry, written to the checkout's `.env`. Empty means the run reports nothing. The reusable workflows in this repository pass `secrets.CORTEX_TELEMETRY_TOKEN` |
 | `github_token` | yes | — | Token able to clone the cortex repository |
+| `reuse_installed_claude_code` | no | `false` | When `true` and a `claude` binary is on the runner, skip the download if it matches `claude_code_version`. A pinned version must equal the installed one, while `stable` and `latest` accept whatever is installed. For a runner image that bakes the CLI. |
+| `skip_smoke_tests` | no | `false` | When `true`, skip the two live checks of step 8. Each is a model round trip that takes seconds to minutes on a slow gateway. Use it only when the next step of the job is itself a model call that would fail the same way. |
 
 ## Outputs
 
