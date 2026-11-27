@@ -256,12 +256,53 @@ jobs:
           jira_link_icon_closed: https://support.jahia.com/images/icons/accept.png
           jira_link_icon_prefix: https://support.jahia.com/images/icons/tools_20.png
 
+  # Requests to jahia-ai are handled for members with at least Triage access to the repository,
+  # and never when jahia-ai itself makes them. Anything else is skipped quietly (no comment, no
+  # failure). The AI jobs below depend on this job. Its `if` mirrors theirs, so it only runs when
+  # an AI job could run.
+  ai-authorize:
+    name: AI Authorize
+    if: >-
+      (github.event.action == 'labeled' && github.event.label.name == '🤖 TL;DR') ||
+      (github.event_name == 'issue_comment' && github.event.action == 'created' && contains(github.event.comment.body, '@jahia-ai'))
+    runs-on: ubuntu-slim
+    permissions:
+      contents: read
+    outputs:
+      allowed: ${{ steps.check.outputs.allowed }}
+    steps:
+      - name: Check the requester
+        id: check
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const sender = context.payload.sender?.login ?? ''
+            const roles = ['triage', 'write', 'maintain', 'admin']
+            let allowed = false
+            if (sender.toLowerCase() === 'jahia-ai') {
+              core.info('Requests made by jahia-ai itself are not processed')
+            } else {
+              try {
+                const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  username: sender,
+                })
+                allowed = roles.includes(data.role_name)
+                core.info(`${sender} has the role ${data.role_name}, allowed: ${allowed}`)
+              } catch (error) {
+                core.info(`The role of ${sender} could not be read (status ${error.status}), not allowed`)
+              }
+            }
+            core.setOutput('allowed', String(allowed))
+
   # A human labelled this issue asking for a short, action-driven summary of where it stands.
   # The called workflow guards the request on ubuntu-slim first, and only then starts an agent.
   # It removes the label itself, so the label is free again for the next request.
   ai-tldr:
     name: AI TL;DR
-    if: ${{ github.event.action == 'labeled' && github.event.label.name == '🤖 TL;DR' }}
+    needs: ai-authorize
+    if: ${{ needs.ai-authorize.outputs.allowed == 'true' && github.event.action == 'labeled' && github.event.label.name == '🤖 TL;DR' }}
     uses: jahia/jahia-modules-action/.github/workflows/reusable-ai-tldr.yml@v2
     permissions:
       id-token: write
@@ -280,7 +321,8 @@ jobs:
   # instance.
   ai-issue-agent:
     name: AI Issue Agent
-    if: ${{ github.event_name == 'issue_comment' && github.event.action == 'created' && contains(github.event.comment.body, '@jahia-ai') && github.event.sender.login != 'jahia-ai' && github.event.sender.login != 'jahia-ci' }}
+    needs: ai-authorize
+    if: ${{ needs.ai-authorize.outputs.allowed == 'true' && github.event_name == 'issue_comment' && github.event.action == 'created' && contains(github.event.comment.body, '@jahia-ai') && github.event.sender.login != 'jahia-ai' && github.event.sender.login != 'jahia-ci' }}
     uses: jahia/jahia-modules-action/.github/workflows/reusable-ai-issue-agent.yml@v2
     permissions:
       id-token: write
