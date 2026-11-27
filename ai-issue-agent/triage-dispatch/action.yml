@@ -55,7 +55,7 @@ outputs:
   source:
     description: '"decision" when the triage chose the parameters, "fallback" when it declined or failed, "default" when no usable decision reached the plan.'
   runner:
-    description: 'The runner labels of the dispatched session, as JSON.'
+    description: 'The runner flavour of the dispatched session, a name of ai-issue-agent/src/runners.ts.'
   timeout_minutes:
     description: 'The timeout of the dispatched session.'
   model:

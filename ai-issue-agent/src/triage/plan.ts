@@ -1,4 +1,5 @@
 import { validatePayload } from '../dispatch/validatePayload'
+import { DEFAULT_RUNNER, findRunner } from '../runners'
 
 // The plan of a dispatch: what the triage decided, turned into the payload and the prompt that the
 // execution workflow reads. The plan is pure: it reads nothing and sends nothing, so each rule of
@@ -25,7 +26,8 @@ export interface Decision {
   outcome: 'decision' | 'fallback'
   origin: Origin
   persona: Persona | null
-  runner: 'default' | 'small'
+  // A flavour name of the runner list: the plan refuses one the triage may not pick.
+  runner: string
   timeout_minutes: number
   execution_repo: string
   model: 'haiku' | 'sonnet' | 'opus'
@@ -91,7 +93,7 @@ const requestBlock = (input: PlanInput): string => {
 
 const buildPayload = (
   input: PlanInput,
-  parameters: { runner: string | string[]; timeoutMinutes: number; model: string },
+  parameters: { runner: string; timeoutMinutes: number; model: string },
 ): Record<string, unknown> => ({
   version: 1,
   runner: parameters.runner,
@@ -139,7 +141,7 @@ const defaultPlan = (
   note: string,
 ): DispatchPlan => {
   const payload = buildPayload(input, {
-    runner: 'self-hosted',
+    runner: DEFAULT_RUNNER,
     timeoutMinutes: input.timeoutJobMinutes,
     model: input.defaultModel,
   })
@@ -161,8 +163,15 @@ export const planDispatch = (input: PlanInput): DispatchPlan => {
     )
   }
 
+  if (findRunner(decision.runner)?.agentSelectable !== true) {
+    return defaultPlan(
+      input,
+      'fallback',
+      `the decision names the runner ${JSON.stringify(decision.runner)}, which the triage may not pick`,
+    )
+  }
   const payload = buildPayload(input, {
-    runner: decision.runner === 'small' ? ['self-hosted', 'small'] : 'self-hosted',
+    runner: decision.runner,
     timeoutMinutes: decision.timeout_minutes,
     model: decision.model,
   })

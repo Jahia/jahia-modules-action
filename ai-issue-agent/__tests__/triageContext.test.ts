@@ -1,3 +1,4 @@
+import { RUNNER_FLAVOURS } from '../src/runners'
 import { buildContext, readEvent } from '../src/triage/context'
 
 const event = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
@@ -73,7 +74,18 @@ describe('buildContext', () => {
       body: 'The description.',
       request: '@jahia-ai please do it',
       remaining_budget_seconds: 5400,
+      runners: [
+        { name: 'default', vcpu: 8, memory_gib: 32, use: expect.any(String) as string },
+        { name: 'small', vcpu: 2, memory_gib: 8, use: expect.any(String) as string },
+      ],
     })
+  })
+
+  it('offers the triage only the flavours it may pick', () => {
+    const names = buildContext(parsed, 0).runners.map((runner) => runner.name)
+    expect(names).toEqual(
+      RUNNER_FLAVOURS.filter((flavour) => flavour.agentSelectable).map((flavour) => flavour.name),
+    )
   })
 
   it('cuts a long description and a long request to the limits of the schema', () => {

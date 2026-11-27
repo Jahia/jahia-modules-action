@@ -136,7 +136,7 @@ describe('isDecision', () => {
   })
 
   it.each([
-    ['an unknown runner', { runner: 'huge' }],
+    ['a runner that is not a name', { runner: ['self-hosted'] }],
     ['an unknown model', { model: 'gpt' }],
     ['a timeout that is a string', { timeout_minutes: '25' }],
     ['an origin without a comment id', { origin: { repo: 'a/b', number: 1, kind: 'issue' } }],

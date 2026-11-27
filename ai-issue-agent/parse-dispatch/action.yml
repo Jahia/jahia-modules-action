@@ -11,7 +11,7 @@ inputs:
 
 outputs:
   runs_on:
-    description: 'The runner labels, as JSON: a string, or a list of up to 5 labels. `default` reads as `self-hosted`.'
+    description: 'The runner labels of the flavour that the payload names, as a JSON list, from ai-issue-agent/src/runners.ts.'
   timeout_minutes:
     description: 'Timeout of the agent job, from 6 to 360 minutes (default 65)'
   model:

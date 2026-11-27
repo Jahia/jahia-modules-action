@@ -2,6 +2,9 @@
 // of ai-issue-agent). A dispatcher typed this string, and every output is read as an
 // expression later on, so each field is checked against a strict pattern before it leaves.
 
+import type { RunnerFlavour } from '../runners'
+import { DEFAULT_RUNNER, RUNNER_FLAVOURS, findRunner } from '../runners'
+
 // A refusal is an Error that carries a name, so the entry point tells it from a defect of
 // its own (the package allows no class).
 const REFUSAL = 'DispatchPayloadError'
@@ -57,7 +60,16 @@ const isInteger = (value: unknown): value is number =>
 const pick = (record: Record<string, unknown>, name: string, fallback: unknown): unknown =>
   Object.hasOwn(record, name) ? record[name] : fallback
 
-const LABEL = /^[A-Za-z0-9_.-]{1,64}$/
+// A flavour name. The two older spellings of contract version 1 still resolve: `self-hosted`, and
+// the exact labels of a flavour, as the dispatch of release v2.100.0 sends them.
+const resolveRunner = (runner: unknown): RunnerFlavour | undefined => {
+  if (runner === 'self-hosted') return findRunner(DEFAULT_RUNNER)
+  if (typeof runner === 'string') return findRunner(runner)
+  if (!Array.isArray(runner) || !runner.every((item) => typeof item === 'string')) return undefined
+  const labels = [...new Set(runner)].sort().join(',')
+  return RUNNER_FLAVOURS.find((flavour) => [...flavour.runsOn].sort().join(',') === labels)
+}
+
 const REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
 
 export const validatePayload = ({
@@ -103,22 +115,15 @@ export const validatePayload = ({
 
   integer('version', 1, 1, 1)
 
-  // One runner label, or a list of labels. Labels are plain words: no expression syntax.
-  // `default` is the name of the default runner flavour, which `self-hosted` selects.
-  let runner = pick(payload, 'runner', 'self-hosted')
-  if (runner === 'default') runner = 'self-hosted'
-  const labels: unknown[] =
-    typeof runner === 'string' ? [runner] : Array.isArray(runner) ? runner : []
-  if (
-    labels.length < 1 ||
-    labels.length > 5 ||
-    !labels.every((item) => typeof item === 'string' && LABEL.test(item))
-  ) {
+  // A flavour of the runner list. `runs-on` comes from the list, never from the payload.
+  const runner = pick(payload, 'runner', DEFAULT_RUNNER)
+  const flavour = resolveRunner(runner)
+  if (flavour === undefined) {
     return fail(
-      `runner must be a label or a list of up to 5 labels of [A-Za-z0-9_.-], got ${show(runner)}`,
+      `runner must name a flavour of the runner list (${RUNNER_FLAVOURS.map((item) => item.name).join(', ')}), got ${show(runner)}`,
     )
   }
-  const runsOn = typeof runner === 'string' ? labels[0] : labels
+  const runsOn = flavour.runsOn
 
   const timeout = integer('timeout_minutes', 6, 360, 65)
 

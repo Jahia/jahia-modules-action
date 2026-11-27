@@ -32,7 +32,7 @@ export const isDecision = (value: unknown): value is Decision =>
   isRecord(value) &&
   (value.outcome === 'decision' || value.outcome === 'fallback') &&
   isOrigin(value.origin) &&
-  (value.runner === 'default' || value.runner === 'small') &&
+  typeof value.runner === 'string' &&
   Number.isInteger(value.timeout_minutes) &&
   (value.model === 'haiku' || value.model === 'sonnet' || value.model === 'opus') &&
   typeof value.prompt_brief === 'string' &&

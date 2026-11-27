@@ -4,6 +4,7 @@ import {
   validatePayload,
 } from '../src/dispatch/validatePayload'
 import type { DispatchOutputs } from '../src/dispatch/validatePayload'
+import { RUNNER_FLAVOURS } from '../src/runners'
 
 const ORIGIN = { repository: 'Jahia/sandbox', number: 12 }
 
@@ -26,7 +27,7 @@ const valid = (overrides: Record<string, unknown> = {}): Record<string, unknown>
 describe('validatePayload, accepted payloads', () => {
   it('takes the defaults for a minimal payload', () => {
     expect(run(valid())).toEqual({
-      runs_on: '"self-hosted"',
+      runs_on: '["self-hosted","default"]',
       timeout_minutes: '65',
       model: 'opus',
       issue_url: 'https://github.com/Jahia/sandbox/issues/12',
@@ -50,12 +51,18 @@ describe('validatePayload, accepted payloads', () => {
     expect(outputs.origin_target).toBe('pull_request')
   })
 
-  it('reads the default runner as self-hosted', () => {
-    expect(run(valid({ runner: 'default' })).runs_on).toBe('"self-hosted"')
+  it('takes runs-on from the runner list, for each flavour', () => {
+    for (const flavour of RUNNER_FLAVOURS) {
+      expect(JSON.parse(run(valid({ runner: flavour.name })).runs_on)).toEqual(flavour.runsOn)
+    }
   })
 
-  it('keeps a list of labels as a list', () => {
-    expect(JSON.parse(run(valid({ runner: ['self-hosted', 'small'] })).runs_on)).toEqual([
+  it('resolves the older spellings of a flavour', () => {
+    expect(JSON.parse(run(valid({ runner: 'self-hosted' })).runs_on)).toEqual([
+      'self-hosted',
+      'default',
+    ])
+    expect(JSON.parse(run(valid({ runner: ['small', 'self-hosted'] })).runs_on)).toEqual([
       'self-hosted',
       'small',
     ])
@@ -100,8 +107,7 @@ describe('validatePayload, accepted payloads', () => {
     expect(run(valid({ timeout_minutes: minutes })).timeout_minutes).toBe(String(minutes))
   })
 
-  it('accepts a list of 5 labels and a remaining budget of 0', () => {
-    expect(() => run(valid({ runner: ['a', 'b', 'c', 'd', 'e'] }))).not.toThrow()
+  it('accepts a remaining budget of 0', () => {
     expect(run(valid({ remaining_seconds: 0 })).remaining_seconds).toBe('0')
   })
 })
@@ -174,15 +180,18 @@ describe('validatePayload, refused payloads', () => {
     )
   })
 
-  it('refuses expression syntax in a runner label', () => {
-    refuses(valid({ runner: '${{ secrets.X }}' }), 'runner must be a label')
-    refuses(valid({ runner: ['ok', 'a b'] }), 'runner must be a label')
-  })
-
-  it('refuses a runner list that is empty, too long or not a list', () => {
-    refuses(valid({ runner: [] }), 'runner must be a label')
-    refuses(valid({ runner: ['a', 'a', 'a', 'a', 'a', 'a'] }), 'runner must be a label')
-    refuses(valid({ runner: 5 }), 'runner must be a label')
+  it.each([
+    'ubuntu-latest',
+    'ubuntu-slim',
+    'ai-triage',
+    '${{ secrets.X }}',
+    ['self-hosted', 'ubuntu-latest'],
+    ['self-hosted'],
+    ['ubuntu-latest'],
+    [],
+    5,
+  ])('refuses the runner %p, which is no flavour of the list', (bad) => {
+    refuses(valid({ runner: bad }), 'runner must name a flavour of the runner list')
   })
 
   it.each([0, -3, '7', true])('refuses the guard run id %p', (bad) => {
@@ -210,7 +219,7 @@ describe('validatePayload, refused payloads', () => {
 
   it('refuses an explicit null, which is not the same as an absent field', () => {
     refuses(valid({ model: null }), 'model must be a string matching')
-    refuses(valid({ runner: null }), 'runner must be a label')
+    refuses(valid({ runner: null }), 'runner must name a flavour')
     refuses(valid({ timeout_minutes: null }), 'timeout_minutes must be an integer')
     refuses(valid({ debug: null }), 'debug must be true or false')
     refuses(valid({ guard_run_id: null }), 'guard_run_id must be a positive integer')

@@ -123,10 +123,21 @@ token the `add-to-project` jobs already use, not the agent account's issue token
 `.github/workflows/reusable-ai-agent-execution.yml` runs one session detached from the guard.
 A caller started by `workflow_dispatch`, such as the synced `delivery-ai-agent.yml` of
 `Jahia/.github`, passes two inputs: `payload`, a JSON object, and `prompt`, a text. The workflow
-has two jobs. The `plan` job validates the payload on `ubuntu-slim`, with the `parse-dispatch`
-action of this directory, whose tests are in `__tests__/validatePayload.test.ts`. The `agent` job then runs on
-the runner label and with the timeout that the payload names, because `runs-on` and
-`timeout-minutes` cannot be computed from a JSON string inside the job that uses them.
+has two jobs. The `plan` job validates the payload on the warm `ai-triage` runner, with the
+`parse-dispatch` action of this directory, whose tests are in `__tests__/validatePayload.test.ts`.
+The `agent` job then runs on the labels of the runner flavour and with the timeout that the payload
+names, because `runs-on` and `timeout-minutes` cannot be computed from a JSON string inside the job
+that uses them.
+
+### Runner flavours
+
+`src/runners.ts` lists the runner flavours a dispatched session may run on: the labels of each, its
+capacity, and whether the triage may pick it. It is the only source of `runs-on` for the `agent`
+job, so a payload, built by a triage or by hand, cannot start a runner outside it, such as a
+GitHub-hosted one. Each flavour names its own label, because a job that asks for `self-hosted`
+alone also fits an idle runner of another flavour. The capacity follows the runner configs of
+`Jahia/github-actions-runners`. A new flavour is one entry, with `agentSelectable: false` until
+the triage may pick it.
 
 The session works in the repository that runs the workflow. It reads and reports on the thread
 that `origin` names, which can be another repository of the same organization. The prompt is the
@@ -138,7 +149,7 @@ The payload, version 1. Only `origin` is required.
 | Field | Type | Default | Meaning |
 |---|---|---|---|
 | `version` | integer | `1` | Contract version. Another value fails the `plan` job. |
-| `runner` | string, or list of up to 5 strings | `self-hosted` | `runs-on` of the `agent` job. A label has only `A-Z a-z 0-9 _ . -`. The name `default` of the default runner flavour is read as `self-hosted`. |
+| `runner` | string | `default` | A flavour of [the runner list](#runner-flavours), whose labels become `runs-on` of the `agent` job. Any other value fails the `plan` job. `self-hosted` and the exact labels of a flavour, the older spellings, still resolve. |
 | `timeout_minutes` | integer, 6 to 360 | `65` | `timeout-minutes` of the `agent` job. The agent stops 5 minutes before it, so the artifacts upload. |
 | `model` | string | `opus` | An alias the gateway maps, or a model name it serves verbatim. Empty keeps the CLI default. |
 | `origin.repository` | string `owner/repo` | none | Repository of the thread. It must belong to the owner of the running repository. |
@@ -156,7 +167,7 @@ The payload, version 1. Only `origin` is required.
 ```json
 {
   "version": 1,
-  "runner": "self-hosted",
+  "runner": "small",
   "timeout_minutes": 30,
   "model": "sonnet",
   "origin": { "repository": "Jahia/sandbox", "number": 12, "target": "issue" },
@@ -203,8 +214,7 @@ The `triage` job runs on the warm `ai-triage` runner, with the two model round t
 
 | Decision | Payload |
 |---|---|
-| `runner` `default` | `runner` `self-hosted` |
-| `runner` `small` | `runner` `["self-hosted", "small"]` |
+| `runner`, a flavour the triage may pick | `runner`; another name falls back to the defaults |
 | `timeout_minutes` | `timeout_minutes`, never above `timeout_job` of the guard |
 | `model` | `model` |
 | `origin` | `origin` `{repository, number, target}` |

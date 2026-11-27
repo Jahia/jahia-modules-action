@@ -105,7 +105,7 @@ const run = async (): Promise<void> => {
     core.setOutput('run_id', dispatched.id)
     core.setOutput('run_url', dispatched.url)
 
-    const runner = JSON.stringify(plan.payload.runner)
+    const runner = String(plan.payload.runner)
     core.setOutput('source', plan.source)
     core.setOutput('runner', runner)
     core.setOutput('timeout_minutes', String(plan.payload.timeout_minutes))
