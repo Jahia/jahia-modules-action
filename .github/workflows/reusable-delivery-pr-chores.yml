@@ -136,13 +136,33 @@ jobs:
     steps:
       - uses: jahia/jahia-modules-action/secret-scan@v2
 
+  # Requests to jahia-ai are handled for members with at least Triage access to the repository,
+  # and never when jahia-ai itself makes them. Anything else is skipped quietly (no comment, no
+  # failure). The AI jobs below depend on this job. Its `if` mirrors theirs, so it only runs when
+  # an AI job could run.
+  ai-authorize:
+    name: AI Authorize
+    if: >-
+      (github.event.action == 'review_requested' && (github.event.requested_reviewer.login == 'jahia-ai' || github.event.requested_team.slug == 'engineering-ai')) ||
+      (github.event.action == 'labeled' && github.event.label.name == '🤖 TL;DR')
+    runs-on: ubuntu-slim
+    permissions:
+      contents: read
+    outputs:
+      allowed: ${{ steps.check.outputs.allowed }}
+    steps:
+      - name: Check the requester
+        id: check
+        uses: jahia/jahia-modules-action/ai-check-requester@v2
+
   # AI review, only when explicitly requested from the jahia-ai account or the engineering-ai
   # team (never on PR updates). A team request leaves requested_reviewer empty and fills
   # requested_team, whose slug is matched.
   # All the logic lives in reusable-ai-pr-review.yml; requirements in ai-pr-review/README.md.
   ai-review:
     name: AI Review
-    if: github.event.action == 'review_requested' && (github.event.requested_reviewer.login == 'jahia-ai' || github.event.requested_team.slug == 'engineering-ai')
+    needs: ai-authorize
+    if: needs.ai-authorize.outputs.allowed == 'true' && github.event.action == 'review_requested' && (github.event.requested_reviewer.login == 'jahia-ai' || github.event.requested_team.slug == 'engineering-ai')
     uses: jahia/jahia-modules-action/.github/workflows/reusable-ai-pr-review.yml@v2
     permissions:
       id-token: write
@@ -173,7 +193,8 @@ jobs:
   # an agent. It removes the label itself, so the label is free again for the next request.
   ai-tldr:
     name: AI TL;DR
-    if: ${{ github.event.action == 'labeled' && github.event.label.name == '🤖 TL;DR' }}
+    needs: ai-authorize
+    if: ${{ needs.ai-authorize.outputs.allowed == 'true' && github.event.action == 'labeled' && github.event.label.name == '🤖 TL;DR' }}
     uses: jahia/jahia-modules-action/.github/workflows/reusable-ai-tldr.yml@v2
     permissions:
       id-token: write

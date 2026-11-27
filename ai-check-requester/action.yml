@@ -1,0 +1,42 @@
+name: Check requester
+description: Tells whether the person who triggered the run has at least Triage access to the repository, and is not jahia-ai itself
+
+inputs:
+  github_token:
+    description: 'GitHub token able to read the repository (the default token is enough)'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  allowed:
+    description: "'true' when the requester may use jahia-ai, 'false' otherwise (including when the role cannot be read)"
+    value: ${{ steps.check.outputs.allowed }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check the role of the requester
+      id: check
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const sender = context.payload.sender?.login ?? ''
+          const roles = ['triage', 'write', 'maintain', 'admin']
+          let allowed = false
+          if (sender.toLowerCase() === 'jahia-ai') {
+            core.info('Requests made by jahia-ai itself are not processed')
+          } else {
+            try {
+              const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                username: sender,
+              })
+              allowed = roles.includes(data.role_name)
+              core.info(`${sender} has the role ${data.role_name}, allowed: ${allowed}`)
+            } catch (error) {
+              core.info(`The role of ${sender} could not be read (status ${error.status}), not allowed`)
+            }
+          }
+          core.setOutput('allowed', String(allowed))
