@@ -9,6 +9,10 @@ inputs:
     description: '"issue" or "pull_request" (the guard''s target output). A pull request adds its branches, changed files and review threads to the pre-fetched context, and skips the self-assignment.'
     required: false
     default: 'issue'
+  request:
+    description: 'The request of a dispatched session, from the execution workflow: a persona hint and a short brief, or the original comment verbatim. Empty for a session started by an @-mention, where trigger.md holds the request. When set, the prompt names it as the task, and the thread of issue_url stays its context.'
+    required: false
+    default: ''
   github_token:
     description: 'Token the agent and the sidecar use to read and write the issue. Use the AI agent account''s token, so every comment is authored by it.'
     required: true
@@ -174,6 +178,7 @@ runs:
       env:
         ISSUE_URL: ${{ inputs.issue_url }}
         TARGET: ${{ inputs.target }}
+        REQUEST: ${{ inputs.request }}
         LOG_DIR: ${{ steps.prep.outputs.logs_dir }}
         ACTION_PATH: ${{ github.action_path }}
         AGENT_LABEL: ${{ steps.prep.outputs.agent_label }}
@@ -242,9 +247,25 @@ runs:
               SESSION_INDEX: process.env.SESSION_INDEX,
               REMAINING_BUDGET: budget,
             },
+            literal: {
+              REQUEST_NOTE: process.env.REQUEST
+                ? [
+                    '- **This session was dispatched, not started by a comment**: no `trigger.md` exists, so wherever this prompt names `trigger.md` or the comment that started the session, the request below is meant, and no 👍 reaction was made. The request is your task, with the whole issue as its context. A persona named in it is a hint from a fast triage: you read the whole thread, so you may choose another profile and say why in your task comment.',
+                    `- This session runs in the repository ${process.env.GITHUB_REPOSITORY}: code you write (a worktree, a branch, a draft pull request) belongs in that repository, and your reports go on the thread of the issue above.`,
+                    '',
+                    '<dispatched-request>',
+                    process.env.REQUEST,
+                    '</dispatched-request>',
+                  ].join('\n')
+                : '',
+            },
           })
           core.setOutput('issue_key', `${owner}-${repo}-${number}`)
           core.setOutput('issue_number', number)
+          // The thread can live in another repository than the one running the job (the
+          // execution workflow runs where the work is written), so the progress sidecar
+          // needs the slug of the thread itself.
+          core.setOutput('repository', `${owner}/${repo}`)
           // The agent step pipes its stream through src/stream-progress.mjs, and a
           // self-hosted runner guarantees no `node` on PATH — this step's own Node is the one.
           core.setOutput('node_bin', process.execPath)
@@ -263,7 +284,7 @@ runs:
       uses: actions/github-script@v9
       env:
         GH_TOKEN: ${{ inputs.github_token }}
-        REPOSITORY: ${{ github.repository }}
+        REPOSITORY: ${{ steps.context.outputs.repository }}
         ISSUE_NUMBER: ${{ steps.context.outputs.issue_number }}
         TASK_MARKER: '<!-- cortex-issue-agent-task run:${{ github.run_id }} -->'
         STATUS_UPDATE_SECONDS: ${{ inputs.status_update_seconds }}

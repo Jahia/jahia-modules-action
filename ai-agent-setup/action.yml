@@ -43,6 +43,14 @@ inputs:
   github_token:
     description: 'Token able to clone the cortex repository'
     required: true
+  reuse_installed_claude_code:
+    description: 'When "true" and a claude binary is already on the runner, skip the download if it matches claude_code_version: a pinned version must equal it, while "stable" or "latest" accepts whatever is installed (a runner image that bakes the CLI). Default "false" always installs.'
+    required: false
+    default: 'false'
+  skip_smoke_tests:
+    description: 'When "true", skip the two model smoke tests (the hello world and the cortex-selftest check). Each is a real model round trip that takes seconds to minutes on a slow gateway, so a caller whose next step is itself a model call can drop them. Default "false" runs both.'
+    required: false
+    default: 'false'
 
 outputs:
   cortex_path:
@@ -57,9 +65,31 @@ runs:
   steps:
     - name: Install Claude Code CLI
       shell: bash
+      env:
+        WANTED_VERSION: ${{ inputs.claude_code_version }}
+        REUSE_INSTALLED: ${{ inputs.reuse_installed_claude_code }}
       run: |
-        echo "Installing Claude Code CLI (${{ inputs.claude_code_version }})"
-        curl -fsSL https://claude.ai/install.sh | bash -s ${{ inputs.claude_code_version }}
+        export PATH="$HOME/.local/bin:$PATH"
+        if [ "$REUSE_INSTALLED" = "true" ] && command -v claude >/dev/null; then
+          # `claude --version` prints "<version> (Claude Code)".
+          HAVE_VERSION=$(claude --version 2>/dev/null | awk '{print $1}') || HAVE_VERSION=""
+          if [ -z "$HAVE_VERSION" ]; then
+            REUSE=false
+          else
+            case "$WANTED_VERSION" in
+              stable|latest|"") REUSE=true ;;
+              *) [ "$HAVE_VERSION" = "$WANTED_VERSION" ] && REUSE=true || REUSE=false ;;
+            esac
+          fi
+          if [ "$REUSE" = "true" ]; then
+            echo "Claude Code CLI $HAVE_VERSION already installed, reused (wanted: ${WANTED_VERSION:-stable})"
+            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+            exit 0
+          fi
+          echo "Installed Claude Code CLI (${HAVE_VERSION:-unreadable}) is not the wanted ${WANTED_VERSION:-stable}: installing it"
+        fi
+        echo "Installing Claude Code CLI (${WANTED_VERSION:-stable})"
+        curl -fsSL https://claude.ai/install.sh | bash -s -- ${WANTED_VERSION}
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
     - name: Configure Claude Code for the LiteLLM gateway
@@ -263,6 +293,7 @@ runs:
     # A real end-to-end round trip (CLI -> gateway -> model): auth, model aliases and the
     # network path are all exercised, so a broken setup fails HERE, not mid-agent-run.
     - name: Smoke-test the model gateway (hello world)
+      if: inputs.skip_smoke_tests != 'true'
       shell: bash
       run: |
         export PATH="$HOME/.local/bin:$PATH"
@@ -290,6 +321,7 @@ runs:
     # description — the coupling that turned a healthy harness red when the model named a skill that
     # does not exist. The token is a contract with Jahia/cortex; see its ADR-0017.
     - name: Verify the agent sees the cortex harness
+      if: inputs.skip_smoke_tests != 'true'
       shell: bash
       working-directory: ${{ github.workspace }}/${{ inputs.cortex_path }}
       run: |

@@ -1,0 +1,205 @@
+# Detached, parameterized agent session. A caller that was started by `workflow_dispatch`
+# (typically the synced delivery-ai-agent.yml of Jahia/.github) passes two inputs: a JSON
+# `payload` that holds every value the workflow machinery reads before the agent exists, and
+# a `prompt` that holds the request. Both are produced upstream, by a triage or by hand.
+#
+# Two jobs, deliberately. A cheap `plan` job on ubuntu-slim parses and validates the payload,
+# because `runs-on` and `timeout-minutes` of the `agent` job cannot be computed from a JSON
+# string in the same job. The `agent` job then runs on the runner label and with the timeout
+# the payload names: mTLS tunnel, Claude Code and cortex setup, one session, the logs
+# artifacts, and the finalize of the lock and the ledger on the ORIGIN thread.
+#
+# The session works where this workflow runs, and reports on the thread the payload names
+# (`origin`), which can live in another repository. The guard of the issue agent stays in
+# front of this workflow: it takes the lock, and `guard_run_id` lets finalize release it.
+#
+# The payload contract (version 1) is in ai-issue-agent/README.md, section "Dispatched
+# sessions". A field that the payload omits takes its default there.
+name: AI Agent Execution
+
+on:
+  workflow_call:
+    inputs:
+      payload:
+        description: "JSON object: runner, timeout_minutes, model, origin {repository, number, target}, session_index, remaining_seconds, guard_run_id and optional tuning fields. See the README of ai-issue-agent."
+        type: string
+        required: true
+      prompt:
+        description: "The request of the session: a persona hint and a short brief, or the original request verbatim. It is data, handed to the agent as its task."
+        type: string
+        required: true
+      agent_login:
+        description: "GitHub username of the AI agent account"
+        type: string
+        required: false
+        default: "jahia-ai"
+      tunnel_hosts:
+        description: "Internal hosts to reach through the mTLS tunnel (space-separated); must be allowlisted on IT's side."
+        type: string
+        required: false
+        default: "litellm-prod.int.jahia.com"
+
+jobs:
+  plan:
+    name: Read the dispatch payload
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    outputs:
+      runs_on: ${{ steps.parse.outputs.runs_on }}
+      timeout_minutes: ${{ steps.parse.outputs.timeout_minutes }}
+      model: ${{ steps.parse.outputs.model }}
+      issue_url: ${{ steps.parse.outputs.issue_url }}
+      origin_repository: ${{ steps.parse.outputs.origin_repository }}
+      origin_number: ${{ steps.parse.outputs.origin_number }}
+      origin_target: ${{ steps.parse.outputs.origin_target }}
+      session_index: ${{ steps.parse.outputs.session_index }}
+      remaining_seconds: ${{ steps.parse.outputs.remaining_seconds }}
+      guard_run_id: ${{ steps.parse.outputs.guard_run_id }}
+      cortex_ref: ${{ steps.parse.outputs.cortex_ref }}
+      claude_code_version: ${{ steps.parse.outputs.claude_code_version }}
+      debug: ${{ steps.parse.outputs.debug }}
+      skip_smoke_tests: ${{ steps.parse.outputs.skip_smoke_tests }}
+      reuse_claude_code: ${{ steps.parse.outputs.reuse_claude_code }}
+    steps:
+      # The payload and the prompt reach the action as inputs, which the runner passes through
+      # the environment and never through a script text: they are strings a dispatcher typed.
+      # Every field is checked against a strict pattern before it becomes an output, because an
+      # output is read as an expression later on.
+      - name: Validate the payload and expose its fields
+        id: parse
+        uses: jahia/jahia-modules-action/ai-issue-agent/parse-dispatch@v2
+        with:
+          payload: ${{ inputs.payload }}
+          prompt: ${{ inputs.prompt }}
+
+      # The guard refuses a pull request whose head lives in a fork, because the agent runs on a
+      # runner that holds the agent secrets. A dispatched session gets the same refusal here,
+      # so a payload built by hand or by a triage that skipped the guard cannot bypass it.
+      - name: Refuse a pull request from a fork
+        if: steps.parse.outputs.origin_target == 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          ORIGIN_REPOSITORY: ${{ steps.parse.outputs.origin_repository }}
+          ORIGIN_NUMBER: ${{ steps.parse.outputs.origin_number }}
+        run: |
+          HEAD_REPOSITORY=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "$GITHUB_API_URL/repos/$ORIGIN_REPOSITORY/pulls/$ORIGIN_NUMBER" | python3 -c 'import json,sys; print((json.load(sys.stdin).get("head",{}).get("repo") or {}).get("full_name",""))')
+          if [ "$HEAD_REPOSITORY" != "$ORIGIN_REPOSITORY" ]; then
+            echo "::error title=Pull request from a fork::the head of $ORIGIN_REPOSITORY#$ORIGIN_NUMBER lives in '${HEAD_REPOSITORY:-an unknown repository}', and the agent only works a pull request whose head is in the same repository"
+            exit 1
+          fi
+
+  # No concurrency group, on purpose: the guard's lock already guarantees one session per
+  # thread, and an Actions group would QUEUE a duplicate instead of preventing it.
+  agent:
+    name: Run the agent session
+    needs: plan
+    runs-on: ${{ fromJSON(needs.plan.outputs.runs_on) }}
+    timeout-minutes: ${{ fromJSON(needs.plan.outputs.timeout_minutes) }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      # The ledger bills the session from this instant: runner queue time is free,
+      # everything from here to finalize is not.
+      - name: Stamp the session start
+        id: session
+        shell: bash
+        run: |
+          echo "started_epoch=$(date -u +%s)" >> "$GITHUB_OUTPUT"
+          # The QA-server artifact folder is named HERE, not at upload time: the agent's
+          # comment footer links it from the session's first comment, hours before the
+          # upload exists, and a run crossing midnight must not break that link. The
+          # delete-on-<date> prefix drives the QA server's cleanup (upload-artifact uses
+          # the name verbatim when it carries the prefix); the date matches the upload
+          # step's retention-days.
+          ARTIFACTS_EXPIRY=$(date -u -d "+30 days" +%Y-%m-%d)
+          ARTIFACTS_NAME="delete-on-${ARTIFACTS_EXPIRY}_$(echo "$GITHUB_REPOSITORY" | sed 's#/#_#g')_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+          echo "artifacts_expiry=$ARTIFACTS_EXPIRY" >> "$GITHUB_OUTPUT"
+          echo "artifacts_name=$ARTIFACTS_NAME" >> "$GITHUB_OUTPUT"
+          echo "artifacts_url=https://qa.jahia.com/artifacts-ci/${ARTIFACTS_NAME}/" >> "$GITHUB_OUTPUT"
+
+      - name: Open the mTLS tunnel to internal Jahia services
+        uses: jahia/jahia-modules-action/mtls-tunnel@v2
+        with:
+          hosts: ${{ inputs.tunnel_hosts }}
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
+          server-name: ci-egress.jahia.com
+          audience: jahia-ci-egress
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
+          canary-url: ${{ vars.AI_LITELLM_BASE_URL }}/health/liveliness
+
+      - name: Set up Claude Code and the cortex harness
+        id: setup
+        uses: jahia/jahia-modules-action/ai-agent-setup@v2
+        with:
+          claude_code_version: ${{ needs.plan.outputs.claude_code_version }}
+          reuse_installed_claude_code: ${{ needs.plan.outputs.reuse_claude_code }}
+          skip_smoke_tests: ${{ needs.plan.outputs.skip_smoke_tests }}
+          anthropic_base_url: ${{ vars.AI_LITELLM_BASE_URL }}
+          anthropic_auth_token: ${{ secrets.AI_LITELLM_AUTH_TOKEN_USAGE_PRS }}
+          default_opus_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_OPUS_MODEL }}
+          default_sonnet_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_SONNET_MODEL }}
+          default_haiku_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_HAIKU_MODEL }}
+          cortex_ref: ${{ needs.plan.outputs.cortex_ref }}
+          cortex_telemetry_token: ${{ secrets.CORTEX_TELEMETRY_TOKEN }}
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+
+      - name: Run the agent session
+        id: run
+        uses: jahia/jahia-modules-action/ai-issue-agent/run@v2
+        with:
+          issue_url: ${{ needs.plan.outputs.issue_url }}
+          target: ${{ needs.plan.outputs.origin_target }}
+          request: ${{ inputs.prompt }}
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          gpg_key: ${{ secrets.AI_AGENT_GPG_KEY }}
+          gpg_key_id: ${{ secrets.AI_AGENT_GPG_KEY_ID }}
+          gpg_key_passphrase: ${{ secrets.AI_AGENT_GPG_KEY_PASSPHRASE }}
+          cortex_path: ${{ steps.setup.outputs.cortex_path }}
+          model: ${{ needs.plan.outputs.model }}
+          agent_login: ${{ inputs.agent_login }}
+          remaining_seconds: ${{ needs.plan.outputs.remaining_seconds }}
+          session_index: ${{ needs.plan.outputs.session_index }}
+          # The action stops the agent a few minutes before this budget is up, so the
+          # artifact uploads below still run with time to spare.
+          job_timeout_minutes: ${{ needs.plan.outputs.timeout_minutes }}
+          debug: ${{ needs.plan.outputs.debug }}
+          jahia_artifacts_url: ${{ steps.session.outputs.artifacts_url }}
+          jahia_artifacts_expiry: ${{ steps.session.outputs.artifacts_expiry }}
+
+      # outcome != 'skipped': no logs exist when an earlier step already failed
+      - name: Upload session logs to GitHub
+        if: always() && steps.run.outcome != 'skipped'
+        uses: jahia/jahia-modules-action/upload-artifact@v2
+        with:
+          destination: "github"
+          name: ai-issue-agent-logs
+          path: ${{ runner.temp }}/issue-agent-logs
+          retention-days: 2
+
+      - name: Upload session logs to Jahia servers
+        if: always() && steps.run.outcome != 'skipped'
+        uses: jahia/jahia-modules-action/upload-artifact@v2
+        with:
+          destination: "jahia"
+          name: ${{ steps.session.outputs.artifacts_name }}
+          path: ${{ runner.temp }}/issue-agent-logs
+          retention-days: 30
+          ssh-key: ${{ secrets.BASTION_SSH_PRIVATE_KEY_JAHIACI }}
+
+      # always(): the lock must be released and the session billed whatever the agent did.
+      # The thread is the ORIGIN one, and the session entry is the guard's: guard_run_id.
+      - name: Finalize the session — release the lock, settle the ledger
+        if: always()
+        uses: jahia/jahia-modules-action/ai-issue-agent/finalize@v2
+        with:
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          repository: ${{ needs.plan.outputs.origin_repository }}
+          issue_number: ${{ needs.plan.outputs.origin_number }}
+          session_run_id: ${{ needs.plan.outputs.guard_run_id }}
+          session_started_epoch: ${{ steps.session.outputs.started_epoch }}
+          outcome: ${{ job.status }}

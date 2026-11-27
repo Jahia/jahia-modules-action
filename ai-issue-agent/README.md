@@ -118,6 +118,65 @@ options when the board does not match, so a renamed option is a readable annotat
 than a silent no-op. The token it needs carries organization project scope — the chores
 token the `add-to-project` jobs already use, not the agent account's issue token.
 
+## Dispatched sessions
+
+`.github/workflows/reusable-ai-agent-execution.yml` runs one session detached from the guard.
+A caller started by `workflow_dispatch`, such as the synced `delivery-ai-agent.yml` of
+`Jahia/.github`, passes two inputs: `payload`, a JSON object, and `prompt`, a text. The workflow
+has two jobs. The `plan` job validates the payload on `ubuntu-slim`, with the `parse-dispatch`
+action of this directory, whose tests are in `__tests__/validatePayload.test.ts`. The `agent` job then runs on
+the runner label and with the timeout that the payload names, because `runs-on` and
+`timeout-minutes` cannot be computed from a JSON string inside the job that uses them.
+
+The session works in the repository that runs the workflow. It reads and reports on the thread
+that `origin` names, which can be another repository of the same organization. The prompt is the
+task of the session, and the thread is its context. A persona named in the prompt is a hint:
+the session reads the whole thread and may choose another profile.
+
+The payload, version 1. Only `origin` is required.
+
+| Field | Type | Default | Meaning |
+|---|---|---|---|
+| `version` | integer | `1` | Contract version. Another value fails the `plan` job. |
+| `runner` | string, or list of up to 5 strings | `self-hosted` | `runs-on` of the `agent` job. A label has only `A-Z a-z 0-9 _ . -`. The name `default` of the default runner flavour is read as `self-hosted`. |
+| `timeout_minutes` | integer, 6 to 360 | `65` | `timeout-minutes` of the `agent` job. The agent stops 5 minutes before it, so the artifacts upload. |
+| `model` | string | `opus` | An alias the gateway maps, or a model name it serves verbatim. Empty keeps the CLI default. |
+| `origin.repository` | string `owner/repo` | none | Repository of the thread. It must belong to the owner of the running repository. |
+| `origin.number` | integer | none | Issue or pull request number. |
+| `origin.target` | `issue` or `pull_request` | `issue` | What the number names. |
+| `session_index` | integer | `1` | Index of the session on the thread, shown in the prompt. |
+| `remaining_seconds` | integer | `timeout_minutes` times 60 | What remains of the cumulative budget. It caps the session. |
+| `guard_run_id` | integer | the running run | The run that took the lock and opened the session entry. Finalize closes that entry and releases that lock. |
+| `cortex_ref` | string | `main` | Git ref of the cortex harness. |
+| `claude_code_version` | string | `stable` | Claude Code version. |
+| `reuse_claude_code` | boolean | `false` | Reuse a Claude Code binary already on the runner image (`reuse_installed_claude_code` of `ai-agent-setup`). |
+| `skip_smoke_tests` | boolean | `false` | Skip the two model smoke tests of `ai-agent-setup`. |
+| `debug` | boolean | `false` | Run the agent with debug detail. |
+
+```json
+{
+  "version": 1,
+  "runner": "self-hosted",
+  "timeout_minutes": 30,
+  "model": "sonnet",
+  "origin": { "repository": "Jahia/sandbox", "number": 12, "target": "issue" },
+  "session_index": 1,
+  "remaining_seconds": 7200,
+  "guard_run_id": 1234567890
+}
+```
+
+The workflow does not take the lock and does not check the budget: the guard does, before the
+dispatch. Without `guard_run_id`, finalize closes a session entry of its own run and leaves a lock
+of the guard in place, which the stale-lock rule reclaims. A payload that fails validation stops
+at the `plan` job, before any agent starts, and also leaves the lock to that rule.
+
+Two limits follow from that. A `timeout_minutes` above the `timeout_job` of the guard, plus its
+10-minute margin, lets a fresh @-mention reclaim the lock as stale while the dispatched session
+still runs, so the guard of the dispatching path must be given the timeout it dispatches. The
+`plan` job refuses a pull request whose head lives in a fork, as the guard does, and the guard
+stays the owner of every other eligibility rule.
+
 ## Steering and STOP
 
 A fresh comment mentioning the agent while a session runs is a **steering instruction**: the

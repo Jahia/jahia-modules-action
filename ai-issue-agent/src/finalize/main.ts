@@ -24,7 +24,12 @@ const run = async (): Promise<void> => {
   const comment = await findStatusComment(octokit, { owner, repo, issueNumber })
   const state = comment ? parseStateBlock(comment.body) : null
   const now = new Date()
-  const runId = Number(process.env.GITHUB_RUN_ID ?? '0')
+  // session_run_id names the run that took the lock and opened the session entry. It is the
+  // guard run when a dispatched execution workflow finalizes for a guard of another workflow.
+  const sessionRunInput = core.getInput('session_run_id')
+  const runId = Number(
+    sessionRunInput === '' ? (process.env.GITHUB_RUN_ID ?? '0') : sessionRunInput,
+  )
   const runUrl = `${process.env.GITHUB_SERVER_URL ?? 'https://github.com'}/${repository}/actions/runs/${String(runId)}`
   const seconds = Math.max(0, Math.round(now.getTime() / 1000 - startedEpoch))
 
