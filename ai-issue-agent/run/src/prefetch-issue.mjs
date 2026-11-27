@@ -156,19 +156,23 @@ export const prefetchIssue = async ({
 
   try {
     const payload = JSON.parse(readFileSync(eventPath, 'utf8'))
-    const trigger = payload.comment ?? {}
-    writeFileSync(
-      join(contextDir, 'trigger.md'),
-      [
-        '# The comment that started this session',
-        '',
-        `- Author: ${trigger.user?.login ?? '?'} · posted ${stamp(trigger.created_at)} · id ${trigger.id ?? '?'}`,
-        '',
-        trigger.body ?? '(the event carried no comment body)',
-        '',
-      ].join('\n'),
-    )
-    index.push(['trigger.md', 'the @-mention comment that started this session — the request to act on'])
+    // A workflow_dispatch event carries no comment: the prompt is then the whole request,
+    // and there is no trigger.md to index.
+    const trigger = payload.comment
+    if (trigger) {
+      writeFileSync(
+        join(contextDir, 'trigger.md'),
+        [
+          '# The comment that started this session',
+          '',
+          `- Author: ${trigger.user?.login ?? '?'} · posted ${stamp(trigger.created_at)} · id ${trigger.id ?? '?'}`,
+          '',
+          trigger.body ?? '(the event carried no comment body)',
+          '',
+        ].join('\n'),
+      )
+      index.push(['trigger.md', 'the @-mention comment that started this session — the request to act on'])
+    }
   } catch (error) {
     failures.push(['trigger.md', String(error).split('\n')[0]])
   }
