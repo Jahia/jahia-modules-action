@@ -1,0 +1,171 @@
+# Detached, parameterized agent session. A caller that was started by `workflow_dispatch`
+# (typically the synced delivery-ai-agent.yml of Jahia/.github) passes two inputs: a JSON
+# `payload` that holds every value the workflow machinery reads before the agent exists, and
+# a `prompt` that holds the request. Both are produced upstream, by a triage or by hand.
+#
+# Two jobs, deliberately. A cheap `plan` job on ubuntu-slim parses and validates the payload,
+# because `runs-on` and `timeout-minutes` of the `agent` job cannot be computed from a JSON
+# string in the same job. The `agent` job then runs on the runner label and with the timeout
+# the payload names: mTLS tunnel, Claude Code and cortex setup, one session, the logs
+# artifacts, and the finalize of the lock and the ledger on the ORIGIN thread.
+#
+# The session works where this workflow runs, and reports on the thread the payload names
+# (`origin`), which can live in another repository. The guard of the issue agent stays in
+# front of this workflow: it takes the lock, and `guard_run_id` lets finalize release it.
+#
+# The payload contract (version 1) is in ai-issue-agent/README.md, section "Dispatched
+# sessions". A field that the payload omits takes its default there.
+name: AI Agent Execution
+
+on:
+  workflow_call:
+    inputs:
+      payload:
+        description: "JSON object: runner, timeout_minutes, model, origin {repository, number, target, comment_id}, session_index, remaining_seconds, guard_run_id and optional tuning fields. See the README of ai-issue-agent."
+        type: string
+        required: true
+      prompt:
+        description: "The request of the session: a persona hint and a short brief, or the original request verbatim. It is data, handed to the agent as its task."
+        type: string
+        required: true
+      agent_login:
+        description: "GitHub username of the AI agent account"
+        type: string
+        required: false
+        default: "jahia-ai"
+      tunnel_hosts:
+        description: "Internal hosts to reach through the mTLS tunnel (space-separated); must be allowlisted on IT's side."
+        type: string
+        required: false
+        default: "litellm-prod.int.jahia.com"
+
+jobs:
+  plan:
+    name: Read the dispatch payload
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    outputs:
+      runs_on: ${{ steps.parse.outputs.runs_on }}
+      timeout_minutes: ${{ steps.parse.outputs.timeout_minutes }}
+      model: ${{ steps.parse.outputs.model }}
+      issue_url: ${{ steps.parse.outputs.issue_url }}
+      origin_repository: ${{ steps.parse.outputs.origin_repository }}
+      origin_number: ${{ steps.parse.outputs.origin_number }}
+      origin_target: ${{ steps.parse.outputs.origin_target }}
+      session_index: ${{ steps.parse.outputs.session_index }}
+      remaining_seconds: ${{ steps.parse.outputs.remaining_seconds }}
+      guard_run_id: ${{ steps.parse.outputs.guard_run_id }}
+      cortex_ref: ${{ steps.parse.outputs.cortex_ref }}
+      claude_code_version: ${{ steps.parse.outputs.claude_code_version }}
+      debug: ${{ steps.parse.outputs.debug }}
+      skip_smoke_tests: ${{ steps.parse.outputs.skip_smoke_tests }}
+      reuse_claude_code: ${{ steps.parse.outputs.reuse_claude_code }}
+    steps:
+      # The payload reaches the script through the environment, never through the script text:
+      # it is a string a dispatcher typed. Every field is checked against a strict pattern
+      # before it becomes an output, because an output is read as an expression later on.
+      - name: Validate the payload and expose its fields
+        id: parse
+        shell: bash
+        env:
+          PAYLOAD: ${{ inputs.payload }}
+          PROMPT_LENGTH: ${{ length(inputs.prompt) }}
+        run: |
+          python3 -I - <<'PY'
+          import json, os, re, sys
+
+          def fail(message):
+              print(f"::error title=Invalid dispatch payload::{message}")
+              sys.exit(1)
+
+          try:
+              payload = json.loads(os.environ["PAYLOAD"])
+          except ValueError as error:
+              fail(f"the payload is not JSON: {error}")
+          if not isinstance(payload, dict):
+              fail("the payload must be a JSON object")
+          if payload.get("version", 1) != 1:
+              fail(f"unsupported payload version {payload.get('version')!r}, this workflow reads version 1")
+
+          def text(name, pattern, default):
+              value = payload.get(name, default)
+              if not isinstance(value, str) or not re.fullmatch(pattern, value):
+                  fail(f"{name} must be a string matching {pattern}, got {value!r}")
+              return value
+
+          def integer(name, low, high, default):
+              value = payload.get(name, default)
+              if isinstance(value, bool) or not isinstance(value, int) or not low <= value <= high:
+                  fail(f"{name} must be an integer from {low} to {high}, got {value!r}")
+              return value
+
+          def flag(name, default):
+              value = payload.get(name, default)
+              if not isinstance(value, bool):
+                  fail(f"{name} must be true or false, got {value!r}")
+              return "true" if value else "false"
+
+          # One runner label, or a list of labels. Labels are plain words: no expression syntax.
+          label = re.compile(r"[A-Za-z0-9_.-]{1,64}")
+          runner = payload.get("runner", "self-hosted")
+          labels = [runner] if isinstance(runner, str) else runner
+          if not isinstance(labels, list) or not 1 <= len(labels) <= 5 or not all(
+              isinstance(item, str) and label.fullmatch(item) for item in labels
+          ):
+              fail(f"runner must be a label or a list of up to 5 labels of [A-Za-z0-9_.-], got {runner!r}")
+          runs_on = labels[0] if isinstance(runner, str) else labels
+
+          timeout = integer("timeout_minutes", 6, 360, 65)
+          origin = payload.get("origin")
+          if not isinstance(origin, dict):
+              fail("origin is required: {repository, number, target}")
+          repository = origin.get("repository")
+          if not isinstance(repository, str) or not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
+              fail(f"origin.repository must be owner/repo, got {repository!r}")
+          # The agent token reaches every repository of the organization: refuse another owner.
+          if repository.split("/")[0].lower() != os.environ["GITHUB_REPOSITORY_OWNER"].lower():
+              fail(f"origin.repository must belong to {os.environ['GITHUB_REPOSITORY_OWNER']}, got {repository}")
+          number = origin.get("number")
+          if isinstance(number, bool) or not isinstance(number, int) or number < 1:
+              fail(f"origin.number must be a positive integer, got {number!r}")
+          target = origin.get("target", "issue")
+          if target not in ("issue", "pull_request"):
+              fail(f"origin.target must be issue or pull_request, got {target!r}")
+
+          server = os.environ["GITHUB_SERVER_URL"]
+          kind = "pull" if target == "pull_request" else "issues"
+          remaining_default = timeout * 60
+          guard_run_id = payload.get("guard_run_id", "")
+          if guard_run_id != "" and (isinstance(guard_run_id, bool) or not isinstance(guard_run_id, int) or guard_run_id < 1):
+              fail(f"guard_run_id must be a positive integer or absent, got {guard_run_id!r}")
+
+          outputs = {
+              "runs_on": json.dumps(runs_on),
+              "timeout_minutes": str(timeout),
+              "model": text("model", r"[A-Za-z0-9._:/-]{0,100}", "opus"),
+              "issue_url": f"{server}/{repository}/{kind}/{number}",
+              "origin_repository": repository,
+              "origin_number": str(number),
+              "origin_target": target,
+              "session_index": str(integer("session_index", 1, 10000, 1)),
+              "remaining_seconds": str(integer("remaining_seconds", 0, 10**7, remaining_default)),
+              "guard_run_id": str(guard_run_id),
+              "cortex_ref": text("cortex_ref", r"[A-Za-z0-9._/-]{1,100}", "main"),
+              "claude_code_version": text("claude_code_version", r"[A-Za-z0-9._-]{1,30}", "stable"),
+              "debug": flag("debug", False),
+              "skip_smoke_tests": flag("skip_smoke_tests", False),
+              "reuse_claude_code": flag("reuse_claude_code", False),
+          }
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              for key, value in outputs.items():
+                  out.write(f"{key}={value}\n")
+
+          # The same table is the decision log of the dispatch: what ran, where, for which thread.
+          lines = ["### AI agent execution", "", "| Parameter | Value |", "| -- | -- |"]
+          for key in ("runs_on", "timeout_minutes", "model", "issue_url", "session_index",
+                      "remaining_seconds", "guard_run_id", "cortex_ref", "skip_smoke_tests", "reuse_claude_code"):
+              lines.append(f"| {key} | `{outputs[key]}` |")
+          lines.append(f"| prompt length | {os.environ['PROMPT_LENGTH']} characters |")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("\n".join(lines) + "\n")
+          PY
