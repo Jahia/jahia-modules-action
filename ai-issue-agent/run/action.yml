@@ -320,6 +320,10 @@ runs:
         ALLOWED_TOOLS: ${{ inputs.allowed_tools }}
         DISALLOWED_TOOLS: ${{ inputs.disallowed_tools }}
         CLAUDE_DEBUG: ${{ inputs.debug }}
+        # A session runs on an ephemeral runner, so nothing it writes to its auto memory is read
+        # again. Left on, the agent spends its turns, and wall clock, saving notes and a memory
+        # index that the next runner never sees.
+        CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1'
         AGENT_MODEL: ${{ inputs.model }}
         JOB_TIMEOUT_MINUTES: ${{ inputs.job_timeout_minutes }}
         REMAINING_SECONDS: ${{ inputs.remaining_seconds }}
