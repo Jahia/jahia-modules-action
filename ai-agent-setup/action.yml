@@ -1,17 +1,23 @@
 name: AI Agent Setup
-description: Install the Claude Code CLI on a self-hosted runner, point it at the Jahia LiteLLM gateway, and clone the cortex agentic harness
+description: Install the Claude Code CLI on a self-hosted runner, point it at the Jahia LiteLLM gateway (or at Anthropic, with an OAuth token), and clone the cortex agentic harness
 
 inputs:
   claude_code_version:
     description: 'Claude Code version to install (a specific version like 2.1.89, or "stable" / "latest")'
     required: false
     default: 'stable'
+  claude_code_oauth_token:
+    description: 'Opt-in. A Claude subscription OAuth token, from `claude setup-token`. When set, Claude Code talks to Anthropic with it and the gateway inputs are ignored. Leave it empty to use the gateway.'
+    required: false
+    default: ''
   anthropic_base_url:
-    description: 'Base URL of the Anthropic-compatible gateway (LiteLLM)'
-    required: true
+    description: 'Base URL of the Anthropic-compatible gateway (LiteLLM). Required unless claude_code_oauth_token is set.'
+    required: false
+    default: ''
   anthropic_auth_token:
-    description: 'Auth token for the gateway'
-    required: true
+    description: 'Auth token for the gateway. Required unless claude_code_oauth_token is set.'
+    required: false
+    default: ''
   default_opus_model:
     description: 'Model served by the gateway for the "opus" alias'
     required: false
@@ -92,17 +98,46 @@ runs:
         curl -fsSL https://claude.ai/install.sh | bash -s -- ${WANTED_VERSION}
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-    - name: Configure Claude Code for the LiteLLM gateway
+    - name: Configure Claude Code credentials
       shell: bash
+      env:
+        OAUTH_TOKEN: ${{ inputs.claude_code_oauth_token }}
+        GATEWAY_URL: ${{ inputs.anthropic_base_url }}
+        GATEWAY_TOKEN: ${{ inputs.anthropic_auth_token }}
       run: |
         {
-          echo "ANTHROPIC_BASE_URL=${{ inputs.anthropic_base_url }}"
-          echo "ANTHROPIC_AUTH_TOKEN=${{ inputs.anthropic_auth_token }}"
           echo "DISABLE_AUTOUPDATER=1"
           # A CI job runs on an ephemeral runner, so nothing an agent writes to its auto memory
           # is read again. Left on, the agent spends turns, and wall clock, on saving notes and
           # a memory index that the next runner never sees.
           echo "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1"
+        } >> "$GITHUB_ENV"
+        if [ -n "$OAUTH_TOKEN" ]; then
+          # The opt-in path: a repository that holds a subscription OAuth token talks to
+          # Anthropic with it, and nothing of the gateway is exported. ANTHROPIC_AUTH_TOKEN and
+          # ANTHROPIC_API_KEY both outrank CLAUDE_CODE_OAUTH_TOKEN, and the documentation does
+          # not say that an empty value counts as unset, so the variables are left out
+          # altogether. The model aliases then resolve to the newest models of Anthropic.
+          case "$OAUTH_TOKEN" in
+            *$'\n'*|*$'\r'*)
+              echo "::error::claude_code_oauth_token holds a line break, so it cannot be a token"
+              exit 1 ;;
+          esac
+          echo "::add-mask::$OAUTH_TOKEN"
+          echo "CLAUDE_CODE_OAUTH_TOKEN=$OAUTH_TOKEN" >> "$GITHUB_ENV"
+          if [ -n "${ANTHROPIC_API_KEY:-}" ] || [ -n "${ANTHROPIC_AUTH_TOKEN:-}" ]; then
+            echo "::warning title=Competing credential::ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN is set in this job and outranks the OAuth token, so Claude Code will not use the token"
+          fi
+          echo "::notice title=Claude Code credentials::Claude Code uses the CLAUDE_CODE_OAUTH_TOKEN of this repository and talks to Anthropic directly. The LiteLLM gateway is not used."
+          exit 0
+        fi
+        if [ -z "$GATEWAY_URL" ] || [ -z "$GATEWAY_TOKEN" ]; then
+          echo "::error::No Claude Code credentials: set claude_code_oauth_token, or both anthropic_base_url and anthropic_auth_token"
+          exit 1
+        fi
+        {
+          echo "ANTHROPIC_BASE_URL=${{ inputs.anthropic_base_url }}"
+          echo "ANTHROPIC_AUTH_TOKEN=${{ inputs.anthropic_auth_token }}"
         } >> "$GITHUB_ENV"
         if [ -n "${{ inputs.default_opus_model }}" ]; then
           echo "ANTHROPIC_DEFAULT_OPUS_MODEL=${{ inputs.default_opus_model }}" >> "$GITHUB_ENV"
@@ -115,6 +150,8 @@ runs:
         fi
 
     - name: Verify gateway connectivity
+      # The opt-in OAuth path does not use the gateway, so it has nothing to reach.
+      if: inputs.claude_code_oauth_token == ''
       shell: bash
       run: |
         GATEWAY_HOST=$(echo "${{ inputs.anthropic_base_url }}" | sed -E 's|^[a-z]+://([^/:]+).*|\1|')

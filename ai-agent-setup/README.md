@@ -59,8 +59,9 @@ Claude-on-runner duty should reuse it as-is.
 | Name | Required | Default | Description |
 |---|---|---|---|
 | `claude_code_version` | no | `stable` | Claude Code version to install (a specific version like `2.1.89`, or `stable` / `latest`) |
-| `anthropic_base_url` | yes | — | Base URL of the Anthropic-compatible gateway (LiteLLM) |
-| `anthropic_auth_token` | yes | — | Auth token for the gateway. Each duty passes **its own** key — see [Gateway keys are per duty](#gateway-keys-are-per-duty) |
+| `claude_code_oauth_token` | no | `''` | Opt-in. A Claude subscription OAuth token from `claude setup-token`. When set, Claude Code talks to Anthropic with it and the two gateway inputs below are ignored. Every reusable workflow passes `secrets.CLAUDE_CODE_OAUTH_TOKEN`, so a repository opts in by holding that secret — see [Using a subscription token instead of the gateway](#using-a-subscription-token-instead-of-the-gateway) |
+| `anthropic_base_url` | yes\* | — | Base URL of the Anthropic-compatible gateway (LiteLLM) |
+| `anthropic_auth_token` | yes\* | — | Auth token for the gateway. Each duty passes **its own** key — see [Gateway keys are per duty](#gateway-keys-are-per-duty) |
 | `default_opus_model` | no | `''` | Model served by the gateway for the "opus" alias |
 | `default_sonnet_model` | no | `''` | Model served by the gateway for the "sonnet" alias |
 | `default_haiku_model` | no | `''` | Model served by the gateway for the "haiku" alias |
@@ -92,6 +93,44 @@ each request to the duty that made it:
 
 A new duty gets a new key; it does not borrow one of these. An absent or wrong key fails at the
 gateway smoke test below, before any agent starts, so the job says so instead of half-running.
+
+\* Required unless `claude_code_oauth_token` is set. With neither credential the step fails at once, and says so.
+
+## Using a subscription token instead of the gateway
+
+By default every duty talks to the LiteLLM gateway. A repository can talk to Anthropic directly
+with a Claude subscription instead, for example to compare the latency of the two. The switch is a
+repository secret, so nobody edits a workflow:
+
+1. Run `claude setup-token` on a machine where you are logged in. It needs a Pro, Max, Ultra, Team
+   or Enterprise plan, opens the browser authorization, and prints a token that is valid for a
+   year.
+2. Store it as the secret `CLAUDE_CODE_OAUTH_TOKEN` of the repository, with
+   `gh secret set CLAUDE_CODE_OAUTH_TOKEN --repo <owner>/<repo>`, which prompts for the value.
+3. Delete the secret to go back to the gateway.
+
+Every reusable workflow of this repository passes `secrets.CLAUDE_CODE_OAUTH_TOKEN` to
+`claude_code_oauth_token`. An absent secret is an empty string, so the gateway stays the default.
+A caller reaches the secret through `secrets: inherit`, as the delivery workflows do.
+
+With the token set, the setup step exports `CLAUDE_CODE_OAUTH_TOKEN` and nothing else of the
+credentials. `ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_API_KEY` both outrank it, and the
+documentation does not say that an empty value counts as unset, so the step leaves them out. The
+model aliases `opus`, `sonnet` and `haiku` then resolve to the newest models of Anthropic, and the
+gateway connectivity check is skipped. If a job sets `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN`
+itself, the step warns that Claude Code will not use the token. The mTLS tunnel step of the
+workflows still opens, because other internal hosts may need it.
+
+Know what you hand over:
+
+- The token is tied to the subscription of the person who ran `claude setup-token`, and the usage
+  counts against that person's plan. Anthropic recommends a Console API key, or workload identity
+  federation, for a secret that many repositories share.
+- The agent's tools can read the token from the environment, as they read the gateway key. The
+  secret mask below applies to both. Setting `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB` would hide it from
+  the tools, and it would also break a tool that starts a nested `claude`, such as the triage or the
+  blind review of cortex, so this action does not set it.
+- `claude -p --bare` never reads the token. No duty of this repository passes `--bare`.
 
 ## Credentials in the output of a tool
 
