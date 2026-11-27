@@ -48,6 +48,10 @@ inputs:
 outputs:
   dispatched:
     description: '"true" once the execution workflow was dispatched, and "false" otherwise. The caller runs the session inline on "false".'
+  run_id:
+    description: 'The id of the dispatched workflow run, and empty when nothing was dispatched or the response did not carry it.'
+  run_url:
+    description: 'The web URL of the dispatched workflow run, empty in the same cases as run_id.'
   source:
     description: '"decision" when the triage chose the parameters, "fallback" when it declined or failed, "default" when no usable decision reached the plan.'
   runner:

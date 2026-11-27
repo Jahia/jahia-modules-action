@@ -34,6 +34,8 @@ const summarize = async (plan: DispatchPlan, facts: Record<string, string>): Pro
 
 const run = async (): Promise<void> => {
   core.setOutput('dispatched', 'false')
+  core.setOutput('run_id', '')
+  core.setOutput('run_url', '')
   try {
     const cortexPath = core.getInput('cortex_path', { required: true })
     const token = core.getInput('github_token', { required: true })
@@ -91,7 +93,7 @@ const run = async (): Promise<void> => {
       serverUrl: process.env.GITHUB_SERVER_URL ?? 'https://github.com',
     })
 
-    await dispatchWorkflow({
+    const dispatched = await dispatchWorkflow({
       octokit: github.getOctokit(token),
       repository,
       workflow,
@@ -100,6 +102,8 @@ const run = async (): Promise<void> => {
       prompt: plan.prompt,
     })
     core.setOutput('dispatched', 'true')
+    core.setOutput('run_id', dispatched.id)
+    core.setOutput('run_url', dispatched.url)
 
     const runner = JSON.stringify(plan.payload.runner)
     core.setOutput('source', plan.source)
@@ -107,14 +111,16 @@ const run = async (): Promise<void> => {
     core.setOutput('timeout_minutes', String(plan.payload.timeout_minutes))
     core.setOutput('model', String(plan.payload.model))
     core.setOutput('triage_seconds', String(triageSeconds))
+    const where = dispatched.url === '' ? '' : `: run ${dispatched.id}, ${dispatched.url}`
     core.notice(
-      `Dispatched ${workflow} on ${runner}, ${String(plan.payload.timeout_minutes)} min, ${String(plan.payload.model)} (${plan.source})`,
+      `Dispatched ${workflow} on ${runner}, ${String(plan.payload.timeout_minutes)} min, ${String(plan.payload.model)} (${plan.source})${where}`,
     )
 
     try {
       const decision = result.ok ? result.decision : null
       await summarize(plan, {
         source: plan.source,
+        run: dispatched.url === '' ? '(unknown)' : `[${dispatched.id}](${dispatched.url})`,
         note: plan.note === '' ? '(none)' : plan.note,
         runner: `\`${runner}\``,
         timeout_minutes: `\`${String(plan.payload.timeout_minutes)}\``,
