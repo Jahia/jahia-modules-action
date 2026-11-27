@@ -10,7 +10,9 @@
     "lint": "eslint src __tests__",
     "package": "ncc build src/guard/main.ts -o check-request/dist --license licenses.txt && ncc build src/finalize/main.ts -o finalize/dist --license licenses.txt && ncc build src/hygiene/main.ts -o project-hygiene/dist --license licenses.txt",
     "test": "jest",
-    "all": "npm run build && npm run format-check && npm run lint && npm test && npm run package"
+    "test:run": "node --test run/tests/*.test.mjs",
+    "test:payload": "python3 -I -m unittest discover -s tests",
+    "all": "npm run build && npm run format-check && npm run lint && npm test && npm run test:run && npm run test:payload && npm run package"
   },
   "license": "Apache-2.0",
   "dependencies": {
