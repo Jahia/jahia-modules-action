@@ -113,9 +113,7 @@ class BuildPromptTest(unittest.TestCase):
         self.assertIn('inside the cortex checkout', raised.exception.stderr)
 
     def test_the_default_deny_list_of_the_action_carries_no_relative_edit_rule(self):
-        action = os.path.join(os.path.dirname(os.path.dirname(SCRIPT)), 'action.yml')
-        with open(action, encoding='utf-8') as fh:
-            default = re.search(r"\n  disallowed_tools:\n(?:    .*\n)*?    default: '([^']*)'", fh.read()).group(1)
+        default = read_action_default('disallowed_tools')
         self.assertTrue(default.startswith('Edit,'))
         self.assertNotIn('Edit(./**)', default)
 
@@ -166,21 +164,22 @@ class BuildPromptTest(unittest.TestCase):
         self.assertTrue(allowed.endswith(','.join(
             f'Bash(git -C {checkout} {verb}:*)' for verb in ('diff', 'log', 'show', 'grep', 'blame'))))
 
-    def test_a_checkout_adds_the_fences_of_the_git_reads_to_any_deny_list(self):
-        log_dir = os.path.join(self.root, 'logs')
-        cortex = os.path.join(self.root, 'cortex')
-        checkout = f'{cortex}/sources/example'
-        run_build_prompt(log_dir, 'Read', 'Edit', cortex_path=cortex, checkout=checkout,
-                         reviewed_sha=make_checkout(checkout))
-        fences = ['*--output*', 'grep *O*', 'grep *--op*', "*'*", '*"*', '*' + '\\' * 4 + '*', '*$*', '*`*', '*{*']
-        self.assertEqual(self.read_denied(log_dir), ','.join(
-            ['Edit', f'Edit(/{cortex}/**)'] + [f'Bash(git -C {checkout} {fence})' for fence in fences]))
-
-    def test_the_fences_deny_each_escape_of_a_git_read(self):
+    def run_at_checkout(self, allowed_tools='Read', disallowed_tools=''):
         log_dir = os.path.join(self.root, 'logs')
         checkout = os.path.join(self.root, 'cortex', 'sources', 'example')
-        run_build_prompt(log_dir, 'Read', checkout=checkout, reviewed_sha=make_checkout(checkout))
-        denied = select_bash_rules(self.read_denied(log_dir))
+        allowed, surface = run_build_prompt(log_dir, allowed_tools, disallowed_tools, checkout=checkout,
+                                            reviewed_sha=make_checkout(checkout))
+        return checkout, allowed, self.read_denied(log_dir), surface
+
+    def test_a_checkout_adds_the_fences_of_the_git_reads_to_any_deny_list(self):
+        checkout, _, denied, _ = self.run_at_checkout('Read', 'Edit')
+        fences = ['*--output*', 'grep *O*', 'grep *--op*', "*'*", '*"*', '*' + '\\' * 4 + '*', '*$*', '*`*', '*{*']
+        self.assertEqual(denied, ','.join(
+            ['Edit', f"Edit(/{os.path.join(self.root, 'cortex')}/**)"] + [f'Bash(git -C {checkout} {fence})' for fence in fences]))
+
+    def test_the_fences_deny_each_escape_of_a_git_read(self):
+        checkout, _, denied, _ = self.run_at_checkout()
+        denied = select_bash_rules(denied)
         escapes = ['diff --output=/tmp/x', 'grep -lOsh x', 'grep --open-files-in-pager=sh x', 'log --out"put"=x',
                    "log --out'put'=x", 'log --out\\put=x', 'log $OPTION', 'log `echo x`', 'log --out{put,}=x']
         for escape in escapes:
@@ -188,12 +187,9 @@ class BuildPromptTest(unittest.TestCase):
                 self.assertTrue(any(matches(rule, f'git -C {checkout} {escape}') for rule in denied))
 
     def test_the_default_lists_of_the_action_allow_each_plain_read_and_no_global_option(self):
-        log_dir = os.path.join(self.root, 'logs')
-        checkout = os.path.join(self.root, 'cortex', 'sources', 'example')
-        allowed, _ = run_build_prompt(log_dir, read_action_default('allowed_tools'),
-                                      read_action_default('disallowed_tools'), checkout=checkout,
-                                      reviewed_sha=make_checkout(checkout))
-        allowed, denied = select_bash_rules(allowed), select_bash_rules(self.read_denied(log_dir))
+        checkout, allowed, denied, _ = self.run_at_checkout(read_action_default('allowed_tools'),
+                                                            read_action_default('disallowed_tools'))
+        allowed, denied = select_bash_rules(allowed), select_bash_rules(denied)
         for read in ('log --oneline -5', 'grep -n foo', 'diff origin/main...HEAD', 'blame README.md', 'show HEAD:a.md'):
             with self.subTest(read=read):
                 command = f'git -C {checkout} {read}'
@@ -269,17 +265,13 @@ class BuildPromptTest(unittest.TestCase):
                               result.stderr)
 
     def test_the_surface_states_the_git_reads_of_the_checkout(self):
-        checkout = os.path.join(self.root, 'cortex', 'sources', 'example')
-        _, surface = run_build_prompt(os.path.join(self.root, 'logs'), 'Read', checkout=checkout,
-                                      reviewed_sha=make_checkout(checkout))
+        checkout, _, _, surface = self.run_at_checkout()
         self.assertIn(f'  - `git -C {checkout} grep …`\n', surface)
         self.assertIn(f'only as `git -C {checkout}`', surface)
         self.assertIn('The clone is blobless', surface)
 
     def test_the_surface_shows_the_backslash_that_a_fence_denies(self):
-        checkout = os.path.join(self.root, 'cortex', 'sources', 'example')
-        _, surface = run_build_prompt(os.path.join(self.root, 'logs'), 'Read', checkout=checkout,
-                                      reviewed_sha=make_checkout(checkout))
+        checkout, _, _, surface = self.run_at_checkout()
         self.assertIn(f'  - `git -C {checkout} *\\*`\n', surface)
 
     def test_a_rule_that_mixes_a_wildcard_with_the_trailing_prefix_prints_a_warning(self):
