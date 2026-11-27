@@ -224,7 +224,7 @@ jobs:
           echo "artifacts_url=https://qa.jahia.com/artifacts-ci/${ARTIFACTS_NAME}/" >> "$GITHUB_OUTPUT"
 
       - name: Open the mTLS tunnel to internal Jahia services
-        uses: jahia/jahia-modules-action/mtls-tunnel@v2
+        uses: jahia/jahia-modules-action/mtls-tunnel@ci-test-aae-3
         with:
           hosts: ${{ inputs.tunnel_hosts }}
           ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
@@ -237,7 +237,7 @@ jobs:
 
       - name: Set up Claude Code and the cortex harness
         id: setup
-        uses: jahia/jahia-modules-action/ai-agent-setup@v2
+        uses: jahia/jahia-modules-action/ai-agent-setup@ci-test-aae-3
         with:
           claude_code_version: ${{ needs.plan.outputs.claude_code_version }}
           reuse_installed_claude_code: ${{ needs.plan.outputs.reuse_claude_code }}
@@ -253,7 +253,7 @@ jobs:
 
       - name: Run the agent session
         id: run
-        uses: jahia/jahia-modules-action/ai-issue-agent/run@v2
+        uses: jahia/jahia-modules-action/ai-issue-agent/run@ci-test-aae-3
         with:
           issue_url: ${{ needs.plan.outputs.issue_url }}
           target: ${{ needs.plan.outputs.origin_target }}
@@ -277,7 +277,7 @@ jobs:
       # outcome != 'skipped': no logs exist when an earlier step already failed
       - name: Upload session logs to GitHub
         if: always() && steps.run.outcome != 'skipped'
-        uses: jahia/jahia-modules-action/upload-artifact@v2
+        uses: jahia/jahia-modules-action/upload-artifact@ci-test-aae-3
         with:
           destination: "github"
           name: ai-issue-agent-logs
@@ -286,7 +286,7 @@ jobs:
 
       - name: Upload session logs to Jahia servers
         if: always() && steps.run.outcome != 'skipped'
-        uses: jahia/jahia-modules-action/upload-artifact@v2
+        uses: jahia/jahia-modules-action/upload-artifact@ci-test-aae-3
         with:
           destination: "jahia"
           name: ${{ steps.session.outputs.artifacts_name }}
@@ -298,7 +298,7 @@ jobs:
       # The thread is the ORIGIN one, and the session entry is the guard's: guard_run_id.
       - name: Finalize the session — release the lock, settle the ledger
         if: always()
-        uses: jahia/jahia-modules-action/ai-issue-agent/finalize@v2
+        uses: jahia/jahia-modules-action/ai-issue-agent/finalize@ci-test-aae-3
         with:
           github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
           repository: ${{ needs.plan.outputs.origin_repository }}
