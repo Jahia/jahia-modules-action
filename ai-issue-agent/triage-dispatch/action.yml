@@ -1,0 +1,60 @@
+name: AI Issue Agent — Triage and dispatch
+description: Decide how an admitted agent session runs, with the jahia-ai-triage tool of cortex, and start it as a dispatched workflow. It never fails the job. When it cannot dispatch, `dispatched` stays false and the caller runs the session inline on its own parameters.
+
+inputs:
+  github_token:
+    description: 'Token that may dispatch workflows in this repository (actions:write). Use the AI agent account''s token.'
+    required: true
+  cortex_path:
+    description: 'Absolute path of the cortex checkout, which ai-agent-setup outputs. The tool jahia-ai-triage is run from it.'
+    required: true
+  target:
+    description: '"issue" or "pull_request": what the guard says the session works.'
+    required: false
+    default: 'issue'
+  remaining_seconds:
+    description: 'Seconds left in the budget of the thread, from the guard.'
+    required: false
+    default: ''
+  session_index:
+    description: '1-based index of the session, from the guard.'
+    required: false
+    default: '1'
+  timeout_job:
+    description: 'timeout-minutes of the guard, in minutes. A dispatched session may not run longer than it, or the stale-lock rule reclaims its lock while it runs.'
+    required: false
+    default: '65'
+  model:
+    description: 'Model of the inline path today, which a fallback keeps.'
+    required: false
+    default: 'opus'
+  cortex_ref:
+    description: 'Git ref of the cortex harness that the dispatched session sets up.'
+    required: false
+    default: 'main'
+  dispatch_workflow:
+    description: 'File name of the execution workflow to dispatch, in this repository.'
+    required: false
+    default: 'delivery-ai-agent.yml'
+  budget_seconds:
+    description: 'Hard wall clock of the triage, in seconds.'
+    required: false
+    default: '60'
+
+outputs:
+  dispatched:
+    description: '"true" once the execution workflow was dispatched, and "false" otherwise. The caller runs the session inline on "false".'
+  source:
+    description: '"decision" when the triage chose the parameters, "fallback" when it declined or failed, "default" when no usable decision reached the plan.'
+  runner:
+    description: 'The runner labels of the dispatched session, as JSON.'
+  timeout_minutes:
+    description: 'The timeout of the dispatched session.'
+  model:
+    description: 'The model alias of the dispatched session.'
+  triage_seconds:
+    description: 'Seconds that the triage took.'
+
+runs:
+  using: 'node24'
+  main: 'dist/index.js'

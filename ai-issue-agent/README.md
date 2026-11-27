@@ -177,6 +177,62 @@ still runs, so the guard of the dispatching path must be given the timeout it di
 `plan` job refuses a pull request whose head lives in a fork, as the guard does, and the guard
 stays the owner of every other eligibility rule.
 
+## Triage and dispatch (opt-in)
+
+A repository that sets the variable `AI_AGENT_DISPATCH` to `true` runs a mention through a short
+triage, and not straight through the inline agent. Without the variable nothing changes: the
+`triage` job is skipped, and the `agent` job runs as it always did.
+
+```text
+guard (check-request) ──► triage job on ai-triage ──► dispatched session (delivery-ai-agent.yml)
+                              │
+                              └─ cannot dispatch ──► inline agent job, on today's parameters
+```
+
+The `triage` job runs on the warm `ai-triage` runner, with the two model round trips of
+`ai-agent-setup` skipped, because the triage call is itself the smoke test. The
+`triage-dispatch` action then:
+
+1. reads the thread and the mention from the event of the workflow, and writes the context file;
+2. runs `tools/jahia-ai-triage/bin/jahia-ai-triage decide` of the cortex checkout, under the hard
+   budget of the tool and a wall clock of 30 seconds more;
+3. turns the decision into the payload and the prompt of
+   [a dispatched session](#dispatched-sessions): the persona as a hint, the brief, and the
+   request verbatim;
+4. validates that payload with the same code that the execution workflow runs, and dispatches it.
+
+| Decision | Payload |
+|---|---|
+| `runner` `default` | `runner` `self-hosted` |
+| `runner` `small` | `runner` `["self-hosted", "small"]` |
+| `timeout_minutes` | `timeout_minutes`, never above `timeout_job` of the guard |
+| `model` | `model` |
+| `origin` | `origin` `{repository, number, target}` |
+| `persona`, `prompt_brief` | the prompt, with the request after them |
+
+The guard keeps the lock and the session entry. The dispatch sets `guard_run_id` to the run of the
+guard, so the `finalize` of the dispatched run closes that entry and releases that lock. The
+timeout never passes `timeout_job`, because the stale-lock rule reclaims a lock after that time
+plus a margin, and it must not do so while the dispatched session still runs.
+
+A triage that goes wrong never costs a session, because each failure lands on today's behaviour:
+
+| Case | What runs |
+|---|---|
+| The triage declines, passes its budget, fails or answers an invalid decision | The dispatch, on the default parameters (`self-hosted`, `timeout_job`, the `model` input) and the request verbatim |
+| The decision fails the validation of the execution workflow | The same default dispatch |
+| The dispatch itself fails, or the execution workflow is absent from the repository | The inline `agent` job, on today's parameters |
+| The `triage` job fails or never starts | The inline `agent` job, which waits for it and then runs |
+
+The output `dispatched` of the action says which case happened, and the job summary logs the
+decision, the plan and the seconds the triage took, which is the dispatch log of each run. The
+action sets `dispatched` right after the dispatch call succeeds, before anything that can still
+fail, so a later error cannot start a second session.
+
+The first version dispatches in the repository of the thread. A decision may name another
+execution repository, and the summary logs it, but nothing runs there until the commenter's write
+access to it is checked.
+
 ## Steering and STOP
 
 A fresh comment mentioning the agent while a session runs is a **steering instruction**: the
