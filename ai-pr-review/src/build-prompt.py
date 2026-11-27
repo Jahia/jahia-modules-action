@@ -20,6 +20,8 @@ BACKSLASH = '\\' * 4
 GIT_FENCES = ('*--output*', 'grep *O*', 'grep *--op*', "*'*", '*"*', f'*{BACKSLASH}*', '*$*', '*`*', '*{*')
 # The characters of a checkout path that the git rules accept: none of them needs a quote or a backslash.
 TYPABLE_PATH = re.compile(r'[A-Za-z0-9._/@+-]+')
+# A deny rule such as `git -C * push *` refuses a `git -C` read that has the word `push` as an argument.
+DENIED_GIT_WORD = re.compile(r'Bash\(git -C \* ([^\s*)]+)(?: \*)?\)')
 
 log_dir = os.path.realpath(sys.argv[1])
 pr_url = os.environ['PR_URL']
@@ -90,13 +92,17 @@ def split_tools(value):
 def compare_head(path: str, reviewed_sha: str) -> str:
     if not reviewed_sha:
         return 'the pre-fetch step read no reviewed head'
-    result = subprocess.run(['git', '-C', path, 'rev-parse', '--verify', 'HEAD'], capture_output=True, text=True)
+    result = subprocess.run(['git', '-C', path, 'rev-parse', '--show-toplevel', '--verify', 'HEAD'],
+                            capture_output=True, text=True)
     if result.returncode:
         lines = [line.strip() for line in result.stderr.splitlines() if line.strip()]
         errors = [line for line in lines if line.startswith(('fatal:', 'error:'))]
         error = (errors or lines or [f'exit code {result.returncode}'])[-1]
         return f'git cannot read the head of the checkout {path}: {error}'
-    head = result.stdout.strip()
+    top, _, head = result.stdout.rstrip('\n').rpartition('\n')
+    # git searches the parent directories, so a plain directory gives the head of an enclosing repository.
+    if os.path.realpath(top) != os.path.realpath(path):
+        return f'the checkout {path} is no repository of its own: git reads the one at {top}'
     if head != reviewed_sha:
         return f'the checkout {path} is at {head}, not at the reviewed head {reviewed_sha}'
     return ''
@@ -132,6 +138,7 @@ disallowed_tools = ','.join(filter(None, [
 ]))
 denied_plain, denied_shell = split_tools(disallowed_tools)
 denied_shell = [command.replace(BACKSLASH, '\\') for command in denied_shell]
+denied_git_words = list(dict.fromkeys(DENIED_GIT_WORD.findall(disallowed_tools)))
 # Claude Code reads a rule that mixes a `*` with the trailing `:*` as a prefix that matches nothing.
 for rule in re.findall(r'Bash\([^)]*\*[^)]*:\*\)', f'{allowed_tools},{disallowed_tools}'):
     print(f'::warning title=Dead permission rule::{rule} matches no command', file=sys.stderr)
@@ -192,9 +199,16 @@ if allow_git_reads:
         f'  `git` runs in the pre-fetched checkout only as `git -C {checkout}`, with the path',
         '  written exactly so, followed by `diff`, `log`, `show`, `grep` or `blame`. Such a',
         '  command holds no quote, backslash, `$`, backtick or brace, and a `git grep` holds no',
-        '  uppercase `O`, so search the files with Grep. The clone is blobless, so `blame`, `log -p`',
-        '  and a `show` of an older commit fetch each older file from GitHub, one by one: read',
-        '  `diff.patch` first.',
+        '  uppercase `O`, so search the files with Grep.',
+    ]
+    if denied_git_words:
+        surface += [
+            '  The deny list can also refuse a `git -C` read that has one of these words as an argument,',
+            f"  so search such a word with Grep: {', '.join(f'`{word}`' for word in denied_git_words)}.",
+        ]
+    surface += [
+        '  The clone is blobless, so `blame`, `log -p` and a `show` of an older commit fetch each',
+        '  older file from GitHub, one by one: read `diff.patch` first.',
     ]
 elif head_mismatch:
     surface += [

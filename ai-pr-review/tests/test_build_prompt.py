@@ -11,6 +11,7 @@ SCRIPT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))
                       'src', 'build-prompt.py')
 PR_URL = 'https://github.com/Jahia/example/pull/7'
 REVIEW_NAME = 'pr-Jahia-example-7.review.json'
+GIT_READS = ('diff', 'log', 'show', 'grep', 'blame')
 
 
 def run_script(log_dir, allowed_tools, disallowed_tools='', review_round='', cortex_path=None, checkout='',
@@ -57,10 +58,11 @@ def select_bash_rules(rules):
 
 
 def matches(rule, command):
-    # A model of the matcher of Claude Code, where `*` is any text and a trailing `:*` a prefix.
+    # A model of the matcher of Claude Code: before a trailing `:*` the rule is literal, elsewhere `*` is any text.
     pattern = rule[len('Bash('):-len(')')].replace('\\' * 4, '\\')
     if pattern.endswith(':*'):
-        pattern = pattern[:-len(':*')] + '*'
+        prefix = pattern[:-len(':*')]
+        return command == prefix or command.startswith(prefix + ' ')
     return re.fullmatch('.*'.join(map(re.escape, pattern.split('*'))), command, re.DOTALL) is not None
 
 
@@ -161,8 +163,15 @@ class BuildPromptTest(unittest.TestCase):
         log_dir = os.path.join(self.root, 'logs')
         checkout = f'{self.root}/cortex//sources/example'
         allowed, _ = run_build_prompt(log_dir, 'Read', checkout=checkout, reviewed_sha=make_checkout(checkout))
-        self.assertTrue(allowed.endswith(','.join(
-            f'Bash(git -C {checkout} {verb}:*)' for verb in ('diff', 'log', 'show', 'grep', 'blame'))))
+        self.assertTrue(allowed.endswith(','.join(f'Bash(git -C {checkout} {verb}:*)' for verb in GIT_READS)))
+
+    def test_a_checkout_path_with_each_typable_sign_keeps_the_git_reads(self):
+        log_dir = os.path.join(self.root, 'logs')
+        checkout = os.path.join(self.root, 'ex@a+b-c.d', 'example')
+        result = run_script(log_dir, 'Read', checkout=checkout, reviewed_sha=make_checkout(checkout))
+        allowed, _ = read_outputs(log_dir)
+        self.assertTrue(allowed.endswith(','.join(f'Bash(git -C {checkout} {verb}:*)' for verb in GIT_READS)))
+        self.assertNotIn('No git reads', result.stderr)
 
     def run_at_checkout(self, allowed_tools='Read', disallowed_tools=''):
         log_dir = os.path.join(self.root, 'logs')
@@ -174,8 +183,8 @@ class BuildPromptTest(unittest.TestCase):
     def test_a_checkout_adds_the_fences_of_the_git_reads_to_any_deny_list(self):
         checkout, _, denied, _ = self.run_at_checkout('Read', 'Edit')
         fences = ['*--output*', 'grep *O*', 'grep *--op*', "*'*", '*"*', '*' + '\\' * 4 + '*', '*$*', '*`*', '*{*']
-        self.assertEqual(denied, ','.join(
-            ['Edit', f"Edit(/{os.path.join(self.root, 'cortex')}/**)"] + [f'Bash(git -C {checkout} {fence})' for fence in fences]))
+        cortex_rule = f"Edit(/{os.path.join(self.root, 'cortex')}/**)"
+        self.assertEqual(denied, ','.join(['Edit', cortex_rule] + [f'Bash(git -C {checkout} {fence})' for fence in fences]))
 
     def test_the_fences_deny_each_escape_of_a_git_read(self):
         checkout, _, denied, _ = self.run_at_checkout()
@@ -213,6 +222,10 @@ class BuildPromptTest(unittest.TestCase):
         not_a_checkout = os.path.join(self.root, 'cortex', 'sources', 'plain')
         os.makedirs(not_a_checkout)
         missing = os.path.join(self.root, 'cortex', 'sources', 'missing')
+        outer = os.path.join(self.root, 'outer')
+        outer_head = make_checkout(outer)
+        nested = os.path.join(outer, 'sources', 'plain')
+        os.makedirs(nested)
         untypable = os.path.join(self.root, 'my work', 'example')
         untypable_head = make_checkout(untypable)
         head = 'f' * 40
@@ -222,6 +235,7 @@ class BuildPromptTest(unittest.TestCase):
             (checkout, '', 'the pre-fetch step read no reviewed head'),
             (not_a_checkout, head, f'git cannot read the head of the checkout {not_a_checkout}: fatal:'),
             (missing, head, f'git cannot read the head of the checkout {missing}: fatal:'),
+            (nested, outer_head, f'the checkout {nested} is no repository of its own: git reads the one at {outer}'),
         )
         for path, reviewed_sha, warning in cases:
             with self.subTest(path=path, reviewed_sha=reviewed_sha):
@@ -270,6 +284,13 @@ class BuildPromptTest(unittest.TestCase):
         self.assertIn(f'only as `git -C {checkout}`', surface)
         self.assertIn('The clone is blobless', surface)
 
+    def test_the_surface_names_the_words_that_the_deny_list_refuses_in_a_git_read(self):
+        _, _, _, surface = self.run_at_checkout('Read', read_action_default('disallowed_tools'))
+        self.assertIn('so search such a word with Grep: `push`, `commit`, `switch`, `checkout`, `reset`, `remote`.',
+                      surface)
+        _, _, _, surface = self.run_at_checkout('Read', 'Edit')
+        self.assertNotIn('such a word', surface)
+
     def test_the_surface_shows_the_backslash_that_a_fence_denies(self):
         checkout, _, _, surface = self.run_at_checkout()
         self.assertIn(f'  - `git -C {checkout} *\\*`\n', surface)
@@ -283,7 +304,12 @@ class BuildPromptTest(unittest.TestCase):
         result = run_script(os.path.join(self.root, 'logs'), 'Bash(git log:*)', 'Bash(git -C * push *)')
         self.assertNotIn('Dead permission rule', result.stderr)
 
-    def test_the_default_deny_list_of_the_action_mixes_no_wildcard_with_the_trailing_prefix(self):
+    def test_the_model_of_the_matcher_reads_a_mixed_rule_as_a_literal_prefix(self):
+        self.assertFalse(matches('Bash(git -C * log:*)', 'git -C /work/example log -1'))
+        self.assertTrue(matches('Bash(git -C * log:*)', 'git -C * log -1'))
+        self.assertTrue(matches('Bash(git -C * log *)', 'git -C /work/example log -1'))
+
+    def test_the_default_lists_of_the_action_mix_no_wildcard_with_the_trailing_prefix(self):
         for name in ('allowed_tools', 'disallowed_tools'):
             self.assertEqual(re.findall(r'Bash\([^)]*\*[^)]*:\*\)', read_action_default(name)), [], name)
 
