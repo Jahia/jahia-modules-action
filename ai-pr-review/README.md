@@ -329,9 +329,10 @@ cases:
 
 - The run cannot show that the checkout is at the reviewed head. The checkout can be at another
   commit after a failed fetch of the head. Git can also fail to read its head, or the pre-fetch
-  step can read no reviewed head. The agent then reviews none of the files of the checkout.
-- The path of the checkout holds a character other than a letter, a digit or one of `._/@+-`, such
-  as a space. The agent then reads the files of the checkout with Read, Grep and Glob.
+  step can read no reviewed head. The system prompt then tells the agent to review none of the
+  files of the checkout.
+- The path of the checkout holds a character other than an ASCII letter, an ASCII digit or one of
+  `._/@+-`, such as a space. The agent then reads the files of the checkout with Read, Grep and Glob.
 
 The pre-fetch step can make no checkout when `prefetch_checkout` is true. The prep step then
 prints a warning, and the system prompt states that the run has no checkout.

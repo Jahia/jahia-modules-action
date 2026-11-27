@@ -92,7 +92,9 @@ def compare_head(path: str, reviewed_sha: str) -> str:
         return 'the pre-fetch step read no reviewed head'
     result = subprocess.run(['git', '-C', path, 'rev-parse', '--verify', 'HEAD'], capture_output=True, text=True)
     if result.returncode:
-        error = result.stderr.strip().partition('\n')[0]
+        lines = [line.strip() for line in result.stderr.splitlines() if line.strip()]
+        errors = [line for line in lines if line.startswith(('fatal:', 'error:'))]
+        error = (errors or lines or [f'exit code {result.returncode}'])[-1]
         return f'git cannot read the head of the checkout {path}: {error}'
     head = result.stdout.strip()
     if head != reviewed_sha:
@@ -108,10 +110,10 @@ if head_mismatch:
     print(f'::warning title=No git reads::{head_mismatch}', file=sys.stderr)
 elif checkout and not typable:
     print(f'::warning title=No git reads::the agent cannot type the checkout path {checkout}', file=sys.stderr)
-git_reads = bool(checkout) and typable and not head_mismatch
+allow_git_reads = bool(checkout) and typable and not head_mismatch
 # A literal path, because a `*` before the subcommand matches a global option that runs a program.
-git_allowed = [f'Bash(git -C {checkout} {verb}:*)' for verb in GIT_READS] if git_reads else []
-git_denied = [f'Bash(git -C {checkout} {fence})' for fence in GIT_FENCES] if git_reads else []
+git_allowed = [f'Bash(git -C {checkout} {verb}:*)' for verb in GIT_READS] if allow_git_reads else []
+git_denied = [f'Bash(git -C {checkout} {fence})' for fence in GIT_FENCES] if allow_git_reads else []
 
 # `/` and an absolute path give the `//<path>` form, which Claude Code reads from the filesystem root.
 allowed_tools = ','.join(filter(None, [
@@ -185,7 +187,7 @@ surface += [
     '- cortex denies `cd`, and it is not on the list above, so a directory is reached by',
     '  naming it: Read, Grep and Glob all take an absolute path.',
 ]
-if git_reads:
+if allow_git_reads:
     surface += [
         f'  `git` runs in the pre-fetched checkout only as `git -C {checkout}`, with the path',
         '  written exactly so, followed by `diff`, `log`, `show`, `grep` or `blame`. Such a',

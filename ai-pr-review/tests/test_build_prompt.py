@@ -14,12 +14,14 @@ REVIEW_NAME = 'pr-Jahia-example-7.review.json'
 
 
 def run_script(log_dir, allowed_tools, disallowed_tools='', review_round='', cortex_path=None, checkout='',
-               reviewed_sha=''):
+               reviewed_sha='', bin_dir=None):
     if cortex_path is None:
         cortex_path = os.path.join(os.path.dirname(log_dir), 'cortex')
     env = dict(os.environ, PR_URL=PR_URL, MARKER='<!-- marker -->', CORTEX_PATH=cortex_path,
                ALLOWED_TOOLS=allowed_tools, DISALLOWED_TOOLS=disallowed_tools, REVIEW_ROUND=review_round,
                CHECKOUT=checkout, REVIEWED_SHA=reviewed_sha)
+    if bin_dir:
+        env['PATH'] = bin_dir + os.pathsep + env['PATH']
     return subprocess.run([sys.executable, SCRIPT, log_dir], env=env, check=True,
                           capture_output=True, text=True)
 
@@ -215,9 +217,12 @@ class BuildPromptTest(unittest.TestCase):
         not_a_checkout = os.path.join(self.root, 'cortex', 'sources', 'plain')
         os.makedirs(not_a_checkout)
         missing = os.path.join(self.root, 'cortex', 'sources', 'missing')
+        untypable = os.path.join(self.root, 'my work', 'example')
+        untypable_head = make_checkout(untypable)
         head = 'f' * 40
         cases = (
             (checkout, head, f'the checkout {checkout} is at {checkout_head}, not at the reviewed head {head}'),
+            (untypable, head, f'the checkout {untypable} is at {untypable_head}, not at the reviewed head {head}'),
             (checkout, '', 'the pre-fetch step read no reviewed head'),
             (not_a_checkout, head, f'git cannot read the head of the checkout {not_a_checkout}: fatal:'),
             (missing, head, f'git cannot read the head of the checkout {missing}: fatal:'),
@@ -232,6 +237,21 @@ class BuildPromptTest(unittest.TestCase):
                 self.assertNotIn('git -C', surface)
                 self.assertIn('so review none of its files', surface)
                 self.assertIn(f'::warning title=No git reads::{warning}', result.stderr)
+
+    def test_a_head_that_git_cannot_read_names_the_error_of_git(self):
+        bin_dir = os.path.join(self.root, 'bin')
+        os.makedirs(bin_dir)
+        checkout = os.path.join(self.root, 'cortex', 'sources', 'example')
+        os.makedirs(checkout)
+        for stderr, error in (('warning: x\\nfatal: dubious ownership\\nhint: y\\n', 'fatal: dubious ownership'),
+                              ('', 'exit code 3')):
+            with self.subTest(error=error):
+                with open(os.path.join(bin_dir, 'git'), 'w', encoding='utf-8') as fh:
+                    fh.write(f"#!/bin/sh\nprintf '{stderr}' >&2\nexit 3\n")
+                os.chmod(os.path.join(bin_dir, 'git'), 0o755)
+                result = run_script(os.path.join(self.root, 'logs'), 'Read', checkout=checkout, reviewed_sha='f' * 40,
+                                    bin_dir=bin_dir)
+                self.assertIn(f'git cannot read the head of the checkout {checkout}: {error}\n', result.stderr)
 
     def test_a_checkout_path_that_the_agent_cannot_type_adds_no_git_rule(self):
         for name in ('my work', 'star*'):
