@@ -153,28 +153,7 @@ jobs:
     steps:
       - name: Check the requester
         id: check
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
-        with:
-          script: |
-            const sender = context.payload.sender?.login ?? ''
-            const roles = ['triage', 'write', 'maintain', 'admin']
-            let allowed = false
-            if (sender.toLowerCase() === 'jahia-ai') {
-              core.info('Requests made by jahia-ai itself are not processed')
-            } else {
-              try {
-                const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  username: sender,
-                })
-                allowed = roles.includes(data.role_name)
-                core.info(`${sender} has the role ${data.role_name}, allowed: ${allowed}`)
-              } catch (error) {
-                core.info(`The role of ${sender} could not be read (status ${error.status}), not allowed`)
-              }
-            }
-            core.setOutput('allowed', String(allowed))
+        uses: jahia/jahia-modules-action/ai-check-requester@v2
 
   # AI review, only when explicitly requested from the jahia-ai account or the engineering-ai
   # team (never on PR updates). A team request leaves requested_reviewer empty and fills
