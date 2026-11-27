@@ -250,7 +250,8 @@ runs:
             literal: {
               REQUEST_NOTE: process.env.REQUEST
                 ? [
-                    '- **This session was dispatched, not started by a comment**: no `trigger.md` exists, and the request below is your task, with the whole issue as its context. A persona named in it is a hint from a fast triage: you read the whole thread, so you may choose another profile and say why in your task comment.',
+                    '- **This session was dispatched, not started by a comment**: no `trigger.md` exists, so wherever this prompt names `trigger.md` or the comment that started the session, the request below is meant, and no 👍 reaction was made. The request is your task, with the whole issue as its context. A persona named in it is a hint from a fast triage: you read the whole thread, so you may choose another profile and say why in your task comment.',
+                    `- This session runs in the repository ${process.env.GITHUB_REPOSITORY}: code you write (a worktree, a branch, a draft pull request) belongs in that repository, and your reports go on the thread of the issue above.`,
                     '',
                     '<dispatched-request>',
                     process.env.REQUEST,

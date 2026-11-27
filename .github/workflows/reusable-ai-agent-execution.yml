@@ -21,7 +21,7 @@ on:
   workflow_call:
     inputs:
       payload:
-        description: "JSON object: runner, timeout_minutes, model, origin {repository, number, target, comment_id}, session_index, remaining_seconds, guard_run_id and optional tuning fields. See the README of ai-issue-agent."
+        description: "JSON object: runner, timeout_minutes, model, origin {repository, number, target}, session_index, remaining_seconds, guard_run_id and optional tuning fields. See the README of ai-issue-agent."
         type: string
         required: true
       prompt:
@@ -78,14 +78,14 @@ jobs:
               print(f"::error title=Invalid dispatch payload::{message}")
               sys.exit(1)
 
+          if not os.environ["PROMPT"].strip():
+              fail("the prompt is empty: a session needs a request")
           try:
               payload = json.loads(os.environ["PAYLOAD"])
           except ValueError as error:
               fail(f"the payload is not JSON: {error}")
           if not isinstance(payload, dict):
               fail("the payload must be a JSON object")
-          if payload.get("version", 1) != 1:
-              fail(f"unsupported payload version {payload.get('version')!r}, this workflow reads version 1")
 
           def text(name, pattern, default):
               value = payload.get(name, default)
@@ -104,6 +104,8 @@ jobs:
               if not isinstance(value, bool):
                   fail(f"{name} must be true or false, got {value!r}")
               return "true" if value else "false"
+
+          integer("version", 1, 1, 1)
 
           # One runner label, or a list of labels. Labels are plain words: no expression syntax.
           label = re.compile(r"[A-Za-z0-9_.-]{1,64}")
@@ -172,6 +174,24 @@ jobs:
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
               summary.write("\n".join(lines) + "\n")
           PY
+
+      # The guard refuses a pull request whose head lives in a fork, because the agent runs on a
+      # runner that holds the agent secrets. A dispatched session gets the same refusal here,
+      # so a payload built by hand or by a triage that skipped the guard cannot bypass it.
+      - name: Refuse a pull request from a fork
+        if: steps.parse.outputs.origin_target == 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          ORIGIN_REPOSITORY: ${{ steps.parse.outputs.origin_repository }}
+          ORIGIN_NUMBER: ${{ steps.parse.outputs.origin_number }}
+        run: |
+          HEAD_REPOSITORY=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "$GITHUB_API_URL/repos/$ORIGIN_REPOSITORY/pulls/$ORIGIN_NUMBER" | python3 -c 'import json,sys; print((json.load(sys.stdin).get("head",{}).get("repo") or {}).get("full_name",""))')
+          if [ "$HEAD_REPOSITORY" != "$ORIGIN_REPOSITORY" ]; then
+            echo "::error title=Pull request from a fork::the head of $ORIGIN_REPOSITORY#$ORIGIN_NUMBER lives in '${HEAD_REPOSITORY:-an unknown repository}', and the agent only works a pull request whose head is in the same repository"
+            exit 1
+          fi
 
   # No concurrency group, on purpose: the guard's lock already guarantees one session per
   # thread, and an Actions group would QUEUE a duplicate instead of preventing it.

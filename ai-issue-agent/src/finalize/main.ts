@@ -30,8 +30,7 @@ const run = async (): Promise<void> => {
   const runId = Number(
     sessionRunInput === '' ? (process.env.GITHUB_RUN_ID ?? '0') : sessionRunInput,
   )
-  // The link names the run that finalizes, which lives in GITHUB_REPOSITORY and not always in `repository`.
-  const runUrl = `${process.env.GITHUB_SERVER_URL ?? 'https://github.com'}/${process.env.GITHUB_REPOSITORY ?? repository}/actions/runs/${process.env.GITHUB_RUN_ID ?? String(runId)}`
+  const runUrl = `${process.env.GITHUB_SERVER_URL ?? 'https://github.com'}/${repository}/actions/runs/${String(runId)}`
   const seconds = Math.max(0, Math.round(now.getTime() / 1000 - startedEpoch))
 
   if (!state) {

@@ -72,17 +72,21 @@ runs:
         export PATH="$HOME/.local/bin:$PATH"
         if [ "$REUSE_INSTALLED" = "true" ] && command -v claude >/dev/null; then
           # `claude --version` prints "<version> (Claude Code)".
-          HAVE_VERSION=$(claude --version | awk '{print $1}')
-          case "$WANTED_VERSION" in
-            stable|latest|"") REUSE=true ;;
-            *) [ "$HAVE_VERSION" = "$WANTED_VERSION" ] && REUSE=true || REUSE=false ;;
-          esac
+          HAVE_VERSION=$(claude --version 2>/dev/null | awk '{print $1}') || HAVE_VERSION=""
+          if [ -z "$HAVE_VERSION" ]; then
+            REUSE=false
+          else
+            case "$WANTED_VERSION" in
+              stable|latest|"") REUSE=true ;;
+              *) [ "$HAVE_VERSION" = "$WANTED_VERSION" ] && REUSE=true || REUSE=false ;;
+            esac
+          fi
           if [ "$REUSE" = "true" ]; then
             echo "Claude Code CLI $HAVE_VERSION already installed, reused (wanted: ${WANTED_VERSION:-stable})"
             echo "$HOME/.local/bin" >> "$GITHUB_PATH"
             exit 0
           fi
-          echo "Installed Claude Code CLI is $HAVE_VERSION, not the wanted $WANTED_VERSION: installing it"
+          echo "Installed Claude Code CLI (${HAVE_VERSION:-unreadable}) is not the wanted ${WANTED_VERSION:-stable}: installing it"
         fi
         echo "Installing Claude Code CLI (${WANTED_VERSION:-stable})"
         curl -fsSL https://claude.ai/install.sh | bash -s -- ${WANTED_VERSION}

@@ -170,6 +170,12 @@ dispatch. Without `guard_run_id`, finalize closes a session entry of its own run
 of the guard in place, which the stale-lock rule reclaims. A payload that fails validation stops
 at the `plan` job, before any agent starts, and also leaves the lock to that rule.
 
+Two limits follow from that. A `timeout_minutes` above the `timeout_job` of the guard, plus its
+10-minute margin, lets a fresh @-mention reclaim the lock as stale while the dispatched session
+still runs, so the guard of the dispatching path must be given the timeout it dispatches. The
+`plan` job refuses a pull request whose head lives in a fork, as the guard does, and the guard
+stays the owner of every other eligibility rule.
+
 ## Steering and STOP
 
 A fresh comment mentioning the agent while a session runs is a **steering instruction**: the
