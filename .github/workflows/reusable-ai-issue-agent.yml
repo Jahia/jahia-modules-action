@@ -76,6 +76,16 @@ on:
         type: boolean
         required: false
         default: false
+      triage_runner:
+        description: "Runner label of the triage job, which only runs in a repository that sets the variable AI_AGENT_DISPATCH to true."
+        type: string
+        required: false
+        default: "ai-triage"
+      dispatch_workflow:
+        description: "File name of the execution workflow that the triage dispatches, in the repository of the issue."
+        type: string
+        required: false
+        default: "delivery-ai-agent.yml"
 
 jobs:
   # Cheap LLM-free guard: trigger filter, single-agent lock, budget ledger. The concurrency
@@ -103,12 +113,88 @@ jobs:
           budget_seconds: ${{ inputs.budget_seconds }}
           timeout_job: ${{ inputs.timeout_job }}
 
+  # Opt-in, per repository: only a repository that sets the variable AI_AGENT_DISPATCH to true
+  # gets this job. A short triage on the warm ai-triage runner decides the runner, the timeout and
+  # the model of the session, and dispatches the execution workflow of the repository with them.
+  # The guard's lock and session entry stay as they are: the dispatched run closes the entry and
+  # releases the lock through guard_run_id, as the README of ai-issue-agent states.
+  #
+  # The job never decides whether a session runs, only how. When it cannot dispatch, its output
+  # `dispatched` is not true, and the agent job below runs the session inline, as it always did.
+  # So a failed, late or wrong triage costs no more than the path it replaces.
+  triage:
+    name: Triage and dispatch the session
+    needs: check-request
+    if: needs.check-request.outputs.eligible == 'true' && vars.AI_AGENT_DISPATCH == 'true'
+    runs-on: ${{ inputs.triage_runner }}
+    # The triage holds a 60-second budget of its own. This bounds a job that never starts it.
+    timeout-minutes: 10
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      dispatched: ${{ steps.dispatch.outputs.dispatched }}
+    steps:
+      - name: Open the mTLS tunnel to internal Jahia services
+        uses: jahia/jahia-modules-action/mtls-tunnel@v2
+        with:
+          hosts: ${{ inputs.tunnel_hosts }}
+          ca-url: ${{ vars.INFRAJAHIA_MTLS_CA_URL }}
+          bastion: ${{ vars.INFRAJAHIA_MTLS_BASTION }}
+          server-name: ci-egress.jahia.com
+          audience: jahia-ci-egress
+          step-root: ${{ secrets.INFRAJAHIA_MTLS_STEP_ROOT }}
+          server-ca: ${{ secrets.INFRAJAHIA_MTLS_SERVER_CA }}
+          canary-url: ${{ vars.AI_LITELLM_BASE_URL }}/health/liveliness
+
+      # The triage call is the smoke test, and the fallback covers its failure, so both model
+      # round trips of the setup are skipped. The warm runner already carries the CLI.
+      - name: Set up Claude Code and the cortex harness
+        id: setup
+        uses: jahia/jahia-modules-action/ai-agent-setup@v2
+        with:
+          claude_code_version: ${{ inputs.claude_code_version }}
+          reuse_installed_claude_code: "true"
+          skip_smoke_tests: "true"
+          anthropic_base_url: ${{ vars.AI_LITELLM_BASE_URL }}
+          anthropic_auth_token: ${{ secrets.AI_LITELLM_AUTH_TOKEN_USAGE_PRS }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          default_opus_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_OPUS_MODEL }}
+          default_sonnet_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_SONNET_MODEL }}
+          default_haiku_model: ${{ vars.AI_LITELLM_ANTHROPIC_DEFAULT_HAIKU_MODEL }}
+          cortex_ref: ${{ inputs.cortex_ref }}
+          cortex_telemetry_token: ${{ secrets.CORTEX_TELEMETRY_TOKEN }}
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+
+      - name: Decide how the session runs, and dispatch it
+        id: dispatch
+        uses: jahia/jahia-modules-action/ai-issue-agent/triage-dispatch@v2
+        with:
+          github_token: ${{ secrets.AI_AGENT_GH_ISSUES_PRS_CHORES }}
+          cortex_path: ${{ steps.setup.outputs.cortex_path }}
+          target: ${{ needs.check-request.outputs.target }}
+          remaining_seconds: ${{ needs.check-request.outputs.remaining_seconds }}
+          session_index: ${{ needs.check-request.outputs.session_index }}
+          timeout_job: ${{ inputs.timeout_job }}
+          model: ${{ inputs.model }}
+          cortex_ref: ${{ inputs.cortex_ref }}
+          dispatch_workflow: ${{ inputs.dispatch_workflow }}
+
   # No concurrency group here, on purpose: the guard's lock already guarantees one session
   # per issue, and an Actions group would QUEUE a duplicate instead of preventing it.
+  #
+  # The condition holds three cases. Without the triage (the variable is not set), the job runs as
+  # it always did. When the triage failed or could not dispatch, it runs the session inline on
+  # the default parameters. When the triage dispatched, it does not run: the dispatched session
+  # replaces it. always() is needed because a skipped triage would skip this job otherwise.
   agent:
     name: Run the agent session
-    needs: check-request
-    if: needs.check-request.outputs.eligible == 'true'
+    needs: [check-request, triage]
+    if: >-
+      ${{ always()
+      && needs.check-request.result == 'success'
+      && needs.check-request.outputs.eligible == 'true'
+      && needs.triage.outputs.dispatched != 'true' }}
     runs-on: ${{ inputs.instance_type }}
     timeout-minutes: ${{ inputs.timeout_job }}
     permissions:
