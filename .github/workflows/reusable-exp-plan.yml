@@ -1,0 +1,15 @@
+name: Exp min
+on:
+  workflow_call:
+    inputs:
+      payload:
+        type: string
+        required: true
+      prompt:
+        type: string
+        required: true
+jobs:
+  plan:
+    runs-on: ubuntu-slim
+    steps:
+      - run: echo hi
