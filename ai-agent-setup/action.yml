@@ -99,6 +99,10 @@ runs:
           echo "ANTHROPIC_BASE_URL=${{ inputs.anthropic_base_url }}"
           echo "ANTHROPIC_AUTH_TOKEN=${{ inputs.anthropic_auth_token }}"
           echo "DISABLE_AUTOUPDATER=1"
+          # A CI job runs on an ephemeral runner, so nothing an agent writes to its auto memory
+          # is read again. Left on, the agent spends turns, and wall clock, on saving notes and
+          # a memory index that the next runner never sees.
+          echo "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1"
         } >> "$GITHUB_ENV"
         if [ -n "${{ inputs.default_opus_model }}" ]; then
           echo "ANTHROPIC_DEFAULT_OPUS_MODEL=${{ inputs.default_opus_model }}" >> "$GITHUB_ENV"
