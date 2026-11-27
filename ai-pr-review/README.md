@@ -286,12 +286,36 @@ checkout.
 has the agent treat PR content (title, description, code, comments) as data, never as
 instructions, and flag prompt-injection attempts as findings.
 
-The one Cortex tool that the allowlist grants is `tools/pr-review/bin/pr-review`, with three
-verbs. The `ci` mode runs `lenses` to choose its lenses, and `render` to write the inline comments
-of the review file from its findings and the diff. Both verbs read files and print. It runs
-`record` to keep its round in the trace of the pull request, under the cortex checkout. The tool
-starts through `mise exec`, so the runner needs mise, as [`ai-agent-setup`](../ai-agent-setup)
+The one Cortex tool that the allowlist grants is `tools/pr-review/bin/pr-review`, with four
+verbs. The `ci` mode runs `lenses` to choose its lenses, and `number-lines` to print the diff with
+each row of a hunk behind its line in the head version. It runs `render` to write the inline
+comments of the review file from its findings and the diff. These three verbs read files and print.
+It runs `record` to keep its round in the trace of the pull request, under the cortex checkout. The
+tool starts through `mise exec`, so the runner needs mise, as [`ai-agent-setup`](../ai-agent-setup)
 installs it.
+
+With a checkout of the pull request, `src/build-prompt.py` allows the five git reads of the
+inspectors of Cortex. Each read is `git -C <checkout>` followed by `diff`, `log`, `show`, `grep` or
+`blame`. Each rule names the literal path of the checkout, as the `README.md` of the context names
+it, such as `Bash(git -C /home/runner/work/foo/foo/cortex/sources/bar log:*)`. A `*` in place of the
+path would also match a global option before the subcommand, and `-c core.fsmonitor=<program>`
+makes git run that program. The script also adds the deny rules that fence these reads, whatever
+list the caller passes:
+
+- `--output` anywhere in the command, because this option writes the diff to a file.
+- An uppercase `O` or `--op` in a `git grep`. The option `-O<program>` opens the matching files with
+  that program, alone or in a bundle such as `-lO<program>`, and `--op` abbreviates
+  `--open-files-in-pager`. A search for a word with an uppercase `O` goes through the Grep tool.
+- A quote, a backslash, `$`, a backtick or a brace. The shell turns each of them into an option
+  that the text of the command hides from the two fences above.
+
+The prep step creates the checkout, and a pull request cannot set its git configuration. So
+`--ext-diff` and `--textconv` find no program of the pull request. Each `git -C` write of the deny
+list carries two rules, such as `git -C * push *` and `git -C * push`. A rule that mixes a `*` with
+the trailing `:*`, such as `git -C * push:*`, is a literal prefix and matches no command. These
+write rules also refuse a git read with `push`, `commit`, `switch`, `checkout`, `reset` or `remote`
+as a word of its arguments, such as `git -C <checkout> grep -n checkout`. A rule matches the text of
+a command, and Claude Code documents that a deny rule is no security boundary.
 
 Each review adds a row to the trail `Review Logs` of the pull request, one comment that a session
 of a developer and this action both edit, and each row names its reviewer. A runner keeps no trace

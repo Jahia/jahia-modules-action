@@ -13,12 +13,14 @@ PR_URL = 'https://github.com/Jahia/example/pull/7'
 REVIEW_NAME = 'pr-Jahia-example-7.review.json'
 
 
-def run_build_prompt(log_dir, allowed_tools, disallowed_tools='', review_round='', cortex_path=None):
+def run_build_prompt(log_dir, allowed_tools, disallowed_tools='', review_round='', cortex_path=None,
+                     checkout=''):
     """Run the script as the prep step does, and return the allow list and the surface it writes."""
     if cortex_path is None:
         cortex_path = os.path.join(os.path.dirname(log_dir), 'cortex')
     env = dict(os.environ, PR_URL=PR_URL, MARKER='<!-- marker -->', CORTEX_PATH=cortex_path,
-               ALLOWED_TOOLS=allowed_tools, DISALLOWED_TOOLS=disallowed_tools, REVIEW_ROUND=review_round)
+               ALLOWED_TOOLS=allowed_tools, DISALLOWED_TOOLS=disallowed_tools, REVIEW_ROUND=review_round,
+               CHECKOUT=checkout)
     subprocess.run([sys.executable, SCRIPT, log_dir], env=env, check=True,
                    capture_output=True, text=True)
     with open(os.path.join(log_dir, 'allowed-tools.txt'), encoding='utf-8') as fh:
@@ -122,6 +124,45 @@ class BuildPromptTest(unittest.TestCase):
     def test_the_surface_names_the_write_tool(self):
         _, surface = run_build_prompt(os.path.join(self.root, 'logs'), 'Read')
         self.assertIn('Write each\n  file with the Write tool', surface)
+
+    def test_a_checkout_adds_the_git_reads_of_the_inspectors_with_its_literal_path(self):
+        """A `*` in place of the path would match `-c core.fsmonitor=<program>` before the subcommand."""
+        log_dir = os.path.join(self.root, 'logs')
+        checkout = '/runner/cortex//sources/example'
+        allowed, _ = run_build_prompt(log_dir, 'Read', checkout=checkout)
+        self.assertTrue(allowed.endswith(','.join(
+            f'Bash(git -C {checkout} {verb}:*)' for verb in ('diff', 'log', 'show', 'grep', 'blame'))))
+
+    def test_a_checkout_adds_the_fences_of_the_git_reads_to_any_deny_list(self):
+        log_dir = os.path.join(self.root, 'logs')
+        cortex = os.path.join(self.root, 'cortex')
+        checkout = f'{cortex}/sources/example'
+        run_build_prompt(log_dir, 'Read', 'Edit', cortex_path=cortex, checkout=checkout)
+        fences = ['*--output*', 'grep *O*', 'grep *--op*', "*'*", '*"*', '*' + '\\' * 4 + '*', '*$*', '*`*', '*{*']
+        self.assertEqual(self.read_denied(log_dir), ','.join(
+            ['Edit', f'Edit(/{cortex}/**)'] + [f'Bash(git -C {checkout} {fence})' for fence in fences]))
+
+    def test_no_checkout_adds_no_git_rule(self):
+        log_dir = os.path.join(self.root, 'logs')
+        allowed, surface = run_build_prompt(log_dir, 'Read')
+        self.assertNotIn('git -C', allowed)
+        self.assertNotIn('git -C', self.read_denied(log_dir))
+        self.assertIn('this run has no checkout of it', surface)
+
+    def test_the_surface_states_the_git_reads_of_the_checkout(self):
+        checkout = '/runner/cortex/sources/example'
+        _, surface = run_build_prompt(os.path.join(self.root, 'logs'), 'Read', checkout=checkout)
+        self.assertIn(f'  - `git -C {checkout} grep …`\n', surface)
+        self.assertIn(f'only as `git -C {checkout}`', surface)
+
+    def test_the_default_deny_list_of_the_action_mixes_no_wildcard_with_the_trailing_prefix(self):
+        """Claude Code reads such a rule as a literal prefix, which matches no command."""
+        action = os.path.join(os.path.dirname(os.path.dirname(SCRIPT)), 'action.yml')
+        with open(action, encoding='utf-8') as fh:
+            text = fh.read()
+        for name in ('allowed_tools', 'disallowed_tools'):
+            default = re.search(rf"\n  {name}:\n(?:    .*\n)*?    default: '([^']*)'", text).group(1)
+            self.assertEqual(re.findall(r'Bash\([^)]*\*[^)]*:\*\)', default), [], name)
 
 
 if __name__ == '__main__':
