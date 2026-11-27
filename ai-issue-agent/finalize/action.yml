@@ -15,6 +15,10 @@ inputs:
   session_started_epoch:
     description: 'Unix epoch (seconds) stamped by the agent job''s first step — the session''s runtime is measured from there to now, so runner queue time never bills the budget.'
     required: true
+  session_run_id:
+    description: 'ID of the run that took the lock and opened the session entry (the guard''s run). Empty means this run, which is right when the guard and the agent job share one workflow run. A dispatched execution workflow passes the guard run of the other workflow, so the lock is released and the entry closed.'
+    required: false
+    default: ''
   outcome:
     description: 'success, failure or cancelled — pass the agent job''s job.status'
     required: false
