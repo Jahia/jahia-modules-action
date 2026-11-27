@@ -18,7 +18,7 @@ GIT_READS = ('diff', 'log', 'show', 'grep', 'blame')
 # Claude Code reads this run of backslashes in a rule as a single backslash of the command.
 BACKSLASH = '\\' * 4
 GIT_FENCES = ('*--output*', 'grep *O*', 'grep *--op*', "*'*", '*"*', f'*{BACKSLASH}*', '*$*', '*`*', '*{*')
-# A path that the agent types with no quote and no backslash, which the fences deny.
+# The characters of a checkout path that the git rules accept: none of them needs a quote or a backslash.
 TYPABLE_PATH = re.compile(r'[A-Za-z0-9._/@+-]+')
 
 log_dir = os.path.realpath(sys.argv[1])
@@ -87,22 +87,31 @@ def split_tools(value):
     return plain, shell
 
 
-def head_of(path: str) -> str | None:
-    done = subprocess.run(['git', '-C', path, 'rev-parse', '--verify', 'HEAD'], capture_output=True, text=True)
-    return done.stdout.strip() if done.returncode == 0 else None
+def compare_head(path: str, reviewed_sha: str) -> str:
+    if not reviewed_sha:
+        return 'the pre-fetch step read no reviewed head'
+    result = subprocess.run(['git', '-C', path, 'rev-parse', '--verify', 'HEAD'], capture_output=True, text=True)
+    if result.returncode:
+        error = result.stderr.strip().partition('\n')[0]
+        return f'git cannot read the head of the checkout {path}: {error}'
+    head = result.stdout.strip()
+    if head != reviewed_sha:
+        return f'the checkout {path} is at {head}, not at the reviewed head {reviewed_sha}'
+    return ''
 
 
 # The checkout path as the README of the context names it, which is the text the agent types.
 checkout = os.environ.get('CHECKOUT', '')
-if checkout and not TYPABLE_PATH.fullmatch(checkout):
+head_mismatch = compare_head(checkout, os.environ.get('REVIEWED_SHA', '')) if checkout else ''
+typable = TYPABLE_PATH.fullmatch(checkout) is not None
+if head_mismatch:
+    print(f'::warning title=No git reads::{head_mismatch}', file=sys.stderr)
+elif checkout and not typable:
     print(f'::warning title=No git reads::the agent cannot type the checkout path {checkout}', file=sys.stderr)
-    checkout = ''
-elif checkout and head_of(checkout) != os.environ.get('REVIEWED_SHA', ''):
-    print(f'::warning title=No git reads::the checkout {checkout} is not at the reviewed head', file=sys.stderr)
-    checkout = ''
+git_reads = bool(checkout) and typable and not head_mismatch
 # A literal path, because a `*` before the subcommand matches a global option that runs a program.
-git_allowed = [f'Bash(git -C {checkout} {verb}:*)' for verb in GIT_READS] if checkout else []
-git_denied = [f'Bash(git -C {checkout} {fence})' for fence in GIT_FENCES] if checkout else []
+git_allowed = [f'Bash(git -C {checkout} {verb}:*)' for verb in GIT_READS] if git_reads else []
+git_denied = [f'Bash(git -C {checkout} {fence})' for fence in GIT_FENCES] if git_reads else []
 
 # `/` and an absolute path give the `//<path>` form, which Claude Code reads from the filesystem root.
 allowed_tools = ','.join(filter(None, [
@@ -176,7 +185,7 @@ surface += [
     '- cortex denies `cd`, and it is not on the list above, so a directory is reached by',
     '  naming it: Read, Grep and Glob all take an absolute path.',
 ]
-if checkout:
+if git_reads:
     surface += [
         f'  `git` runs in the pre-fetched checkout only as `git -C {checkout}`, with the path',
         '  written exactly so, followed by `diff`, `log`, `show`, `grep` or `blame`. Such a',
@@ -185,10 +194,22 @@ if checkout:
         '  and a `show` of an older commit fetch each older file from GitHub, one by one: read',
         '  `diff.patch` first.',
     ]
+elif head_mismatch:
+    surface += [
+        f'  `git` reads no pull request: the run cannot show that the checkout at `{checkout}`',
+        '  is at the reviewed head, so review none of its files. Read the change and its history',
+        '  from `diff.patch` and `pr.json` instead.',
+    ]
+elif checkout:
+    surface += [
+        f'  `git` cannot run in the checkout at `{checkout}`, because no command of the list',
+        '  can carry its path. Read, Grep and Glob open its files, at the reviewed head. Read the',
+        '  history from `diff.patch` and `pr.json`.',
+    ]
 else:
     surface += [
-        '  `git` reads no pull request: this run has no checkout of it at the reviewed head. Read',
-        '  the history from `diff.patch` and `pr.json` instead.',
+        '  `git` reads no pull request: this run has no checkout of it. Read the history from',
+        '  `diff.patch` and `pr.json` instead.',
     ]
 
 os.makedirs(log_dir, exist_ok=True)

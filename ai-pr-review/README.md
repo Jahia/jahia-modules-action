@@ -324,12 +324,17 @@ list the caller passes:
 - A quote, a backslash, `$`, a backtick or a brace. The shell turns each of them into an option
   that the text of the command hides from the two fences above.
 
-The script adds no git rule, and prints a warning, in two cases:
+The script adds no git rule, prints a warning, and states the reason in the system prompt, in two
+cases:
 
-- The checkout is at another commit than the reviewed head, for example after a failed fetch of
-  the head.
-- The path of the checkout holds a character that the agent cannot type without a quote, such as a
-  space.
+- The run cannot show that the checkout is at the reviewed head. The checkout can be at another
+  commit after a failed fetch of the head. Git can also fail to read its head, or the pre-fetch
+  step can read no reviewed head. The agent then reviews none of the files of the checkout.
+- The path of the checkout holds a character other than a letter, a digit or one of `._/@+-`, such
+  as a space. The agent then reads the files of the checkout with Read, Grep and Glob.
+
+The pre-fetch step can make no checkout when `prefetch_checkout` is true. The prep step then
+prints a warning, and the system prompt states that the run has no checkout.
 
 The clone is blobless, so `blame`, `log -p` and a `show` of an older commit fetch each older file
 from GitHub, one by one. The system prompt states the fences to the main agent, but

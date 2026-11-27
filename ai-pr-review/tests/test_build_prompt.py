@@ -24,13 +24,17 @@ def run_script(log_dir, allowed_tools, disallowed_tools='', review_round='', cor
                           capture_output=True, text=True)
 
 
-def run_build_prompt(log_dir, *args, **options):
-    run_script(log_dir, *args, **options)
+def read_outputs(log_dir):
     with open(os.path.join(log_dir, 'allowed-tools.txt'), encoding='utf-8') as fh:
         allowed = fh.read().rstrip('\n')
     with open(os.path.join(log_dir, 'review.system.md'), encoding='utf-8') as fh:
         surface = fh.read()
     return allowed, surface
+
+
+def run_build_prompt(log_dir, *args, **options):
+    run_script(log_dir, *args, **options)
+    return read_outputs(log_dir)
 
 
 def make_checkout(path):
@@ -46,7 +50,7 @@ def read_action_default(name):
         return re.search(rf"\n  {name}:\n(?:    .*\n)*?    default: '([^']*)'", fh.read()).group(1)
 
 
-def bash_rules(rules):
+def select_bash_rules(rules):
     return [rule for rule in rules.split(',') if rule.startswith('Bash(')]
 
 
@@ -170,21 +174,33 @@ class BuildPromptTest(unittest.TestCase):
         self.assertEqual(self.read_denied(log_dir), ','.join(
             ['Edit', f'Edit(/{cortex}/**)'] + [f'Bash(git -C {checkout} {fence})' for fence in fences]))
 
-    def test_the_fences_deny_each_escape_of_a_git_read_and_no_plain_read(self):
+    def test_the_fences_deny_each_escape_of_a_git_read(self):
         log_dir = os.path.join(self.root, 'logs')
         checkout = os.path.join(self.root, 'cortex', 'sources', 'example')
-        allowed, _ = run_build_prompt(log_dir, 'Read', checkout=checkout, reviewed_sha=make_checkout(checkout))
-        denied = bash_rules(self.read_denied(log_dir))
+        run_build_prompt(log_dir, 'Read', checkout=checkout, reviewed_sha=make_checkout(checkout))
+        denied = select_bash_rules(self.read_denied(log_dir))
         escapes = ['diff --output=/tmp/x', 'grep -lOsh x', 'grep --open-files-in-pager=sh x', 'log --out"put"=x',
                    "log --out'put'=x", 'log --out\\put=x', 'log $OPTION', 'log `echo x`', 'log --out{put,}=x']
         for escape in escapes:
             with self.subTest(escape=escape):
                 self.assertTrue(any(matches(rule, f'git -C {checkout} {escape}') for rule in denied))
+
+    def test_the_default_lists_of_the_action_allow_each_plain_read_and_no_global_option(self):
+        log_dir = os.path.join(self.root, 'logs')
+        checkout = os.path.join(self.root, 'cortex', 'sources', 'example')
+        allowed, _ = run_build_prompt(log_dir, read_action_default('allowed_tools'),
+                                      read_action_default('disallowed_tools'), checkout=checkout,
+                                      reviewed_sha=make_checkout(checkout))
+        allowed, denied = select_bash_rules(allowed), select_bash_rules(self.read_denied(log_dir))
         for read in ('log --oneline -5', 'grep -n foo', 'diff origin/main...HEAD', 'blame README.md', 'show HEAD:a.md'):
             with self.subTest(read=read):
                 command = f'git -C {checkout} {read}'
-                self.assertTrue(any(matches(rule, command) for rule in bash_rules(allowed)))
+                self.assertTrue(any(matches(rule, command) for rule in allowed))
                 self.assertFalse(any(matches(rule, command) for rule in denied))
+        options = ('-c core.fsmonitor=sh diff HEAD', '--config-env=core.pager=X log -1', '--exec-path=/tmp show HEAD')
+        for option in options:
+            with self.subTest(option=option):
+                self.assertFalse(any(matches(rule, f'git -C {checkout} {option}') for rule in allowed))
 
     def test_no_checkout_adds_no_git_rule(self):
         log_dir = os.path.join(self.root, 'logs')
@@ -195,31 +211,42 @@ class BuildPromptTest(unittest.TestCase):
 
     def test_a_checkout_off_the_reviewed_head_adds_no_git_rule(self):
         checkout = os.path.join(self.root, 'cortex', 'sources', 'example')
-        make_checkout(checkout)
+        checkout_head = make_checkout(checkout)
         not_a_checkout = os.path.join(self.root, 'cortex', 'sources', 'plain')
         os.makedirs(not_a_checkout)
         missing = os.path.join(self.root, 'cortex', 'sources', 'missing')
-        cases = ((checkout, 'f' * 40), (checkout, ''), (not_a_checkout, 'f' * 40), (missing, 'f' * 40))
-        for path, reviewed_sha in cases:
+        head = 'f' * 40
+        cases = (
+            (checkout, head, f'the checkout {checkout} is at {checkout_head}, not at the reviewed head {head}'),
+            (checkout, '', 'the pre-fetch step read no reviewed head'),
+            (not_a_checkout, head, f'git cannot read the head of the checkout {not_a_checkout}: fatal:'),
+            (missing, head, f'git cannot read the head of the checkout {missing}: fatal:'),
+        )
+        for path, reviewed_sha, warning in cases:
             with self.subTest(path=path, reviewed_sha=reviewed_sha):
                 log_dir = os.path.join(self.root, 'logs')
-                done = run_script(log_dir, 'Read', checkout=path, reviewed_sha=reviewed_sha)
-                _, surface = run_build_prompt(log_dir, 'Read', checkout=path, reviewed_sha=reviewed_sha)
+                result = run_script(log_dir, 'Read', checkout=path, reviewed_sha=reviewed_sha)
+                allowed, surface = read_outputs(log_dir)
+                self.assertNotIn('git -C', allowed)
                 self.assertNotIn('git -C', self.read_denied(log_dir))
-                self.assertIn('this run has no checkout of it at the reviewed head', surface)
-                self.assertIn(f'::warning title=No git reads::the checkout {path} is not at the reviewed head',
-                              done.stderr)
+                self.assertNotIn('git -C', surface)
+                self.assertIn('so review none of its files', surface)
+                self.assertIn(f'::warning title=No git reads::{warning}', result.stderr)
 
     def test_a_checkout_path_that_the_agent_cannot_type_adds_no_git_rule(self):
         for name in ('my work', 'star*'):
             with self.subTest(name=name):
                 checkout = os.path.join(self.root, name, 'example')
                 log_dir = os.path.join(self.root, 'logs')
-                done = run_script(log_dir, 'Read', checkout=checkout, reviewed_sha=make_checkout(checkout))
-                with open(os.path.join(log_dir, 'allowed-tools.txt'), encoding='utf-8') as fh:
-                    self.assertNotIn('git -C', fh.read())
+                result = run_script(log_dir, 'Read', checkout=checkout, reviewed_sha=make_checkout(checkout))
+                allowed, surface = read_outputs(log_dir)
+                self.assertNotIn('git -C', allowed)
+                self.assertNotIn('git -C', self.read_denied(log_dir))
+                self.assertNotIn('git -C', surface)
+                self.assertIn(f'`git` cannot run in the checkout at `{checkout}`', surface)
+                self.assertIn('Read, Grep and Glob open its files, at the reviewed head', surface)
                 self.assertIn(f'::warning title=No git reads::the agent cannot type the checkout path {checkout}',
-                              done.stderr)
+                              result.stderr)
 
     def test_the_surface_states_the_git_reads_of_the_checkout(self):
         checkout = os.path.join(self.root, 'cortex', 'sources', 'example')
@@ -236,10 +263,13 @@ class BuildPromptTest(unittest.TestCase):
         self.assertIn(f'  - `git -C {checkout} *\\*`\n', surface)
 
     def test_a_rule_that_mixes_a_wildcard_with_the_trailing_prefix_prints_a_warning(self):
-        done = run_script(os.path.join(self.root, 'logs'), 'Read', 'Bash(git -C * push:*)')
-        self.assertIn('::warning title=Dead permission rule::Bash(git -C * push:*) matches no command', done.stderr)
-        done = run_script(os.path.join(self.root, 'logs'), 'Bash(git log:*)', 'Bash(git -C * push *)')
-        self.assertNotIn('Dead permission rule', done.stderr)
+        for allowed_tools, disallowed_tools, rule in (('Read', 'Bash(git -C * push:*)', 'Bash(git -C * push:*)'),
+                                                      ('Bash(git -C * log:*)', 'Edit', 'Bash(git -C * log:*)')):
+            with self.subTest(rule=rule):
+                result = run_script(os.path.join(self.root, 'logs'), allowed_tools, disallowed_tools)
+                self.assertIn(f'::warning title=Dead permission rule::{rule} matches no command', result.stderr)
+        result = run_script(os.path.join(self.root, 'logs'), 'Bash(git log:*)', 'Bash(git -C * push *)')
+        self.assertNotIn('Dead permission rule', result.stderr)
 
     def test_the_default_deny_list_of_the_action_mixes_no_wildcard_with_the_trailing_prefix(self):
         for name in ('allowed_tools', 'disallowed_tools'):
