@@ -40,6 +40,10 @@ inputs:
     description: 'Hard wall clock of the triage, in seconds.'
     required: false
     default: '60'
+  event_path:
+    description: 'A file holding an issue_comment event, for a test that has no real one. Empty reads the event of the workflow run.'
+    required: false
+    default: ''
 
 outputs:
   dispatched:

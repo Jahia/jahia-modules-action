@@ -43,10 +43,9 @@ const run = async (): Promise<void> => {
     const workflow = core.getInput('dispatch_workflow') || 'delivery-ai-agent.yml'
     const repository = process.env.GITHUB_REPOSITORY ?? ''
 
-    const parsed = readEvent(
-      JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH ?? '', 'utf8')) as unknown,
-      kind,
-    )
+    // event_path lets a test feed a synthetic event. A real run reads the event of the workflow.
+    const eventPath = core.getInput('event_path') || (process.env.GITHUB_EVENT_PATH ?? '')
+    const parsed = readEvent(JSON.parse(readFileSync(eventPath, 'utf8')) as unknown, kind)
     // The proof of concept runs where the request was made. A decision may name another
     // repository, and it is logged, but nothing runs there until the check of write access exists.
     if (parsed.origin.repo.toLowerCase() !== repository.toLowerCase()) {
