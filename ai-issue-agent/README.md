@@ -229,6 +229,11 @@ decision, the plan and the seconds the triage took, which is the dispatch log of
 action sets `dispatched` right after the dispatch call succeeds, before anything that can still
 fail, so a later error cannot start a second session.
 
+The dispatch call sends `X-GitHub-Api-Version: 2026-03-10`. In that version of the REST API, the
+call returns the run it started, so the outputs `run_id` and `run_url`, the `Dispatched` notice and
+the job summary link the dispatched run. When the response does not carry the run, both outputs
+stay empty and the dispatch still counts as done.
+
 The first version dispatches in the repository of the thread. A decision may name another
 execution repository, and the summary logs it, but nothing runs there until the commenter's write
 access to it is checked.

@@ -30146,18 +30146,32 @@ exports.buildContext = buildContext;
 // The dispatch call of the execution workflow. `workflow_dispatch` takes its inputs as strings, so
 // the payload travels as one JSON string and the prompt as a text, never through a shell.
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.dispatchWorkflow = void 0;
+exports.dispatchWorkflow = exports.API_VERSION = void 0;
+// REST API version 2026-03-10 answers 200 with the run it started, where 2022-11-28, the version a
+// request without the header gets, answers 204 with no body and logs a deprecation warning.
+exports.API_VERSION = '2026-03-10';
+const readRun = (data) => {
+    const body = typeof data === 'object' && data !== null ? data : {};
+    const id = body.workflow_run_id;
+    const url = body.html_url;
+    return {
+        id: typeof id === 'number' || typeof id === 'string' ? String(id) : '',
+        url: typeof url === 'string' ? url : '',
+    };
+};
 const dispatchWorkflow = async (options) => {
     const [owner = '', repo = ''] = options.repository.split('/');
     if (owner === '' || repo === '')
         throw new Error(`not a repository: ${options.repository}`);
-    await options.octokit.rest.actions.createWorkflowDispatch({
+    const response = await options.octokit.rest.actions.createWorkflowDispatch({
         owner,
         repo,
         workflow_id: options.workflow,
         ref: options.ref,
         inputs: { payload: JSON.stringify(options.payload), prompt: options.prompt },
+        headers: { 'X-GitHub-Api-Version': exports.API_VERSION },
     });
+    return readRun(response.data);
 };
 exports.dispatchWorkflow = dispatchWorkflow;
 
@@ -30233,6 +30247,8 @@ const summarize = async (plan, facts) => {
 };
 const run = async () => {
     core.setOutput('dispatched', 'false');
+    core.setOutput('run_id', '');
+    core.setOutput('run_url', '');
     try {
         const cortexPath = core.getInput('cortex_path', { required: true });
         const token = core.getInput('github_token', { required: true });
@@ -30286,7 +30302,7 @@ const run = async () => {
             owner: process.env.GITHUB_REPOSITORY_OWNER ?? '',
             serverUrl: process.env.GITHUB_SERVER_URL ?? 'https://github.com',
         });
-        await (0, dispatch_1.dispatchWorkflow)({
+        const dispatched = await (0, dispatch_1.dispatchWorkflow)({
             octokit: github.getOctokit(token),
             repository,
             workflow,
@@ -30295,17 +30311,21 @@ const run = async () => {
             prompt: plan.prompt,
         });
         core.setOutput('dispatched', 'true');
+        core.setOutput('run_id', dispatched.id);
+        core.setOutput('run_url', dispatched.url);
         const runner = JSON.stringify(plan.payload.runner);
         core.setOutput('source', plan.source);
         core.setOutput('runner', runner);
         core.setOutput('timeout_minutes', String(plan.payload.timeout_minutes));
         core.setOutput('model', String(plan.payload.model));
         core.setOutput('triage_seconds', String(triageSeconds));
-        core.notice(`Dispatched ${workflow} on ${runner}, ${String(plan.payload.timeout_minutes)} min, ${String(plan.payload.model)} (${plan.source})`);
+        const where = dispatched.url === '' ? '' : `: run ${dispatched.id}, ${dispatched.url}`;
+        core.notice(`Dispatched ${workflow} on ${runner}, ${String(plan.payload.timeout_minutes)} min, ${String(plan.payload.model)} (${plan.source})${where}`);
         try {
             const decision = result.ok ? result.decision : null;
             await summarize(plan, {
                 source: plan.source,
+                run: dispatched.url === '' ? '(unknown)' : `[${dispatched.id}](${dispatched.url})`,
                 note: plan.note === '' ? '(none)' : plan.note,
                 runner: `\`${runner}\``,
                 timeout_minutes: `\`${String(plan.payload.timeout_minutes)}\``,
