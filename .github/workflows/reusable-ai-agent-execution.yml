@@ -3,7 +3,7 @@
 # `payload` that holds every value the workflow machinery reads before the agent exists, and
 # a `prompt` that holds the request. Both are produced upstream, by a triage or by hand.
 #
-# Two jobs, deliberately. A cheap `plan` job on a small runner parses and validates the payload,
+# Two jobs, deliberately. A cheap `plan` job on ubuntu-slim parses and validates the payload,
 # because `runs-on` and `timeout-minutes` of the `agent` job cannot be computed from a JSON
 # string in the same job. The `agent` job then runs on the runner label and with the timeout
 # the payload names: mTLS tunnel, Claude Code and cortex setup, one session, the logs
@@ -42,8 +42,7 @@ on:
 jobs:
   plan:
     name: Read the dispatch payload
-    # The small flavour of ai-issue-agent/src/runners.ts: a dispatched session uses no GitHub-hosted runner.
-    runs-on: [self-hosted, small]
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     outputs:
       runs_on: ${{ steps.parse.outputs.runs_on }}

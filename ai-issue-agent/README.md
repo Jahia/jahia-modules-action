@@ -123,7 +123,7 @@ token the `add-to-project` jobs already use, not the agent account's issue token
 `.github/workflows/reusable-ai-agent-execution.yml` runs one session detached from the guard.
 A caller started by `workflow_dispatch`, such as the synced `delivery-ai-agent.yml` of
 `Jahia/.github`, passes two inputs: `payload`, a JSON object, and `prompt`, a text. The workflow
-has two jobs. The `plan` job validates the payload on the `small` runner flavour, with the
+has two jobs. The `plan` job validates the payload on `ubuntu-slim`, with the
 `parse-dispatch` action of this directory, whose tests are in `__tests__/validatePayload.test.ts`.
 The `agent` job then runs on the labels of the runner flavour and with the timeout that the payload
 names, because `runs-on` and `timeout-minutes` cannot be computed from a JSON string inside the job
