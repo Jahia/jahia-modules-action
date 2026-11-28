@@ -39,7 +39,7 @@ describe('planDispatch, a decision', () => {
     expect(plan.note).toBe('')
     expect(plan.payload).toEqual({
       version: 1,
-      runner: 'self-hosted',
+      runner: 'default',
       timeout_minutes: 30,
       model: 'sonnet',
       origin: { repository: 'Jahia/sandbox', number: 721, target: 'issue' },
@@ -50,11 +50,21 @@ describe('planDispatch, a decision', () => {
     })
   })
 
-  it('maps the small runner to its labels', () => {
-    expect(planDispatch(input({ decision: decision({ runner: 'small' }) })).payload.runner).toEqual(
-      ['self-hosted', 'small'],
+  it('passes a flavour the triage may pick by its name', () => {
+    expect(planDispatch(input({ decision: decision({ runner: 'small' }) })).payload.runner).toBe(
+      'small',
     )
   })
+
+  it.each(['ubuntu-latest', 'ubuntu-slim', 'huge'])(
+    'falls back to the defaults on the runner %p, which the triage may not pick',
+    (runner) => {
+      const plan = planDispatch(input({ decision: decision({ runner }) }))
+      expect(plan.source).toBe('fallback')
+      expect(plan.note).toContain('which the triage may not pick')
+      expect(plan.payload.runner).toBe('default')
+    },
+  )
 
   it('names the pull request target for a pull request', () => {
     const origin = { ...ORIGIN, kind: 'pull_request' as const }
@@ -140,7 +150,7 @@ describe('planDispatch, the defaults of today', () => {
     )
     expect(plan.source).toBe('fallback')
     expect(plan.note).toContain('budget_exceeded')
-    expect(plan.payload.runner).toBe('self-hosted')
+    expect(plan.payload.runner).toBe('default')
     expect(plan.payload.timeout_minutes).toBe(65)
     expect(plan.payload.model).toBe('opus')
     expect(plan.prompt.startsWith('The request, verbatim')).toBe(true)
@@ -150,7 +160,7 @@ describe('planDispatch, the defaults of today', () => {
   it('uses the defaults when the triage gave nothing', () => {
     const plan = planDispatch(input({ decision: null, defaultModel: 'sonnet' }))
     expect(plan.source).toBe('default')
-    expect(plan.payload.runner).toBe('self-hosted')
+    expect(plan.payload.runner).toBe('default')
     expect(plan.payload.model).toBe('sonnet')
     expect(plan.payload.timeout_minutes).toBe(65)
   })

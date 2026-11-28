@@ -1,3 +1,4 @@
+import { selectableRunners } from '../runners'
 import type { Origin } from './plan'
 
 // What the triage reads about a request: the thread and the comment that mentions the agent. The
@@ -67,9 +68,12 @@ export interface TriageContext {
   body: string
   request: string
   remaining_budget_seconds?: number
+  // The flavours the triage may pick, with their capacity.
+  runners: ReturnType<typeof selectableRunners>
 }
 
 export const buildContext = (parsed: ParsedEvent, remainingSeconds: number): TriageContext => ({
+  runners: selectableRunners(),
   origin: parsed.origin,
   title: parsed.title,
   labels: parsed.labels,
