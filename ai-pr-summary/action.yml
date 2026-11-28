@@ -1,0 +1,91 @@
+name: AI pull request summary
+description: Runs a Claude Code agent from the cortex harness to summarize one pull request for its reviewer, and writes the summary as a JSON file
+
+inputs:
+  target_url:
+    description: 'URL of the pull request to summarize'
+    required: true
+  github_token:
+    description: 'Token that reads the pull request, in a step before the agent. Pass a token that cannot write, such as the github.token of a job with contents: read and pull-requests: read. The agent gets no token.'
+    required: true
+  cortex_path:
+    description: 'Absolute path of the cortex checkout (from ai-agent-setup)'
+    required: true
+  model:
+    description: 'Model the agent runs on, passed to the Claude Code CLI as --model. Empty means no --model at all. Summarizing a pull request is not reasoning-heavy, so it runs on sonnet.'
+    required: false
+    default: 'sonnet'
+
+outputs:
+  summary_file:
+    description: 'Path of the JSON file {"bullets": [...]}, or empty when the run failed or wrote no valid JSON'
+    value: ${{ steps.check.outputs.summary_file }}
+
+runs:
+  using: 'composite'
+  steps:
+    # The text of a pull request can carry instructions, so the agent gets it as files and has no
+    # tool that reaches the network: no Bash, no gh, no web.
+    - name: Read the pull request
+      id: prep
+      shell: bash
+      env:
+        TARGET_URL: ${{ inputs.target_url }}
+        GH_TOKEN: ${{ inputs.github_token }}
+      run: |
+        LOG_DIR="$RUNNER_TEMP/pr-summary"
+        mkdir -p "$LOG_DIR"
+        gh pr view "$TARGET_URL" --json title,body,files > "$LOG_DIR/pull-request.json"
+        # GitHub refuses the diff of a very large pull request, and the agent then works from the files
+        gh pr diff "$TARGET_URL" > "$LOG_DIR/pull-request.diff" \
+          || echo "::warning::GitHub returned no diff for $TARGET_URL"
+        LOG_DIR="$LOG_DIR" python3 -c '
+        import os, sys
+        text = open(sys.argv[1]).read()
+        log_dir = os.environ["LOG_DIR"]
+        for key, value in (("LOG_DIR", log_dir), ("OUTPUT_FILE", log_dir + "/summary.json")):
+            text = text.replace("__" + key + "__", value)
+        open(sys.argv[2], "w").write(text)
+        ' "$GITHUB_ACTION_PATH/prompt.md" "$LOG_DIR/prompt.md"
+        echo "log_dir=$LOG_DIR" >> "$GITHUB_OUTPUT"
+
+    # A failed run must not fail the job: the notification then shows its failure line.
+    - name: Run the summary agent
+      shell: bash
+      working-directory: ${{ inputs.cortex_path }}
+      env:
+        AGENT_MODEL: ${{ inputs.model }}
+        LOG_DIR: ${{ steps.prep.outputs.log_dir }}
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        MODEL_FLAG=""
+        [ -n "$AGENT_MODEL" ] && MODEL_FLAG="--model $AGENT_MODEL"
+        # --add-dir lets the agent read the log dir. The one allowed write is the summary file, and
+        # an absolute path in a rule opens on //.
+        claude -p "$(cat "$LOG_DIR/prompt.md")" \
+          --allowedTools "Edit(/$LOG_DIR/summary.json)" \
+          --disallowedTools "Bash,WebFetch,WebSearch,NotebookEdit,mcp__*" \
+          --add-dir "$LOG_DIR" \
+          --permission-mode dontAsk \
+          --output-format stream-json \
+          --verbose $MODEL_FLAG \
+          > "$LOG_DIR/stream.jsonl" 2> "$LOG_DIR/stderr.log" \
+          || echo "::warning::The summary agent exited with code $?"
+
+    - name: Check the summary file
+      id: check
+      if: always()
+      shell: bash
+      env:
+        SUMMARY_FILE: ${{ steps.prep.outputs.log_dir }}/summary.json
+      run: |
+        if python3 -c '
+        import json, sys
+        data = json.load(open(sys.argv[1]))
+        assert isinstance(data["bullets"], list)
+        ' "$SUMMARY_FILE" 2>/dev/null; then
+          echo "summary_file=$SUMMARY_FILE" >> "$GITHUB_OUTPUT"
+        else
+          echo "::warning::The agent wrote no valid summary JSON"
+          echo "summary_file=" >> "$GITHUB_OUTPUT"
+        fi
