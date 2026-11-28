@@ -55,14 +55,27 @@ The agent runs the `ci` mode of the Cortex skill `pr-review`. The prompt is one 
 that skill:
 
 ```text
-/pr-review ci <pr-url> --context <dir> --out <file> --marker <marker> --run-url <url> --agent <label> --collect <dir>
+/pr-review ci <pr-url> --context <dir> --out <file> --marker <marker> --run-url <url> --agent <label> --collect <dir> [--round <n>]
 ```
 
 Cortex owns the review: the method, the lenses, the decision rules and the shape of the review
 file. The skill states them in `.claude/skills/pr-review/references/ci.md`. This action owns the
 CI: the trigger, the pre-fetch of the context, the allowlist, the post, the label, the logs and the
 artifacts. `src/build-prompt.py` writes the call, and states the allowlist to the agent through
-`--append-system-prompt`.
+`--append-system-prompt`. The prep step passes these variables to `src/build-prompt.py`:
+
+| Variable | Value |
+|---|---|
+| `PR_URL` | The URL of the pull request to review. |
+| `MARKER` | The hidden marker, which opens the body of the review. |
+| `AGENT` | The CLI and the model of the agent, which the review names. |
+| `RUN_URL` | The URL of the workflow run of the review. |
+| `REVIEW_ROUND` | The round that the run records, from the trail `Review Logs`. An empty value records no round. |
+| `CORTEX_PATH` | The cortex checkout, which is the working directory of the agent. |
+| `CHECKOUT` | The checkout of the pull request under `sources/` of the cortex checkout. An empty value adds no git rule. |
+| `REVIEWED_SHA` | The head of the pull request that the review reads. |
+| `ALLOWED_TOOLS` | The input `allowed_tools`, to which the script adds the allow rules that name a path of the run. |
+| `DISALLOWED_TOOLS` | The input `disallowed_tools`, to which the script adds the deny rules that name a path of the run. |
 
 The review file is a versioned contract, which `.claude/skills/pr-review/assets/ci-review.md` of
 Cortex states. Its field `contract` names the version, and `src/submit-review.py` refuses a version
@@ -273,14 +286,15 @@ path rule of Edit applies to the `Write` tool and to the target of a Bash redire
 rule names the absolute path, because Claude Code 2.1.325 matches `Edit(./**)` in the `--add-dir`
 log directory as well, so a list that carries `Edit(./**)` denies the write of the review file.
 The script stops when the log directory is inside the cortex checkout, where its deny rule would
-cover it. `src/build-prompt.py` adds the three allow rules that name a path of the run. Two
+cover it. `src/build-prompt.py` adds three allow rules that name a path of the run, and the five
+git reads of the checkout that a paragraph below states. Two
 write rules name the directory of the review file and the `--collect` directory, both in the log
 directory outside the checkout, such as
 `Edit(//home/runner/work/_temp/pr-review-logs/reviews/**)` on a GitHub-hosted runner. The third
 rule admits `python3 -m json.tool` on the review file alone, the check that the `ci` mode runs.
-The allow list of the action holds no command that writes a file on its own, except
-`tools/pr-review/bin/pr-review record`, which writes the trace of the round under the cortex
-checkout.
+The allow list of the action holds no command that writes a file on its own, with two exceptions.
+`tools/pr-review/bin/pr-review record` writes the trace of the round under the cortex checkout,
+and the five git reads of the checkout write the blobs that they fetch into its `.git`.
 `--permission-mode dontAsk` denies everything not explicitly allowed. The submit step posts
 `APPROVE` only under the five conditions that the opening of this README states. The `ci` mode of the skill
 has the agent treat PR content (title, description, code, comments) as data, never as
@@ -288,19 +302,20 @@ instructions, and flag prompt-injection attempts as findings.
 
 The one Cortex tool that the allowlist grants is `tools/pr-review/bin/pr-review`, with four
 verbs. The `ci` mode runs `lenses` to choose its lenses, and `number-lines` to print the diff with
-each row of a hunk behind its line in the head version. It runs `render` to write the inline
+each kept row of a hunk behind its line in the head version and a removed row behind an empty
+column. It runs `render` to write the inline
 comments of the review file from its findings and the diff. These three verbs read files and print.
 It runs `record` to keep its round in the trace of the pull request, under the cortex checkout. The
 tool starts through `mise exec`, so the runner needs mise, as [`ai-agent-setup`](../ai-agent-setup)
 installs it.
 
-With a checkout of the pull request, `src/build-prompt.py` allows the five git reads of the
-inspectors of Cortex. Each read is `git -C <checkout>` followed by `diff`, `log`, `show`, `grep` or
-`blame`. Each rule names the literal path of the checkout, as the `README.md` of the context names
-it, such as `Bash(git -C /home/runner/work/foo/foo/cortex/sources/bar log:*)`. A `*` in place of the
-path would also match a global option before the subcommand, and `-c core.fsmonitor=<program>`
-makes git run that program. The script also adds the deny rules that fence these reads, whatever
-list the caller passes:
+With a checkout at the reviewed head of the pull request, `src/build-prompt.py` allows the five git
+reads of the inspectors of Cortex. Each read is `git -C <checkout>` followed by `diff`, `log`,
+`show`, `grep` or `blame`. Each rule names the literal path of the checkout, as the `README.md` of
+the context names it, such as `Bash(git -C /home/runner/work/foo/foo/cortex/sources/bar log:*)`. A
+`*` in place of the path would also match a global option before the subcommand, and
+`-c core.fsmonitor=<program>` makes git run that program. The script also adds the deny rules that
+fence these reads, whatever list the caller passes:
 
 - `--output` anywhere in the command, because this option writes the diff to a file.
 - An uppercase `O` or `--op` in a `git grep`. The option `-O<program>` opens the matching files with
@@ -309,13 +324,37 @@ list the caller passes:
 - A quote, a backslash, `$`, a backtick or a brace. The shell turns each of them into an option
   that the text of the command hides from the two fences above.
 
+The script adds no git rule, prints a warning, and states the reason in the system prompt, in two
+cases:
+
+- The run cannot show that the checkout is at the reviewed head. The checkout can be at another
+  commit after a failed fetch of the head. A checkout directory with no repository of its own gives
+  git the head of an enclosing repository. Git can also fail to read the head of the checkout, or
+  the pre-fetch step can read no reviewed head. The system prompt then tells the agent to review
+  none of the files of the checkout.
+- The path of the checkout holds a character other than an ASCII letter, an ASCII digit or one of
+  `._/@+-`, such as a space. The agent then reads the files of the checkout with Read, Grep and
+  Glob.
+
+The pre-fetch step can make no checkout when `prefetch_checkout` is true. The prep step then
+prints a warning, and the system prompt states that the run has no checkout.
+
+The clone is blobless, so `blame`, `log -p` and a `show` of an older commit fetch each older file
+from GitHub, one by one. The system prompt states the fences to the main agent, but
+`.claude/agents/review-inspector.md` of Cortex does not state them. So an inspector can meet a
+refusal on a `git grep` with a quoted pattern.
+
 The prep step creates the checkout, and a pull request cannot set its git configuration. So
-`--ext-diff` and `--textconv` find no program of the pull request. Each `git -C` write of the deny
-list carries two rules, such as `git -C * push *` and `git -C * push`. A rule that mixes a `*` with
-the trailing `:*`, such as `git -C * push:*`, is a literal prefix and matches no command. These
-write rules also refuse a git read with `push`, `commit`, `switch`, `checkout`, `reset` or `remote`
-as a word of its arguments, such as `git -C <checkout> grep -n checkout`. A rule matches the text of
-a command, and Claude Code documents that a deny rule is no security boundary.
+`--ext-diff` and `--textconv` find no program of the pull request.
+
+Each `git -C` write of the deny list carries two rules, such as `git -C * push *` and
+`git -C * push`. A rule that mixes a `*` with the trailing `:*`, such as `git -C * push:*`, is a
+literal prefix and matches no command. The script prints a warning for each such rule of the two
+lists. These write rules also refuse a git read with `push`, `commit`, `switch`, `checkout`,
+`reset` or `remote` as a word of its arguments, such as `git -C <checkout> grep -n checkout`. The
+system prompt names each word that such a rule refuses, so the agent searches it with the Grep tool.
+A rule matches the text of a command, and Claude Code documents that a deny rule is no security
+boundary.
 
 Each review adds a row to the trail `Review Logs` of the pull request, one comment that a session
 of a developer and this action both edit, and each row names its reviewer. A runner keeps no trace

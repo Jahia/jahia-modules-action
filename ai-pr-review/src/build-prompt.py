@@ -1,45 +1,27 @@
 """Build the call of the Cortex skill pr-review, in its ci mode, for ONE pull request.
 
-Usage: build-prompt.py <log-dir>
-Env:   PR_URL            - URL of the pull request to review
-       MARKER            - hidden marker string, the first line of the review body
-       AGENT             - human-readable identity of the agent (CLI + model)
-       RUN_URL           - URL of the workflow run performing this review
-       REVIEW_ROUND      - optional: the round that the run records, read from the trail
-                           Review Logs of the pull request; empty records no round
-       CORTEX_PATH       - the cortex checkout, the working directory of the agent, which
-                           holds the checkout of the pull request under sources/
-       CHECKOUT          - optional: the checkout of the pull request, as the prep step and
-                           the README of the context name it; empty adds no git rule
-       ALLOWED_TOOLS     - the allowed_tools input, to which this script adds the rules
-                           that name a path of this run
-       DISALLOWED_TOOLS  - the disallowed_tools input, to which this script adds the deny
-                           rules that name a path of this run
+Usage: build-prompt.py <log-dir>, with the environment that the prep step of action.yml sets.
 
-Cortex owns the review: its method, its decision rules and the shape of the review file
-(`.claude/skills/pr-review/references/ci.md` and `assets/ci-review.md` in Jahia/cortex).
-This action owns the CI around it, so the prompt is one line, the call of that skill:
-
-    /pr-review ci <pr-url> --context <dir> --out <file> --marker <marker>
-                           --run-url <url> --agent <label> --collect <dir> [--round <n>]
-
-The tool surface is the one thing the action still tells the agent, because the action
-decides it. It is rendered from the very strings the run passes to the CLI, so the text and
-the flags cannot drift apart, and it goes to --append-system-prompt.
-
-The agent never posts to GitHub itself: it writes the review file
-<log-dir>/reviews/pr-<key>.review.json, and posting it (when post_review is true) is a
-deterministic step of the action.
-
-Writes <log-dir>/review.prompt.md (the call), <log-dir>/review.system.md (the tool
-surface), <log-dir>/allowed-tools.txt (the --allowedTools value) and
-<log-dir>/disallowed-tools.txt (the --disallowedTools value), then prints the PR key
-(owner-repo-number, used for file names) to stdout.
+It writes review.prompt.md (the call), review.system.md (the tool surface), allowed-tools.txt
+and disallowed-tools.txt in <log-dir>, then prints the PR key (owner-repo-number), which names
+the files of the run. README.md states the variables it reads, the call, and each permission rule
+that it adds.
 """
 import os
 import re
 import shlex
+import subprocess
 import sys
+
+# The commands that `.claude/agents/review-inspector.md` of Cortex runs in the checkout.
+GIT_READS = ('diff', 'log', 'show', 'grep', 'blame')
+# Claude Code reads this run of backslashes in a rule as a single backslash of the command.
+BACKSLASH = '\\' * 4
+GIT_FENCES = ('*--output*', 'grep *O*', 'grep *--op*', "*'*", '*"*', f'*{BACKSLASH}*', '*$*', '*`*', '*{*')
+# The characters of a checkout path that the git rules accept: none of them needs a quote or a backslash.
+TYPABLE_PATH = re.compile(r'[A-Za-z0-9._/@+-]+')
+# A deny rule such as `git -C * push *` refuses a `git -C` read that has the word `push` as an argument.
+DENIED_GIT_WORD = re.compile(r'Bash\(git -C \* ([^\s*)]+)(?: \*)?\)')
 
 log_dir = os.path.realpath(sys.argv[1])
 pr_url = os.environ['PR_URL']
@@ -107,27 +89,39 @@ def split_tools(value):
     return plain, shell
 
 
+def compare_head(path: str, reviewed_sha: str) -> str:
+    if not reviewed_sha:
+        return 'the pre-fetch step read no reviewed head'
+    result = subprocess.run(['git', '-C', path, 'rev-parse', '--show-toplevel', '--verify', 'HEAD'],
+                            capture_output=True, text=True)
+    if result.returncode:
+        lines = [line.strip() for line in result.stderr.splitlines() if line.strip()]
+        errors = [line for line in lines if line.startswith(('fatal:', 'error:'))]
+        error = (errors or lines or [f'exit code {result.returncode}'])[-1]
+        return f'git cannot read the head of the checkout {path}: {error}'
+    top, _, head = result.stdout.rstrip('\n').rpartition('\n')
+    # git searches the parent directories, so a plain directory gives the head of an enclosing repository.
+    if os.path.realpath(top) != os.path.realpath(path):
+        return f'the checkout {path} is no repository of its own: git reads the one at {top}'
+    if head != reviewed_sha:
+        return f'the checkout {path} is at {head}, not at the reviewed head {reviewed_sha}'
+    return ''
+
+
 # The checkout path as the README of the context names it, which is the text the agent types.
 checkout = os.environ.get('CHECKOUT', '')
-# The commands that `.claude/agents/review-inspector.md` of Cortex runs in the checkout.
-GIT_READS = ('diff', 'log', 'show', 'grep', 'blame')
-# The literal path leaves no `*` before the subcommand, where a global option such as
-# `-c core.fsmonitor=<program>` would run a program.
-git_allowed = [f'Bash(git -C {checkout} {verb}:*)' for verb in GIT_READS] if checkout else []
-# Each fence closes a spelling, after the subcommand, that writes a file or runs a program:
-# `--output` writes the diff to a file, and `git grep -O<program>` opens the matching files
-# with a program, alone or in a bundle such as `-lO<program>`, and `--op` abbreviates
-# `--open-files-in-pager`. The shell turns a quote, a backslash, `$`, a backtick or a brace
-# into such an option, which the text of the command then hides from the fences.
-# Claude Code matches one backslash with four in a rule.
-git_denied = [f'Bash(git -C {checkout} {rest})' for rest in (
-    '*--output*', 'grep *O*', 'grep *--op*',
-    "*'*", '*"*', '*\\\\\\\\*', '*$*', '*`*', '*{*',
-)] if checkout else []
+head_mismatch = compare_head(checkout, os.environ.get('REVIEWED_SHA', '')) if checkout else ''
+typable = TYPABLE_PATH.fullmatch(checkout) is not None
+if head_mismatch:
+    print(f'::warning title=No git reads::{head_mismatch}', file=sys.stderr)
+elif checkout and not typable:
+    print(f'::warning title=No git reads::the agent cannot type the checkout path {checkout}', file=sys.stderr)
+allow_git_reads = bool(checkout) and typable and not head_mismatch
+# A literal path, because a `*` before the subcommand matches a global option that runs a program.
+git_allowed = [f'Bash(git -C {checkout} {verb}:*)' for verb in GIT_READS] if allow_git_reads else []
+git_denied = [f'Bash(git -C {checkout} {fence})' for fence in GIT_FENCES] if allow_git_reads else []
 
-# The rules that name a path of this run: the two directories the agent writes in, the
-# check of the review file that the ci mode runs, and the git reads of the checkout. `/` +
-# an absolute path gives the `//<path>` form that Claude Code reads from the filesystem root.
+# `/` and an absolute path give the `//<path>` form, which Claude Code reads from the filesystem root.
 allowed_tools = ','.join(filter(None, [
     os.environ.get('ALLOWED_TOOLS', ''),
     f'Edit(/{reviews_dir}/**)',
@@ -136,17 +130,18 @@ allowed_tools = ','.join(filter(None, [
     *git_allowed,
 ]))
 allowed_plain, allowed_shell = split_tools(allowed_tools)
-# The deny rule of the cortex checkout, the working directory of the agent, which holds the
-# checkout of the pull request under sources/. A path rule of Edit applies to Write and to the
-# target of a shell redirection too. It names the absolute path, because Claude Code 2.1.325
-# matches `Edit(./**)` in an --add-dir directory as well, the log directory included. The
-# fences of the git reads follow it, whatever list the caller passes.
+# An absolute path, because Claude Code 2.1.325 matches `Edit(./**)` in an --add-dir directory too.
 disallowed_tools = ','.join(filter(None, [
     os.environ.get('DISALLOWED_TOOLS', ''),
     f'Edit(/{cortex_path}/**)',
     *git_denied,
 ]))
 denied_plain, denied_shell = split_tools(disallowed_tools)
+denied_shell = [command.replace(BACKSLASH, '\\') for command in denied_shell]
+denied_git_words = list(dict.fromkeys(DENIED_GIT_WORD.findall(disallowed_tools)))
+# Claude Code reads a rule that mixes a `*` with the trailing `:*` as a prefix that matches nothing.
+for rule in re.findall(r'Bash\([^)]*\*[^)]*:\*\)', f'{allowed_tools},{disallowed_tools}'):
+    print(f'::warning title=Dead permission rule::{rule} matches no command', file=sys.stderr)
 
 
 def bullets(commands):
@@ -199,12 +194,33 @@ surface += [
     '- cortex denies `cd`, and it is not on the list above, so a directory is reached by',
     '  naming it: Read, Grep and Glob all take an absolute path.',
 ]
-if checkout:
+if allow_git_reads:
     surface += [
         f'  `git` runs in the pre-fetched checkout only as `git -C {checkout}`, with the path',
         '  written exactly so, followed by `diff`, `log`, `show`, `grep` or `blame`. Such a',
         '  command holds no quote, backslash, `$`, backtick or brace, and a `git grep` holds no',
         '  uppercase `O`, so search the files with Grep.',
+    ]
+    if denied_git_words:
+        surface += [
+            '  The deny list can also refuse a `git -C` read that has one of these words as an argument,',
+            f"  so search such a word with Grep: {', '.join(f'`{word}`' for word in denied_git_words)}.",
+        ]
+    surface += [
+        '  The clone is blobless, so `blame`, `log -p` and a `show` of an older commit fetch each',
+        '  older file from GitHub, one by one: read `diff.patch` first.',
+    ]
+elif head_mismatch:
+    surface += [
+        f'  `git` reads no pull request: the run cannot show that the checkout at `{checkout}`',
+        '  is at the reviewed head, so review none of its files. Read the change and its history',
+        '  from `diff.patch` and `pr.json` instead.',
+    ]
+elif checkout:
+    surface += [
+        f'  `git` cannot run in the checkout at `{checkout}`, because no command of the list',
+        '  can carry its path. Read, Grep and Glob open its files, at the reviewed head. Read the',
+        '  history from `diff.patch` and `pr.json`.',
     ]
 else:
     surface += [
